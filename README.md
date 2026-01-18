@@ -176,12 +176,15 @@ python tools/quantize_imc22.py
 ## 📚 文档
 
 - [🎨 GUI配置器使用指南](docs/GUI_USER_GUIDE.md) - 可视化配置教程
+- [🤖 ROS 2快速入门](docs/ROS2_QUICK_START.md) - ROS 2集成使用指南
 - [新手入门教程](docs/BEGINNER_TUTORIAL.md) - 从0开始
 - [快速入门指南](GETTING_STARTED.md)
 - [完整功能清单](docs/COMPLETE_FEATURES.md)
+- [ROS 2集成设计](docs/ROS2_INTEGRATION_DESIGN.md) - 技术设计文档
 - [IMC-22集成workflow](docs/IMC22_WORKFLOW.md)
 - [CV数据生成方案](docs/CV_IMPLEMENTATION_PLAN.md)
 - [API文档](docs/API_REFERENCE.md)
+- [ROS 2集成指南](docs/ROS2_INTEGRATION.md)
 
 ---
 
