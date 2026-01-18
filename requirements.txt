@@ -11,3 +11,4 @@ pyserial>=3.5
 keyboard>=0.13.5
 stable-baselines3>=1.5.0
 h5py>=3.1.0
+d3rlpy>=1.1.1
