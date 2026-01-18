@@ -1,0 +1,31 @@
+# AGI-Walker ROS 2 Bridge节点参数配置
+
+/agi_walker_bridge:
+  ros__parameters:
+    # Godot连接参数
+    godot_host: "127.0.0.1"
+    godot_port: 9999
+    reconnect_timeout: 5.0
+
+    # 发布频率 (Hz)
+    joint_state_rate: 50.0
+    robot_state_rate: 20.0
+    tf_rate: 50.0
+
+    # 控制参数
+    motor_power_multiplier: 1.0
+    joint_stiffness: 1.0
+    joint_damping: 0.5
+    balance_gain: 1.0
+
+    # PID参数
+    pid_kp: 1.0
+    pid_ki: 0.0
+    pid_kd: 0.1
+
+    # 机器人配置
+    robot_name: "default_robot"
+
+    # 调试选项
+    debug: false
+    verbose: false
