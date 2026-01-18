@@ -603,24 +603,54 @@ class PropertiesPanel(ttk.Frame):
 
 
 class FeedbackPanel(ttk.Frame):
-    """数据反馈面板"""
+    """数据反馈面板（支持真实Godot仿真）"""
     
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
+        self.godot_client = None
+        self.simulation_running = False
         
         # 标题
         ttk.Label(self, text="仿真反馈", font=('Arial', 12, 'bold')).pack()
         
-        # 控制按钮
+        # Godot连接控制
+        connect_frame = ttk.LabelFrame(self, text="Godot连接")
+        connect_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        conn_ctrl_frame = ttk.Frame(connect_frame)
+        conn_ctrl_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        ttk.Label(conn_ctrl_frame, text="地址:").pack(side=tk.LEFT)
+        self.host_var = tk.StringVar(value="127.0.0.1")
+        ttk.Entry(conn_ctrl_frame, textvariable=self.host_var, width=12).pack(side=tk.LEFT, padx=2)
+        
+        ttk.Label(conn_ctrl_frame, text="端口:").pack(side=tk.LEFT, padx=5)
+        self.port_var = tk.StringVar(value="9999")
+        ttk.Entry(conn_ctrl_frame, textvariable=self.port_var, width=6).pack(side=tk.LEFT, padx=2)
+        
+        self.connect_btn = ttk.Button(conn_ctrl_frame, text="🔌 连接", command=self.toggle_connection)
+        self.connect_btn.pack(side=tk.LEFT, padx=5)
+        
+        self.conn_status_label = ttk.Label(conn_ctrl_frame, text="● 未连接", foreground='gray')
+        self.conn_status_label.pack(side=tk.LEFT, padx=5)
+        
+        # 仿真控制
         control_frame = ttk.Frame(self)
         control_frame.pack(fill=tk.X, padx=5, pady=5)
         
-        self.start_btn = ttk.Button(control_frame, text="▶️ 启动仿真", command=self.start_simulation)
+        self.start_btn = ttk.Button(control_frame, text="▶️ 启动仿真", command=self.start_simulation, state=tk.DISABLED)
         self.start_btn.pack(side=tk.LEFT, padx=2)
         
         self.stop_btn = ttk.Button(control_frame, text="⏹️ 停止", command=self.stop_simulation, state=tk.DISABLED)
         self.stop_btn.pack(side=tk.LEFT, padx=2)
+        
+        ttk.Button(control_frame, text="🔄 同步参数", command=self.sync_parameters).pack(side=tk.LEFT, padx=2)
+        
+        # 模式切换
+        self.mode_var = tk.StringVar(value="godot")
+        ttk.Radiobutton(control_frame, text="Godot", variable=self.mode_var, value="godot").pack(side=tk.LEFT, padx=5)
+        ttk.Radiobutton(control_frame, text="模拟", variable=self.mode_var, value="mock").pack(side=tk.LEFT)
         
         # 状态显示
         status_frame = ttk.Frame(self)
@@ -648,6 +678,7 @@ class FeedbackPanel(ttk.Frame):
         self.ax.set_title("实时数据")
         self.ax.set_xlabel("时间 (s)")
         self.ax.set_ylabel("位置 (m)")
+        self.ax.grid(True)
         
         self.canvas = FigureCanvasTkAgg(self.fig, self)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
@@ -655,25 +686,199 @@ class FeedbackPanel(ttk.Frame):
         # 数据缓冲
         self.time_data = []
         self.position_data = []
+        self.start_time = None
+        
+    def toggle_connection(self):
+        """切换Godot连接"""
+        if self.godot_client and self.godot_client.is_connected():
+            # 断开连接
+            self.godot_client.disconnect()
+            self.godot_client = None
+            self.connect_btn.config(text="🔌 连接")
+            self.conn_status_label.config(text="● 未连接", foreground='gray')
+            self.start_btn.config(state=tk.DISABLED)
+        else:
+            # 连接到Godot
+            if GodotSimulationClient is None:
+                messagebox.showerror("错误", "Godot客户端模块未安装\n\n请查看 docs/GODOT_INTEGRATION_GUIDE.md")
+                return
+                
+            host = self.host_var.get()
+            try:
+                port = int(self.port_var.get())
+            except ValueError:
+                messagebox.showerror("错误", "端口必须是数字")
+                return
+            
+            self.status_label.config(text="正在连接...", foreground='orange')
+            self.conn_status_label.config(text="● 连接中...", foreground='orange')
+            
+            # 在后台线程连接
+            def do_connect():
+                self.godot_client = GodotSimulationClient(host, port)
+                self.godot_client.set_data_callback(self.on_godot_data)
+                
+                success = self.godot_client.connect(timeout=3.0)
+                
+                # 回到主线程更新UI
+                self.after(0, lambda: self.on_connect_result(success))
+            
+            thread = threading.Thread(target=do_connect, daemon=True)
+            thread.start()
+    
+    def on_connect_result(self, success):
+        """连接结果回调"""
+        if success:
+            self.connect_btn.config(text="🔌 断开")
+            self.conn_status_label.config(text="● 已连接", foreground='green')
+            self.status_label.config(text="状态: 已连接到Godot", foreground='green')
+            self.start_btn.config(state=tk.NORMAL)
+            
+            messagebox.showinfo("成功", f"已连接到Godot服务器\n{self.host_var.get()}:{self.port_var.get()}")
+        else:
+            self.godot_client = None
+            self.conn_status_label.config(text="● 失败", foreground='red')
+            self.status_label.config(text="状态: 连接失败", foreground='red')
+            
+            messagebox.showerror(
+                "连接失败",
+                "无法连接到Godot服务器\n\n请确保：\n1. Godot已启动\n2. TCP服务器已运行\n3. 地址和端口正确\n\n详见: docs/GODOT_INTEGRATION_GUIDE.md"
+            )
         
     def start_simulation(self):
         """启动仿真"""
-        self.start_btn.config(state=tk.DISABLED)
-        self.stop_btn.config(state=tk.NORMAL)
-        self.status_label.config(text="状态: 运行中", foreground='green')
+        mode = self.mode_var.get()
         
-        # 模拟数据更新
-        self.update_simulation()
+        if mode == "godot":
+            # Godot模式
+            if not self.godot_client or not self.godot_client.is_connected():
+                messagebox.showwarning("警告", "请先连接到Godot")
+                return
+            
+            # 收集机器人配置
+            robot_config = self.get_robot_config()
+            
+            # 发送启动命令
+            success = self.godot_client.start_simulation(robot_config)
+            
+            if success:
+                self.simulation_running = True
+                self.start_btn.config(state=tk.DISABLED)
+                self.stop_btn.config(state=tk.NORMAL)
+                self.status_label.config(text="状态: Godot仿真中", foreground='green')
+                
+                # 清空数据
+                self.time_data.clear()
+                self.position_data.clear()
+                self.start_time = None
+            else:
+                messagebox.showerror("错误", "启动仿真失败")
+        else:
+            # 模拟模式
+            self.simulation_running = True
+            self.start_btn.config(state=tk.DISABLED)
+            self.stop_btn.config(state=tk.NORMAL)
+            self.status_label.config(text="状态: 模拟运行中", foreground='green')
+            
+            # 清空数据
+            self.time_data.clear()
+            self.position_data.clear()
+            
+            # 启动模拟更新
+            self.update_mock_simulation()
         
     def stop_simulation(self):
         """停止仿真"""
+        if self.godot_client and self.mode_var.get() == "godot":
+            self.godot_client.stop_simulation()
+        
+        self.simulation_running = False
         self.start_btn.config(state=tk.NORMAL)
         self.stop_btn.config(state=tk.DISABLED)
         self.status_label.config(text="状态: 已停止", foreground='red')
         
-    def update_simulation(self):
-        """更新仿真数据（模拟）"""
-        if self.stop_btn['state'] == tk.NORMAL:
+    def sync_parameters(self):
+        """同步参数到Godot"""
+        if not self.godot_client or not self.godot_client.is_connected():
+            messagebox.showwarning("警告", "请先连接到Godot")
+            return
+        
+        # TODO: 从属性面板获取实际参数
+        params = {
+            'motor_power_multiplier': 1.0,
+            'joint_stiffness': 1.0,
+            'joint_damping': 0.5
+        }
+        
+        success = self.godot_client.update_parameters(params)
+        if success:
+            self.status_label.config(text="参数已同步", foreground='green')
+        else:
+            messagebox.showerror("错误", "参数同步失败")
+    
+    def get_robot_config(self):
+        """从画布获取机器人配置"""
+        parts = []
+        for node_id, node in self.app.canvas_panel.nodes.items():
+            parts.append({
+                'id': node_id,
+                'type': node.part_data.get('id', ''),
+                'model': node.part_data.get('model', ''),
+                'position': [node.x, node.y]
+            })
+        
+        connections = []
+        for conn in self.app.canvas_panel.connections:
+            connections.append({
+                'from': conn['from'],
+                'to': conn['to']
+            })
+        
+        return {
+            'parts': parts,
+            'connections': connections
+        }
+    
+    def on_godot_data(self, data):
+        """接收Godot数据的回调（在后台线程调用）"""
+        # 调度到主线程更新UI
+        self.after(0, lambda: self.update_display(data))
+    
+    def update_display(self, data):
+        """更新显示（在主线程）"""
+        if data.get('type') == 'simulation_data':
+            # 提取数据
+            pos = data.get('position', 0)
+            vel = data.get('velocity', 0)
+            bat = data.get('battery', 100)
+            timestamp = data.get('timestamp', time.time())
+            
+            # 添加到缓冲
+            if self.start_time is None:
+                self.start_time = timestamp
+            t = timestamp - self.start_time
+            
+            self.time_data.append(t)
+            self.position_data.append(pos)
+            
+            # 更新标签
+            self.position_label.config(text=f"位置: {pos:.2f}m")
+            self.velocity_label.config(text=f"速度: {vel:.2f}m/s")
+            self.battery_label.config(text=f"电量: {bat:.1f}%")
+            
+            # 更新图表
+            self.ax.clear()
+            self.ax.plot(self.time_data, self.position_data, 'b-', label='位置')
+            self.ax.set_title("实时数据（Godot）")
+            self.ax.set_xlabel("时间 (s)")
+            self.ax.set_ylabel("位置 (m)")
+            self.ax.grid(True)
+            self.ax.legend()
+            self.canvas.draw()
+    
+    def update_mock_simulation(self):
+        """更新模拟数据"""
+        if self.stop_btn['state'] == tk.NORMAL and self.mode_var.get() == "mock":
             import random
             
             # 模拟数据
@@ -692,15 +897,16 @@ class FeedbackPanel(ttk.Frame):
             
             # 更新图表
             self.ax.clear()
-            self.ax.plot(self.time_data, self.position_data, 'b-')
-            self.ax.set_title("实时位置")
+            self.ax.plot(self.time_data, self.position_data, 'g-', label='位置（模拟）')
+            self.ax.set_title("实时数据（模拟）")
             self.ax.set_xlabel("时间 (s)")
             self.ax.set_ylabel("位置 (m)")
             self.ax.grid(True)
+            self.ax.legend()
             self.canvas.draw()
             
             # 继续更新
-            self.after(100, self.update_simulation)
+            self.after(100, self.update_mock_simulation)
 
 
 class RobotConfiguratorGUI:
