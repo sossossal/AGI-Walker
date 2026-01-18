@@ -1,0 +1,42 @@
+{
+    "part_id": "dynamixel_xl430_w250",
+    "category": "actuator_servo",
+    "manufacturer": "ROBOTIS",
+    "model": "XL430-W250-T",
+    "specifications": {
+        "stall_torque": 1.4,
+        "no_load_speed": 50,
+        "weight": 0.057,
+        "dimensions": [
+            28.5,
+            46.5,
+            34
+        ],
+        "gear_ratio": 257.4,
+        "max_current": 1.4,
+        "voltage_range": [
+            6.5,
+            12.0
+        ],
+        "resolution": 4096,
+        "rotor_inertia": 3.5e-6,
+        "friction": {
+            "static": 0.015,
+            "dynamic": 0.008,
+            "viscous": 0.001
+        },
+        "thermal": {
+            "resistance": 25.0,
+            "time_constant": 1200,
+            "max_winding_temp": 125
+        },
+        "motor_constant": 0.0108,
+        "back_emf_constant": 0.0108,
+        "winding_resistance": 8.4
+    },
+    "model_path": "res://parts_library/motors/dynamixel/xl430_w250.glb",
+    "control_interface": "TTL",
+    "price_usd": 69.90,
+    "datasheet_url": "https://emanual.robotis.com/docs/en/dxl/x/xl430-w250/",
+    "notes": "高性价比的小型舵机，适用于轻量级机器人关节。支持 Protocol 2.0，可实现位置、速度、扭矩多模式控制。"
+}

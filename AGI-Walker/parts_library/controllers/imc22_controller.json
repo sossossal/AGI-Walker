@@ -1,0 +1,100 @@
+{
+    "part_id": "imc22_reflex_controller",
+    "category": "controller",
+    "manufacturer": "Custom",
+    "model": "IMC-22 Reflex",
+    "description": "基于 RISC-V + NPU 的分布式反射控制器，用于机器人关节控制",
+    "specifications": {
+        "cpu": {
+            "architecture": "RISC-V RV32IMAC",
+            "frequency_mhz": 200,
+            "cores": 1
+        },
+        "memory": {
+            "sram_kb": 512,
+            "flash_kb": 2048,
+            "npu_sram_kb": 128
+        },
+        "npu": {
+            "type": "In-Memory Computing",
+            "data_types": [
+                "INT8",
+                "FP16",
+                "FP32"
+            ],
+            "inference_time_us": 50,
+            "power_mw": 100
+        },
+        "interfaces": {
+            "can": {
+                "standard": "CAN-FD",
+                "max_baudrate_mbps": 5,
+                "channels": 1
+            },
+            "spi": {
+                "channels": 2,
+                "max_speed_mbps": 20
+            },
+            "pwm": {
+                "channels": 4,
+                "resolution_bits": 12,
+                "max_frequency_khz": 100
+            },
+            "adc": {
+                "channels": 8,
+                "resolution_bits": 12,
+                "max_sample_rate_ksps": 1000
+            }
+        },
+        "control_loop": {
+            "frequency_hz": 1000,
+            "max_latency_us": 100
+        },
+        "power": {
+            "voltage_v": 3.3,
+            "idle_current_ma": 50,
+            "active_current_ma": 150,
+            "peak_current_ma": 200
+        },
+        "physical": {
+            "package": "QFN64",
+            "dimensions_mm": [
+                9,
+                9,
+                1
+            ],
+            "weight_g": 0.5,
+            "operating_temp_c": [
+                -40,
+                85
+            ]
+        }
+    },
+    "price_usd": 15,
+    "availability": "prototype",
+    "datasheet_url": "https://github.com/your-repo/hive-reflex/blob/main/docs/IMC22_Datasheet.pdf",
+    "typical_applications": [
+        "机器人关节控制",
+        "平衡车控制",
+        "无人机姿态控制",
+        "工业伺服系统"
+    ],
+    "compatible_sensors": [
+        "mpu6050_imu",
+        "bmi160_imu"
+    ],
+    "compatible_motors": [
+        "dynamixel_xl430_w250",
+        "dynamixel_mx106"
+    ],
+    "notes": [
+        "需要外部 CAN 收发器",
+        "推荐配合 Hive-Reflex SDK 使用",
+        "支持在线固件更新 (OTA)"
+    ],
+    "metadata": {
+        "added_date": "2026-01-16",
+        "last_updated": "2026-01-16",
+        "schema_version": "1.0"
+    }
+}

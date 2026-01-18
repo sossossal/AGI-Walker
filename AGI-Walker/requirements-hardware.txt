@@ -1,0 +1,12 @@
+# AGI-Walker 硬件部署依赖
+# 仅在部署到 IMC-22 硬件时需要
+
+# CAN 通信
+python-can>=4.0.0
+
+# 模型导出和量化
+onnx>=1.12.0
+onnxruntime>=1.13.0
+
+# 可选：模型优化
+onnx-simplifier>=0.4.0
