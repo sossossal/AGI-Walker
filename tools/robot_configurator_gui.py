@@ -34,6 +34,12 @@ except ImportError:
     print("警告: 无法导入PartsLibrary，将使用模拟数据")
     PartsLibrary = None
 
+try:
+    from python_api.godot_client import GodotSimulationClient
+except ImportError:
+    print("警告: 无法导入GodotSimulationClient，仿真功能将不可用")
+    GodotSimulationClient = None
+
 
 class PartNode:
     """零件节点（画布上的可视化表示）"""
