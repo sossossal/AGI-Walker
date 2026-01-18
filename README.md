@@ -175,6 +175,7 @@ python tools/quantize_imc22.py
 
 ## 📚 文档
 
+- [🎨 GUI配置器使用指南](docs/GUI_USER_GUIDE.md) - 可视化配置教程
 - [新手入门教程](docs/BEGINNER_TUTORIAL.md) - 从0开始
 - [快速入门指南](GETTING_STARTED.md)
 - [完整功能清单](docs/COMPLETE_FEATURES.md)

@@ -1,0 +1,59 @@
+{
+    "robot_name": "示例双足机器人",
+    "version": "1.0",
+    "description": "一个简单的双足机器人配置示例",
+    "parts": [
+        {
+            "id": "ctrl_1_0",
+            "part_id": "ctrl_1",
+            "model": "Raspberry Pi 4",
+            "position": [
+                300,
+                100
+            ]
+        },
+        {
+            "id": "motor_1_1",
+            "part_id": "motor_1",
+            "model": "Dynamixel XL430",
+            "position": [
+                200,
+                200
+            ]
+        },
+        {
+            "id": "motor_1_2",
+            "part_id": "motor_1",
+            "model": "Dynamixel XL430",
+            "position": [
+                400,
+                200
+            ]
+        },
+        {
+            "id": "imu_1_3",
+            "part_id": "imu_1",
+            "model": "MPU6050",
+            "position": [
+                300,
+                300
+            ]
+        }
+    ],
+    "connections": [
+        {
+            "from": "ctrl_1_0",
+            "to": "motor_1_1"
+        },
+        {
+            "from": "ctrl_1_0",
+            "to": "motor_1_2"
+        },
+        {
+            "from": "ctrl_1_0",
+            "to": "imu_1_3"
+        }
+    ],
+    "created_at": "2026-01-18",
+    "author": "AGI-Walker Team"
+}
