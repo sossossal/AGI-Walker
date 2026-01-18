@@ -290,11 +290,6 @@ AGI-Walker/
 
 ---
 
-## 📞 联系方式
-
-- 项目主页: https://github.com/yourusername/AGI-Walker
-- Issues: https://github.com/yourusername/AGI-Walker/issues
-- 邮箱: your.email@example.com
 
 ---
 
