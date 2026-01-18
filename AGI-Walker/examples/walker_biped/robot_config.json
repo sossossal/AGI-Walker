@@ -1,0 +1,169 @@
+{
+    "project_name": "双足行走机器人",
+    "version": "1.0",
+    "created_date": "2026-01-16",
+    "specifications": {
+        "height_cm": 60,
+        "weight_kg": 5.0,
+        "num_joints": 12,
+        "max_speed_ms": 1.0,
+        "battery_life_minutes": 30
+    },
+    "parts": [
+        {
+            "name": "髋关节俯仰（左）",
+            "part_id": "dynamixel_mx106",
+            "joint_type": "revolute",
+            "position": "left_hip_pitch",
+            "torque_nm": 8.4,
+            "price_usd": 489.9
+        },
+        {
+            "name": "髋关节俯仰（右）",
+            "part_id": "dynamixel_mx106",
+            "joint_type": "revolute",
+            "position": "right_hip_pitch",
+            "torque_nm": 8.4,
+            "price_usd": 489.9
+        },
+        {
+            "name": "髋关节滚转（左）",
+            "part_id": "dynamixel_xl430_w250",
+            "joint_type": "revolute",
+            "position": "left_hip_roll",
+            "torque_nm": 1.0,
+            "price_usd": 49.9
+        },
+        {
+            "name": "髋关节滚转（右）",
+            "part_id": "dynamixel_xl430_w250",
+            "joint_type": "revolute",
+            "position": "right_hip_roll",
+            "torque_nm": 1.0,
+            "price_usd": 49.9
+        },
+        {
+            "name": "髋关节偏航（左）",
+            "part_id": "dynamixel_xl430_w250",
+            "joint_type": "revolute",
+            "position": "left_hip_yaw",
+            "torque_nm": 1.0,
+            "price_usd": 49.9
+        },
+        {
+            "name": "髋关节偏航（右）",
+            "part_id": "dynamixel_xl430_w250",
+            "joint_type": "revolute",
+            "position": "right_hip_yaw",
+            "torque_nm": 1.0,
+            "price_usd": 49.9
+        },
+        {
+            "name": "膝关节（左）",
+            "part_id": "dynamixel_mx106",
+            "joint_type": "revolute",
+            "position": "left_knee",
+            "torque_nm": 8.4,
+            "price_usd": 489.9
+        },
+        {
+            "name": "膝关节（右）",
+            "part_id": "dynamixel_mx106",
+            "joint_type": "revolute",
+            "position": "right_knee",
+            "torque_nm": 8.4,
+            "price_usd": 489.9
+        },
+        {
+            "name": "踝关节俯仰（左）",
+            "part_id": "dynamixel_xl430_w250",
+            "joint_type": "revolute",
+            "position": "left_ankle_pitch",
+            "torque_nm": 1.0,
+            "price_usd": 49.9
+        },
+        {
+            "name": "踝关节俯仰（右）",
+            "part_id": "dynamixel_xl430_w250",
+            "joint_type": "revolute",
+            "position": "right_ankle_pitch",
+            "torque_nm": 1.0,
+            "price_usd": 49.9
+        },
+        {
+            "name": "踝关节滚转（左）",
+            "part_id": "dynamixel_xl430_w250",
+            "joint_type": "revolute",
+            "position": "left_ankle_roll",
+            "torque_nm": 1.0,
+            "price_usd": 49.9
+        },
+        {
+            "name": "踝关节滚转（右）",
+            "part_id": "dynamixel_xl430_w250",
+            "joint_type": "revolute",
+            "position": "right_ankle_roll",
+            "torque_nm": 1.0,
+            "price_usd": 49.9
+        }
+    ],
+    "sensors": [
+        {
+            "name": "主 IMU",
+            "part_id": "mpu6050_imu",
+            "position": "torso",
+            "sample_rate_hz": 1000
+        }
+    ],
+    "controllers": [
+        {
+            "name": "关节控制器组",
+            "part_id": "imc22_reflex_controller",
+            "quantity": 12,
+            "total_cost_usd": 480
+        }
+    ],
+    "cost_summary": {
+        "motors": 2358.8,
+        "sensors": 3.5,
+        "controllers": 480.0,
+        "total": 2842.3,
+        "currency": "USD"
+    },
+    "training_config": {
+        "algorithm": "PPO",
+        "total_timesteps": 1000000,
+        "learning_rate": 0.0003,
+        "batch_size": 256,
+        "n_steps": 2048,
+        "gamma": 0.99,
+        "gae_lambda": 0.95
+    },
+    "reward_weights": {
+        "forward_velocity": 1.0,
+        "lateral_penalty": -0.5,
+        "angular_penalty": -0.5,
+        "energy_penalty": -0.01,
+        "upright_bonus": 0.2,
+        "survival_bonus": 0.1
+    },
+    "domain_randomization": {
+        "ground_friction": [
+            0.5,
+            1.5
+        ],
+        "joint_friction": [
+            0.8,
+            1.2
+        ],
+        "sensor_noise_percent": 5,
+        "communication_delay_ms": [
+            0,
+            10
+        ],
+        "gravity_ms2": [
+            9.5,
+            10.2
+        ]
+    }
+}

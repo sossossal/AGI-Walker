@@ -1,0 +1,17 @@
+# AGI-Walker Python API Dependencies
+
+# Core dependencies
+gymnasium>=0.29.0
+numpy>=1.24.0
+
+# Deep Reinforcement Learning
+stable-baselines3>=2.0.0
+torch>=2.0.0
+
+# Visualization and logging
+tensorboard>=2.13.0
+matplotlib>=3.7.0
+
+# Optional: For advanced features
+# opencv-python>=4.8.0  # If using camera sensors
+# pillow>=10.0.0  # Image processing
