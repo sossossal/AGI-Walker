@@ -177,9 +177,43 @@ class PartsLibraryPanel(ttk.Frame):
                 self.detail_text.insert(1.0, details)
                 
     def on_search(self, *args):
-        """搜索功能"""
-        # TODO: 实现搜索过滤
-        pass
+        """搜索功能 - 实时过滤零件"""
+        search_term = self.search_var.get().lower()
+        
+        # 清空树
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
+        # 重新加载并过滤
+        categories = {
+            '电机': [
+                {'id': 'motor_1', 'model': 'Dynamixel XL430', 'power': 500},
+                {'id': 'motor_2', 'model': 'Dynamixel AX-12', 'power': 300},
+            ],
+            '传感器': [
+                {'id': 'imu_1', 'model': 'MPU6050', 'axes': 6},
+                {'id': 'encoder_1', 'model': 'AS5048', 'resolution': 14},
+            ],
+            '控制器': [
+                {'id': 'ctrl_1', 'model': 'Raspberry Pi 4', 'cpu': '1.5GHz'},
+            ]
+        }
+        
+        for category, parts in categories.items():
+            # 过滤零件
+            filtered_parts = [
+                p for p in parts 
+                if not search_term or 
+                search_term in p['model'].lower() or 
+                search_term in p['id'].lower() or
+                search_term in category.lower()
+            ]
+            
+            # 只显示有匹配零件的分类
+            if filtered_parts:
+                cat_id = self.tree.insert('', 'end', text=category, open=True)
+                for part in filtered_parts:
+                    self.tree.insert(cat_id, 'end', text=part['model'], values=(part['id'],))
         
     def add_to_canvas(self):
         """添加选中的零件到画布"""
@@ -536,6 +570,9 @@ class PropertiesPanel(ttk.Frame):
         super().__init__(parent)
         self.app = app
         self.current_part = None
+        self.current_part_id = None
+        self.param_vars = {}
+        self.auto_sync_var = None
         
         # 标题
         ttk.Label(self, text="属性编辑器", font=('Arial', 12, 'bold')).pack(pady=5)
@@ -557,6 +594,9 @@ class PropertiesPanel(ttk.Frame):
         # 清空当前内容
         for widget in self.content_frame.winfo_children():
             widget.destroy()
+        
+        # 保存当前零件ID
+        self.current_part_id = part_id
             
         # 显示零件信息
         info_frame = ttk.LabelFrame(self.content_frame, text="基本信息")
@@ -569,7 +609,21 @@ class PropertiesPanel(ttk.Frame):
         params_frame = ttk.LabelFrame(self.content_frame, text="参数调整")
         params_frame.pack(fill=tk.BOTH, expand=True, pady=5)
         
+        # 实时同步选项
+        sync_frame = ttk.Frame(params_frame)
+        sync_frame.pack(fill=tk.X, padx=5, pady=3)
+        
+        self.auto_sync_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            sync_frame, 
+            text="实时同步到Godot", 
+            variable=self.auto_sync_var
+        ).pack(side=tk.LEFT)
+        
+        ttk.Label(sync_frame, text="（需先连接Godot）", foreground='gray').pack(side=tk.LEFT, padx=5)
+        
         # 示例参数
+        self.param_vars = {}
         parameters = {
             '功率倍增': (0.5, 2.0, 1.0),
             '刚度': (0.5, 3.0, 1.0),
@@ -583,22 +637,70 @@ class PropertiesPanel(ttk.Frame):
             ttk.Label(param_frame, text=param_name, width=10).pack(side=tk.LEFT)
             
             var = tk.DoubleVar(value=default)
+            self.param_vars[param_name] = var
+            
+            # 滑块改变时的回调
+            def on_param_change(value, name=param_name):
+                # 更新输入框
+                # 如果启用了实时同步，则自动同步
+                if self.auto_sync_var.get():
+                    self.sync_to_godot()
+            
             scale = ttk.Scale(
                 param_frame,
                 from_=min_val, to=max_val,
                 variable=var,
-                orient=tk.HORIZONTAL
+                orient=tk.HORIZONTAL,
+                command=on_param_change
             )
             scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
             
             entry = ttk.Entry(param_frame, textvariable=var, width=6)
             entry.pack(side=tk.LEFT)
-            
+        
         # 应用按钮
-        ttk.Button(params_frame, text="✓ 应用更改", command=self.apply_changes).pack(pady=5)
+        button_frame = ttk.Frame(params_frame)
+        button_frame.pack(pady=5)
+        
+        ttk.Button(button_frame, text="✓ 应用更改", command=self.apply_changes).pack(side=tk.LEFT, padx=2)
+        ttk.Button(button_frame, text="🔄 同步到Godot", command=self.sync_to_godot).pack(side=tk.LEFT, padx=2)
+        
+    def sync_to_godot(self):
+        """同步参数到Godot"""
+        if not hasattr(self.app, 'feedback_panel'):
+            return
+            
+        feedback = self.app.feedback_panel
+        
+        if not feedback.godot_client or not feedback.godot_client.is_connected():
+            if self.auto_sync_var.get():
+                # 只在手动点击时提示
+                pass
+            return
+        
+        # 收集参数
+        params = {}
+        param_mapping = {
+            '功率倍增': 'motor_power_multiplier',
+            '刚度': 'joint_stiffness',
+            '阻尼': 'joint_damping'
+        }
+        
+        for display_name, param_key in param_mapping.items():
+            if display_name in self.param_vars:
+                params[param_key] = self.param_vars[display_name].get()
+        
+        # 发送到Godot
+        success = feedback.godot_client.update_parameters(params)
+        
+        if success and not self.auto_sync_var.get():
+            # 只在手动同步时显示提示
+            messagebox.showinfo("成功", "参数已同步到Godot")
         
     def apply_changes(self):
         """应用参数更改"""
+        # 同步到Godot（如果连接）
+        self.sync_to_godot()
         messagebox.showinfo("成功", "参数已更新")
 
 
