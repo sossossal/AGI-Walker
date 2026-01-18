@@ -29,7 +29,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/AGI-Walker.git
+git clone https://github.com/sossossal/AGI-Walker.git
 
 # 安装依赖
 pip install -r requirements.txt

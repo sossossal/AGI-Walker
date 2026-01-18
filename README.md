@@ -102,7 +102,7 @@ AGI-Walker → 训练模型 → INT8量化 → IMC-22部署 → 性能反馈 →
 
 ```bash
 # 克隆项目
-git clone https://github.com/yourusername/AGI-Walker.git
+git clone https://github.com/sossossal/AGI-Walker.git
 cd AGI-Walker
 
 # 安装依赖
@@ -290,13 +290,7 @@ AGI-Walker/
 
 ---
 
-## 📞 联系方式
 
-- 项目主页: https://github.com/yourusername/AGI-Walker
-- Issues: https://github.com/yourusername/AGI-Walker/issues
-- 邮箱: your.email@example.com
-
----
 
 ## ⭐ Star History
 
