@@ -1,0 +1,13 @@
+# LoadRobot.srv - 加载机器人配置服务
+
+# Request
+string robot_name               # 机器人名称
+string config_path              # 配置文件路径 (可选)
+agi_walker_msgs/Part[] parts    # 零件列表
+agi_walker_msgs/Connection[] connections  # 连接关系列表
+
+---
+
+# Response
+bool success                    # 是否成功
+string message                  # 响应消息或错误信息
