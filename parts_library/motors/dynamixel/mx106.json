@@ -1,0 +1,42 @@
+{
+    "part_id": "dynamixel_mx106",
+    "category": "actuator_servo",
+    "manufacturer": "ROBOTIS",
+    "model": "MX-106T",
+    "specifications": {
+        "stall_torque": 8.4,
+        "no_load_speed": 45,
+        "weight": 0.153,
+        "dimensions": [
+            40.5,
+            65.5,
+            46.0
+        ],
+        "gear_ratio": 225.0,
+        "max_current": 4.8,
+        "voltage_range": [
+            10.0,
+            14.8
+        ],
+        "resolution": 4096,
+        "rotor_inertia": 2.8e-5,
+        "friction": {
+            "static": 0.08,
+            "dynamic": 0.05,
+            "viscous": 0.005
+        },
+        "thermal": {
+            "resistance": 18.0,
+            "time_constant": 1500,
+            "max_winding_temp": 125
+        },
+        "motor_constant": 0.0355,
+        "back_emf_constant": 0.0355,
+        "winding_resistance": 2.52
+    },
+    "model_path": "res://parts_library/motors/dynamixel/mx106.glb",
+    "control_interface": "TTL",
+    "price_usd": 459.90,
+    "datasheet_url": "https://emanual.robotis.com/docs/en/dxl/mx/mx-106/",
+    "notes": "高扭矩舵机，适用于中大型人形机器人的主关节（腰部、大腿等）。金属齿轮，耐用性强。"
+}

@@ -1,0 +1,13 @@
+[configuration]
+
+entry_symbol = "robot_sim_toolkit_library_init"
+compatibility_minimum = "4.2"
+
+[libraries]
+
+windows.debug.x86_64 = "res://addons/robot_sim_toolkit/bin/robotparts.windows.x86_64.dll"
+windows.release.x86_64 = "res://addons/robot_sim_toolkit/bin/robotparts.windows.x86_64.dll"
+linux.debug.x86_64 = "res://addons/robot_sim_toolkit/bin/librobotparts.linux.x86_64.so"
+linux.release.x86_64 = "res://addons/robot_sim_toolkit/bin/librobotparts.linux.x86_64.so"
+macos.debug = "res://addons/robot_sim_toolkit/bin/librobotparts.macos.universal.dylib"
+macos.release = "res://addons/robot_sim_toolkit/bin/librobotparts.macos.universal.dylib"

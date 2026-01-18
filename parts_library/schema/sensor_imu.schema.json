@@ -1,0 +1,271 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://agi-walker.org/schemas/sensor_imu.schema.json",
+    "title": "IMU 传感器零件规格",
+    "description": "惯性测量单元（IMU）传感器的标准化数据模型",
+    "type": "object",
+    "required": [
+        "part_id",
+        "category",
+        "manufacturer",
+        "model",
+        "specifications"
+    ],
+    "properties": {
+        "part_id": {
+            "type": "string",
+            "description": "唯一标识符",
+            "pattern": "^[a-z0-9_]+$",
+            "examples": [
+                "bosch_bno055",
+                "invensense_mpu6050"
+            ]
+        },
+        "category": {
+            "type": "string",
+            "const": "sensor_imu",
+            "description": "零件类别"
+        },
+        "manufacturer": {
+            "type": "string",
+            "description": "制造商名称",
+            "examples": [
+                "Bosch",
+                "InvenSense",
+                "STMicroelectronics"
+            ]
+        },
+        "model": {
+            "type": "string",
+            "description": "型号名称",
+            "examples": [
+                "BNO055",
+                "MPU-6050",
+                "LSM6DS3"
+            ]
+        },
+        "specifications": {
+            "type": "object",
+            "description": "技术规格参数",
+            "required": [
+                "update_rate"
+            ],
+            "properties": {
+                "accelerometer": {
+                    "type": "object",
+                    "description": "加速度计参数",
+                    "properties": {
+                        "range": {
+                            "type": "number",
+                            "description": "测量范围 (±g)",
+                            "minimum": 0,
+                            "examples": [
+                                2,
+                                4,
+                                8,
+                                16
+                            ]
+                        },
+                        "resolution": {
+                            "type": "number",
+                            "description": "分辨率 (bits)",
+                            "minimum": 1,
+                            "examples": [
+                                14,
+                                16
+                            ]
+                        },
+                        "noise_density": {
+                            "type": "number",
+                            "description": "噪声密度 (μg/√Hz)",
+                            "minimum": 0,
+                            "examples": [
+                                150,
+                                400
+                            ]
+                        },
+                        "bias_stability": {
+                            "type": "number",
+                            "description": "零偏稳定性 (mg)",
+                            "minimum": 0,
+                            "examples": [
+                                0.5,
+                                2.0
+                            ]
+                        }
+                    }
+                },
+                "gyroscope": {
+                    "type": "object",
+                    "description": "陀螺仪参数",
+                    "properties": {
+                        "range": {
+                            "type": "number",
+                            "description": "测量范围 (±deg/s)",
+                            "minimum": 0,
+                            "examples": [
+                                250,
+                                500,
+                                1000,
+                                2000
+                            ]
+                        },
+                        "resolution": {
+                            "type": "number",
+                            "description": "分辨率 (bits)",
+                            "minimum": 1,
+                            "examples": [
+                                16
+                            ]
+                        },
+                        "noise_density": {
+                            "type": "number",
+                            "description": "噪声密度 (deg/s/√Hz)",
+                            "minimum": 0,
+                            "examples": [
+                                0.014,
+                                0.005
+                            ]
+                        },
+                        "bias_stability": {
+                            "type": "number",
+                            "description": "零偏稳定性 (deg/hour)",
+                            "minimum": 0,
+                            "examples": [
+                                10,
+                                36
+                            ]
+                        }
+                    }
+                },
+                "magnetometer": {
+                    "type": "object",
+                    "description": "磁力计参数（如果有）",
+                    "properties": {
+                        "range": {
+                            "type": "number",
+                            "description": "测量范围 (±μT)",
+                            "minimum": 0,
+                            "examples": [
+                                1300,
+                                4900
+                            ]
+                        },
+                        "resolution": {
+                            "type": "number",
+                            "description": "分辨率 (μT)",
+                            "minimum": 0,
+                            "examples": [
+                                0.3
+                            ]
+                        }
+                    }
+                },
+                "update_rate": {
+                    "type": "number",
+                    "description": "最大更新频率 (Hz)",
+                    "minimum": 0,
+                    "examples": [
+                        100,
+                        1000,
+                        8000
+                    ]
+                },
+                "voltage_range": {
+                    "type": "array",
+                    "description": "工作电压范围 [最小, 最大] (V)",
+                    "items": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "examples": [
+                        [
+                            2.4,
+                            3.6
+                        ],
+                        [
+                            3.0,
+                            5.5
+                        ]
+                    ]
+                },
+                "current_consumption": {
+                    "type": "number",
+                    "description": "典型电流消耗 (mA)",
+                    "minimum": 0,
+                    "examples": [
+                        12.3,
+                        3.5
+                    ]
+                },
+                "weight": {
+                    "type": "number",
+                    "description": "重量 (kg)，如果是模块",
+                    "minimum": 0,
+                    "examples": [
+                        0.001,
+                        0.005
+                    ]
+                },
+                "temperature_range": {
+                    "type": "array",
+                    "description": "工作温度范围 [最小, 最大] (°C)",
+                    "items": {
+                        "type": "number"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "examples": [
+                        [
+                            -40,
+                            85
+                        ]
+                    ]
+                }
+            }
+        },
+        "interface": {
+            "type": "string",
+            "description": "通信接口",
+            "enum": [
+                "I2C",
+                "SPI",
+                "UART",
+                "CAN"
+            ],
+            "examples": [
+                "I2C",
+                "SPI"
+            ]
+        },
+        "has_onboard_fusion": {
+            "type": "boolean",
+            "description": "是否内置传感器融合算法",
+            "default": false,
+            "examples": [
+                true,
+                false
+            ]
+        },
+        "price_usd": {
+            "type": "number",
+            "description": "参考价格 (美元)",
+            "minimum": 0,
+            "examples": [
+                34.95,
+                12.50
+            ]
+        },
+        "datasheet_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "官方数据手册链接"
+        },
+        "notes": {
+            "type": "string",
+            "description": "备注信息"
+        }
+    }
+}

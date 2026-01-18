@@ -1,0 +1,752 @@
+{
+    "metadata": {
+        "version": "1.0.0",
+        "last_updated": "2026-01-18",
+        "currency": "USD",
+        "description": "AGI-Walker Complete Parts Library"
+    },
+    "categories": {
+        "motors": "电机和驱动器",
+        "sensors": "传感器",
+        "controllers": "控制器和计算单元",
+        "joints": "关节转动装置",
+        "structure": "结构件",
+        "power": "电源系统",
+        "communication": "通信模块",
+        "accessories": "配件"
+    },
+    "parts": {
+        "motors": [
+            {
+                "id": "MT-001",
+                "name": "无刷直流电机 500W",
+                "type": "brushless_500w",
+                "specs": {
+                    "power": "500W",
+                    "voltage": "24V",
+                    "max_torque": "5.0 Nm",
+                    "max_speed": "3000 RPM",
+                    "weight": "0.8 kg",
+                    "efficiency": "85%"
+                },
+                "price": 120.00,
+                "supplier": "Maxon Motor",
+                "applications": [
+                    "关节驱动",
+                    "腿部关节"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "MT-002",
+                "name": "无刷直流电机 200W",
+                "type": "brushless_200w",
+                "specs": {
+                    "power": "200W",
+                    "voltage": "12V",
+                    "max_torque": "2.0 Nm",
+                    "max_speed": "5000 RPM",
+                    "weight": "0.3 kg",
+                    "efficiency": "82%"
+                },
+                "price": 65.00,
+                "supplier": "T-Motor",
+                "applications": [
+                    "小型关节",
+                    "辅助驱动"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "MT-003",
+                "name": "伺服电机 1KW",
+                "type": "servo_1kw",
+                "specs": {
+                    "power": "1000W",
+                    "voltage": "48V",
+                    "max_torque": "10.0 Nm",
+                    "max_speed": "2000 RPM",
+                    "weight": "1.5 kg",
+                    "accuracy": "0.01°"
+                },
+                "price": 280.00,
+                "supplier": "Kollmorgen",
+                "applications": [
+                    "主驱动关节",
+                    "大型机器人"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "MT-004",
+                "name": "步进电机 NEMA23",
+                "type": "stepper_nema23",
+                "specs": {
+                    "holding_torque": "1.9 Nm",
+                    "voltage": "3.0V",
+                    "current": "2.8A",
+                    "step_angle": "1.8°",
+                    "weight": "0.6 kg"
+                },
+                "price": 45.00,
+                "supplier": "STEPPERONLINE",
+                "applications": [
+                    "精确定位",
+                    "轻载应用"
+                ],
+                "stock": "available"
+            }
+        ],
+        "sensors": [
+            {
+                "id": "SN-001",
+                "name": "IMU 惯性测量单元",
+                "type": "imu_6axis",
+                "specs": {
+                    "axes": 6,
+                    "gyro_range": "±2000 °/s",
+                    "accel_range": "±16g",
+                    "update_rate": "1000 Hz",
+                    "interface": "I2C/SPI",
+                    "weight": "0.01 kg"
+                },
+                "price": 25.00,
+                "supplier": "InvenSense",
+                "model": "MPU-6050",
+                "applications": [
+                    "姿态检测",
+                    "平衡控制"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "SN-002",
+                "name": "力传感器",
+                "type": "force_sensor",
+                "specs": {
+                    "max_force": "500N",
+                    "accuracy": "±1%",
+                    "response_time": "1ms",
+                    "output": "0-5V",
+                    "weight": "0.05 kg"
+                },
+                "price": 80.00,
+                "supplier": "Honeywell",
+                "applications": [
+                    "足部压力检测",
+                    "碰撞检测"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "SN-003",
+                "name": "编码器 磁性",
+                "type": "magnetic_encoder",
+                "specs": {
+                    "resolution": "4096 CPR",
+                    "interface": "SPI/SSI",
+                    "max_speed": "15000 RPM",
+                    "voltage": "5V",
+                    "weight": "0.02 kg"
+                },
+                "price": 35.00,
+                "supplier": "AMS",
+                "model": "AS5048",
+                "applications": [
+                    "关节位置反馈"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "SN-004",
+                "name": "激光雷达 2D",
+                "type": "lidar_2d",
+                "specs": {
+                    "range": "0.15-12m",
+                    "accuracy": "±30mm",
+                    "scan_rate": "5.5 Hz",
+                    "angular_resolution": "0.25°",
+                    "interface": "USB/UART",
+                    "weight": "0.18 kg"
+                },
+                "price": 150.00,
+                "supplier": "SLAMTEC",
+                "model": "RPLIDAR A1",
+                "applications": [
+                    "环境扫描",
+                    "SLAM导航"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "SN-005",
+                "name": "深度相机",
+                "type": "depth_camera",
+                "specs": {
+                    "resolution": "640x480",
+                    "depth_range": "0.3-3.0m",
+                    "fps": "30",
+                    "fov": "58° x 45°",
+                    "interface": "USB 3.0",
+                    "weight": "0.07 kg"
+                },
+                "price": 99.00,
+                "supplier": "Intel",
+                "model": "RealSense D435",
+                "applications": [
+                    "3D视觉",
+                    "障碍物检测"
+                ],
+                "stock": "available"
+            }
+        ],
+        "joints": [
+            {
+                "id": "JT-001",
+                "name": "谐波减速器 100:1",
+                "type": "harmonic_drive",
+                "specs": {
+                    "reduction_ratio": 100,
+                    "max_torque": "50 Nm",
+                    "backlash": "< 1 arcmin",
+                    "efficiency": "90%",
+                    "weight": "0.3 kg",
+                    "stiffness": "5000 Nm/rad",
+                    "max_speed": "100 RPM"
+                },
+                "price": 220.00,
+                "supplier": "Harmonic Drive",
+                "model": "CSF-14-100",
+                "applications": [
+                    "精密关节",
+                    "机器人手臂"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "JT-002",
+                "name": "行星减速器 50:1",
+                "type": "planetary_gearbox",
+                "specs": {
+                    "reduction_ratio": 50,
+                    "max_torque": "30 Nm",
+                    "backlash": "< 10 arcmin",
+                    "efficiency": "85%",
+                    "weight": "0.5 kg",
+                    "max_speed": "200 RPM"
+                },
+                "price": 120.00,
+                "supplier": "GAM",
+                "applications": [
+                    "通用关节",
+                    "高负载应用"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "JT-003",
+                "name": "RV减速器 121:1",
+                "type": "rv_reducer",
+                "specs": {
+                    "reduction_ratio": 121,
+                    "max_torque": "80 Nm",
+                    "backlash": "< 0.5 arcmin",
+                    "efficiency": "88%",
+                    "weight": "1.2 kg",
+                    "stiffness": "8000 Nm/rad"
+                },
+                "price": 380.00,
+                "supplier": "Nabtesco",
+                "applications": [
+                    "工业机器人",
+                    "高精度关节"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "JT-004",
+                "name": "柔性联轴器",
+                "type": "flexible_coupling",
+                "specs": {
+                    "max_torque": "5 Nm",
+                    "misalignment_tolerance": "±1°",
+                    "weight": "0.05 kg",
+                    "material": "铝合金"
+                },
+                "price": 15.00,
+                "supplier": "Lovejoy",
+                "applications": [
+                    "电机连接",
+                    "减震"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "JT-005",
+                "name": "旋转编码器单元",
+                "type": "rotary_encoder_unit",
+                "specs": {
+                    "resolution": "8192 PPR",
+                    "max_speed": "10000 RPM",
+                    "interface": "Incremental A/B",
+                    "voltage": "5V",
+                    "weight": "0.08 kg"
+                },
+                "price": 65.00,
+                "supplier": "Omron",
+                "applications": [
+                    "位置反馈",
+                    "速度控制"
+                ],
+                "stock": "available"
+            }
+        ],
+        "controllers": [
+            {
+                "id": "CT-001",
+                "name": "IMC-22 NPU",
+                "type": "custom_npu",
+                "specs": {
+                    "architecture": "RISC-V RV32IMAC",
+                    "frequency": "200 MHz",
+                    "mac_units": 16,
+                    "sram": "64 KB",
+                    "power": "< 1W",
+                    "interface": "SPI/I2C"
+                },
+                "price": 80.00,
+                "supplier": "Custom Design",
+                "applications": [
+                    "边缘AI推理",
+                    "实时控制"
+                ],
+                "stock": "prototype",
+                "notes": "自研芯片，FPGA原型可用"
+            },
+            {
+                "id": "CT-002",
+                "name": "树莓派 4B",
+                "type": "raspberry_pi_4b",
+                "specs": {
+                    "cpu": "Cortex-A72 Quad-core 1.5GHz",
+                    "ram": "4GB",
+                    "storage": "microSD",
+                    "gpio": 40,
+                    "connectivity": "WiFi, Bluetooth, Ethernet",
+                    "power": "~3W"
+                },
+                "price": 55.00,
+                "supplier": "Raspberry Pi Foundation",
+                "applications": [
+                    "主控制器",
+                    "高级计算"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "CT-003",
+                "name": "Arduino Mega 2560",
+                "type": "arduino_mega",
+                "specs": {
+                    "mcu": "ATmega2560",
+                    "frequency": "16 MHz",
+                    "digital_io": 54,
+                    "analog_input": 16,
+                    "flash": "256 KB",
+                    "sram": "8 KB"
+                },
+                "price": 38.00,
+                "supplier": "Arduino",
+                "applications": [
+                    "底层控制",
+                    "传感器接口"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "CT-004",
+                "name": "Jetson Nano",
+                "type": "jetson_nano",
+                "specs": {
+                    "gpu": "128-core Maxwell",
+                    "cpu": "Quad-core ARM A57",
+                    "ram": "4GB",
+                    "power": "5-10W",
+                    "ai_performance": "472 GFLOPS"
+                },
+                "price": 99.00,
+                "supplier": "NVIDIA",
+                "applications": [
+                    "AI视觉",
+                    "深度学习推理"
+                ],
+                "stock": "available"
+            }
+        ],
+        "structure": [
+            {
+                "id": "ST-001",
+                "name": "铝型材 2020",
+                "type": "aluminum_profile",
+                "specs": {
+                    "profile": "20x20mm",
+                    "material": "6061-T5铝合金",
+                    "length": "500mm",
+                    "weight_per_meter": "0.41 kg/m"
+                },
+                "price": 8.00,
+                "supplier": "Misumi",
+                "applications": [
+                    "框架结构",
+                    "支撑"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "ST-002",
+                "name": "碳纤维板",
+                "type": "carbon_fiber_plate",
+                "specs": {
+                    "thickness": "3mm",
+                    "size": "200x200mm",
+                    "material": "3K碳纤维",
+                    "weight": "0.09 kg",
+                    "strength": "600 MPa"
+                },
+                "price": 25.00,
+                "supplier": "DragonPlate",
+                "applications": [
+                    "轻量化结构",
+                    "高强度部件"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "ST-003",
+                "name": "关节轴承",
+                "type": "bearing",
+                "specs": {
+                    "inner_diameter": "8mm",
+                    "outer_diameter": "22mm",
+                    "width": "7mm",
+                    "load_rating": "1000N",
+                    "material": "不锈钢"
+                },
+                "price": 4.50,
+                "supplier": "SKF",
+                "applications": [
+                    "关节连接",
+                    "旋转部件"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "ST-004",
+                "name": "3D打印件套件",
+                "type": "3d_printed_parts",
+                "specs": {
+                    "material": "PLA/ABS",
+                    "quantity": "完整机器人套件",
+                    "finish": "标准质量"
+                },
+                "price": 150.00,
+                "supplier": "Custom 3D Print",
+                "applications": [
+                    "外壳",
+                    "连接件"
+                ],
+                "stock": "on_demand"
+            }
+        ],
+        "power": [
+            {
+                "id": "PW-001",
+                "name": "锂电池 6S",
+                "type": "lipo_6s",
+                "specs": {
+                    "voltage": "22.2V",
+                    "capacity": "5000 mAh",
+                    "discharge_rate": "50C",
+                    "weight": "0.62 kg",
+                    "energy": "111 Wh"
+                },
+                "price": 88.00,
+                "supplier": "Tattu",
+                "applications": [
+                    "主电源"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "PW-002",
+                "name": "DC-DC降压模块",
+                "type": "buck_converter",
+                "specs": {
+                    "input_voltage": "8-35V",
+                    "output_voltage": "5V/12V可调",
+                    "max_current": "10A",
+                    "efficiency": "95%",
+                    "weight": "0.03 kg"
+                },
+                "price": 12.00,
+                "supplier": "TI",
+                "applications": [
+                    "电压转换",
+                    "控制器供电"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "PW-003",
+                "name": "电池管理系统",
+                "type": "bms",
+                "specs": {
+                    "cells": "6S",
+                    "max_current": "30A",
+                    "protection": "过充/过放/短路",
+                    "balance": "主动平衡"
+                },
+                "price": 35.00,
+                "supplier": "Daly BMS",
+                "applications": [
+                    "电池保护",
+                    "电量管理"
+                ],
+                "stock": "available"
+            }
+        ],
+        "communication": [
+            {
+                "id": "CM-001",
+                "name": "WiFi模块",
+                "type": "wifi_module",
+                "specs": {
+                    "standard": "802.11 b/g/n",
+                    "frequency": "2.4 GHz",
+                    "range": "100m",
+                    "interface": "UART/SPI"
+                },
+                "price": 8.00,
+                "supplier": "ESP8266",
+                "applications": [
+                    "无线通信",
+                    "远程控制"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "CM-002",
+                "name": "蓝牙模块",
+                "type": "bluetooth_module",
+                "specs": {
+                    "version": "Bluetooth 5.0",
+                    "range": "50m",
+                    "data_rate": "2 Mbps",
+                    "power": "低功耗"
+                },
+                "price": 6.50,
+                "supplier": "HC-05",
+                "applications": [
+                    "短距离通信",
+                    "调试接口"
+                ],
+                "stock": "available"
+            }
+        ],
+        "accessories": [
+            {
+                "id": "AC-001",
+                "name": "电机驱动器",
+                "type": "motor_driver",
+                "specs": {
+                    "channels": 2,
+                    "max_current": "15A",
+                    "voltage_range": "5.5-30V",
+                    "pwm_frequency": "20 kHz"
+                },
+                "price": 28.00,
+                "supplier": "Pololu",
+                "model": "VNH5019",
+                "applications": [
+                    "电机控制"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "AC-002",
+                "name": "连接线束",
+                "type": "wire_harness",
+                "specs": {
+                    "gauge": "22 AWG",
+                    "connectors": "JST/XT60",
+                    "length": "定制"
+                },
+                "price": 15.00,
+                "supplier": "Custom",
+                "applications": [
+                    "电气连接"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "AC-003",
+                "name": "散热器",
+                "type": "heatsink",
+                "specs": {
+                    "size": "40x40x20mm",
+                    "material": "铝合金",
+                    "thermal_resistance": "2.5 °C/W"
+                },
+                "price": 5.00,
+                "supplier": "CUI Devices",
+                "applications": [
+                    "电机散热",
+                    "控制器散热"
+                ],
+                "stock": "available"
+            }
+        ]
+    },
+    "assemblies": {
+        "complete_robot_kits": [
+            {
+                "name": "双足行走机器人完整套件",
+                "type": "biped_walker",
+                "parts_list": [
+                    {
+                        "part_id": "MT-001",
+                        "quantity": 6
+                    },
+                    {
+                        "part_id": "SN-001",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "SN-002",
+                        "quantity": 2
+                    },
+                    {
+                        "part_id": "SN-003",
+                        "quantity": 6
+                    },
+                    {
+                        "part_id": "CT-002",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "CT-003",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "ST-001",
+                        "quantity": 4
+                    },
+                    {
+                        "part_id": "ST-003",
+                        "quantity": 12
+                    },
+                    {
+                        "part_id": "ST-004",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "PW-001",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "PW-002",
+                        "quantity": 2
+                    },
+                    {
+                        "part_id": "PW-003",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "AC-001",
+                        "quantity": 3
+                    },
+                    {
+                        "part_id": "AC-002",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "AC-003",
+                        "quantity": 6
+                    }
+                ],
+                "total_cost": 1580.00,
+                "build_time": "80 hours",
+                "difficulty": "中级"
+            },
+            {
+                "name": "四足机器人完整套件",
+                "type": "quadruped",
+                "parts_list": [
+                    {
+                        "part_id": "MT-001",
+                        "quantity": 12
+                    },
+                    {
+                        "part_id": "SN-001",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "SN-002",
+                        "quantity": 4
+                    },
+                    {
+                        "part_id": "SN-003",
+                        "quantity": 12
+                    },
+                    {
+                        "part_id": "CT-002",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "CT-003",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "ST-001",
+                        "quantity": 6
+                    },
+                    {
+                        "part_id": "ST-003",
+                        "quantity": 24
+                    },
+                    {
+                        "part_id": "ST-004",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "PW-001",
+                        "quantity": 2
+                    },
+                    {
+                        "part_id": "PW-002",
+                        "quantity": 3
+                    },
+                    {
+                        "part_id": "PW-003",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "AC-001",
+                        "quantity": 6
+                    },
+                    {
+                        "part_id": "AC-002",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "AC-003",
+                        "quantity": 12
+                    }
+                ],
+                "total_cost": 2980.00,
+                "build_time": "120 hours",
+                "difficulty": "高级"
+            }
+        ]
+    }
+}

@@ -1,0 +1,40 @@
+{
+    "part_id": "bosch_bno055",
+    "category": "sensor_imu",
+    "manufacturer": "Bosch",
+    "model": "BNO055",
+    "specifications": {
+        "accelerometer": {
+            "range": 16,
+            "resolution": 14,
+            "noise_density": 150,
+            "bias_stability": 0.5
+        },
+        "gyroscope": {
+            "range": 2000,
+            "resolution": 16,
+            "noise_density": 0.014,
+            "bias_stability": 10
+        },
+        "magnetometer": {
+            "range": 1300,
+            "resolution": 0.3
+        },
+        "update_rate": 100,
+        "voltage_range": [
+            2.4,
+            3.6
+        ],
+        "current_consumption": 12.3,
+        "weight": 0.001,
+        "temperature_range": [
+            -40,
+            85
+        ]
+    },
+    "interface": "I2C",
+    "has_onboard_fusion": true,
+    "price_usd": 34.95,
+    "datasheet_url": "https://www.bosch-sensortec.com/products/smart-sensors/bno055/",
+    "notes": "集成了 ARM Cortex-M0 处理器的智能 9 轴传感器，内置传感器融合算法，可直接输出四元数、欧拉角等姿态数据。非常适合机器人平衡控制。"
+}

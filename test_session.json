@@ -1,0 +1,2151 @@
+{
+  "metadata": {
+    "session_name": "test_session",
+    "start_time": "2026-01-18T12:22:52.029943",
+    "version": "2.5",
+    "end_time": "2026-01-18T12:22:52.029943",
+    "duration_s": 9.9,
+    "record_count": 100
+  },
+  "timeline": [
+    {
+      "timestamp": 0.0,
+      "state": {
+        "position": [
+          0.0,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 0.1,
+      "state": {
+        "position": [
+          0.01,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 0.2,
+      "state": {
+        "position": [
+          0.02,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 0.30000000000000004,
+      "state": {
+        "position": [
+          0.03,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 0.4,
+      "state": {
+        "position": [
+          0.04,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 0.5,
+      "state": {
+        "position": [
+          0.05,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 0.6000000000000001,
+      "state": {
+        "position": [
+          0.06,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 0.7000000000000001,
+      "state": {
+        "position": [
+          0.07,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 0.8,
+      "state": {
+        "position": [
+          0.08,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 0.9,
+      "state": {
+        "position": [
+          0.09,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 1.0,
+      "state": {
+        "position": [
+          0.1,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 1.1,
+      "state": {
+        "position": [
+          0.11,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 1.2000000000000002,
+      "state": {
+        "position": [
+          0.12,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 1.3,
+      "state": {
+        "position": [
+          0.13,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 1.4000000000000001,
+      "state": {
+        "position": [
+          0.14,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 1.5,
+      "state": {
+        "position": [
+          0.15,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 1.6,
+      "state": {
+        "position": [
+          0.16,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 1.7000000000000002,
+      "state": {
+        "position": [
+          0.17,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 1.8,
+      "state": {
+        "position": [
+          0.18,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 1.9000000000000001,
+      "state": {
+        "position": [
+          0.19,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 2.0,
+      "state": {
+        "position": [
+          0.2,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 2.1,
+      "state": {
+        "position": [
+          0.21,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 2.2,
+      "state": {
+        "position": [
+          0.22,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 2.3000000000000003,
+      "state": {
+        "position": [
+          0.23,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 2.4000000000000004,
+      "state": {
+        "position": [
+          0.24,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 2.5,
+      "state": {
+        "position": [
+          0.25,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 2.6,
+      "state": {
+        "position": [
+          0.26,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 2.7,
+      "state": {
+        "position": [
+          0.27,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 2.8000000000000003,
+      "state": {
+        "position": [
+          0.28,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 2.9000000000000004,
+      "state": {
+        "position": [
+          0.29,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 3.0,
+      "state": {
+        "position": [
+          0.3,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 3.1,
+      "state": {
+        "position": [
+          0.31,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 3.2,
+      "state": {
+        "position": [
+          0.32,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 3.3000000000000003,
+      "state": {
+        "position": [
+          0.33,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 3.4000000000000004,
+      "state": {
+        "position": [
+          0.34,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 3.5,
+      "state": {
+        "position": [
+          0.35000000000000003,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 3.6,
+      "state": {
+        "position": [
+          0.36,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 3.7,
+      "state": {
+        "position": [
+          0.37,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 3.8000000000000003,
+      "state": {
+        "position": [
+          0.38,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 3.9000000000000004,
+      "state": {
+        "position": [
+          0.39,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 4.0,
+      "state": {
+        "position": [
+          0.4,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 4.1000000000000005,
+      "state": {
+        "position": [
+          0.41000000000000003,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 4.2,
+      "state": {
+        "position": [
+          0.42,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 4.3,
+      "state": {
+        "position": [
+          0.43,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 4.4,
+      "state": {
+        "position": [
+          0.44,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 4.5,
+      "state": {
+        "position": [
+          0.45,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 4.6000000000000005,
+      "state": {
+        "position": [
+          0.46,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 4.7,
+      "state": {
+        "position": [
+          0.47000000000000003,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 4.800000000000001,
+      "state": {
+        "position": [
+          0.48,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 4.9,
+      "state": {
+        "position": [
+          0.49,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 5.0,
+      "state": {
+        "position": [
+          0.5,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 5.1000000000000005,
+      "state": {
+        "position": [
+          0.51,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 5.2,
+      "state": {
+        "position": [
+          0.52,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 5.300000000000001,
+      "state": {
+        "position": [
+          0.53,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 5.4,
+      "state": {
+        "position": [
+          0.54,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 5.5,
+      "state": {
+        "position": [
+          0.55,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 5.6000000000000005,
+      "state": {
+        "position": [
+          0.56,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 5.7,
+      "state": {
+        "position": [
+          0.5700000000000001,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 5.800000000000001,
+      "state": {
+        "position": [
+          0.58,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 5.9,
+      "state": {
+        "position": [
+          0.59,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 6.0,
+      "state": {
+        "position": [
+          0.6,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 6.1000000000000005,
+      "state": {
+        "position": [
+          0.61,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 6.2,
+      "state": {
+        "position": [
+          0.62,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 6.300000000000001,
+      "state": {
+        "position": [
+          0.63,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 6.4,
+      "state": {
+        "position": [
+          0.64,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 6.5,
+      "state": {
+        "position": [
+          0.65,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 6.6000000000000005,
+      "state": {
+        "position": [
+          0.66,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 6.7,
+      "state": {
+        "position": [
+          0.67,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 6.800000000000001,
+      "state": {
+        "position": [
+          0.68,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 6.9,
+      "state": {
+        "position": [
+          0.6900000000000001,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 7.0,
+      "state": {
+        "position": [
+          0.7000000000000001,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 7.1000000000000005,
+      "state": {
+        "position": [
+          0.71,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 7.2,
+      "state": {
+        "position": [
+          0.72,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 7.300000000000001,
+      "state": {
+        "position": [
+          0.73,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 7.4,
+      "state": {
+        "position": [
+          0.74,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 7.5,
+      "state": {
+        "position": [
+          0.75,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 7.6000000000000005,
+      "state": {
+        "position": [
+          0.76,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 7.7,
+      "state": {
+        "position": [
+          0.77,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 7.800000000000001,
+      "state": {
+        "position": [
+          0.78,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 7.9,
+      "state": {
+        "position": [
+          0.79,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 8.0,
+      "state": {
+        "position": [
+          0.8,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 8.1,
+      "state": {
+        "position": [
+          0.81,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 8.200000000000001,
+      "state": {
+        "position": [
+          0.8200000000000001,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 8.3,
+      "state": {
+        "position": [
+          0.8300000000000001,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 8.4,
+      "state": {
+        "position": [
+          0.84,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 8.5,
+      "state": {
+        "position": [
+          0.85,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 8.6,
+      "state": {
+        "position": [
+          0.86,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 8.700000000000001,
+      "state": {
+        "position": [
+          0.87,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 8.8,
+      "state": {
+        "position": [
+          0.88,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 8.9,
+      "state": {
+        "position": [
+          0.89,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 9.0,
+      "state": {
+        "position": [
+          0.9,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 9.1,
+      "state": {
+        "position": [
+          0.91,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 9.200000000000001,
+      "state": {
+        "position": [
+          0.92,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 9.3,
+      "state": {
+        "position": [
+          0.93,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 9.4,
+      "state": {
+        "position": [
+          0.9400000000000001,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 9.5,
+      "state": {
+        "position": [
+          0.9500000000000001,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 9.600000000000001,
+      "state": {
+        "position": [
+          0.96,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 9.700000000000001,
+      "state": {
+        "position": [
+          0.97,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 9.8,
+      "state": {
+        "position": [
+          0.98,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": 9.9,
+      "state": {
+        "position": [
+          0.99,
+          0,
+          0
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "energy": [
+    {
+      "timestamp": 0.0,
+      "battery_soc": 100.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 0.1,
+      "battery_soc": 99.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 0.2,
+      "battery_soc": 99.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 0.30000000000000004,
+      "battery_soc": 98.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 0.4,
+      "battery_soc": 98.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 0.5,
+      "battery_soc": 97.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 0.6000000000000001,
+      "battery_soc": 97.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 0.7000000000000001,
+      "battery_soc": 96.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 0.8,
+      "battery_soc": 96.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 0.9,
+      "battery_soc": 95.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 1.0,
+      "battery_soc": 95.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 1.1,
+      "battery_soc": 94.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 1.2000000000000002,
+      "battery_soc": 94.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 1.3,
+      "battery_soc": 93.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 1.4000000000000001,
+      "battery_soc": 93.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 1.5,
+      "battery_soc": 92.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 1.6,
+      "battery_soc": 92.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 1.7000000000000002,
+      "battery_soc": 91.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 1.8,
+      "battery_soc": 91.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 1.9000000000000001,
+      "battery_soc": 90.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 2.0,
+      "battery_soc": 90.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 2.1,
+      "battery_soc": 89.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 2.2,
+      "battery_soc": 89.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 2.3000000000000003,
+      "battery_soc": 88.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 2.4000000000000004,
+      "battery_soc": 88.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 2.5,
+      "battery_soc": 87.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 2.6,
+      "battery_soc": 87.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 2.7,
+      "battery_soc": 86.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 2.8000000000000003,
+      "battery_soc": 86.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 2.9000000000000004,
+      "battery_soc": 85.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 3.0,
+      "battery_soc": 85.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 3.1,
+      "battery_soc": 84.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 3.2,
+      "battery_soc": 84.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 3.3000000000000003,
+      "battery_soc": 83.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 3.4000000000000004,
+      "battery_soc": 83.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 3.5,
+      "battery_soc": 82.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 3.6,
+      "battery_soc": 82.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 3.7,
+      "battery_soc": 81.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 3.8000000000000003,
+      "battery_soc": 81.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 3.9000000000000004,
+      "battery_soc": 80.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 4.0,
+      "battery_soc": 80.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 4.1000000000000005,
+      "battery_soc": 79.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 4.2,
+      "battery_soc": 79.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 4.3,
+      "battery_soc": 78.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 4.4,
+      "battery_soc": 78.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 4.5,
+      "battery_soc": 77.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 4.6000000000000005,
+      "battery_soc": 77.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 4.7,
+      "battery_soc": 76.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 4.800000000000001,
+      "battery_soc": 76.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 4.9,
+      "battery_soc": 75.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 5.0,
+      "battery_soc": 75.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 5.1000000000000005,
+      "battery_soc": 74.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 5.2,
+      "battery_soc": 74.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 5.300000000000001,
+      "battery_soc": 73.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 5.4,
+      "battery_soc": 73.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 5.5,
+      "battery_soc": 72.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 5.6000000000000005,
+      "battery_soc": 72.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 5.7,
+      "battery_soc": 71.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 5.800000000000001,
+      "battery_soc": 71.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 5.9,
+      "battery_soc": 70.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 6.0,
+      "battery_soc": 70.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 6.1000000000000005,
+      "battery_soc": 69.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 6.2,
+      "battery_soc": 69.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 6.300000000000001,
+      "battery_soc": 68.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 6.4,
+      "battery_soc": 68.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 6.5,
+      "battery_soc": 67.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 6.6000000000000005,
+      "battery_soc": 67.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 6.7,
+      "battery_soc": 66.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 6.800000000000001,
+      "battery_soc": 66.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 6.9,
+      "battery_soc": 65.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 7.0,
+      "battery_soc": 65.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 7.1000000000000005,
+      "battery_soc": 64.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 7.2,
+      "battery_soc": 64.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 7.300000000000001,
+      "battery_soc": 63.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 7.4,
+      "battery_soc": 63.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 7.5,
+      "battery_soc": 62.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 7.6000000000000005,
+      "battery_soc": 62.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 7.7,
+      "battery_soc": 61.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 7.800000000000001,
+      "battery_soc": 61.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 7.9,
+      "battery_soc": 60.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 8.0,
+      "battery_soc": 60.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 8.1,
+      "battery_soc": 59.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 8.200000000000001,
+      "battery_soc": 59.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 8.3,
+      "battery_soc": 58.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 8.4,
+      "battery_soc": 58.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 8.5,
+      "battery_soc": 57.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 8.6,
+      "battery_soc": 57.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 8.700000000000001,
+      "battery_soc": 56.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 8.8,
+      "battery_soc": 56.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 8.9,
+      "battery_soc": 55.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 9.0,
+      "battery_soc": 55.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 9.1,
+      "battery_soc": 54.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 9.200000000000001,
+      "battery_soc": 54.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 9.3,
+      "battery_soc": 53.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 9.4,
+      "battery_soc": 53.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 9.5,
+      "battery_soc": 52.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 9.600000000000001,
+      "battery_soc": 52.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 9.700000000000001,
+      "battery_soc": 51.5,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 9.8,
+      "battery_soc": 51.0,
+      "power_w": 200,
+      "current_a": 5
+    },
+    {
+      "timestamp": 9.9,
+      "battery_soc": 50.5,
+      "power_w": 200,
+      "current_a": 5
+    }
+  ],
+  "thermal": [],
+  "safety": [
+    {
+      "timestamp": 0.0,
+      "level": 0,
+      "violations": []
+    },
+    {
+      "timestamp": 2.0,
+      "level": 0,
+      "violations": []
+    },
+    {
+      "timestamp": 4.0,
+      "level": 0,
+      "violations": []
+    },
+    {
+      "timestamp": 6.0,
+      "level": 0,
+      "violations": []
+    },
+    {
+      "timestamp": 8.0,
+      "level": 0,
+      "violations": []
+    }
+  ],
+  "sensors": [],
+  "control": [],
+  "events": [
+    {
+      "timestamp": 5.0,
+      "type": "INFO",
+      "description": "达到中点"
+    }
+  ]
+}

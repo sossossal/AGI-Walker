@@ -1,0 +1,14 @@
+# Python依赖 - AI控制系统
+
+# 核心依赖（已有）
+# (tcp_client.py使用Python标准库，无需额外依赖)
+
+# AI模型推理
+ollama>=0.1.0              # Ollama Python客户端（推荐）
+# llama-cpp-python>=0.2.0  # llama.cpp Python绑定（可选，高级用户）
+
+# 未来扩展（当前可选）
+# numpy>=1.24.0              # 数值计算
+# matplotlib>=3.7.0          # 数据可视化
+# gradio>=4.0.0              # 监控面板
+# openai>=1.0.0              # 70B模型API（如DeepSeek）

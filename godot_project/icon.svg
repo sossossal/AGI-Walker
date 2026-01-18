@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- 背景 -->
+  <rect width="128" height="128" fill="#2d5a8c" rx="16"/>
+  
+  <!-- 机器人躯干 -->
+  <rect x="44" y="30" width="40" height="50" fill="#ffffff" rx="4"/>
+  
+  <!-- 左腿 -->
+  <rect x="48" y="80" width="12" height="35" fill="#ff6b6b" rx="2"/>
+  
+  <!-- 右腿 -->
+  <rect x="68" y="80" width="12" height="35" fill="#4ecdc4" rx="2"/>
+  
+  <!-- 头部/传感器 -->
+  <circle cx="64" cy="20" r="8" fill="#ffd93d"/>
+  
+  <!-- AI标识 -->
+  <text x="64" y="58" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#2d5a8c" text-anchor="middle">AI</text>
+</svg>

@@ -1,0 +1,172 @@
+{
+    "name": "Quadruped Robot",
+    "description": "12 DoF quadruped robot with multiple gaits",
+    "type": "quadruped",
+    "dof": 12,
+    "mass": 12.0,
+    "height": 0.3,
+    "legs": [
+        {
+            "name": "front_left",
+            "joints": [
+                {
+                    "name": "hip",
+                    "type": "revolute",
+                    "axis": "y",
+                    "range": [
+                        -45,
+                        45
+                    ],
+                    "motor": {
+                        "type": "brushless_500w",
+                        "max_torque": 5.0
+                    }
+                },
+                {
+                    "name": "thigh",
+                    "type": "revolute",
+                    "axis": "x",
+                    "range": [
+                        -120,
+                        60
+                    ],
+                    "motor": {
+                        "type": "brushless_500w",
+                        "max_torque": 5.0
+                    }
+                },
+                {
+                    "name": "shin",
+                    "type": "revolute",
+                    "axis": "x",
+                    "range": [
+                        0,
+                        150
+                    ],
+                    "motor": {
+                        "type": "brushless_500w",
+                        "max_torque": 5.0
+                    }
+                }
+            ]
+        },
+        {
+            "name": "front_right",
+            "joints": [
+                {
+                    "name": "hip",
+                    "type": "revolute",
+                    "axis": "y",
+                    "range": [
+                        -45,
+                        45
+                    ]
+                },
+                {
+                    "name": "thigh",
+                    "type": "revolute",
+                    "axis": "x",
+                    "range": [
+                        -120,
+                        60
+                    ]
+                },
+                {
+                    "name": "shin",
+                    "type": "revolute",
+                    "axis": "x",
+                    "range": [
+                        0,
+                        150
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "rear_left",
+            "joints": [
+                {
+                    "name": "hip",
+                    "type": "revolute",
+                    "axis": "y",
+                    "range": [
+                        -45,
+                        45
+                    ]
+                },
+                {
+                    "name": "thigh",
+                    "type": "revolute",
+                    "axis": "x",
+                    "range": [
+                        -120,
+                        60
+                    ]
+                },
+                {
+                    "name": "shin",
+                    "type": "revolute",
+                    "axis": "x",
+                    "range": [
+                        0,
+                        150
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "rear_right",
+            "joints": [
+                {
+                    "name": "hip",
+                    "type": "revolute",
+                    "axis": "y",
+                    "range": [
+                        -45,
+                        45
+                    ]
+                },
+                {
+                    "name": "thigh",
+                    "type": "revolute",
+                    "axis": "x",
+                    "range": [
+                        -120,
+                        60
+                    ]
+                },
+                {
+                    "name": "shin",
+                    "type": "revolute",
+                    "axis": "x",
+                    "range": [
+                        0,
+                        150
+                    ]
+                }
+            ]
+        }
+    ],
+    "sensors": [
+        {
+            "type": "imu",
+            "name": "body_imu",
+            "location": "body_center",
+            "noise": 0.01
+        },
+        {
+            "type": "joint_encoder",
+            "count": 12,
+            "resolution": 0.001
+        }
+    ],
+    "training": {
+        "rewards": {
+            "forward_velocity": 1.0,
+            "energy_penalty": -0.05,
+            "stability": 0.5,
+            "orientation": 0.3
+        },
+        "max_episode_steps": 1000
+    }
+}

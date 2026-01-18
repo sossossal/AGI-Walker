@@ -1,0 +1,316 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://agi-walker.org/schemas/motor.schema.json",
+    "title": "电机/舵机零件规格",
+    "description": "机器人电机和舵机的标准化数据模型",
+    "type": "object",
+    "required": [
+        "part_id",
+        "category",
+        "manufacturer",
+        "model",
+        "specifications"
+    ],
+    "properties": {
+        "part_id": {
+            "type": "string",
+            "description": "唯一标识符，格式：品牌_型号（小写字母和下划线）",
+            "pattern": "^[a-z0-9_]+$",
+            "examples": [
+                "dynamixel_xl430_w250",
+                "maxon_ec45_flat"
+            ]
+        },
+        "category": {
+            "type": "string",
+            "enum": [
+                "actuator_servo",
+                "actuator_motor",
+                "actuator_linear"
+            ],
+            "description": "零件类别"
+        },
+        "manufacturer": {
+            "type": "string",
+            "description": "制造商名称",
+            "examples": [
+                "ROBOTIS",
+                "Maxon Motor",
+                "Faulhaber"
+            ]
+        },
+        "model": {
+            "type": "string",
+            "description": "型号名称",
+            "examples": [
+                "XL430-W250-T",
+                "EC45 flat 30W"
+            ]
+        },
+        "specifications": {
+            "type": "object",
+            "description": "技术规格参数",
+            "required": [
+                "stall_torque",
+                "no_load_speed",
+                "weight",
+                "voltage_range"
+            ],
+            "properties": {
+                "stall_torque": {
+                    "type": "number",
+                    "description": "堵转扭矩 (N·m)，在额定电压下",
+                    "minimum": 0,
+                    "examples": [
+                        1.4,
+                        0.39,
+                        5.2
+                    ]
+                },
+                "no_load_speed": {
+                    "type": "number",
+                    "description": "空载转速 (RPM)，在额定电压下",
+                    "minimum": 0,
+                    "examples": [
+                        50,
+                        265,
+                        7200
+                    ]
+                },
+                "weight": {
+                    "type": "number",
+                    "description": "重量 (kg)",
+                    "minimum": 0,
+                    "examples": [
+                        0.057,
+                        0.136,
+                        0.420
+                    ]
+                },
+                "dimensions": {
+                    "type": "array",
+                    "description": "外形尺寸 [宽, 深, 高] (mm)",
+                    "items": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "examples": [
+                        [
+                            28,
+                            46.5,
+                            34
+                        ]
+                    ]
+                },
+                "gear_ratio": {
+                    "type": "number",
+                    "description": "减速比（如果有减速器）",
+                    "minimum": 1,
+                    "default": 1,
+                    "examples": [
+                        257.4,
+                        53,
+                        1
+                    ]
+                },
+                "max_current": {
+                    "type": "number",
+                    "description": "最大电流 (A)",
+                    "minimum": 0,
+                    "examples": [
+                        1.4,
+                        0.69,
+                        2.8
+                    ]
+                },
+                "voltage_range": {
+                    "type": "array",
+                    "description": "工作电压范围 [最小, 最大] (V)",
+                    "items": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "examples": [
+                        [
+                            6.5,
+                            12
+                        ],
+                        [
+                            10,
+                            30
+                        ]
+                    ]
+                },
+                "resolution": {
+                    "type": "integer",
+                    "description": "位置分辨率 (steps/revolution)，仅适用于舵机",
+                    "minimum": 1,
+                    "examples": [
+                        4096,
+                        1024
+                    ]
+                },
+                "rotor_inertia": {
+                    "type": "number",
+                    "description": "转子惯量 (kg·m²)",
+                    "minimum": 0,
+                    "examples": [
+                        3.5e-6,
+                        4.7e-5,
+                        1.2e-4
+                    ]
+                },
+                "friction": {
+                    "type": "object",
+                    "description": "摩擦力参数",
+                    "properties": {
+                        "static": {
+                            "type": "number",
+                            "description": "静摩擦力矩 (N·m)",
+                            "minimum": 0,
+                            "examples": [
+                                0.015,
+                                0.08
+                            ]
+                        },
+                        "dynamic": {
+                            "type": "number",
+                            "description": "动摩擦力矩 (N·m)",
+                            "minimum": 0,
+                            "examples": [
+                                0.008,
+                                0.05
+                            ]
+                        },
+                        "viscous": {
+                            "type": "number",
+                            "description": "粘性阻尼系数 (N·m·s/rad)",
+                            "minimum": 0,
+                            "default": 0.01,
+                            "examples": [
+                                0.001,
+                                0.01
+                            ]
+                        }
+                    }
+                },
+                "thermal": {
+                    "type": "object",
+                    "description": "热特性参数",
+                    "properties": {
+                        "resistance": {
+                            "type": "number",
+                            "description": "热阻 (K/W)，温度上升与功率的比值",
+                            "minimum": 0,
+                            "examples": [
+                                25,
+                                18,
+                                35
+                            ]
+                        },
+                        "time_constant": {
+                            "type": "number",
+                            "description": "热时间常数 (秒)，达到稳态温度的 63% 所需时间",
+                            "minimum": 0,
+                            "examples": [
+                                1200,
+                                600,
+                                1800
+                            ]
+                        },
+                        "max_winding_temp": {
+                            "type": "number",
+                            "description": "最大绕组温度 (°C)",
+                            "minimum": 0,
+                            "default": 125,
+                            "examples": [
+                                125,
+                                155
+                            ]
+                        }
+                    }
+                },
+                "motor_constant": {
+                    "type": "number",
+                    "description": "电机扭矩常数 (N·m/A)",
+                    "minimum": 0,
+                    "examples": [
+                        0.0108,
+                        0.0355,
+                        0.0892
+                    ]
+                },
+                "back_emf_constant": {
+                    "type": "number",
+                    "description": "反电动势常数 (V/(rad/s))",
+                    "minimum": 0,
+                    "examples": [
+                        0.0108,
+                        0.0355
+                    ]
+                },
+                "winding_resistance": {
+                    "type": "number",
+                    "description": "绕组电阻 (Ω)",
+                    "minimum": 0,
+                    "examples": [
+                        8.4,
+                        2.52,
+                        1.16
+                    ]
+                }
+            }
+        },
+        "model_path": {
+            "type": "string",
+            "description": "3D模型文件路径（相对于 Godot 项目根目录）",
+            "pattern": "^res://.*\\.(glb|gltf|obj)$",
+            "examples": [
+                "res://parts_library/motors/dynamixel/xl430.glb"
+            ]
+        },
+        "control_interface": {
+            "type": "string",
+            "description": "控制接口类型",
+            "enum": [
+                "TTL",
+                "RS485",
+                "CAN",
+                "PWM",
+                "Analog",
+                "I2C",
+                "SPI"
+            ],
+            "examples": [
+                "TTL",
+                "PWM"
+            ]
+        },
+        "price_usd": {
+            "type": "number",
+            "description": "参考价格 (美元)",
+            "minimum": 0,
+            "examples": [
+                69.90,
+                245.00,
+                890.00
+            ]
+        },
+        "datasheet_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "官方数据手册链接",
+            "examples": [
+                "https://emanual.robotis.com/docs/en/dxl/x/xl430-w250/"
+            ]
+        },
+        "notes": {
+            "type": "string",
+            "description": "备注信息"
+        }
+    }
+}

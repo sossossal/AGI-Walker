@@ -1,0 +1,13 @@
+# 测试依赖
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+pytest-timeout>=2.1.0
+
+# 代码质量工具
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0
+
+# 可选：性能测试
+pytest-benchmark>=4.0.0
