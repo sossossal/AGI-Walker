@@ -1,0 +1,55 @@
+# 在GUI文件末尾添加Godot集成的新版本FeedbackPanel
+# 在robot_configurator_gui.py的适当位置用这个类替换旧的FeedbackPanel
+
+def create_godot_integrated_feedback_panel_class():
+    """返回集成Godot的FeedbackPanel类定义的代码"""
+    return '''
+class FeedbackPanel(ttk.Frame):
+    """数据反馈面板（支持真实Godot仿真）"""
+    
+    def __init__(self, parent, app):
+        super().__init__(parent)
+        self.app = app
+        self.godot_client = None
+        self.simulation_running = False
+        
+        # 标题
+        ttk.Label(self, text="仿真反馈", font=('Arial', 12, 'bold')).pack()
+        
+        # Godot连接控制
+        connect_frame = ttk.LabelFrame(self, text="Godot连接")
+        connect_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        conn_ctrl_frame = ttk.Frame(connect_frame)
+        conn_ctrl_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        ttk.Label(conn_ctrl_frame, text="地址:").pack(side=tk.LEFT)
+        self.host_var = tk.StringVar(value="127.0.0.1")
+        ttk.Entry(conn_ctrl_frame, textvariable=self.host_var, width=12).pack(side=tk.LEFT, padx=2)
+        
+        ttk.Label(conn_ctrl_frame, text="端口:").pack(side=tk.LEFT, padx=5)
+        self.port_var = tk.StringVar(value="9999")
+        ttk.Entry(conn_ctrl_frame, textvariable=self.port_var, width=6).pack(side=tk.LEFT, padx=2)
+        
+        self.connect_btn = ttk.Button(conn_ctrl_frame, text="🔌 连接Godot", command=self.toggle_connection)
+        self.connect_btn.pack(side=tk.LEFT, padx=5)
+        
+        self.conn_status_label = ttk.Label(conn_ctrl_frame, text="● 未连接", foreground='gray')
+        self.conn_status_label.pack(side=tk.LEFT, padx=5)
+        
+        # 仿真控制
+        control_frame = ttk.Frame(self)
+        control_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        self.start_btn = ttk.Button(control_frame, text="▶️ 启动仿真", command=self.start_simulation, state=tk.DISABLED)
+        self.start_btn.pack(side=tk.LEFT, padx=2)
+        
+        self.stop_btn = ttk.Button(control_frame, text="⏹️ 停止", command=self.stop_simulation, state=tk.DISABLED)
+        self.stop_btn.pack(side=tk.LEFT, padx=2)
+        
+        ttk.Button(control_frame, text="🔄 同步参数", command=self.sync_parameters).pack(side=tk.LEFT, padx=2)
+        
+        # 其余代码与原来相同...
+'''
+
+# 见 `docs/GODOT_INTEGRATION_GUIDE.md` 获取完整实现
