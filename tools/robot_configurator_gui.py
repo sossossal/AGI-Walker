@@ -42,31 +42,102 @@ except ImportError:
 
 
 class PartNode:
-    """零件节点（画布上的可视化表示）"""
+    """零件节点 - 在画布上表示一个零件"""
     
-    def __init__(self, canvas, part_id: str, part_data: dict, x: int, y: int):
+    # 零件ID到图标文件名的映射
+    ICON_MAPPING = {
+        'motor_1': 'motor_1.png',
+        'motor_2': 'motor_1.png',  # 使用相同图标
+        'imu_1': 'imu_1.png',
+        'encoder_1': 'imu_1.png',  # 传感器使用IMU图标
+        'ctrl_1': 'ctrl_1.png',
+        'joint_1': 'joint_1.png',
+        'battery_1': 'battery_1.png',
+        'battery_2': 'battery_1.png',
+    }
+    
+    def __init__(self, canvas, part_id, part_data, x, y):
         self.canvas = canvas
         self.part_id = part_id
         self.part_data = part_data
         self.x = x
         self.y = y
-        self.width = 80
-        self.height = 60
         self.selected = False
         
-        # 绘制节点
-        self.rect = canvas.create_rectangle(
-            x, y, x + self.width, y + self.height,
-            fill='lightblue', outline='black', width=2,
-            tags=('part', part_id)
+        self.rect = None
+        self.text = None
+        self.image_obj = None
+        self.photo = None  # 保持图片引用
+        
+        self.draw()
+        
+    def draw(self):
+        """绘制零件节点"""
+        # 尝试加载图标
+        icon_loaded = self.load_icon()
+        
+        if not icon_loaded:
+            # 降级到矩形
+            self.rect = self.canvas.create_rectangle(
+                self.x, self.y, self.x + 60, self.y + 60,
+                fill='lightblue', outline='blue', width=2,
+                tags=('part', self.part_id)
+            )
+        
+        # 文本标签（总是显示）
+        model_name = self.part_data.get('model', 'Unknown')
+        self.text = self.canvas.create_text(
+            self.x + 30, self.y + 70,
+            text=model_name[:10],  # 限制长度
+            font=('Arial', 9),
+            tags=('part', self.part_id)
         )
         
-        # 零件名称
-        part_name = part_data.get('model', part_id)[:10]
-        self.text = canvas.create_text(
-            x + self.width/2, y + self.height/2,
-            text=part_name, tags=('part', part_id)
-        )
+    def load_icon(self):
+        """
+        加载零件图标
+        
+       Returns:
+            bool: 是否成功加载图标
+        """
+        try:
+            from PIL import Image, ImageTk
+            from pathlib import Path
+            
+            # 获取图标文件名
+            base_id = self.part_id.rsplit('_', 1)[0]  # 移除后缀数字
+            icon_filename = self.ICON_MAPPING.get(base_id)
+            
+            if not icon_filename:
+                return False
+            
+            # 构建图标路径
+            icon_path = Path("assets") / "thumbnails" / "small" / icon_filename
+            
+            if not icon_path.exists():
+                # 尝试标准尺寸
+                icon_path = Path("assets") / "thumbnails" / icon_filename
+            
+            if not icon_path.exists():
+                return False
+            
+            # 加载并调整图片
+            img = Image.open(icon_path)
+            img = img.resize((60, 60), Image.LANCZOS)
+            self.photo = ImageTk.PhotoImage(img)
+            
+            # 在画布上显示图片
+            self.image_obj = self.canvas.create_image(
+                self.x + 30, self.y + 30,
+                image=self.photo,
+                tags=('part', self.part_id)
+            )
+            
+            return True
+            
+        except Exception as e:
+            print(f"加载图标失败 {self.part_id}: {e}")
+            return False
         
     def select(self):
         """选中高亮"""
