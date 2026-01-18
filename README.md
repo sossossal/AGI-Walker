@@ -175,6 +175,7 @@ python tools/quantize_imc22.py
 
 ## 📚 文档
 
+- [新手入门教程](docs/BEGINNER_TUTORIAL.md) - 从0开始
 - [快速入门指南](GETTING_STARTED.md)
 - [完整功能清单](docs/COMPLETE_FEATURES.md)
 - [IMC-22集成workflow](docs/IMC22_WORKFLOW.md)
