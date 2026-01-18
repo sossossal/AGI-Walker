@@ -1,56 +1,27 @@
-# Pull Request
+## Description
 
-## 📝 变更说明
+Please include a summary of the change and which issue is fixed. Please also include relevant motivation and context.
 
-<!-- 简要描述这个 PR 做了什么 -->
+## Type of change
 
-## 🎯 相关 Issue
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Documentation update
 
-<!-- 如果有，请链接相关的 Issue。例如：Fixes #123 -->
+## How Has This Been Tested?
 
-Fixes #
+Please describe the tests that you ran to verify your changes.
 
-## 🔍 变更类型
+- [ ] Test A
+- [ ] Test B
 
-请删除不相关的选项：
+## Checklist:
 
-- [ ] Bug 修复（不破坏现有功能的修改）
-- [ ] 新功能（不破坏现有功能的新增功能）
-- [ ] 破坏性变更（修复或功能会导致现有功能不正常工作）
-- [ ] 文档更新
-- [ ] 性能优化
-- [ ] 代码重构
-- [ ] 测试相关
-
-## 🧪 测试
-
-**测试过程**:
-<!-- 描述您如何测试了这些变更 -->
-
-- [ ] 添加了新的测试用例
-- [ ] 所有现有测试通过
-- [ ] 手动测试已完成
-
-**测试环境**:
-- OS: 
-- Python 版本: 
-- Godot 版本: 
-
-## 📸 截图（如适用）
-
-<!-- 如果这是 UI 变更，请添加截图 -->
-
-## ✔️ 检查清单
-
-- [ ] 我的代码遵循项目的代码风格
-- [ ] 我已进行自我审查
-- [ ] 我已添加必要的注释，特别是在复杂区域
-- [ ] 我已更新相关文档
-- [ ] 我的变更不会产生新的警告
-- [ ] 我已添加测试来验证我的修复/功能有效
-- [ ] 新的和现有的单元测试在本地通过
-- [ ] 任何依赖的变更已被合并和发布
-
-## 📝 额外说明
-
-<!-- 任何您想让审查者知道的额外信息 -->
+- [ ] My code follows the style guidelines of this project
+- [ ] I have performed a self-review of my own code
+- [ ] I have commented my code, particularly in hard-to-understand areas
+- [ ] I have made corresponding changes to the documentation
+- [ ] My changes generate no new warnings
+- [ ] I have added tests that prove my fix is effective or that my feature works
+- [ ] New and existing unit tests pass locally with my changes

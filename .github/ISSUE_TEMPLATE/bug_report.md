@@ -1,54 +1,31 @@
 ---
-name: Bug 报告
-about: 创建报告帮助我们改进
-title: '[BUG] '
+name: Bug report
+about: Create a report to help us improve
+title: "[BUG] "
 labels: bug
 assignees: ''
+
 ---
 
-## 🐛 Bug 描述
+**Describe the bug**
+A clear and concise description of what the bug is.
 
-简洁清晰地描述这个 bug。
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Go to '...'
+2. Click on '...'
+3. Scroll down to '...'
+4. See error
 
-## 📋 复现步骤
+**Expected behavior**
+A clear and concise description of what you expected to happen.
 
-1. 执行 '...'
-2. 点击 '....'
-3. 滚动到 '....'
-4. 看到错误
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
 
-## ✅ 预期行为
+**Desktop (please complete the following information):**
+ - OS: [e.g. Windows]
+ - Python Version [e.g. 3.8]
 
-清晰简洁地描述您期望发生什么。
-
-## ❌ 实际行为
-
-清晰简洁地描述实际发生了什么。
-
-## 📸 截图
-
-如果适用，添加截图帮助解释您的问题。
-
-## 💻 环境信息
-
-**桌面环境**:
- - OS: [例如 Windows 11]
- - Python 版本: [例如 3.10.5]
- - AGI-Walker 版本: [例如 0.9.0-beta]
- - Godot 版本: [例如 4.2.1]
-
-**Python 包版本**:
-```bash
-pip list | grep -E "(gymnasium|stable-baselines3|torch)"
-```
-
-## 📝 额外信息
-
-添加任何其他关于问题的上下文。
-
-## ✔️ 检查清单
-
-- [ ] 我已搜索现有 issues，确认这不是重复报告
-- [ ] 我已阅读文档和 FAQ
-- [ ] 我已提供完整的复现步骤
-- [ ] 我已包含环境信息
+**Additional context**
+Add any other context about the problem here.
