@@ -24,8 +24,8 @@ class VirtualGanglion:
         self.zone_name = zone_name
         self.running = False
         
-        # OpenNeuro Topics
-        self.base_topic = f"/zone/{self.zone_id}"
+        # OpenNeuro Topics (no leading slash for Zenoh compatibility)
+        self.base_topic = f"zone/{self.zone_id}"
         self.cmd_topic = f"{self.base_topic}/cmd"
         self.state_topic = f"{self.base_topic}/state"
         self.imc_topic = f"{self.base_topic}/imc22/output"
@@ -38,7 +38,7 @@ class VirtualGanglion:
         
         # Zenoh Session
         print(f"[{self.zone_name}] Initializing Zenoh...")
-        self.session = zenoh.open()
+        self.session = zenoh.open(zenoh.Config())
         
         # Publishers
         self.pub_state = self.session.declare_publisher(self.state_topic)
