@@ -1,5 +1,6 @@
 """
 Godot Robot Environment - OpenAI Gym/Gymnasium Compatible Interface
+支持动力学随机化，实施Sim2Real
 """
 import gymnasium as gym
 import numpy as np
@@ -7,12 +8,25 @@ from typing import Dict, Any, Tuple, Optional
 import socket
 import json
 import time
+import random
+from dataclasses import dataclass
+
+@dataclass
+class RandomizerConfig:
+    """随机化配置"""
+    mass_range: Tuple[float, float] = (0.9, 1.1)        # 质量缩放范围
+    friction_range: Tuple[float, float] = (0.5, 1.5)    # 摩擦力缩放范围
+    motor_strength_range: Tuple[float, float] = (0.8, 1.05) # 电机强度范围
+    motor_lag_range: Tuple[float, float] = (0.0, 0.04)  # 延迟范围 (秒)
+    sensor_noise_std: float = 0.01                      # 传感器噪声标准差
+    enable_randomization: bool = True                   # 开关
 
 class GodotRobotEnv(gym.Env):
     """
     OpenAI Gym 兼容的 Godot 机器人仿真环境
     
     支持强化学习训练，与 Godot 仿真器通过 TCP 通信。
+    集成动力学随机化，增强 Sim2Real 鲁棒性。
     """
     
     metadata = {
@@ -24,6 +38,7 @@ class GodotRobotEnv(gym.Env):
         self,
         robot_config: Optional[Dict] = None,
         physics_config: Optional[Dict] = None,
+        randomizer_config: Optional[RandomizerConfig] = None,
         host: str = "127.0.0.1",
         port: int = 9999,
         timeout: float = 10.0
@@ -34,6 +49,7 @@ class GodotRobotEnv(gym.Env):
         Args:
             robot_config: 机器人配置（零件列表等）
             physics_config: 物理环境配置（重力、摩擦等）
+            randomizer_config: 随机化配置
             host: Godot 服务器地址
             port: Godot 服务器端口
             timeout: 连接超时时间（秒）
@@ -48,6 +64,15 @@ class GodotRobotEnv(gym.Env):
         
         self.robot_config = robot_config or self._default_robot_config()
         self.physics_config = physics_config or {}
+        self.randomizer_config = randomizer_config or RandomizerConfig()
+        
+        # 当前随机化参数
+        self.current_dynamics = {
+            "mass_scale": 1.0,
+            "friction_scale": 1.0,
+            "motor_strength": 1.0,
+            "motor_lag": 0.0
+        }
         
         # 定义观察空间（传感器数据）
         self.observation_space = gym.spaces.Dict({
@@ -80,6 +105,18 @@ class GodotRobotEnv(gym.Env):
             'torso_height': gym.spaces.Box(
                 low=0, high=3, shape=(1,), dtype=np.float32
             ),  # meters
+
+            # ================= 多模态扩展 =================
+            # RGB 摄像头 (模拟分辨率 64x64)
+            'rgb_camera': gym.spaces.Box(
+                low=0, high=255, shape=(64, 64, 3), dtype=np.uint8
+            ),
+            
+            # 深度/高程图 (模拟局部地图 32x32)
+            'elevation_map': gym.spaces.Box(
+                low=-2.0, high=2.0, shape=(32, 32), dtype=np.float32
+            ),
+            # ============================================
         })
         
         # 定义动作空间（电机目标角度）
@@ -140,6 +177,37 @@ class GodotRobotEnv(gym.Env):
             self.socket = None
             self.connected = False
     
+    def _randomize_dynamics(self):
+        """生成新的随机动力学参数"""
+        if not self.randomizer_config.enable_randomization:
+            return
+        
+        cfg = self.randomizer_config
+        self.current_dynamics["mass_scale"] = random.uniform(*cfg.mass_range)
+        self.current_dynamics["friction_scale"] = random.uniform(*cfg.friction_range)
+        self.current_dynamics["motor_strength"] = random.uniform(*cfg.motor_strength_range)
+        self.current_dynamics["motor_lag"] = random.uniform(*cfg.motor_lag_range)
+        
+        # 更新 physics_config 以发送给 Godot
+        self.physics_config["mass_scale"] = self.current_dynamics["mass_scale"]
+        self.physics_config["friction_scale"] = self.current_dynamics["friction_scale"]
+        self.physics_config["motor_strength"] = self.current_dynamics["motor_strength"]
+
+    def _apply_sensor_noise(self, obs: Dict) -> Dict:
+        """应用传感器噪声"""
+        if not self.randomizer_config.enable_randomization:
+            return obs
+            
+        noise_std = self.randomizer_config.sensor_noise_std
+        
+        # 为连续值添加高斯噪声
+        for key in ['imu_orient', 'imu_angular_vel', 'imu_linear_acc', 
+                   'joint_angles', 'joint_velocities', 'joint_torques']:
+            noise = np.random.normal(0, noise_std, obs[key].shape)
+            obs[key] = (obs[key] + noise).astype(np.float32)
+            
+        return obs
+
     def reset(
         self,
         seed: Optional[int] = None,
@@ -147,22 +215,23 @@ class GodotRobotEnv(gym.Env):
     ) -> Tuple[Dict, Dict]:
         """
         重置环境
-        
-        Returns:
-            observation: 初始观察
-            info: 额外信息
         """
         super().reset(seed=seed)
+        
+        # 1. 生成随机参数
+        self._randomize_dynamics()
         
         # 确保连接
         if not self.connected:
             self.connect()
         
-        # 发送重置指令
+        # 发送重置指令（包含新的随机化物理参数）
         reset_command = {
             "type": "reset",
             "robot_config": self.robot_config,
-            "physics_config": self.physics_config
+            "physics_config": self.physics_config,
+            "sim_params": self.current_dynamics,
+            "terrain_seed": random.randint(0, 999999) # 新增: 地形随机种子
         }
         
         self._send_command(reset_command)
@@ -170,13 +239,17 @@ class GodotRobotEnv(gym.Env):
         # 接收初始观察
         obs = self._receive_observation()
         
+        # 应用噪声
+        obs = self._apply_sensor_noise(obs)
+        
         # 重置统计
         self.current_step = 0
         self.episode_reward = 0.0
         self.episode_count += 1
         
         info = {
-            "episode": self.episode_count
+            "episode": self.episode_count,
+            "dynamics": self.current_dynamics # 记录当前episode的物理参数
         }
         
         return obs, info
@@ -187,19 +260,13 @@ class GodotRobotEnv(gym.Env):
     ) -> Tuple[Dict, float, bool, bool, Dict]:
         """
         执行一步动作
-        
-        Args:
-            action: 动作（电机目标角度）
-        
-        Returns:
-            observation: 新观察
-            reward: 奖励
-            terminated: 是否终止（摔倒等）
-            truncated: 是否截断（超时等）
-            info: 额外信息
         """
         start_time = time.time()
         
+        # 模拟通信/执行延迟
+        if self.randomizer_config.enable_randomization:
+            time.sleep(self.current_dynamics["motor_lag"])
+            
         # 发送动作指令
         action_command = {
             "type": "action",
@@ -215,6 +282,9 @@ class GodotRobotEnv(gym.Env):
         
         # 接收新观察
         obs = self._receive_observation()
+        
+        # 应用噪声
+        obs = self._apply_sensor_noise(obs)
         
         comm_time = time.time()
         
@@ -295,18 +365,16 @@ class GodotRobotEnv(gym.Env):
                 contacts.get('foot_left', False),
                 contacts.get('foot_right', False)
             ], dtype=np.int8),
-            'torso_height': np.array([data.get('torso_height', 1.0)], dtype=np.float32)
+            'torso_height': np.array([data.get('torso_height', 1.0)], dtype=np.float32),
+            
+            # 多模态填充 (如果Godot未发送真实图像，使用全0/噪声填充)
+            'rgb_camera': np.zeros((64, 64, 3), dtype=np.uint8), # Placeholder
+            'elevation_map': np.zeros((32, 32), dtype=np.float32) # Placeholder
         }
     
     def _calculate_reward(self, obs: Dict, action: np.ndarray) -> float:
         """
         计算奖励函数
-        
-        奖励组成：
-        - 前进速度：鼓励向前移动
-        - 平衡：惩罚倾斜
-        - 能量消耗：惩罚大动作
-        - 生存：每步基础奖励
         """
         reward = 0.0
         

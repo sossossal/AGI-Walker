@@ -48,7 +48,8 @@ class OpenNeuroGodotBridge:
     def on_zone_state(self, zone_id, sample):
         """处理Zone状态更新"""
         try:
-            data = json.loads(sample.payload.decode('utf-8'))
+            payload_bytes = bytes(sample.payload)
+            data = json.loads(payload_bytes.decode('utf-8'))
             self.zone_states[zone_id] = data
             
             # 转发到Godot

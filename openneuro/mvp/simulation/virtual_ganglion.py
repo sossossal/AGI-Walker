@@ -52,7 +52,8 @@ class VirtualGanglion:
     def on_cmd(self, sample):
         """Handle control commands"""
         try:
-            payload = json.loads(sample.payload.decode('utf-8'))
+            payload_bytes = bytes(sample.payload)
+            payload = json.loads(payload_bytes.decode('utf-8'))
             print(f"[{self.zone_name}] Received CMD: {payload}")
             
             if 'targets' in payload:

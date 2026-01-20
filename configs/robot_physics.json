@@ -1,0 +1,59 @@
+{
+  "resource_type": "PhysicsConfig",
+  "physics_params": {
+    "gravity_vector": [
+      0,
+      -9.8,
+      0
+    ],
+    "default_friction": 0.8,
+    "default_bounce": 0.0
+  },
+  "rigidbody_configs": {
+    "torso": {
+      "mass": 5.0,
+      "physics_material": {
+        "friction": 0.8,
+        "bounce": 0.0
+      },
+      "linear_damp": 0.0,
+      "angular_damp": 0.1
+    },
+    "left_leg": {
+      "mass": 2.0,
+      "physics_material": {
+        "friction": 0.8,
+        "bounce": 0.0
+      },
+      "linear_damp": 0.0,
+      "angular_damp": 0.1
+    },
+    "right_leg": {
+      "mass": 2.0,
+      "physics_material": {
+        "friction": 0.8,
+        "bounce": 0.0
+      },
+      "linear_damp": 0.0,
+      "angular_damp": 0.1
+    }
+  },
+  "joint_configs": {
+    "hip_left": {
+      "type": "HingeJoint3D",
+      "angular_limit_lower": -45.0,
+      "angular_limit_upper": 90.0,
+      "motor_max_impulse": 500.0,
+      "bias": 0.3,
+      "softness": 0.9
+    },
+    "hip_right": {
+      "type": "HingeJoint3D",
+      "angular_limit_lower": -45.0,
+      "angular_limit_upper": 90.0,
+      "motor_max_impulse": 500.0,
+      "bias": 0.3,
+      "softness": 0.9
+    }
+  }
+}

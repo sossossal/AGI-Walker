@@ -1,0 +1,273 @@
+{
+  "name": "Quadruped Robot",
+  "type": "quadruped",
+  "description": "四足步行机器人",
+  "total_mass": 8.0,
+  "height": 0.4,
+  "links": [
+    {
+      "name": "body",
+      "parent": "world",
+      "mass": 5.0,
+      "shape": "box",
+      "size": [
+        0.4,
+        0.2,
+        0.3
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "front_left_thigh",
+      "parent": "body",
+      "mass": 0.5,
+      "shape": "capsule",
+      "size": [
+        0.04,
+        0.15
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "front_left_shin",
+      "parent": "front_left_thigh",
+      "mass": 0.3,
+      "shape": "capsule",
+      "size": [
+        0.03,
+        0.15
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "front_right_thigh",
+      "parent": "body",
+      "mass": 0.5,
+      "shape": "capsule",
+      "size": [
+        0.04,
+        0.15
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "front_right_shin",
+      "parent": "front_right_thigh",
+      "mass": 0.3,
+      "shape": "capsule",
+      "size": [
+        0.03,
+        0.15
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "back_left_thigh",
+      "parent": "body",
+      "mass": 0.5,
+      "shape": "capsule",
+      "size": [
+        0.04,
+        0.15
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "back_left_shin",
+      "parent": "back_left_thigh",
+      "mass": 0.3,
+      "shape": "capsule",
+      "size": [
+        0.03,
+        0.15
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "back_right_thigh",
+      "parent": "body",
+      "mass": 0.5,
+      "shape": "capsule",
+      "size": [
+        0.04,
+        0.15
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "back_right_shin",
+      "parent": "back_right_thigh",
+      "mass": 0.3,
+      "shape": "capsule",
+      "size": [
+        0.03,
+        0.15
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "joints": [
+    {
+      "name": "front_left_hip",
+      "type": "hinge",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "range": [
+        -45,
+        45
+      ],
+      "max_torque": 100,
+      "damping": 0.1
+    },
+    {
+      "name": "front_left_knee",
+      "type": "hinge",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "range": [
+        0,
+        90
+      ],
+      "max_torque": 80,
+      "damping": 0.1
+    },
+    {
+      "name": "front_right_hip",
+      "type": "hinge",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "range": [
+        -45,
+        45
+      ],
+      "max_torque": 100,
+      "damping": 0.1
+    },
+    {
+      "name": "front_right_knee",
+      "type": "hinge",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "range": [
+        0,
+        90
+      ],
+      "max_torque": 80,
+      "damping": 0.1
+    },
+    {
+      "name": "back_left_hip",
+      "type": "hinge",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "range": [
+        -45,
+        45
+      ],
+      "max_torque": 100,
+      "damping": 0.1
+    },
+    {
+      "name": "back_left_knee",
+      "type": "hinge",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "range": [
+        0,
+        90
+      ],
+      "max_torque": 80,
+      "damping": 0.1
+    },
+    {
+      "name": "back_right_hip",
+      "type": "hinge",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "range": [
+        -45,
+        45
+      ],
+      "max_torque": 100,
+      "damping": 0.1
+    },
+    {
+      "name": "back_right_knee",
+      "type": "hinge",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "range": [
+        0,
+        90
+      ],
+      "max_torque": 80,
+      "damping": 0.1
+    }
+  ],
+  "sensors": [
+    "imu",
+    "joint_encoders",
+    "foot_contact"
+  ],
+  "control_frequency": 200.0
+}

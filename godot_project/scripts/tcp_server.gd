@@ -16,6 +16,8 @@ var has_client := false
 
 # 引用机器人节点
 @onready var robot = get_node("/root/Main/Robot")
+# 引用地形生成器 (可选)
+@onready var terrain_generator = get_node_or_null("/root/Main/TerrainGenerator")
 
 signal client_connected
 signal client_disconnected
@@ -109,7 +111,29 @@ func _apply_command(command: Dictionary):
 	if not robot:
 		return
 	
-	robot.apply_motor_commands(command)
+	if command.has("type"):
+		match command.type:
+			"reset":
+				# 处理重置逻辑，包括地形更新
+				if command.has("terrain_seed") and terrain_generator:
+					var seed_val = int(command["terrain_seed"])
+					terrain_generator.generate(seed_val)
+				
+				# 如果有 sim_params 也可以在这里应用(通过 robot script 或 env controller)
+				pass
+				
+			"update_terrain":
+				if terrain_generator:
+					var seed_val = int(command.get("seed", 0))
+					var roughness = float(command.get("roughness", 1.0))
+					terrain_generator.generate(seed_val, roughness)
+			
+			"action":
+				# 电机控制
+				robot.apply_motor_commands(command)
+	else:
+		# 兼容旧协议 (直接是 motor map)
+		robot.apply_motor_commands(command)
 
 
 func _exit_tree():

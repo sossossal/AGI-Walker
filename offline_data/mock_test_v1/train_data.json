@@ -1,0 +1,212 @@
+[
+  {
+    "id": "traj_7",
+    "label": "unstable_balance",
+    "confidence": 0.5,
+    "explanation": "轨迹过短（50步），无法确定",
+    "quality_score": 0.4,
+    "metadata": {
+      "duration": 50,
+      "max_roll": 4.90451579108162,
+      "max_pitch": 4.819163823770033,
+      "avg_roll": 2.417057544360047,
+      "avg_pitch": 2.640795668275959,
+      "min_height": 1.5,
+      "final_height": 1.5,
+      "avg_velocity": 0.8561372795420007,
+      "total_distance": 0,
+      "energy_usage": 0.9608127450152386,
+      "action_variance": 0.1617201729551525,
+      "terminated": false
+    }
+  },
+  {
+    "id": "traj_3",
+    "label": "unstable_balance",
+    "confidence": 0.5,
+    "explanation": "轨迹过短（50步），无法确定",
+    "quality_score": 0.4,
+    "metadata": {
+      "duration": 50,
+      "max_roll": 4.985893770466452,
+      "max_pitch": 4.877681869560688,
+      "avg_roll": 2.330056546287156,
+      "avg_pitch": 2.24538012681381,
+      "min_height": 1.5,
+      "final_height": 1.5,
+      "avg_velocity": 0.6230678642595807,
+      "total_distance": 0,
+      "energy_usage": 0.9694365906688835,
+      "action_variance": 0.17574883847781766,
+      "terminated": true
+    }
+  },
+  {
+    "id": "traj_2",
+    "label": "unstable_balance",
+    "confidence": 0.5,
+    "explanation": "轨迹过短（50步），无法确定",
+    "quality_score": 0.4,
+    "metadata": {
+      "duration": 50,
+      "max_roll": 4.946216338589479,
+      "max_pitch": 4.876770647436361,
+      "avg_roll": 2.681494545552713,
+      "avg_pitch": 2.579786570696291,
+      "min_height": 1.5,
+      "final_height": 1.5,
+      "avg_velocity": 0.50558069016994,
+      "total_distance": 0,
+      "energy_usage": 1.0230274791222072,
+      "action_variance": 0.17366973580155792,
+      "terminated": true
+    }
+  },
+  {
+    "id": "traj_8",
+    "label": "unstable_balance",
+    "confidence": 0.5,
+    "explanation": "轨迹过短（50步），无法确定",
+    "quality_score": 0.4,
+    "metadata": {
+      "duration": 50,
+      "max_roll": 4.972687178825733,
+      "max_pitch": 4.985133041852945,
+      "avg_roll": 2.431504878900493,
+      "avg_pitch": 2.507506539564899,
+      "min_height": 1.5,
+      "final_height": 1.5,
+      "avg_velocity": 0.3565886315148554,
+      "total_distance": 0,
+      "energy_usage": 0.9631676866478592,
+      "action_variance": 0.17757997738242465,
+      "terminated": false
+    }
+  },
+  {
+    "id": "traj_5",
+    "label": "unstable_balance",
+    "confidence": 0.5,
+    "explanation": "轨迹过短（50步），无法确定",
+    "quality_score": 0.4,
+    "metadata": {
+      "duration": 50,
+      "max_roll": 4.894484542354986,
+      "max_pitch": 4.99844231498936,
+      "avg_roll": 2.630240623880261,
+      "avg_pitch": 2.4723813450775225,
+      "min_height": 1.5,
+      "final_height": 1.5,
+      "avg_velocity": 0.5681152210966273,
+      "total_distance": 0,
+      "energy_usage": 0.9399402061393031,
+      "action_variance": 0.1516250040236824,
+      "terminated": false
+    }
+  },
+  {
+    "id": "traj_6",
+    "label": "unstable_balance",
+    "confidence": 0.5,
+    "explanation": "轨迹过短（50步），无法确定",
+    "quality_score": 0.4,
+    "metadata": {
+      "duration": 50,
+      "max_roll": 4.99039660730813,
+      "max_pitch": 4.949787556033407,
+      "avg_roll": 2.532901688050651,
+      "avg_pitch": 2.3292156558002985,
+      "min_height": 1.5,
+      "final_height": 1.5,
+      "avg_velocity": 0.4326721445520495,
+      "total_distance": 0,
+      "energy_usage": 1.0715089807796832,
+      "action_variance": 0.13807529150192716,
+      "terminated": false
+    }
+  },
+  {
+    "id": "traj_9",
+    "label": "unstable_balance",
+    "confidence": 0.5,
+    "explanation": "轨迹过短（50步），无法确定",
+    "quality_score": 0.4,
+    "metadata": {
+      "duration": 50,
+      "max_roll": 4.914920391030229,
+      "max_pitch": 4.730225625529474,
+      "avg_roll": 2.519851972866886,
+      "avg_pitch": 2.5999307562577174,
+      "min_height": 1.5,
+      "final_height": 1.5,
+      "avg_velocity": 0.9955994094781464,
+      "total_distance": 0,
+      "energy_usage": 0.9818304529025833,
+      "action_variance": 0.1527914614811544,
+      "terminated": false
+    }
+  },
+  {
+    "id": "traj_4",
+    "label": "unstable_balance",
+    "confidence": 0.5,
+    "explanation": "轨迹过短（50步），无法确定",
+    "quality_score": 0.4,
+    "metadata": {
+      "duration": 50,
+      "max_roll": 4.924194119523408,
+      "max_pitch": 4.999955941209318,
+      "avg_roll": 2.18133649749413,
+      "avg_pitch": 2.568754255842949,
+      "min_height": 1.5,
+      "final_height": 1.5,
+      "avg_velocity": 0.375922719595131,
+      "total_distance": 0,
+      "energy_usage": 0.9728694583188624,
+      "action_variance": 0.129669679775915,
+      "terminated": false
+    }
+  },
+  {
+    "id": "traj_0",
+    "label": "unstable_balance",
+    "confidence": 0.5,
+    "explanation": "轨迹过短（50步），无法确定",
+    "quality_score": 0.4,
+    "metadata": {
+      "duration": 50,
+      "max_roll": 4.931303290675576,
+      "max_pitch": 4.987668155020399,
+      "avg_roll": 2.313048586474268,
+      "avg_pitch": 2.374706905739008,
+      "min_height": 1.5,
+      "final_height": 1.5,
+      "avg_velocity": 0.6017173611289807,
+      "total_distance": 0,
+      "energy_usage": 0.9587507521861736,
+      "action_variance": 0.17438153297102968,
+      "terminated": true
+    }
+  },
+  {
+    "id": "traj_1",
+    "label": "unstable_balance",
+    "confidence": 0.5,
+    "explanation": "轨迹过短（50步），无法确定",
+    "quality_score": 0.4,
+    "metadata": {
+      "duration": 50,
+      "max_roll": 4.951631844802119,
+      "max_pitch": 4.940645230094233,
+      "avg_roll": 2.4376212752675106,
+      "avg_pitch": 1.9958012146336068,
+      "min_height": 1.5,
+      "final_height": 1.5,
+      "avg_velocity": 0.9280808011639302,
+      "total_distance": 0,
+      "energy_usage": 0.9135441585707091,
+      "action_variance": 0.16480803131935662,
+      "terminated": true
+    }
+  }
+]

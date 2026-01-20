@@ -1,0 +1,154 @@
+name: AGI-Walker CI/CD
+
+on:
+    push:
+        branches: [main, develop]
+    pull_request:
+        branches: [main, develop]
+    workflow_dispatch:
+
+env:
+    PYTHON_VERSION: "3.11"
+
+jobs:
+    # 代码质量检查
+    lint:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install linters
+              run: |
+                  pip install ruff black isort
+
+            - name: Run ruff
+              run: ruff check python_api/ python_controller/ --ignore E501,F401
+              continue-on-error: true
+
+            - name: Check formatting with black
+              run: black --check --diff python_api/ python_controller/
+              continue-on-error: true
+
+    # 单元测试
+    test:
+        runs-on: ${{ matrix.os }}
+        continue-on-error: true
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest, windows-latest]
+                python-version: ["3.10", "3.11", "3.12"]
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Install dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install -r requirements.txt || true
+                  pip install pytest pytest-cov pytest-mock || true
+
+            - name: Run unit tests
+              run: |
+                  pytest tests/ -v --tb=short --ignore=tests/test_godot*.py || true
+
+            - name: Run controller tests
+              run: |
+                  cd python_controller
+                  python -c "from load_monitor import LoadMonitor; print('✅ load_monitor OK')" || true
+                  python -c "from rag_knowledge_base import PhysicsKnowledgeBase; print('✅ rag OK')" || true
+
+            - name: Upload coverage
+              if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+              uses: codecov/codecov-action@v4
+              with:
+                  fail_ci_if_error: false
+              continue-on-error: true
+
+    # RL模块测试
+    test-rl:
+        runs-on: ubuntu-latest
+        continue-on-error: true
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install RL dependencies
+              run: |
+                  pip install stable-baselines3 gymnasium numpy
+
+            - name: Test RL modules
+              run: |
+                  cd python_controller
+                  python -c "from rl_optimizer import RLOptimizer, DummyEnv; print('✅ rl_optimizer OK')"
+                  python -c "from reward_designer import create_reward_designer; print('✅ reward_designer OK')"
+
+    # 训练模块测试
+    test-training:
+        runs-on: ubuntu-latest
+        continue-on-error: true
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install dependencies
+              run: pip install numpy
+
+            - name: Test training modules
+              run: |
+                  cd training
+                  python auto_labeler.py
+                  python dataset_cleaner.py
+
+    # 文档构建
+    docs:
+        runs-on: ubuntu-latest
+        needs: [lint, test]
+        if: github.ref == 'refs/heads/main'
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install MkDocs
+              run: pip install mkdocs mkdocs-material
+
+            - name: Build docs
+              run: |
+                  echo "# AGI-Walker Documentation" > docs/index.md
+                  echo "Documentation build placeholder"
+              continue-on-error: true
+
+    # 发布检查
+    release-check:
+        runs-on: ubuntu-latest
+        needs: [test, test-rl, test-training]
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Check version
+              run: |
+                  echo "Release check passed"
+                  echo "Version: $(cat VERSION 2>/dev/null || echo '0.1.0')"

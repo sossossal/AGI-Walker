@@ -6,7 +6,8 @@ import json
 import time
 
 def listener(sample):
-    print(f">> [Received] {sample.key_expr}: {sample.payload.decode('utf-8')}")
+    payload_bytes = bytes(sample.payload)
+    print(f">> [Received] {sample.key_expr}: {payload_bytes.decode('utf-8')}")
 
 if __name__ == "__main__":
     print("Initializing Listener...")

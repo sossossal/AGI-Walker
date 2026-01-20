@@ -1,0 +1,1 @@
+{"base_model": "microsoft/phi-2", "method": "prefix_tuning", "is_trained": false, "training_history": [], "output_dir": "d:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\models\\mock_test_v1\\peft"}

@@ -1,0 +1,280 @@
+{
+  "name": "Custom-Quadruped-Go1-Mod",
+  "type": "quadruped",
+  "description": "基于 Unitree Go-M8010 Style 构建的四足机器人",
+  "total_mass": 6.750000000000001,
+  "height": 0.4,
+  "links": [
+    {
+      "name": "trunk",
+      "parent": "world",
+      "mass": 2.5,
+      "shape": "box",
+      "size": [
+        0.4,
+        0.2,
+        0.15
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "FL_thigh",
+      "parent": "trunk",
+      "mass": 0.2,
+      "shape": "box",
+      "size": [
+        0.2,
+        0.05,
+        0.05
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "FL_calf",
+      "parent": "FL_thigh",
+      "mass": 0.15,
+      "shape": "box",
+      "size": [
+        0.2,
+        0.03,
+        0.03
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "FR_thigh",
+      "parent": "trunk",
+      "mass": 0.2,
+      "shape": "box",
+      "size": [
+        0.2,
+        0.05,
+        0.05
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "FR_calf",
+      "parent": "FR_thigh",
+      "mass": 0.15,
+      "shape": "box",
+      "size": [
+        0.2,
+        0.03,
+        0.03
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "RL_thigh",
+      "parent": "trunk",
+      "mass": 0.2,
+      "shape": "box",
+      "size": [
+        0.2,
+        0.05,
+        0.05
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "RL_calf",
+      "parent": "RL_thigh",
+      "mass": 0.15,
+      "shape": "box",
+      "size": [
+        0.2,
+        0.03,
+        0.03
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "RR_thigh",
+      "parent": "trunk",
+      "mass": 0.2,
+      "shape": "box",
+      "size": [
+        0.2,
+        0.05,
+        0.05
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "RR_calf",
+      "parent": "RR_thigh",
+      "mass": 0.15,
+      "shape": "box",
+      "size": [
+        0.2,
+        0.03,
+        0.03
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "joints": [
+    {
+      "name": "FL_hip",
+      "type": "hinge",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "range": [
+        -90,
+        90
+      ],
+      "max_torque": 23.7,
+      "damping": 0.5
+    },
+    {
+      "name": "FL_knee",
+      "type": "hinge",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "range": [
+        -90,
+        90
+      ],
+      "max_torque": 23.7,
+      "damping": 0.1
+    },
+    {
+      "name": "FR_hip",
+      "type": "hinge",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "range": [
+        -90,
+        90
+      ],
+      "max_torque": 23.7,
+      "damping": 0.5
+    },
+    {
+      "name": "FR_knee",
+      "type": "hinge",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "range": [
+        -90,
+        90
+      ],
+      "max_torque": 23.7,
+      "damping": 0.1
+    },
+    {
+      "name": "RL_hip",
+      "type": "hinge",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "range": [
+        -90,
+        90
+      ],
+      "max_torque": 23.7,
+      "damping": 0.5
+    },
+    {
+      "name": "RL_knee",
+      "type": "hinge",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "range": [
+        -90,
+        90
+      ],
+      "max_torque": 23.7,
+      "damping": 0.1
+    },
+    {
+      "name": "RR_hip",
+      "type": "hinge",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "range": [
+        -90,
+        90
+      ],
+      "max_torque": 23.7,
+      "damping": 0.5
+    },
+    {
+      "name": "RR_knee",
+      "type": "hinge",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "range": [
+        -90,
+        90
+      ],
+      "max_torque": 23.7,
+      "damping": 0.1
+    }
+  ],
+  "sensors": [
+    "imu",
+    "joint_encoders"
+  ],
+  "control_frequency": 500.0
+}

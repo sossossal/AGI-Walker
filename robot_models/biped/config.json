@@ -1,0 +1,153 @@
+{
+  "name": "AGI-Walker Biped",
+  "type": "biped",
+  "description": "双足步行机器人",
+  "total_mass": 9.0,
+  "height": 1.5,
+  "links": [
+    {
+      "name": "torso",
+      "parent": "world",
+      "mass": 5.0,
+      "shape": "box",
+      "size": [
+        0.3,
+        0.2,
+        0.4
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "left_thigh",
+      "parent": "torso",
+      "mass": 1.0,
+      "shape": "capsule",
+      "size": [
+        0.08,
+        0.3
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "right_thigh",
+      "parent": "torso",
+      "mass": 1.0,
+      "shape": "capsule",
+      "size": [
+        0.08,
+        0.3
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "left_shin",
+      "parent": "left_thigh",
+      "mass": 0.5,
+      "shape": "capsule",
+      "size": [
+        0.06,
+        0.3
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "right_shin",
+      "parent": "right_thigh",
+      "mass": 0.5,
+      "shape": "capsule",
+      "size": [
+        0.06,
+        0.3
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "joints": [
+    {
+      "name": "hip_left",
+      "type": "hinge",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "range": [
+        -45,
+        90
+      ],
+      "max_torque": 200,
+      "damping": 0.1
+    },
+    {
+      "name": "hip_right",
+      "type": "hinge",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "range": [
+        -45,
+        90
+      ],
+      "max_torque": 200,
+      "damping": 0.1
+    },
+    {
+      "name": "knee_left",
+      "type": "hinge",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "range": [
+        0,
+        120
+      ],
+      "max_torque": 150,
+      "damping": 0.1
+    },
+    {
+      "name": "knee_right",
+      "type": "hinge",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "range": [
+        0,
+        120
+      ],
+      "max_torque": 150,
+      "damping": 0.1
+    }
+  ],
+  "sensors": [
+    "imu",
+    "joint_encoders",
+    "foot_contact"
+  ],
+  "control_frequency": 100.0
+}

@@ -1,0 +1,93 @@
+{
+  "name": "Wheeled Robot",
+  "type": "wheeled",
+  "description": "差速轮式机器人",
+  "total_mass": 5.0,
+  "height": 0.3,
+  "links": [
+    {
+      "name": "chassis",
+      "parent": "world",
+      "mass": 4.0,
+      "shape": "box",
+      "size": [
+        0.3,
+        0.2,
+        0.1
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "left_wheel",
+      "parent": "chassis",
+      "mass": 0.5,
+      "shape": "cylinder",
+      "size": [
+        0.05,
+        0.02
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "right_wheel",
+      "parent": "chassis",
+      "mass": 0.5,
+      "shape": "cylinder",
+      "size": [
+        0.05,
+        0.02
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "joints": [
+    {
+      "name": "left_wheel",
+      "type": "continuous",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "range": [
+        -360,
+        360
+      ],
+      "max_torque": 50,
+      "damping": 0.01
+    },
+    {
+      "name": "right_wheel",
+      "type": "continuous",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "range": [
+        -360,
+        360
+      ],
+      "max_torque": 50,
+      "damping": 0.01
+    }
+  ],
+  "sensors": [
+    "imu",
+    "wheel_encoders",
+    "lidar"
+  ],
+  "control_frequency": 50.0
+}
