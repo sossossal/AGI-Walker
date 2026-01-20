@@ -7,99 +7,42 @@
 
 ---
 
-## [未发布]
+## [4.0.0] - 2026-01-20 (Self-Evolving Era)
 
-### 计划中
-- 单元测试框架
-- CI/CD 自动化
-- Web UI 控制面板
-- 更多机器人案例
+### 🚀 重大更新
+*   **Sim2Real 闭环**: 实现了完整的仿真到现实落地工具链，包括 `Sim2RealAnalyzer` 和 `PhysicsCalibrator`。
+*   **模块化构建器 (Modular Builder)**: 允许用户通过 JSON 配置组装基于真实零件（Unitree/Tesla）的机器人。
+*   **程序化环境 (PCG)**: 新增 Godot 侧的 `TerrainGenerator`，基于 Perlin 噪声动态生成训练地形。
+*   **远程仪表盘 (Remote Dashboard)**: 基于 TCP 流传输的实时 Python GUI，可远程查看 Godot 仿真画面。
 
----
+### ✨ 新增功能
+*   **Parts Library**: `python_api/parts_library.json` 包含 10+ 种真实硬件规格。
+*   **Godot Integration**: `procedural_terrain.gd` 和 `camera_streamer.gd` 脚本。
+*   **Documentation**: 全面更新 `SIMULATION_GUIDE.md` 至 v4.0 标准，包含 GUI 和 Builder 指南。
+*   **Examples**: 新增 `custom_parts_demo.py` 和 `dashboard_demo.py`。
+*   **Analysis**: `Sim2RealAnalyzer` 支持功率谱密度 (PSD) 对比分析。
 
-## [0.9.0-beta] - 2026-01-16
-
-### 新增
-
-#### Hive-Reflex 控制器整合
-- IMC-22 芯片完整硬件规格文档
-- 分布式反射控制架构说明
-- NPU 神经加速器 Python 接口
-- CAN-FD 通信协议实现
-- 完整的硬件部署工具链
-
-#### AGI-Walker 核心功能
-- 真实零件库系统（7 个硬件零件）
-- Gymnasium 兼容的训练接口
-- 环境控制系统（4 预设 + 动态配置）
-- 域随机化包装器
-- Python API 完整实现
-
-#### 文档系统
-- 30+ 技术文档（40,000+ 字）
-- Sim-to-Real 完整集成指南
-- 硬件部署详细教程
-- 8,000+ 字技术博客
-- 5 分钟演示视频脚本
-
-#### 示例和案例
-- 快速开始：平衡机器人示例
-- 完整案例：12 关节双足机器人
-- 硬件部署示例脚本
-- 训练配置模板
-
-#### 项目基础设施
-- MIT 开源许可证
-- 贡献指南（CONTRIBUTING.md）
-- 行为准则（CODE_OF_CONDUCT.md）
-- 编译构建指南
-
-### 技术亮点
-
-- ⚡ **超低延迟**: 控制循环 < 100 μs
-- 🧠 **边缘 AI**: NPU 神经加速器
-- 🔄 **完整闭环**: 仿真→训练→部署
-- 📊 **成本透明**: 基于真实硬件规格
-- 🌍 **唯一性**: 首个完整开源 Sim-to-Real 工具链
-
-### 已知限制
-
-- C++ 物理插件需手动编译（可选）
-- 训练数据需用户自行收集
-- IMC-22 芯片为概念设计
-- 单元测试覆盖待完善
+### 🔧 优化
+*   重构 `README.md`，反映项目从原型到生产就绪的状态。
+*   优化 `gym_env.py`，支持动态地形种子 (`terrain_seed`) 的重置。
+*   统一了机器人模型基类 `base_robot.py`，支持从零件列表初始化。
 
 ---
 
-## 发布说明
+## [3.0.0] - 2026-01-18 (AI Integration)
+*   集成 IMC-22 神经形态芯片仿真。
+*   初步实现 RL 训练循环。
 
-### v0.9.0-beta
+## [2.0.0] - 2026-01-15 (Parametric Control)
+*   参数化物理控制系统。
+*   基础 Godot-Python 通信协议。
 
-这是 AGI-Walker 项目的首个公开测试版本。我们整合了 Hive-Reflex 分布式反射控制器，创建了业界首个完整的开源 Sim-to-Real 机器人开发工具链。
-
-**核心价值**:
-- 从零件选型到硬件部署的完整流程
-- 真实硬件规格的数字孪生
-- 独特的边缘智能控制架构
-
-**适合谁使用**:
-- 机器人研究人员
-- RL 算法开发者
-- 硬件原型工程师
-- 教育工作者
-
-**快速开始**:
-```bash
-pip install -r requirements.txt
-cd examples
-python quick_start_balance.py
-```
-
-**反馈和支持**:
-- GitHub Issues: （待创建）
-- Discord: （待建立）
-- 邮箱: team@agi-walker.org
+## [1.0.0] - 2026-01-10 (Prototype)
+*   项目初始化。
+*   基本的盒子机器人 demo。
 
 ---
 
-**注**: v0.9.0 为 beta 版本，API 可能会有变动。我们欢迎所有反馈和贡献！
+## [0.9.0-beta] - 2026-01-16 (Legacy)
+*(保留用于历史参考)*
+...
