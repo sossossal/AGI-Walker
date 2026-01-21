@@ -22,13 +22,15 @@ AGI-Walker 是一个先进的**具身智能 (Embodied AI)** 开发平台，旨�
 
 与传统仿真平台不同，AGI-Walker 引入了**自动化进化循环 (Evolution Loop)**，能够无人值守地完成“数据收集 -> 自动标记 -> 模型微调”的闭环，让机器人越用越聪明。支持从简单的 PID 控制到复杂的 Vision-Language-Action (VLA) 多模态策略。
 
-### 🌟 核心突破 (v4.0)
+### 🌟 核心突破 (v4.2.0)
 
 *   **🔄 自动化进化**: 集成 `EvolutionManager`，实现全流程自动化迭代。
 *   **🌍 Sim2Real 闭环**: 独有的数据差异分析器 (`GapAnalyzer`) 和在线参数校准，大幅缩小虚实差距。
 *   **👁️ 多模态感知**: 集成 SigLIP 视觉编码器和局部高程图构建，支持复杂地形盲走。
 *   **🧩 模块化架构**: 统一控制双足、四足和轮式机器人，一套大脑，多种形态。
-*   **📡 OpenNeuro 通信** (NEW): 集成 Zenoh + ROS 2，支持分布式机器人和硬件部署。
+*   **📡 OpenNeuro 通信**: 集成 Zenoh + ROS 2，支持分布式机器人和硬件部署。
+*   **⚡ MuJoCo 物理后端** (NEW): 提供高精度物理选项，精度提升 10x。
+*   **🎯 标准任务库** (NEW): 10 个即用型 RL 任务，包含预训练模型和 Baseline。
 
 ---
 
@@ -126,7 +128,9 @@ AGI-Walker/
 *   [**仿真环境使用指南**](SIMULATION_GUIDE.md): 🔌 Godot与Python仿真双模式详解。
 *   [**模块化构建指南**](docs/MODULAR_ROBOT_BUILDER.md): 🧩 像组装乐高一样组装机器人 (Unitree/Tesla 零件库)。
 *   [**OpenNeuro 集成指南**](docs/OPENNEURO_INTEGRATION.md): 📡 Zenoh + ROS 2 通信框架集成。
-*   [**硬件部署指南**](docs/HARDWARE_DEPLOYMENT.md): 🔧 真实机器人硬件部署 (ESP32 + 舵机) (NEW)。
+*   [**硬件部署指南**](docs/HARDWARE_DEPLOYMENT.md): 🔧 真实机器人硬件部署 (ESP32 + 舵机)。
+*   [**标准任务库**](examples/tasks/README.md): 🎯 10 个即用型 RL 任务 (NEW)。
+*   [**贡献指南**](CONTRIBUTING.md): 🤝 如何为项目贡献代码 (NEW)。
 *   [**实施指南 (Walkthrough)**](walkthrough.md): 详细的使用教程和图表。
 *   [**Sim2Real 落地报告**](FINAL_TEST_REPORT.md): 关于 Sim2Real 闭环的验证报告。
 
