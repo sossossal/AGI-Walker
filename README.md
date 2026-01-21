@@ -28,6 +28,7 @@ AGI-Walker 是一个先进的**具身智能 (Embodied AI)** 开发平台，旨�
 *   **🌍 Sim2Real 闭环**: 独有的数据差异分析器 (`GapAnalyzer`) 和在线参数校准，大幅缩小虚实差距。
 *   **👁️ 多模态感知**: 集成 SigLIP 视觉编码器和局部高程图构建，支持复杂地形盲走。
 *   **🧩 模块化架构**: 统一控制双足、四足和轮式机器人，一套大脑，多种形态。
+*   **📡 OpenNeuro 通信** (NEW): 集成 Zenoh + ROS 2，支持分布式机器人和硬件部署。
 
 ---
 
@@ -124,6 +125,7 @@ AGI-Walker/
 *   [**项目全功能总览**](PROJECT_FULL_SUMMARY.md): 详细的功能清单和架构说明。
 *   [**仿真环境使用指南**](SIMULATION_GUIDE.md): 🔌 Godot与Python仿真双模式详解。
 *   [**模块化构建指南**](docs/MODULAR_ROBOT_BUILDER.md): 🧩 像组装乐高一样组装机器人 (Unitree/Tesla 零件库)。
+*   [**OpenNeuro 集成指南**](docs/OPENNEURO_INTEGRATION.md): 📡 Zenoh + ROS 2 通信框架集成 (NEW)。
 *   [**实施指南 (Walkthrough)**](walkthrough.md): 详细的使用教程和图表。
 *   [**Sim2Real 落地报告**](FINAL_TEST_REPORT.md): 关于 Sim2Real 闭环的验证报告。
 
