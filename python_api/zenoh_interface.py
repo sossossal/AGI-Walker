@@ -97,11 +97,15 @@ class ZenohInterface:
         """
         def zenoh_callback(sample):
             try:
-                data = json.loads(sample.payload.decode())
+                # 兼容 Zenoh 1.7+ 的 ZBytes 类型
+                payload_bytes = bytes(sample.payload)
+                data = json.loads(payload_bytes.decode())
                 callback(data)
             except json.JSONDecodeError:
                 # 如果不是 JSON，直接传递原始字节
-                callback(sample.payload)
+                callback(payload_bytes)
+            except Exception as e:
+                print(f"⚠️ Subscriber callback error: {e}")
         
         sub = self.session.declare_subscriber(key, zenoh_callback)
         self.subscribers[key] = sub
