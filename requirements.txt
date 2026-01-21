@@ -1,28 +1,29 @@
-# AGI-Walker Requirements
-# Core Dependencies
+# 最小依赖 (核心功能)
 numpy>=1.24.0
-matplotlib>=3.7.0
 gymnasium>=0.29.0
-stable-baselines3>=2.0.0
 
-# Deep Learning
-torch>=2.0.0
-transformers>=4.30.0
-peft>=0.4.0
+# 基础依赖
+eclipse-zenoh>=1.0.0
 
-# Simulation & Physics
-# (Godot 需要单独安装)
+# 可选: ROS 2 (仅 Linux)
+# rclpy
+# sensor_msgs
+# std_msgs
 
-# Communication & Networking (NEW - OpenNeuro Integration)
-eclipse-zenoh>=0.10.0  # Zenoh 核心库
-# rclpy  # ROS 2 Python 客户端 (通过 apt 安装，不在 pip)
+# 可选: MuJoCo
+# mujoco>=3.0.0
 
-# Utilities
-opencv-python>=4.8.0  # 用于 Dashboard 图像处理
-PyQt6>=6.5.0  # GUI (可选)
+# 可选: GUI
+# PyQt6>=6.0.0
 
-# Development Tools
-pytest>=7.4.0
-pytest-cov>=4.1.0
-black>=23.0.0
-flake8>=6.0.0
+# 可选: 强化学习
+# stable-baselines3>=2.0.0
+# torch>=2.0.0
+
+# 开发依赖 (仅开发环境)
+# black>=23.0.0
+# flake8>=6.0.0
+# pytest>=7.0.0
+# sphinx>=7.0.0
+# sphinx-rtd-theme>=1.3.0
+# myst-parser>=2.0.0
