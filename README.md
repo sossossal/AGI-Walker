@@ -125,7 +125,8 @@ AGI-Walker/
 *   [**项目全功能总览**](PROJECT_FULL_SUMMARY.md): 详细的功能清单和架构说明。
 *   [**仿真环境使用指南**](SIMULATION_GUIDE.md): 🔌 Godot与Python仿真双模式详解。
 *   [**模块化构建指南**](docs/MODULAR_ROBOT_BUILDER.md): 🧩 像组装乐高一样组装机器人 (Unitree/Tesla 零件库)。
-*   [**OpenNeuro 集成指南**](docs/OPENNEURO_INTEGRATION.md): 📡 Zenoh + ROS 2 通信框架集成 (NEW)。
+*   [**OpenNeuro 集成指南**](docs/OPENNEURO_INTEGRATION.md): 📡 Zenoh + ROS 2 通信框架集成。
+*   [**硬件部署指南**](docs/HARDWARE_DEPLOYMENT.md): 🔧 真实机器人硬件部署 (ESP32 + 舵机) (NEW)。
 *   [**实施指南 (Walkthrough)**](walkthrough.md): 详细的使用教程和图表。
 *   [**Sim2Real 落地报告**](FINAL_TEST_REPORT.md): 关于 Sim2Real 闭环的验证报告。
 
