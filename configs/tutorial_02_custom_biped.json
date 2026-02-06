@@ -1,0 +1,74 @@
+{
+  "name": "biped_basic",
+  "parts": [
+    {
+      "id": "torso_1",
+      "type": "torso",
+      "params": {
+        "height": 0.5,
+        "width": 0.3,
+        "depth": 0.2,
+        "mass": 10.0
+      }
+    },
+    {
+      "id": "leg_left_1",
+      "type": "leg",
+      "side": "left",
+      "params": {
+        "thigh_length": 0.3,
+        "shin_length": 0.3,
+        "thigh_mass": 1.0,
+        "shin_mass": 0.8,
+        "hip_joint": "revolute",
+        "knee_joint": "revolute"
+      }
+    },
+    {
+      "id": "leg_right_1",
+      "type": "leg",
+      "side": "right",
+      "params": {
+        "thigh_length": 0.3,
+        "shin_length": 0.3,
+        "thigh_mass": 1.0,
+        "shin_mass": 0.8,
+        "hip_joint": "revolute",
+        "knee_joint": "revolute"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": "torso_1",
+      "to": "leg_left_1",
+      "joint_type": "revolute",
+      "offset": [
+        -0.15,
+        -0.25,
+        0
+      ]
+    },
+    {
+      "from": "torso_1",
+      "to": "leg_right_1",
+      "joint_type": "revolute",
+      "offset": [
+        0.15,
+        -0.25,
+        0
+      ]
+    }
+  ],
+  "metadata": {
+    "description": "基础双足机器人，适合步行研究",
+    "total_mass": 7.6,
+    "height": 1.1,
+    "dof": 6,
+    "tags": [
+      "biped",
+      "walking",
+      "basic"
+    ]
+  }
+}

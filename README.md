@@ -36,6 +36,12 @@
 - 物理参数校准 - 在线优化仿真参数
 - 任务编辑器 - 可视化对比虚拟与现实
 
+### 🤖 智能化 Skills 系统 (NEW!)
+- **3个核心Skills** - 从建模到优化到URDF转换的完整工作流
+- **CLI工具** - 命令行快速访问和管理
+- **GUI浏览器** - 可视化Skills文档和使用
+- **AI友好** - 渐进式加载,为Agent优化
+
 ### 🚀 一键启动,开箱即用
 ```bash
 # 一键安装
@@ -47,6 +53,80 @@ python web_panel/server.py
 
 # 访问 http://localhost:8000
 ```
+
+---
+
+## 🎯 Skills 系统快速开始
+
+AGI-Walker集成了强大的Skills系统,让机器人建模工作流智能化、模块化。
+
+### 可用Skills
+
+#### 🤖 robot-modeling
+快速创建双足/四足/轮式机器人模型
+
+```python
+from agi_walker.skills.robot_modeling import RobotBuilder
+
+robot = (
+    RobotBuilder("my_biped")
+    .add_torso(height=0.5, mass=5.0)
+    .add_leg_pair(thigh_length=0.3, shin_length=0.3)
+    .build()
+)
+robot.save("configs/my_robot.json")
+```
+
+#### ⚙️ parameter-optimizer
+自动优化机器人参数(质量分布/PID增益)
+
+```python
+from agi_walker.skills.parameter_optimizer import optimize_mass_distribution
+
+result = optimize_mass_distribution(
+    "configs/my_robot.json",
+    target_com_height=0.25,
+    max_iterations=100
+)
+```
+
+#### 📄 urdf-generator
+转换为URDF格式供ROS 2/Gazebo使用
+
+```python
+from agi_walker.skills.urdf_generator import convert_to_urdf
+
+convert_to_urdf(
+    input_file="configs/my_robot.json",
+    output_file="exports/my_robot.urdf"
+)
+```
+
+### 使用方式
+
+**Python API:**
+```python
+from agi_walker.skills.robot_modeling import load_template
+robot = load_template("biped_basic")
+```
+
+**CLI工具:**
+```bash
+python -m agi_walker.cli skills list
+python -m agi_walker.cli skills info robot-modeling
+```
+
+**GUI浏览器:**
+```bash
+python agi_walker/gui/skills_browser.py
+```
+
+📚 **完整文档**: 
+- [Skills系统指南](.agent/AGENTS.md)
+- [CLI使用](docs/CLI_GUIDE.md)
+- [GUI使用](docs/GUI_GUIDE.md)
+- [开发新Skill](docs/SKILLS_DEVELOPMENT.md)
+
 
 ---
 

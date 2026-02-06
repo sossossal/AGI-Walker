@@ -3,6 +3,7 @@ numpy>=1.24.0
 gymnasium>=0.29.0
 
 # 基础依赖
+pyyaml>=6.0
 eclipse-zenoh>=1.0.0
 
 # 可选: ROS 2 (仅 Linux)

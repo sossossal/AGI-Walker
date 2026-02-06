@@ -1,0 +1,93 @@
+{
+    "name": "quadruped_dog",
+    "parts": [
+        {
+            "id": "torso_1",
+            "type": "torso",
+            "params": {
+                "length": 0.6,
+                "width": 0.25,
+                "height": 0.2,
+                "mass": 6.0
+            }
+        },
+        {
+            "id": "leg_front_left_1",
+            "type": "leg",
+            "side": "front_left",
+            "params": {
+                "upper_length": 0.25,
+                "lower_length": 0.25,
+                "upper_mass": 0.5,
+                "lower_mass": 0.3
+            }
+        },
+        {
+            "id": "leg_front_right_1",
+            "type": "leg",
+            "side": "front_right",
+            "params": {
+                "upper_length": 0.25,
+                "lower_length": 0.25,
+                "upper_mass": 0.5,
+                "lower_mass": 0.3
+            }
+        },
+        {
+            "id": "leg_rear_left_1",
+            "type": "leg",
+            "side": "rear_left",
+            "params": {
+                "upper_length": 0.25,
+                "lower_length": 0.25,
+                "upper_mass": 0.5,
+                "lower_mass": 0.3
+            }
+        },
+        {
+            "id": "leg_rear_right_1",
+            "type": "leg",
+            "side": "rear_right",
+            "params": {
+                "upper_length": 0.25,
+                "lower_length": 0.25,
+                "upper_mass": 0.5,
+                "lower_mass": 0.3
+            }
+        }
+    ],
+    "connections": [
+        {
+            "from": "torso_1",
+            "to": "leg_front_left_1",
+            "joint_type": "revolute"
+        },
+        {
+            "from": "torso_1",
+            "to": "leg_front_right_1",
+            "joint_type": "revolute"
+        },
+        {
+            "from": "torso_1",
+            "to": "leg_rear_left_1",
+            "joint_type": "revolute"
+        },
+        {
+            "from": "torso_1",
+            "to": "leg_rear_right_1",
+            "joint_type": "revolute"
+        }
+    ],
+    "metadata": {
+        "description": "四足犬形机器人，适合跑步/跳跃研究",
+        "total_mass": 9.2,
+        "length": 0.6,
+        "dof": 12,
+        "tags": [
+            "quadruped",
+            "dog",
+            "running",
+            "jumping"
+        ]
+    }
+}
