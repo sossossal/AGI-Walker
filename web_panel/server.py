@@ -3,7 +3,7 @@ AGI-Walker Web 控制面板
 基于 FastAPI 的 Web 服务器
 """
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from typing import List, Dict, Any
@@ -131,7 +131,7 @@ async def generate_robot(params: Dict[str, Any]):
 async def get_task(task_id: str):
     """获取单个任务"""
     if task_id not in tasks_db:
-        return {"error": "Task not found"}, 404
+        raise HTTPException(status_code=404, detail="Task not found")
     return {"task": tasks_db[task_id]}
 
 
@@ -139,7 +139,7 @@ async def get_task(task_id: str):
 async def update_task(task_id: str, updates: Dict[str, Any]):
     """更新任务"""
     if task_id not in tasks_db:
-        return {"error": "Task not found"}, 404
+        raise HTTPException(status_code=404, detail="Task not found")
     
     tasks_db[task_id].update(updates)
     
@@ -153,7 +153,7 @@ async def update_task(task_id: str, updates: Dict[str, Any]):
 async def delete_task(task_id: str):
     """删除任务"""
     if task_id not in tasks_db:
-        return {"error": "Task not found"}, 404
+        raise HTTPException(status_code=404, detail="Task not found")
     
     del tasks_db[task_id]
     
@@ -249,7 +249,7 @@ async def godot_connect(req: ConnectionRequest):
     """连接到 Godot"""
     if godot_controller.connect(req.host, req.port):
         return {"status": "connected", "host": req.host, "port": req.port}
-    return {"status": "failed", "error": "Connection refused or timeout"}, 500
+    raise HTTPException(status_code=500, detail="Connection refused or timeout")
 
 @app.post("/api/godot/disconnect")
 async def godot_disconnect():
@@ -273,11 +273,11 @@ class LoadRobotRequest(pydantic.BaseModel):
 async def godot_load_robot(req: LoadRobotRequest):
     """加载机器人配置到 Godot"""
     if not godot_controller.is_connected():
-        return {"error": "Godot not connected"}, 400
+        raise HTTPException(status_code=400, detail="Godot not connected")
         
     if godot_controller.load_robot(req.parts, req.connections):
         return {"status": "success", "message": "Robot config sent"}
-    return {"status": "error", "message": "Failed to send command"}, 500
+    raise HTTPException(status_code=500, detail="Failed to send command")
 
 class StartSimRequest(pydantic.BaseModel):
     physics: Dict[str, Any] = {"gravity": 9.81, "timestep": 0.01}
@@ -286,31 +286,31 @@ class StartSimRequest(pydantic.BaseModel):
 async def godot_start(req: StartSimRequest):
     """启动仿真"""
     if not godot_controller.is_connected():
-        return {"error": "Godot not connected"}, 400
+        raise HTTPException(status_code=400, detail="Godot not connected")
         
     if godot_controller.start_simulation(req.physics):
         return {"status": "started"}
-    return {"status": "error"}, 500
+    raise HTTPException(status_code=500, detail="Failed to start simulation")
 
 @app.post("/api/godot/stop")
 async def godot_stop():
     """停止仿真"""
     if not godot_controller.is_connected():
-        return {"error": "Godot not connected"}, 400
+        raise HTTPException(status_code=400, detail="Godot not connected")
         
     if godot_controller.stop_simulation():
         return {"status": "stopped"}
-    return {"status": "error"}, 500
+    raise HTTPException(status_code=500, detail="Failed to stop simulation")
 
 @app.post("/api/godot/update-params")
 async def godot_update_params(params: Dict[str, Any]):
     """实时更新参数"""
     if not godot_controller.is_connected():
-        return {"error": "Godot not connected"}, 400
+        raise HTTPException(status_code=400, detail="Godot not connected")
         
     if godot_controller.update_params(params):
         return {"status": "updated", "params": params}
-    return {"status": "error"}, 500
+    raise HTTPException(status_code=500, detail="Failed to update parameters")
 
 
 # 挂载静态文件

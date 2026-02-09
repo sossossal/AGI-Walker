@@ -7,11 +7,14 @@ Skills 是包含 SKILL.md 文件的目录,提供特定领域的专业知识和�
 加载器实现渐进式披露机制,仅在需要时加载完整文档,避免上下文污染。
 """
 
+import logging
 import yaml
 from pathlib import Path
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 
+# 配置日志
+logger = logging.getLogger(__name__)
 
 @dataclass
 class SkillMetadata:
@@ -76,7 +79,7 @@ class SkillsLoader:
             
             skill_md = skill_path / "SKILL.md"
             if not skill_md.exists():
-                print(f"警告: Skill 目录 {skill_path.name} 缺少 SKILL.md")
+                logger.warning(f"Skill 目录 {skill_path.name} 缺少 SKILL.md")
                 continue
             
             try:
@@ -84,7 +87,7 @@ class SkillsLoader:
                 metadata.skill_dir = skill_path
                 self.skills[metadata.name] = metadata
             except Exception as e:
-                print(f"错误: 加载 skill {skill_path.name} 失败: {e}")
+                logger.error(f"加载 skill {skill_path.name} 失败: {e}")
     
     def parse_skill_metadata(self, skill_md: Path) -> SkillMetadata:
         """解析 SKILL.md 的 YAML frontmatter
@@ -117,16 +120,44 @@ class SkillsLoader:
             raise ValueError("SKILL.md 缺少 'name' 字段")
         if "description" not in data:
             raise ValueError("SKILL.md 缺少 'description' 字段")
+            
+        # 验证 description
+        desc = data["description"]
+        if not isinstance(desc, str):
+            raise ValueError(f"description必须是字符串, 收到: {type(desc)}")
+        if not desc.strip():
+            raise ValueError("description不能抛为空")
         
         # 提取可选的 metadata
         metadata = data.get("metadata", {}).get("agi_walker", {})
         
+        # 验证并规范化 requires
+        requires = metadata.get("requires", {})
+        if requires is None:
+            requires = {}
+            
+        normalized_requires = {}
+        for key, val in requires.items():
+            if val is None:
+                normalized_requires[key] = []
+                continue
+                
+            if not isinstance(val, list):
+                # 尝试转换或报错? 这里严格要求 list
+                raise ValueError(f"requires.{key} 必须是列表")
+            
+            for item in val:
+                if not isinstance(item, str):
+                    raise ValueError(f"requires.{key} 元素必须是字符串, 收到: {item}")
+            
+            normalized_requires[key] = val
+
         return SkillMetadata(
             name=data["name"],
             description=data["description"],
             emoji=metadata.get("emoji", "📦"),
             category=metadata.get("category", "其他"),
-            requires=metadata.get("requires", {})
+            requires=normalized_requires
         )
     
     def get_skill(self, name: str) -> Optional[SkillMetadata]:

@@ -184,3 +184,80 @@ metadata:
     assert "建模" in all_cats
     assert "优化" in all_cats
     assert "转换" in all_cats
+
+
+def create_skill(skills_dir, name, content):
+    """Helper to create a skill file"""
+    skill_dir = skills_dir / name
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text(content, encoding="utf-8")
+
+def test_invalid_description_type(temp_skills_dir):
+    """Test that description must be a string (not list/number)"""
+    # Case 1: List
+    create_skill(temp_skills_dir, "bad-desc-list", """---
+name: bad-desc-list
+description: ["not", "a", "string"]
+---
+""")
+    # Case 2: Number
+    create_skill(temp_skills_dir, "bad-desc-num", """---
+name: bad-desc-num
+description: 12345
+---
+""")
+    
+    loader = SkillsLoader(str(temp_skills_dir))
+    assert "bad-desc-list" not in loader.skills
+    assert "bad-desc-num" not in loader.skills
+
+def test_empty_description(temp_skills_dir):
+    """Test that description cannot be empty or whitespace"""
+    # Case 1: Empty
+    create_skill(temp_skills_dir, "empty-desc", """---
+name: empty-desc
+description: ""
+---
+""")
+    # Case 2: Whitespace
+    create_skill(temp_skills_dir, "white-desc", """---
+name: white-desc
+description: "   "
+---
+""")
+    
+    loader = SkillsLoader(str(temp_skills_dir))
+    assert "empty-desc" not in loader.skills
+    assert "white-desc" not in loader.skills
+
+def test_invalid_requires_element(temp_skills_dir):
+    """Test that requires elements must be strings"""
+    create_skill(temp_skills_dir, "bad-req-type", """---
+name: bad-req-type
+description: "Valid description"
+metadata:
+  agi_walker:
+    requires:
+      python_modules: ["numpy", 1]
+---
+""")
+    loader = SkillsLoader(str(temp_skills_dir))
+    assert "bad-req-type" not in loader.skills
+
+def test_requires_null_value(temp_skills_dir):
+    """Test that requires null values are normalized to empty list"""
+    create_skill(temp_skills_dir, "null-req", """---
+name: null-req
+description: "Valid description"
+metadata:
+  agi_walker:
+    requires:
+      python_modules: null
+      bins: null
+---
+""")
+    loader = SkillsLoader(str(temp_skills_dir))
+    assert "null-req" in loader.skills
+    skill = loader.get_skill("null-req")
+    assert skill.requires["python_modules"] == []
+    assert skill.requires["bins"] == []
