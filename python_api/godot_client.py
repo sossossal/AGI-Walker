@@ -309,22 +309,36 @@ class MockGodotServer:
                 # 模拟发送反馈数据
                 if message['command'] == 'start_sim':
                     # 模拟仿真数据
-                    for i in range(10):
+                    import random
+                    battery = 100.0
+                    pos_x = 0.0
+                    vel_x = 0.0
+                    
+                    for i in range(100): # 持续发送 100 次，模拟一段时间
+                        if not self.running: break
+                        
+                        # 简单的随机游走模拟
+                        vel_x += (random.random() - 0.5) * 0.1
+                        pos_x += vel_x * 0.1
+                        battery -= 0.05
+                        
                         feedback = {
                             'type': 'simulation_data',
-                            'position': i * 0.1,
-                            'velocity': 0.1,
-                            'battery': 100 - i,
+                            'position': { 'x': round(pos_x, 3), 'y': 0.5, 'z': 0.0 },
+                            'velocity': { 'x': round(vel_x, 3), 'y': 0.0, 'z': 0.0 },
+                            'battery': round(max(0, battery), 1),
                             'timestamp': time.time()
                         }
                         
                         json_str = json.dumps(feedback)
                         json_bytes = json_str.encode('utf-8')
-                        client.sendall(struct.pack('!I', len(json_bytes)))
-                        client.sendall(json_bytes)
+                        try:
+                            client.sendall(struct.pack('!I', len(json_bytes)))
+                            client.sendall(json_bytes)
+                        except:
+                            break
                         
-                        time.sleep(0.1)
-                        
+                        time.sleep(0.1) # 10Hz 更新率
         except Exception as e:
             print(f"客户端处理错误: {e}")
         finally:

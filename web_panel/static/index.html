@@ -233,6 +233,61 @@
                     <span class="stat-value">N/A</span>
                 </div>
             </div>
+
+            <!-- Godot Enbedding Control -->
+            <div class="card" style="grid-column: span 3;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2 style="margin:0;">🎮 Godot 仿真控制</h2>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="godot-host" value="127.0.0.1" style="width: 120px; padding: 5px;"
+                            placeholder="Host">
+                        <input type="number" id="godot-port" value="9999" style="width: 70px; padding: 5px;"
+                            placeholder="Port">
+                        <button id="godot-connect-btn" onclick="toggleGodotConnection()"
+                            style="padding: 5px 15px; font-size: 0.9em; background: #10b981;">
+                            🔗 连接
+                        </button>
+                        <span id="godot-status" style="margin-left: 5px; font-size: 0.9em; color: #666;">⛔ 未连接</span>
+                    </div>
+                </div>
+
+                <div id="godot-controls"
+                    style="opacity: 0.5; pointer-events: none; display: flex; gap: 20px; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <div style="margin-bottom: 10px; font-weight: bold; color: #555;">指令控制</div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <button onclick="controlSim('start')" style="background: #10b981;">▶️ 启动</button>
+                            <button onclick="controlSim('stop')" style="background: #ef4444;">⏹️ 停止</button>
+                            <button onclick="controlSim('reset')" style="background: #f59e0b;">🔄 重置</button>
+                        </div>
+
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; color: #555;">模型加载 (JSON)</label>
+                            <div style="display: flex; gap: 5px;">
+                                <textarea id="robot-json" rows="3"
+                                    style="flex:1; padding: 5px; font-size: 0.8em; border-radius: 4px; border: 1px solid #ddd;"
+                                    placeholder='{"parts": [...], "connections": [...]}'></textarea>
+                                <button onclick="loadRobotFromJSON()" style="background: #3b82f6; width: 60px;">📤
+                                    加载</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; color: #555;">物理参数: Motor Power (x<span
+                                    id="power-val">1.0</span>)</label>
+                            <input type="range" min="0.1" max="5.0" step="0.1" value="1.0" style="width: 100%;"
+                                oninput="updateParam('motor_power_multiplier', this.value)">
+                        </div>
+                    </div>
+
+                    <div
+                        style="flex: 1; background: #f3f4f6; padding: 10px; border-radius: 8px; height: 100%; min-height: 250px; overflow-y: auto;">
+                        <div style="font-weight: bold; color: #555; margin-bottom: 5px;">实时数据流</div>
+                        <pre id="godot-stream"
+                            style="font-size: 0.8em; color: #333; margin: 0; white-space: pre-wrap;">Waiting for data...</pre>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="tasks-section">
@@ -345,10 +400,177 @@
 
         // 定期更新系统状态
         setInterval(async () => {
-            const response = await fetch('/api/system/status');
-            const data = await response.json();
-            document.getElementById('ws-connections').textContent = data.active_connections;
+            try {
+                const response = await fetch('/api/system/status');
+                const data = await response.json();
+                document.getElementById('ws-connections').textContent = data.active_connections;
+            } catch (e) { }
         }, 5000);
+
+        // --- Godot Control Logic ---
+        let isGodotConnected = false;
+
+        async function toggleGodotConnection() {
+            const btn = document.getElementById('godot-connect-btn');
+            const status = document.getElementById('godot-status');
+            const controls = document.getElementById('godot-controls');
+            const host = document.getElementById('godot-host').value;
+            const port = parseInt(document.getElementById('godot-port').value);
+
+            try {
+                if (!isGodotConnected) {
+                    const res = await fetch('/api/godot/connect', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ host, port })
+                    });
+                    const data = await res.json();
+
+                    if (data.status === 'connected') {
+                        isGodotConnected = true;
+                        btn.textContent = "🔌 断开";
+                        btn.style.background = "#ef4444";
+                        status.textContent = "✅ 已连接";
+                        status.style.color = "#10b981";
+                        controls.style.opacity = "1";
+                        controls.style.pointerEvents = "auto";
+                    } else {
+                        alert("连接失败: " + (data.error || "未知错误"));
+                    }
+                } else {
+                    await fetch('/api/godot/disconnect', { method: 'POST' });
+                    isGodotConnected = false;
+                    btn.textContent = "🔗 连接";
+                    btn.style.background = "#10b981";
+                    status.textContent = "⛔ 未连接";
+                    status.style.color = "#666";
+                    controls.style.opacity = "0.5";
+                    controls.style.pointerEvents = "none";
+                }
+            } catch (e) {
+                console.error("Godot Connection Error:", e);
+                alert("连接请求失败");
+            }
+        }
+
+        async function controlSim(action) {
+            // reset 暂时映射到 stop 然后 start，或者后端新增 reset
+            if (action === 'reset') {
+                await controlSim('stop');
+                setTimeout(() => controlSim('start'), 500);
+                return;
+            }
+            try {
+                await fetch(`/api/godot/${action}`, { method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json' } });
+            } catch (e) { console.error(e); }
+        }
+
+        // 节流处理
+        let throttleTimer = null;
+        function throttledUpdateParam(name, value, labelId, suffix) {
+            // 更新 UI 显示
+            document.getElementById(labelId).textContent = value + suffix;
+
+            if (throttleTimer) return;
+
+            throttleTimer = setTimeout(async () => {
+                await updateParam(name, value);
+                throttleTimer = null;
+            }, 200); // 200ms 节流
+        }
+
+        async function updateParam(name, value) {
+            try {
+                await fetch('/api/godot/update-params', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [name]: parseFloat(value) })
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadRobotFromJSON() {
+            const jsonStr = document.getElementById('robot-json').value;
+            if (!jsonStr) {
+                alert("请输入 JSON 配置");
+                return;
+            }
+            try {
+                const config = JSON.parse(jsonStr);
+                // 简单的校验
+                if (!config.parts || !config.connections) {
+                    alert("JSON 必须包含 parts 和 connections 字段");
+                    return;
+                }
+                const res = await fetch('/api/godot/load-robot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    alert("模型已发送到 Godot!");
+                } else {
+                    alert("发送失败: " + data.message);
+                }
+            } catch (e) {
+                alert("JSON 解析错误: " + e.message);
+            }
+        }
+
+        // 修改 WebSocket 处理，增加 Godot 数据支持
+        let startTime = null;
+        const originalHandleMsg = handleWebSocketMessage;
+        handleWebSocketMessage = function (message) {
+            originalHandleMsg(message); // 保留原有逻辑
+
+            if (message.type === 'godot_data') {
+                const data = message.data;
+                const stream = document.getElementById('godot-stream');
+
+                // 更新数值卡片
+                // 兼容旧格式和新格式 (position 可能是 float 也可能是 dict)
+                let posX = "0.00";
+                let velX = "0.00";
+
+                if (data.position && typeof data.position === 'object') posX = data.position.x.toFixed(2);
+                else if (typeof data.position === 'number') posX = data.position.toFixed(2);
+
+                if (data.velocity && typeof data.velocity === 'object') velX = data.velocity.x.toFixed(2);
+                else if (typeof data.velocity === 'number') velX = data.velocity.toFixed(2);
+
+                document.getElementById('card-pos-x').textContent = posX;
+                document.getElementById('card-vel-x').textContent = velX;
+                document.getElementById('card-battery').textContent = (data.battery || 0).toFixed(1) + "%";
+
+                // 计算运行时间
+                if (!startTime) startTime = Date.now();
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                document.getElementById('card-time').textContent = elapsed + "s";
+
+                // 原始数据流只显示最新一行
+                const line = JSON.stringify(data);
+                stream.textContent = line + "\n" + stream.textContent.slice(0, 200);
+            }
+            if (message.type === 'godot_connection') {
+                // 同步后端广播的连接状态
+                if (message.status === 'connected') {
+                    isGodotConnected = true;
+                    document.getElementById('godot-status').textContent = "✅ 已连接";
+                    document.getElementById('godot-controls').style.opacity = "1";
+                    document.getElementById('godot-controls').style.pointerEvents = "auto";
+                    document.getElementById('godot-connect-btn').textContent = "🔌 断开";
+                    document.getElementById('godot-connect-btn').style.background = "#ef4444";
+                } else if (message.status === 'disconnected') {
+                    isGodotConnected = false;
+                    document.getElementById('godot-status').textContent = "⛔ 未连接";
+                    document.getElementById('godot-controls').style.opacity = "0.5";
+                    document.getElementById('godot-controls').style.pointerEvents = "none";
+                    document.getElementById('godot-connect-btn').textContent = "🔗 连接";
+                    document.getElementById('godot-connect-btn').style.background = "#10b981";
+                }
+            }
+        };
     </script>
 </body>
 

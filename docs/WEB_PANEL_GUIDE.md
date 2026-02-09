@@ -1,195 +1,73 @@
-# Web 控制面板使用指南
+# Web 控制面板指南
 
-## 简介
+AGI-Walker 提供了一个基于 Web 的可视化工控制面板，用于管理训练任务、监控系统状态以及实时控制 Godot 仿真环境。
 
-AGI-Walker Web 控制面板提供了一个直观的 Web 界面,用于管理训练任务、监控系统状态和查看实时数据。
+## 🚀 启动面板
 
-## 快速开始
-
-### 1. 安装依赖
-```bash
-pip install fastapi uvicorn websockets
-```
-
-### 2. 启动服务器
+在项目根目录下运行：
 ```bash
 python web_panel/server.py
 ```
+然后访问: [http://localhost:8000](http://localhost:8000)
 
-### 3. 访问界面
-打开浏览器访问: http://localhost:8000
+---
 
-## 功能特性
+## 🎮 Godot 仿真控制 (NEW!)
 
-### 📊 系统状态监控
-- 实时显示活跃任务数量
-- WebSocket 连接状态
-- 系统运行状态
+控制面板主页现已集成 Godot 仿真控制功能，您可以直接在浏览器中与仿真器交互。
 
-### 📋 任务管理
-- 创建新训练任务
-- 查看任务列表
-- 实时更新任务状态
+### 1. 连接仿真器
+- 在 **Godot 仿真控制** 卡片中，输入 Godot 所在的 IP 和 端口 (默认 `127.0.0.1:9999`)。
+- 点击 **🔗 连接** 按钮。
+- 连接成功后，状态将变为 **✅ 已连接**，且控制按钮将启用。
 
-### ⚡ 实时通信
-- WebSocket 实时推送
-- 自动重连机制
-- 低延迟更新
+### 2. 仿真控制
+- **▶️ 启动/停止/重置**: 控制仿真生命周期。
+- **⏱️ 实时参数调整**:
+  - **Motor Power**: 调整电机输出功率倍率。
+  - **Joint Stiffness**: 调整关节刚度 (P gain)。
+  - **Joint Damping**: 调整关节阻尼 (D gain)。
+  - *注：滑条调节具有200ms节流保护，防止网络拥塞。*
 
-## API 文档
+### 3. 数据监控
+- **数值卡片**: 实时显示机器人的位置(X)、速度(X)和电池电量。
+- **原始数据流**: 滚动显示来自 Godot 的原始 JSON 数据包。
 
-### 获取所有任务
-```http
-GET /api/tasks
-```
+### 4. 数据监控
+- 右侧的 **实时数据流** 窗口会显示来自 Godot 的传感器数据（如位置、速度、电量等）。
 
-**响应**:
-```json
-{
-  "tasks": [
-    {
-      "id": "task_1",
-      "name": "楼梯攀爬训练",
-      "status": "running",
-      "created_at": "2026-01-21T12:00:00"
-    }
-  ]
-}
-```
+---
+
+## 📋 任务管理
 
 ### 创建任务
-```http
-POST /api/tasks
-Content-Type: application/json
+1. 点击 **➕ 创建新任务**。
+2. 输入任务名称（如 `stair_climbing_test_01`）。
+3. 任务将进入 `pending` 状态，随后转为 `running`。
 
-{
-  "name": "新任务",
-  "type": "training",
-  "algorithm": "PPO"
-}
-```
+### 监控任务
+- 任务列表会自动刷新。
+- 您可以看到任务的运行状态、创建时间和实时日志（需点击详情）。
 
-### 更新任务
-```http
-PUT /api/tasks/{task_id}
-Content-Type: application/json
+---
 
-{
-  "status": "completed",
-  "reward": 12.5
-}
-```
+## 🛠️ 机器人设计
+点击 **🛠️ 设计新机器人** 跳转到设计向导页面：
+1. 选择机器人类型 (Biped/Quadruped)。
+2. 设置身高、体重等核心参数。
+3. 点击生成的机器人将自动同步到 Godot 场景中。
 
-### 删除任务
-```http
-DELETE /api/tasks/{task_id}
-```
+---
 
-### 系统状态
-```http
-GET /api/system/status
-```
+## 🔌 API 参考
 
-## WebSocket 协议
+### Godot 接口
+- `POST /api/godot/connect`: 连接仿真器
+- `POST /api/godot/start`: 启动仿真
+- `POST /api/godot/stop`: 停止仿真
+- `POST /api/godot/update-params`: 更新物理参数
 
-### 连接
-```javascript
-const ws = new WebSocket('ws://localhost:8000/ws');
-```
-
-### 消息格式
-```json
-{
-  "type": "task_created",
-  "task": {
-    "id": "task_1",
-    "name": "新任务"
-  }
-}
-```
-
-### 消息类型
-- `task_created` - 任务创建
-- `task_updated` - 任务更新
-- `task_deleted` - 任务删除
-- `ping/pong` - 心跳检测
-
-## 集成示例
-
-### Python 客户端
-```python
-import requests
-
-# 创建任务
-response = requests.post('http://localhost:8000/api/tasks', json={
-    "name": "楼梯攀爬训练",
-    "type": "training",
-    "algorithm": "PPO",
-    "timesteps": 1000000
-})
-
-task_id = response.json()['task_id']
-
-# 更新任务状态
-requests.put(f'http://localhost:8000/api/tasks/{task_id}', json={
-    "status": "running",
-    "progress": 0.5
-})
-```
-
-## 自定义扩展
-
-### 添加新的 API 端点
-```python
-# web_panel/server.py
-
-@app.get("/api/custom/endpoint")
-async def custom_endpoint():
-    return {"data": "custom"}
-```
-
-### 修改前端样式
-编辑 `web_panel/static/index.html` 中的 `<style>` 部分。
-
-### 添加新功能
-1. 在 `server.py` 添加 API 端点
-2. 在 `index.html` 添加前端逻辑
-3. 通过 WebSocket 实现实时更新
-
-## 部署
-
-### 生产环境
-```bash
-# 使用 Gunicorn
-pip install gunicorn
-gunicorn web_panel.server:app -w 4 -k uvicorn.workers.UvicornWorker
-```
-
-### Docker 部署
-```dockerfile
-# 已包含在主 Dockerfile 中
-EXPOSE 8000
-CMD ["python", "web_panel/server.py"]
-```
-
-## 故障排除
-
-### 无法连接 WebSocket
-- 检查防火墙设置
-- 确保端口 8000 未被占用
-
-### 任务列表不更新
-- 刷新页面
-- 检查浏览器控制台错误
-
-### API 返回 404
-- 确认服务器正在运行
-- 检查 URL 拼写
-
-## 未来计划
-
-- [ ] 添加用户认证
-- [ ] 训练曲线可视化
-- [ ] 模型性能对比
-- [ ] 日志查看器
-- [ ] 资源使用监控
+### 任务接口
+- `GET /api/tasks`: 获取任务列表
+- `POST /api/tasks`: 创建任务
+- `DELETE /api/tasks/{id}`: 删除任务
