@@ -4,8 +4,35 @@ Robot Modeling Skill 完整演示
 演示如何使用 Skills 系统快速创建机器人配置。
 """
 
+import sys
+import os
+import importlib.util
+from pathlib import Path
+
+# Add project root to sys.path
+project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_root))
+
 from agi_walker.skills_loader import get_skills_loader, search_skills
-from agi_walker.skills.robot_modeling import RobotBuilder, load_template, list_templates
+
+# Helper to load skill modules with hyphens
+def load_skill_module(skill_name):
+    skill_path = project_root / "agi_walker" / "skills" / skill_name / "__init__.py"
+    if not skill_path.exists():
+        raise ImportError(f"Skill module not found: {skill_path}")
+    
+    module_name = f"agi_walker.skills.{skill_name.replace('-', '_')}"
+    spec = importlib.util.spec_from_file_location(module_name, skill_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+# Load robot-modeling skill dynamically
+robot_modeling = load_skill_module("robot-modeling")
+RobotBuilder = robot_modeling.RobotBuilder
+load_template = robot_modeling.load_template
+list_templates = robot_modeling.list_templates
 
 def demo_skills_loader():
     """演示 Skills 加载器功能"""

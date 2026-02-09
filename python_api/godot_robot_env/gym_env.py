@@ -60,7 +60,9 @@ class GodotRobotEnv(gym.Env):
         self.port = port
         self.timeout = timeout
         self.socket = None
+        self.socket = None
         self.connected = False
+        self.buffer = b"" # 接收缓冲区，用于处理粘包
         
         self.robot_config = robot_config or self._default_robot_config()
         self.physics_config = physics_config or {}
@@ -327,23 +329,30 @@ class GodotRobotEnv(gym.Env):
             raise RuntimeError("Not connected to Godot simulator")
         
         try:
-            # 接收数据直到换行符
-            buffer = b""
-            while b"\n" not in buffer:
+            # 接收数据直到缓冲区中有完整的换行符
+            while b"\n" not in self.buffer:
                 chunk = self.socket.recv(4096)
                 if not chunk:
                     raise ConnectionError("Connection closed by Godot")
-                buffer += chunk
+                self.buffer += chunk
+            
+            # 分割第一条消息
+            line, rest = self.buffer.split(b"\n", 1)
+            self.buffer = rest # 保留剩余数据
             
             # 解析 JSON
-            message = buffer.decode('utf-8').strip()
+            message = line.decode('utf-8').strip()
+            if not message: # 空行处理
+                return self._receive_observation() # 递归读取下一条
+                
             data = json.loads(message)
             
             # 转换为 observation 格式
             return self._parse_sensor_data(data)
             
         except Exception as e:
-            print(f"❌ Failed to receive observation: {e}")
+            # 移除这里的emoji防止再次崩溃
+            print(f"Failed to receive observation: {e}")
             self.connected = False
             raise
     

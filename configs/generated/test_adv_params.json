@@ -1,0 +1,148 @@
+{
+  "name": "test_adv_params",
+  "parts": [
+    {
+      "id": "torso_1",
+      "type": "torso",
+      "params": {
+        "height": 0.5,
+        "mass": 5.920000000000002,
+        "size": [
+          0.32000000000000006,
+          0.12,
+          0.08000000000000002
+        ]
+      }
+    },
+    {
+      "id": "leg_left_2",
+      "type": "leg",
+      "side": "left",
+      "params": {
+        "thigh_length": 0.1,
+        "shin_length": 0.1,
+        "hip_joint": "revolute",
+        "knee_joint": "revolute",
+        "offset": [
+          0.16000000000000003,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "leg_right_3",
+      "type": "leg",
+      "side": "right",
+      "params": {
+        "thigh_length": 0.1,
+        "shin_length": 0.1,
+        "hip_joint": "revolute",
+        "knee_joint": "revolute",
+        "offset": [
+          0.16000000000000003,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "leg_left_4",
+      "type": "leg",
+      "side": "left",
+      "params": {
+        "thigh_length": 0.1,
+        "shin_length": 0.1,
+        "hip_joint": "revolute",
+        "knee_joint": "revolute",
+        "offset": [
+          -0.16000000000000003,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "leg_right_5",
+      "type": "leg",
+      "side": "right",
+      "params": {
+        "thigh_length": 0.1,
+        "shin_length": 0.1,
+        "hip_joint": "revolute",
+        "knee_joint": "revolute",
+        "offset": [
+          -0.16000000000000003,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": "torso_1",
+      "to": "leg_left_2",
+      "joint_type": "revolute"
+    },
+    {
+      "from": "torso_1",
+      "to": "leg_right_3",
+      "joint_type": "revolute"
+    },
+    {
+      "from": "torso_1",
+      "to": "leg_left_4",
+      "joint_type": "revolute"
+    },
+    {
+      "from": "torso_1",
+      "to": "leg_right_5",
+      "joint_type": "revolute"
+    }
+  ],
+  "metadata": {
+    "motor_torque": 900.0,
+    "max_velocity": 10.0,
+    "joint_damping": 1.0,
+    "is_real_world_config": true,
+    "estimated_cost_usd": 6168.0,
+    "advanced_dynamics": {
+      "stiffness": 45000.0,
+      "backlash": 0.5,
+      "thermal_resistance": 0.3,
+      "continuous_torque": 6.5,
+      "rotor_inertia": 0.012
+    },
+    "design_warnings": [
+      "\u001b[93m⚠️  电气不匹配警告: 电池电压(22.2V) 与 电机额定电压(48.0V) 差距较大!\u001b[0m"
+    ],
+    "bom": [
+      {
+        "id": "MT-003",
+        "name": "伺服电机 1KW",
+        "qty": 12
+      },
+      {
+        "id": "JT-001",
+        "name": "谐波减速器 100:1",
+        "qty": 12
+      },
+      {
+        "id": "PW-001",
+        "name": "锂电池 6S",
+        "qty": 1
+      },
+      {
+        "id": "ST-002",
+        "name": "碳纤维板",
+        "qty": 1
+      },
+      {
+        "id": "CT-002",
+        "name": "树莓派 4B",
+        "qty": 1
+      }
+    ]
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "name": "2",
+  "parts": [
+    {
+      "id": "torso_1",
+      "type": "torso",
+      "params": {
+        "height": 0.5,
+        "mass": 2.2,
+        "size": [
+          0.25,
+          0.2,
+          0.4
+        ]
+      }
+    },
+    {
+      "id": "leg_left_2",
+      "type": "leg",
+      "side": "left",
+      "params": {
+        "thigh_length": 0.275,
+        "shin_length": 0.275,
+        "hip_joint": "revolute",
+        "knee_joint": "revolute",
+        "mass_per_link": 0.37
+      }
+    },
+    {
+      "id": "leg_right_3",
+      "type": "leg",
+      "side": "right",
+      "params": {
+        "thigh_length": 0.275,
+        "shin_length": 0.275,
+        "hip_joint": "revolute",
+        "knee_joint": "revolute",
+        "mass_per_link": 0.37
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": "torso_1",
+      "to": "leg_left_2",
+      "joint_type": "revolute"
+    },
+    {
+      "from": "torso_1",
+      "to": "leg_right_3",
+      "joint_type": "revolute"
+    }
+  ],
+  "metadata": {
+    "motor_torque": 85.0,
+    "max_velocity": 5.0,
+    "joint_damping": 0.5,
+    "is_real_world_config": true,
+    "estimated_cost_usd": 931.0,
+    "bom": [
+      {
+        "id": "MT-101",
+        "name": "二手/库存无人机电机 50xx-80xx",
+        "qty": 6
+      },
+      {
+        "id": "JT-002",
+        "name": "行星减速器 50:1",
+        "qty": 6
+      },
+      {
+        "id": "PW-001",
+        "name": "锂电池 6S",
+        "qty": 1
+      },
+      {
+        "id": "ST-001",
+        "name": "铝型材 2020",
+        "qty": 1
+      },
+      {
+        "id": "CT-002",
+        "name": "树莓派 4B",
+        "qty": 1
+      }
+    ]
+  }
+}

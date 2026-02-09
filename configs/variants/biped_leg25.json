@@ -1,0 +1,48 @@
+{
+  "name": "biped_leg25",
+  "parts": [
+    {
+      "id": "torso_1",
+      "type": "torso",
+      "params": {
+        "height": 0.5,
+        "mass": 5.0
+      }
+    },
+    {
+      "id": "leg_left_2",
+      "type": "leg",
+      "side": "left",
+      "params": {
+        "thigh_length": 0.125,
+        "shin_length": 0.125,
+        "hip_joint": "revolute",
+        "knee_joint": "revolute"
+      }
+    },
+    {
+      "id": "leg_right_3",
+      "type": "leg",
+      "side": "right",
+      "params": {
+        "thigh_length": 0.125,
+        "shin_length": 0.125,
+        "hip_joint": "revolute",
+        "knee_joint": "revolute"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": "torso_1",
+      "to": "leg_left_2",
+      "joint_type": "revolute"
+    },
+    {
+      "from": "torso_1",
+      "to": "leg_right_3",
+      "joint_type": "revolute"
+    }
+  ],
+  "metadata": {}
+}

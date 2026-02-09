@@ -1,0 +1,60 @@
+{
+  "name": "007",
+  "parts": [
+    {
+      "id": "torso_1",
+      "type": "torso",
+      "params": {
+        "height": 0.5,
+        "mass": 3.0,
+        "size": [
+          0.18000000000000002,
+          0.18000000000000002,
+          0.36000000000000004
+        ]
+      }
+    },
+    {
+      "id": "leg_left_2",
+      "type": "leg",
+      "side": "left",
+      "params": {
+        "thigh_length": 0.27,
+        "shin_length": 0.27,
+        "hip_joint": "revolute",
+        "knee_joint": "revolute",
+        "mass_per_link": 0.5
+      }
+    },
+    {
+      "id": "leg_right_3",
+      "type": "leg",
+      "side": "right",
+      "params": {
+        "thigh_length": 0.27,
+        "shin_length": 0.27,
+        "hip_joint": "revolute",
+        "knee_joint": "revolute",
+        "mass_per_link": 0.5
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": "torso_1",
+      "to": "leg_left_2",
+      "joint_type": "revolute"
+    },
+    {
+      "from": "torso_1",
+      "to": "leg_right_3",
+      "joint_type": "revolute"
+    }
+  ],
+  "metadata": {
+    "joint_damping": 0.1,
+    "motor_torque": 15.0,
+    "max_velocity": 10.0,
+    "friction": 0.05
+  }
+}

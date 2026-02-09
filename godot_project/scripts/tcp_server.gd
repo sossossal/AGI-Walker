@@ -15,7 +15,7 @@ var buffer := PackedByteArray()
 var has_client := false
 
 # 引用机器人节点
-@onready var robot = get_node("/root/Main/Robot")
+@onready var robot = get_node("/root/main/robot")
 # 引用地形生成器 (可选)
 @onready var terrain_generator = get_node_or_null("/root/Main/TerrainGenerator")
 
@@ -62,8 +62,10 @@ func _process(_delta):
 func _send_sensor_data():
 	"""发送传感器数据到客户端"""
 	if not robot:
+		print_debug("❌ Robot node not found!")
 		return
 	
+	# print("Sending sensor data...") # Debug
 	var sensor_data = robot.get_sensor_data()
 	var json_str = JSON.stringify(sensor_data) + "\n"
 	
@@ -119,8 +121,31 @@ func _apply_command(command: Dictionary):
 					var seed_val = int(command["terrain_seed"])
 					terrain_generator.generate(seed_val)
 				
-				# 如果有 sim_params 也可以在这里应用(通过 robot script 或 env controller)
-				pass
+				# 如果有 sim_params，更新PhysicsConfig
+				if command.has("sim_params"):
+					var params = command["sim_params"]
+					
+					# 更新全局配置
+					if params.has("mass_scale"):
+						var scale = float(params["mass_scale"])
+						PhysicsConfig.set_param("TORSO_MASS", 10.0 * scale)
+						PhysicsConfig.set_param("LEG_MASS", 3.0 * scale)
+						print("  -> Mass scale: ", scale)
+						
+					if params.has("friction_scale"):
+						var scale = float(params["friction_scale"])
+						PhysicsConfig.set_param("FOOT_FRICTION", clamp(0.9 * scale, 0.1, 1.0))
+						PhysicsConfig.set_param("GROUND_FRICTION", clamp(0.8 * scale, 0.1, 1.0))
+						print("  -> Friction scale: ", scale)
+						
+					if params.has("motor_strength"):
+						var scale = float(params["motor_strength"])
+						PhysicsConfig.set_param("MOTOR_MAX_IMPULSE", 500.0 * scale)
+						print("  -> Motor strength: ", scale)
+					
+					# 触发机器人更新
+					if robot and robot.has_method("apply_physics_config"):
+						robot.apply_physics_config()
 				
 			"update_terrain":
 				if terrain_generator:

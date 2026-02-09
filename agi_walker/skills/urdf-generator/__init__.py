@@ -119,13 +119,13 @@ class URDFGenerator:
                 "type": "box",
                 "size": [width, depth, height]
             }
-        elif part_type == "leg":
-            leg_length = params.get("thigh_length", 0.3) + params.get("shin_length", 0.3)
-            radius = 0.05
+        elif part_type in ["thigh", "shin", "leg"]: # 'leg' kept for compatibility
+            length = params.get("length", params.get("thigh_length", 0.3) + params.get("shin_length", 0))
+            radius = 0.04
             geometry = {
                 "type": "cylinder",
                 "radius": radius,
-                "length": leg_length
+                "length": length
             }
         else:
             geometry = {
@@ -143,21 +143,59 @@ class URDFGenerator:
     
     def _connection_to_joint(self, conn: Dict) -> URDFJoint:
         """将连接转换为URDF joint"""
-        parent = conn["from"]
-        child = conn["to"]
+        parent_id = conn["from"]
+        child_id = conn["to"]
         joint_type = conn.get("joint_type", "fixed")
+        joint_name = conn.get("name", f"{parent_id}_to_{child_id}")
+        
+        # 查找部件获取尺寸信息
+        parent_part = next(p for p in self.config["parts"] if p["id"] == parent_id)
+        child_part = next(p for p in self.config["parts"] if p["id"] == child_id)
+        
+        # 默认原点
+        origin = [0, 0, 0]
+        
+        # --- 自动计算关节位置 ---
+        
+        # Case 1: Torso -> Thigh (Hip)
+        if parent_part["type"] == "torso" and child_part["type"] == "thigh":
+            side = child_part.get("side", "left")
+            torso_width = parent_part["params"].get("size", [0.2,0.2,0.2])[0]
+            # Hip at side of torso
+            x_offset = (torso_width / 2) * (1 if side == "left" else -1)
+            origin = [x_offset, 0, -0.05] # Slightly below torso center
+            
+        # Case 2: Thigh -> Shin (Knee)
+        elif parent_part["type"] == "thigh" and child_part["type"] == "shin":
+            # Knee at bottom of thigh
+            thigh_len = parent_part["params"].get("length", 0.3)
+            # Cylinder origin is center, so joint should be at -L/2
+            # BUT: URDF cylinder origin is center. So if we attach at bottom of thigh...
+            # Standard: Joint origin is relative to Parent Link Frame.
+            # If Parent (Thigh) origin is its center:
+            origin = [0, 0, -thigh_len] 
+            
+        # Case 3: Legacy support or generic
+        elif parent_part["type"] == "torso" and child_part["type"] == "leg":
+             side = child_part.get("side", "left")
+             x_offset = 0.15 if side == "left" else -0.15
+             origin = [x_offset, 0, -0.1]
         
         # 转换关节类型
         if joint_type == "revolute":
             urdf_type = "revolute"
+            # Hip X/Y? Knee Y? Assuming simple pitch (walking forward) for now
+            # Knee usually rotates around Y axis (pitch)
+            axis = (0, 1, 0)
             limits = {
-                "lower": -3.14,
-                "upper": 3.14,
+                "lower": -1.57,
+                "upper": 1.57,
                 "effort": 100.0,
                 "velocity": 10.0
             }
         elif joint_type == "prismatic":
             urdf_type = "prismatic"
+            axis = (0, 0, 1)
             limits = {
                 "lower": -0.5,
                 "upper": 0.5,
@@ -166,13 +204,16 @@ class URDFGenerator:
             }
         else:
             urdf_type = "fixed"
+            axis = (0, 0, 0)
             limits = None
         
         return URDFJoint(
-            name=f"{parent}_to_{child}",
+            name=joint_name,
             type=urdf_type,
-            parent=parent,
-            child=child,
+            parent=parent_id,
+            child=child_id,
+            origin=tuple(origin),
+            axis=axis,
             limits=limits
         )
     
@@ -276,12 +317,21 @@ class URDFGenerator:
         xml_root = self.generate_urdf_xml()
         
         # 格式化XML
-        xml_str = etree.tostring(
-            xml_root,
-            pretty_print=True,
-            xml_declaration=True,
-            encoding='UTF-8'
-        )
+        # 格式化XML
+        try:
+            # 尝试使用 lxml 的 pretty_print
+            xml_str = etree.tostring(
+                xml_root,
+                pretty_print=True,
+                xml_declaration=True,
+                encoding='UTF-8'
+            )
+        except TypeError:
+            # xml.etree.ElementTree 不支持 pretty_print
+            # 手动缩进 (简单实现)
+            from xml.dom import minidom
+            xml_str_raw = etree.tostring(xml_root, encoding='UTF-8')
+            xml_str = minidom.parseString(xml_str_raw).toprettyxml(indent="  ", encoding='UTF-8')
         
         # 保存文件
         output_path = Path(output_file)

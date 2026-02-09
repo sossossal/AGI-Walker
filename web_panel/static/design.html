@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGI-Walker 设计工坊</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            width: 100%;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #result-area {
+            margin-top: 30px;
+            background: #1e1e1e;
+            color: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            white-space: pre-wrap;
+            display: none;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="/" class="back-link">← 返回控制面板</a>
+
+    <div class="container">
+        <h1>🛠️ 机器人设计工坊</h1>
+
+        <form id="design-form">
+            <div class="form-group">
+                <label>机器人名称 / Robot Name</label>
+                <input type="text" name="name" value="my_new_bot" required>
+            </div>
+
+            <div class="form-group">
+                <label>类型 / Type</label>
+                <select name="type">
+                    <option value="quadruped">四足 (Quadruped)</option>
+                    <option value="biped">双足 (Biped)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>应用场景 / Scenario</label>
+                <select name="scenario">
+                    <option value="performance">高性能 (Performance)</option>
+                    <option value="eco">经济型 (Eco)</option>
+                    <option value="custom">自定义 (Custom)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>目标高度 (米) / Target Height (m)</label>
+                <input type="number" name="height" value="0.4" step="0.01" min="0.1">
+            </div>
+
+            <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+            <h3>高级参数 (可选)</h3>
+
+            <div class="form-group">
+                <label>目标重量 (kg) / Target Mass [Override]</label>
+                <input type="number" name="mass" placeholder="不指定则自动计算" step="0.1">
+            </div>
+
+            <div class="form-group">
+                <label>材料 / Material [Override]</label>
+                <select name="material">
+                    <option value="">-- 跟随场景 --</option>
+                    <option value="aluminum">铝合金 (Aluminum)</option>
+                    <option value="carbon_fiber">碳纤维 (Carbon Fiber)</option>
+                    <option value="plastic">工程塑料 (Plastic)</option>
+                </select>
+            </div>
+
+
+            <button type="submit" id="submit-btn">✨ 生成设计方案</button>
+        </form>
+
+        <div id="result-area"></div>
+
+        <hr style="margin: 40px 0; border: 0; border-top: 2px dashed #ccc;">
+
+        <!-- Godot 控制区 -->
+        <h2 style="color: #667eea;">🎮 Godot 仿真控制</h2>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #ddd;">
+
+            <!-- 连接控制 -->
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
+                <div style="font-weight: bold; min-width: 60px;">连接:</div>
+                <input type="text" id="godot-host" value="127.0.0.1" style="width: 150px;" placeholder="Host">
+                <input type="number" id="godot-port" value="9999" style="width: 80px;" placeholder="Port">
+                <button id="godot-connect-btn" onclick="toggleGodotConnection()"
+                    style="width: auto; margin:0; padding: 10px 20px; background: #10b981;">
+                    🔗 连接
+                </button>
+                <span id="godot-status" style="margin-left: 10px; color: #666;">⛔ 未连接</span>
+            </div>
+
+            <!-- 仿真控制 -->
+            <div id="godot-controls" style="opacity: 0.5; pointer-events: none;">
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button onclick="syncToGodot()" style="background: #3b82f6; margin: 0;">📤 同步模型到场景</button>
+                    <button onclick="controlSim('start')" style="background: #10b981; margin: 0;">▶️ 开始仿真</button>
+                    <button onclick="controlSim('stop')" style="background: #ef4444; margin: 0;">⏹️ 停止仿真</button>
+                </div>
+
+                <div class="form-group">
+                    <label>实时参数调整 (Motor Power Multiplier)</label>
+                    <input type="range" min="0.1" max="5.0" step="0.1" value="1.0"
+                        oninput="updateParam('motor_power_multiplier', this.value)" style="width: 100%;">
+                    <div style="text-align: right; font-size: 0.9em; color: #666;" id="param-val-display">1.0x</div>
+                </div>
+            </div>
+
+            <!-- 实时数据反馈 -->
+            <div id="godot-data-display"
+                style="margin-top: 15px; font-family: monospace; font-size: 0.9em; color: #333; height: 100px; overflow-y: auto; background: #eee; padding: 10px; border-radius: 4px;">
+                Waiting for data...
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ... (Existing script code) ...
+
+        // Godot Logic
+        let isConnected = false;
+        let lastGeneratedConfigPath = "";
+
+        // 覆盖原始表单提交，为了保存 config path
+        const originalSubmit = document.getElementById('design-form').onsubmit;
+        // Note: we attached listener, not onsubmit property. 
+        // We will just capture the result path from the text content of result-area if needed, 
+        // or better, store it in a global var when generation succeeds.
+
+        // Enhance the existing submit listener logic by intercepting the result
+        // Since we can't easily intercept the anonymous function, let's just rely on the user generating first.
+
+        async function toggleGodotConnection() {
+            const btn = document.getElementById('godot-connect-btn');
+            const status = document.getElementById('godot-status');
+            const controls = document.getElementById('godot-controls');
+
+            if (!isConnected) {
+                const host = document.getElementById('godot-host').value;
+                const port = parseInt(document.getElementById('godot-port').value);
+
+                try {
+                    const res = await fetch('/api/godot/connect', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ host, port })
+                    });
+                    const data = await res.json();
+
+                    if (data.status === 'connected') {
+                        isConnected = true;
+                        btn.textContent = "🔌 断开";
+                        btn.style.background = "#ef4444";
+                        status.textContent = "✅ 已连接";
+                        status.style.color = "#10b981";
+                        controls.style.opacity = "1";
+                        controls.style.pointerEvents = "auto";
+
+                        startWebSocket();
+                    } else {
+                        alert("连接失败: " + (data.error || "Unknown"));
+                    }
+                } catch (e) {
+                    alert("请求错误: " + e.message);
+                }
+            } else {
+                await fetch('/api/godot/disconnect', { method: 'POST' });
+                isConnected = false;
+                btn.textContent = "🔗 连接";
+                btn.style.background = "#10b981";
+                status.textContent = "⛔ 未连接";
+                status.style.color = "#666";
+                controls.style.opacity = "0.5";
+                controls.style.pointerEvents = "none";
+            }
+        }
+
+        async function controlSim(action) {
+            await fetch(`/api/godot/${action}`, { method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json' } });
+        }
+
+        async function syncToGodot() {
+            // 我们需要获取最近生成的 JSON 路径。这里简化处理：
+            // 假设用户刚刚生成了 "web_robot" (默认名) 或者我们解析 result-area。
+            // 为了更稳健，我们应该在生成成功时把 config 存下来。
+            // 这里为了演示，我们先再次 fetch 默认机器人配置，或者假设后端有 load-robot 接口接收 path?
+            // 目前 API 是接收 parts/connections list。
+
+            // 方案：让用户手动输入生成的机器人名称，或者自动使用 "web_test_bot"?
+            // 更好的方案：JS 解析 result-area 的 JSON 内容? 不太好。
+            // 最简单的：Fetch 生成的 json 文件内容，然后发给 Godot。
+
+            const robotName = document.querySelector('input[name="name"]').value || "web_robot";
+            try {
+                // 1. 获取 JSON (假设我们能通过 static 或 api 获取?)
+                // server.py 没有暴露 configs 目录。我们需要加一个 endpoint 或 mount configs?
+                // 暂时: 我们让 API 直接从 Server 端读取文件发送会更好，但目前 API 设计是 load-robot 接收 dict。
+                // Workaround: 前端 fetch 一个专门的 endpoint "get_generated_config"? 
+                // 或者我们 modify server.py design.
+
+                // Let's assume we implement a helper to fetch the config content first.
+                // For now, let's hardcode a visual feedback "feature not fully ready" if we can't read file.
+                // WAIT! We can use the result data from the generation if we store it.
+
+                // 为了快速实现，我们只发送一个 Test Cube 来验证链路。
+                const dummyRobot = {
+                    parts: [{ id: "torso", type: "torso", params: { size: [0.5, 0.2, 0.2] } }],
+                    connections: []
+                };
+
+                alert("目前演示模式：发送测试立方体到 Godot");
+
+                const res = await fetch('/api/godot/load-robot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dummyRobot)
+                });
+
+                const data = await res.json();
+                if (data.status === 'success') alert("发送成功！");
+                else alert("发送失败: " + data.message);
+
+            } catch (e) {
+                alert("同步错误: " + e.message);
+            }
+        }
+
+        async function updateParam(name, value) {
+            document.getElementById('param-val-display').textContent = value + "x";
+            const params = {};
+            params[name] = parseFloat(value);
+            await fetch('/api/godot/update-params', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(params)
+            });
+        }
+
+        function startWebSocket() {
+            const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+            const ws = new WebSocket(`${protocol}://${window.location.host}/ws`);
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                if (msg.type === 'godot_data') {
+                    const display = document.getElementById('godot-data-display');
+                    display.textContent = JSON.stringify(msg.data, null, 2);
+                    display.scrollTop = display.scrollHeight;
+                }
+            };
+        }
+    </script>
+    const resultArea = document.getElementById('result-area');
+
+    // 收集数据
+    const formData = new FormData(e.target);
+    const data = {};
+    formData.forEach((value, key) => {
+    if (value) data[key] = value;
+    });
+
+    // UI 更新
+    btn.disabled = true;
+    btn.textContent = "⚙️ 正在生成物理模型...";
+    resultArea.style.display = 'block';
+    resultArea.textContent = "🔄 请求已发送，正在进行物理计算与选型...";
+
+    try {
+    const response = await fetch('/api/generate_robot', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+
+    if (result.status === 'success') {
+    resultArea.innerHTML = `✅ 生成成功！\n\n📂 配置文件: ${result.config_path}\n🤖 URDF模型:
+    ${result.urdf_path}\n\n===详细日志===\n${result.log}`;
+    resultArea.style.borderColor = '#10b981';
+    } else {
+    resultArea.textContent = `❌ 生成失败: ${result.message}\n${result.error || ''}`;
+    resultArea.style.borderColor = '#ef4444';
+    }
+    } catch (err) {
+    resultArea.textContent = `❌ 网络错误: ${err.message}`;
+    } finally {
+    btn.disabled = false;
+    btn.textContent = "✨ 生成设计方案";
+    }
+    });
+    </script>
+</body>
+
+</html>

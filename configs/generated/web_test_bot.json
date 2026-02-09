@@ -1,0 +1,224 @@
+{
+  "name": "web_test_bot",
+  "parts": [
+    {
+      "id": "torso_1",
+      "type": "torso",
+      "params": {
+        "height": 0.5,
+        "mass": 2.0,
+        "size": [
+          0.27999999999999997,
+          0.105,
+          0.06999999999999999
+        ]
+      }
+    },
+    {
+      "id": "thigh_left_2",
+      "type": "thigh",
+      "side": "left",
+      "params": {
+        "length": 0.085,
+        "mass": 1.0,
+        "offset": [
+          0.13999999999999999,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shin_left_3",
+      "type": "shin",
+      "side": "left",
+      "params": {
+        "length": 0.085,
+        "mass": 1.0,
+        "offset": [
+          0.13999999999999999,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "thigh_right_4",
+      "type": "thigh",
+      "side": "right",
+      "params": {
+        "length": 0.085,
+        "mass": 1.0,
+        "offset": [
+          0.13999999999999999,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shin_right_5",
+      "type": "shin",
+      "side": "right",
+      "params": {
+        "length": 0.085,
+        "mass": 1.0,
+        "offset": [
+          0.13999999999999999,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "thigh_left_6",
+      "type": "thigh",
+      "side": "left",
+      "params": {
+        "length": 0.085,
+        "mass": 1.0,
+        "offset": [
+          -0.13999999999999999,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shin_left_7",
+      "type": "shin",
+      "side": "left",
+      "params": {
+        "length": 0.085,
+        "mass": 1.0,
+        "offset": [
+          -0.13999999999999999,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "thigh_right_8",
+      "type": "thigh",
+      "side": "right",
+      "params": {
+        "length": 0.085,
+        "mass": 1.0,
+        "offset": [
+          -0.13999999999999999,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shin_right_9",
+      "type": "shin",
+      "side": "right",
+      "params": {
+        "length": 0.085,
+        "mass": 1.0,
+        "offset": [
+          -0.13999999999999999,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": "torso_1",
+      "to": "thigh_left_2",
+      "joint_type": "revolute",
+      "name": "hip_left"
+    },
+    {
+      "from": "torso_1",
+      "to": "thigh_right_4",
+      "joint_type": "revolute",
+      "name": "hip_right"
+    },
+    {
+      "from": "thigh_left_2",
+      "to": "shin_left_3",
+      "joint_type": "revolute",
+      "name": "knee_left"
+    },
+    {
+      "from": "thigh_right_4",
+      "to": "shin_right_5",
+      "joint_type": "revolute",
+      "name": "knee_right"
+    },
+    {
+      "from": "torso_1",
+      "to": "thigh_left_6",
+      "joint_type": "revolute",
+      "name": "hip_left"
+    },
+    {
+      "from": "torso_1",
+      "to": "thigh_right_8",
+      "joint_type": "revolute",
+      "name": "hip_right"
+    },
+    {
+      "from": "thigh_left_6",
+      "to": "shin_left_7",
+      "joint_type": "revolute",
+      "name": "knee_left"
+    },
+    {
+      "from": "thigh_right_8",
+      "to": "shin_right_9",
+      "joint_type": "revolute",
+      "name": "knee_right"
+    }
+  ],
+  "metadata": {
+    "motor_torque": 85.0,
+    "max_velocity": 5.0,
+    "joint_damping": 0.5,
+    "is_real_world_config": true,
+    "estimated_cost_usd": 1728.0,
+    "advanced_dynamics": {
+      "stiffness": 12000.0,
+      "backlash": 8.0,
+      "thermal_resistance": 1.0,
+      "continuous_torque": 1.2,
+      "rotor_inertia": 0.001
+    },
+    "design_warnings": [
+      "\u001b[93m⚠️  电气不匹配警告: 电池电压(22.2V) 与 电机额定电压(36.0V) 差距较大!\u001b[0m"
+    ],
+    "bom": [
+      {
+        "id": "MT-101",
+        "name": "二手/库存无人机电机 50xx-80xx",
+        "qty": 12
+      },
+      {
+        "id": "JT-002",
+        "name": "行星减速器 50:1",
+        "qty": 12
+      },
+      {
+        "id": "PW-001",
+        "name": "锂电池 6S",
+        "qty": 1
+      },
+      {
+        "id": "ST-002",
+        "name": "碳纤维板",
+        "qty": 1
+      },
+      {
+        "id": "CT-002",
+        "name": "树莓派 4B",
+        "qty": 1
+      }
+    ]
+  }
+}

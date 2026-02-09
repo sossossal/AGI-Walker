@@ -89,58 +89,83 @@ class RobotBuilder:
         shin_length: float = 0.3,
         hip_joint: str = "revolute",
         knee_joint: str = "revolute",
+        mass_per_link: float = 1.0, # Added explicit mass arg since we need to split it
         **kwargs
     ) -> 'RobotBuilder':
-        """添加一对腿
+        """添加一对腿 (双连杆结构: 大腿 + 小腿)
         
         Args:
             thigh_length: 大腿长度 (m)
             shin_length: 小腿长度 (m)
             hip_joint: 髋关节类型
             knee_joint: 膝关节类型
+            mass_per_link: 每个连杆的质量 (kg)
         """
-        # 左腿
-        left_leg = {
-            "id": self._generate_part_id("leg_left"),
-            "type": "leg",
+        # --- 左腿 ---
+        l_thigh = {
+            "id": self._generate_part_id("thigh_left"),
+            "type": "thigh",
             "side": "left",
-            "params": {
-                "thigh_length": thigh_length,
-                "shin_length": shin_length,
-                "hip_joint": hip_joint,
-                "knee_joint": knee_joint,
-                **kwargs
-            }
+            "params": {"length": thigh_length, "mass": mass_per_link, **kwargs}
         }
-        # 右腿
-        right_leg = {
-            "id": self._generate_part_id("leg_right"),
-            "type": "leg",
+        l_shin = {
+            "id": self._generate_part_id("shin_left"),
+            "type": "shin",
+            "side": "left",
+            "params": {"length": shin_length, "mass": mass_per_link, **kwargs}
+        }
+        
+        # --- 右腿 ---
+        r_thigh = {
+            "id": self._generate_part_id("thigh_right"),
+            "type": "thigh",
             "side": "right",
-            "params": {
-                "thigh_length": thigh_length,
-                "shin_length": shin_length,
-                "hip_joint": hip_joint,
-                "knee_joint": knee_joint,
-                **kwargs
-            }
+            "params": {"length": thigh_length, "mass": mass_per_link, **kwargs}
+        }
+        r_shin = {
+            "id": self._generate_part_id("shin_right"),
+            "type": "shin",
+            "side": "right",
+            "params": {"length": shin_length, "mass": mass_per_link, **kwargs}
         }
         
-        self.parts.extend([left_leg, right_leg])
+        self.parts.extend([l_thigh, l_shin, r_thigh, r_shin])
         
-        # 自动连接到躯干 (如果存在)
+        # 建立连接: Torso -> Thigh -> Shin
         torso_parts = [p for p in self.parts if p["type"] == "torso"]
         if torso_parts:
             torso_id = torso_parts[0]["id"]
+            
+            # 1. Torso -> Thigh (Hip Joint)
+            # Offset logic needs to be handled by urdf_generator or passed in via kwargs? 
+            # Ideally passed via connection params, but currently simple.
+            # We'll assume generator handles placement based on side/torso size.
+            
             self.connections.append({
                 "from": torso_id,
-                "to": left_leg["id"],
-                "joint_type": hip_joint
+                "to": l_thigh["id"],
+                "joint_type": hip_joint,
+                "name": "hip_left"
             })
             self.connections.append({
                 "from": torso_id,
-                "to": right_leg["id"],
-                "joint_type": hip_joint
+                "to": r_thigh["id"],
+                "joint_type": hip_joint,
+                "name": "hip_right"
+            })
+            
+            # 2. Thigh -> Shin (Knee Joint)
+            self.connections.append({
+                "from": l_thigh["id"],
+                "to": l_shin["id"],
+                "joint_type": knee_joint,
+                "name": "knee_left"
+            })
+            self.connections.append({
+                "from": r_thigh["id"],
+                "to": r_shin["id"],
+                "joint_type": knee_joint,
+                "name": "knee_right"
             })
         
         return self

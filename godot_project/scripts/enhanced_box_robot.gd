@@ -23,6 +23,9 @@ var robot_parts_config: Array = []
 func _ready():
 	print("🤖 Enhanced Robot initialized")
 	_initialize_parts_library()
+	_initialize_parts_library()
+	apply_physics_config() # 应用初始物理配置
+	_setup_sensors()
 	_setup_sensors()
 	
 	if env_controller:
@@ -166,3 +169,21 @@ func get_robot_state() -> Dictionary:
 		"environment": env_controller.get_environment_info() if env_controller else {},
 		"torso_height": torso.global_position.y if torso else 0.0
 	}
+
+func apply_physics_config():
+	"""应用物理配置"""
+	if not is_inside_tree(): return
+	print("🔧 Applying Physics Config...")
+	
+	# 应用刚体参数
+	if torso: PhysicsConfig.apply_to_torso(torso)
+	if left_thigh: PhysicsConfig.apply_to_leg(left_thigh)
+	if right_thigh: PhysicsConfig.apply_to_leg(right_thigh)
+	
+	# 应用关节参数
+	if hip_left: PhysicsConfig.apply_to_hip_joint(hip_left)
+	if hip_right: PhysicsConfig.apply_to_hip_joint(hip_right)
+	
+	# 如果有零件库的特定参数，覆盖PhysicsConfig的通用参数
+	# (例如特定电机扭矩)
+	_apply_part_specs()

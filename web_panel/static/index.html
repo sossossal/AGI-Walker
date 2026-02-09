@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,19 +11,19 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-        
+
         .container {
             max-width: 1400px;
             margin: 0 auto;
         }
-        
+
         header {
             background: rgba(255, 255, 255, 0.95);
             padding: 20px 30px;
@@ -30,7 +31,7 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             margin-bottom: 30px;
         }
-        
+
         h1 {
             color: #667eea;
             font-size: 2em;
@@ -38,7 +39,7 @@
             align-items: center;
             gap: 15px;
         }
-        
+
         .status-badge {
             background: #10b981;
             color: white;
@@ -47,57 +48,57 @@
             font-size: 0.5em;
             font-weight: normal;
         }
-        
+
         .dashboard {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
-        
+
         .card {
             background: rgba(255, 255, 255, 0.95);
             padding: 25px;
             border-radius: 15px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
-        
+
         .card h2 {
             color: #667eea;
             margin-bottom: 15px;
             font-size: 1.3em;
         }
-        
+
         .stat {
             display: flex;
             justify-content: space-between;
             padding: 10px 0;
             border-bottom: 1px solid #e5e7eb;
         }
-        
+
         .stat:last-child {
             border-bottom: none;
         }
-        
+
         .stat-value {
             font-weight: bold;
             color: #667eea;
         }
-        
+
         .tasks-section {
             background: rgba(255, 255, 255, 0.95);
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
-        
+
         .task-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
         }
-        
+
         button {
             background: #667eea;
             color: white;
@@ -108,18 +109,18 @@
             font-size: 1em;
             transition: all 0.3s;
         }
-        
+
         button:hover {
             background: #5568d3;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
-        
+
         .task-list {
             display: grid;
             gap: 15px;
         }
-        
+
         .task-item {
             background: #f9fafb;
             padding: 20px;
@@ -127,18 +128,18 @@
             border-left: 4px solid #667eea;
             transition: all 0.3s;
         }
-        
+
         .task-item:hover {
             transform: translateX(5px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
-        
+
         .task-name {
             font-weight: bold;
             font-size: 1.1em;
             margin-bottom: 8px;
         }
-        
+
         .task-status {
             display: inline-block;
             padding: 4px 12px;
@@ -146,28 +147,28 @@
             font-size: 0.85em;
             font-weight: 500;
         }
-        
+
         .status-running {
             background: #10b981;
             color: white;
         }
-        
+
         .status-pending {
             background: #f59e0b;
             color: white;
         }
-        
+
         .status-completed {
             background: #6366f1;
             color: white;
         }
-        
+
         .empty-state {
             text-align: center;
             padding: 60px 20px;
             color: #9ca3af;
         }
-        
+
         .empty-state svg {
             width: 100px;
             height: 100px;
@@ -176,6 +177,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -184,7 +186,7 @@
                 <span class="status-badge" id="status">● 运行中</span>
             </h1>
         </header>
-        
+
         <div class="dashboard">
             <div class="card">
                 <h2>📊 系统状态</h2>
@@ -201,9 +203,13 @@
                     <span class="stat-value">正常</span>
                 </div>
             </div>
-            
+
             <div class="card">
                 <h2>⚡ 快速操作</h2>
+                <button onclick="window.location.href='/static/design.html'"
+                    style="width: 100%; margin-bottom: 10px; background: #6366f1;">
+                    🛠️ 设计新机器人
+                </button>
                 <button onclick="createTask()" style="width: 100%; margin-bottom: 10px;">
                     ➕ 创建新任务
                 </button>
@@ -211,7 +217,7 @@
                     🔄 刷新任务列表
                 </button>
             </div>
-            
+
             <div class="card">
                 <h2>📈 训练统计</h2>
                 <div class="stat">
@@ -228,13 +234,13 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="tasks-section">
             <div class="task-header">
                 <h2>📋 任务列表</h2>
                 <span id="task-count">0 个任务</span>
             </div>
-            
+
             <div class="task-list" id="task-list">
                 <div class="empty-state">
                     <p style="font-size: 1.2em;">暂无任务</p>
@@ -243,39 +249,39 @@
             </div>
         </div>
     </div>
-    
+
     <script>
         let ws;
         let tasks = [];
-        
+
         // 连接 WebSocket
         function connectWebSocket() {
             ws = new WebSocket('ws://localhost:8000/ws');
-            
+
             ws.onopen = () => {
                 console.log('WebSocket 已连接');
                 document.getElementById('status').textContent = '● 已连接';
             };
-            
+
             ws.onmessage = (event) => {
                 const message = JSON.parse(event.data);
                 handleWebSocketMessage(message);
             };
-            
+
             ws.onclose = () => {
                 console.log('WebSocket 已断开');
                 document.getElementById('status').textContent = '● 已断开';
                 setTimeout(connectWebSocket, 3000);
             };
         }
-        
+
         // 处理 WebSocket 消息
         function handleWebSocketMessage(message) {
             if (message.type === 'task_created' || message.type === 'task_updated') {
                 refreshTasks();
             }
         }
-        
+
         // 获取任务列表
         async function refreshTasks() {
             const response = await fetch('/api/tasks');
@@ -283,13 +289,13 @@
             tasks = data.tasks;
             renderTasks();
         }
-        
+
         // 渲染任务列表
         function renderTasks() {
             const taskList = document.getElementById('task-list');
             document.getElementById('task-count').textContent = `${tasks.length} 个任务`;
             document.getElementById('active-tasks').textContent = tasks.filter(t => t.status === 'running').length;
-            
+
             if (tasks.length === 0) {
                 taskList.innerHTML = `
                     <div class="empty-state">
@@ -299,7 +305,7 @@
                 `;
                 return;
             }
-            
+
             taskList.innerHTML = tasks.map(task => `
                 <div class="task-item">
                     <div class="task-name">${task.name || task.id}</div>
@@ -312,31 +318,31 @@
                 </div>
             `).join('');
         }
-        
+
         // 创建新任务
         async function createTask() {
             const taskName = prompt('输入任务名称:');
             if (!taskName) return;
-            
+
             const response = await fetch('/api/tasks', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: taskName,
                     type: 'training',
                     algorithm: 'PPO'
                 })
             });
-            
+
             if (response.ok) {
                 refreshTasks();
             }
         }
-        
+
         // 初始化
         connectWebSocket();
         refreshTasks();
-        
+
         // 定期更新系统状态
         setInterval(async () => {
             const response = await fetch('/api/system/status');
@@ -345,4 +351,5 @@
         }, 5000);
     </script>
 </body>
+
 </html>

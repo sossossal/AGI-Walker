@@ -24,10 +24,15 @@
                 "specs": {
                     "power": "500W",
                     "voltage": "24V",
+                    "max_current": "25A",
                     "max_torque": "5.0 Nm",
+                    "continuous_torque": "3.2 Nm",
                     "max_speed": "3000 RPM",
                     "weight": "0.8 kg",
-                    "efficiency": "85%"
+                    "efficiency": "85%",
+                    "rotor_inertia": "0.005 kg*m^2",
+                    "thermal_resistance": "0.5 K/W",
+                    "thermal_time_constant": "1200 s"
                 },
                 "price": 120.00,
                 "supplier": "Maxon Motor",
@@ -44,10 +49,14 @@
                 "specs": {
                     "power": "200W",
                     "voltage": "12V",
+                    "max_current": "18A",
                     "max_torque": "2.0 Nm",
+                    "continuous_torque": "1.2 Nm",
                     "max_speed": "5000 RPM",
                     "weight": "0.3 kg",
-                    "efficiency": "82%"
+                    "efficiency": "82%",
+                    "rotor_inertia": "0.001 kg*m^2",
+                    "thermal_resistance": "1.2 K/W"
                 },
                 "price": 65.00,
                 "supplier": "T-Motor",
@@ -64,9 +73,14 @@
                 "specs": {
                     "power": "1000W",
                     "voltage": "48V",
+                    "max_current": "30A",
                     "max_torque": "10.0 Nm",
+                    "continuous_torque": "6.5 Nm",
                     "max_speed": "2000 RPM",
                     "weight": "1.5 kg",
+                    "efficiency": "92%",
+                    "rotor_inertia": "0.012 kg*m^2",
+                    "thermal_resistance": "0.3 K/W",
                     "accuracy": "0.01°"
                 },
                 "price": 280.00,
@@ -83,10 +97,11 @@
                 "type": "stepper_nema23",
                 "specs": {
                     "holding_torque": "1.9 Nm",
-                    "voltage": "3.0V",
+                    "voltage": "24V",
                     "current": "2.8A",
                     "step_angle": "1.8°",
-                    "weight": "0.6 kg"
+                    "weight": "0.6 kg",
+                    "rotor_inertia": "0.0004 kg*m^2"
                 },
                 "price": 45.00,
                 "supplier": "STEPPERONLINE",
@@ -95,6 +110,48 @@
                     "轻载应用"
                 ],
                 "stock": "available"
+            }
+        ],
+        "motors_diy": [
+            {
+                "id": "MT-101",
+                "name": "二手/库存无人机电机 50xx-80xx",
+                "type": "brushless_drone_used",
+                "specs": {
+                    "kv": "100-300 KV",
+                    "voltage": "24V-48V",
+                    "max_torque": "1-3 Nm (直驱)",
+                    "weight": "0.15-0.3 kg",
+                    "condition": "二手/拆机",
+                    "max_current": "15A"
+                },
+                "price": 10.00,
+                "supplier": "闲鱼/淘宝库存",
+                "applications": [
+                    "低成本关节",
+                    "DIY机器人"
+                ],
+                "stock": "variable"
+            },
+            {
+                "id": "MT-102",
+                "name": "宇树/小米机器狗拆机电机",
+                "type": "integrated_joint_used",
+                "specs": {
+                    "torque": "12-30 Nm",
+                    "integrated": "Motor+Reducer+Driver",
+                    "communication": "CAN/RS485",
+                    "weight": "0.5-0.8 kg",
+                    "max_current": "30A",
+                    "voltage": "24V"
+                },
+                "price": 100.00,
+                "supplier": "闲鱼拆机",
+                "applications": [
+                    "高性能关节",
+                    "机器狗维护"
+                ],
+                "stock": "variable"
             }
         ],
         "sensors": [
@@ -108,7 +165,9 @@
                     "accel_range": "±16g",
                     "update_rate": "1000 Hz",
                     "interface": "I2C/SPI",
-                    "weight": "0.01 kg"
+                    "weight": "0.01 kg",
+                    "noise_density": "0.005 dps/sqrt(Hz)",
+                    "bias_stability": "10 deg/hr"
                 },
                 "price": 25.00,
                 "supplier": "InvenSense",
@@ -147,7 +206,8 @@
                     "interface": "SPI/SSI",
                     "max_speed": "15000 RPM",
                     "voltage": "5V",
-                    "weight": "0.02 kg"
+                    "weight": "0.02 kg",
+                    "noise": "0.1 deg RMS"
                 },
                 "price": 35.00,
                 "supplier": "AMS",
@@ -208,10 +268,10 @@
                 "specs": {
                     "reduction_ratio": 100,
                     "max_torque": "50 Nm",
-                    "backlash": "< 1 arcmin",
+                    "backlash": "0.5 arcmin",
                     "efficiency": "90%",
                     "weight": "0.3 kg",
-                    "stiffness": "5000 Nm/rad",
+                    "stiffness": "45000 Nm/rad",
                     "max_speed": "100 RPM"
                 },
                 "price": 220.00,
@@ -230,9 +290,10 @@
                 "specs": {
                     "reduction_ratio": 50,
                     "max_torque": "30 Nm",
-                    "backlash": "< 10 arcmin",
+                    "backlash": "8 arcmin",
                     "efficiency": "85%",
                     "weight": "0.5 kg",
+                    "stiffness": "12000 Nm/rad",
                     "max_speed": "200 RPM"
                 },
                 "price": 120.00,
@@ -250,7 +311,7 @@
                 "specs": {
                     "reduction_ratio": 121,
                     "max_torque": "80 Nm",
-                    "backlash": "< 0.5 arcmin",
+                    "backlash": "0.2 arcmin",
                     "efficiency": "88%",
                     "weight": "1.2 kg",
                     "stiffness": "8000 Nm/rad"
@@ -746,6 +807,53 @@
                 "total_cost": 2980.00,
                 "build_time": "120 hours",
                 "difficulty": "高级"
+            }
+        ],
+        "low_cost_robotd": [
+            {
+                "name": "低成本双足机器人套件 (DIY版)",
+                "type": "biped_walker_diy",
+                "parts_list": [
+                    {
+                        "part_id": "MT-101",
+                        "quantity": 6
+                    },
+                    {
+                        "part_id": "JT-102",
+                        "quantity": 6
+                    },
+                    {
+                        "part_id": "AC-101",
+                        "quantity": 3
+                    },
+                    {
+                        "part_id": "SN-103",
+                        "quantity": 6
+                    },
+                    {
+                        "part_id": "CT-102",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "SN-101",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "PW-101",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "ST-103",
+                        "quantity": 1
+                    },
+                    {
+                        "part_id": "AC-102",
+                        "quantity": 1
+                    }
+                ],
+                "total_cost": 850.00,
+                "build_time": "120 hours",
+                "difficulty": "专家级"
             }
         ]
     }
