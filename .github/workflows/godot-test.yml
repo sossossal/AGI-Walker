@@ -1,0 +1,21 @@
+name: Godot Tests
+
+on:
+    push:
+        branches: ["main"]
+    pull_request:
+        branches: ["main"]
+
+jobs:
+    test:
+        name: Run Godot Tests
+        runs-on: ubuntu-latest
+        container:
+            image: barichello/godot-ci:4.2.1
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Run Tests
+              run: |
+                  godot --headless --script godot_project/run_tests.gd

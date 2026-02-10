@@ -1,0 +1,222 @@
+{
+  "name": "test_real_quad_v3",
+  "parts": [
+    {
+      "id": "torso_1",
+      "type": "torso",
+      "params": {
+        "height": 0.5,
+        "mass": 6.5,
+        "size": [
+          0.32000000000000006,
+          0.12,
+          0.08000000000000002
+        ]
+      }
+    },
+    {
+      "id": "thigh_left_2",
+      "type": "thigh",
+      "side": "left",
+      "params": {
+        "length": 0.1,
+        "mass": 1.0,
+        "offset": [
+          0.16000000000000003,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shin_left_3",
+      "type": "shin",
+      "side": "left",
+      "params": {
+        "length": 0.1,
+        "mass": 1.0,
+        "offset": [
+          0.16000000000000003,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "thigh_right_4",
+      "type": "thigh",
+      "side": "right",
+      "params": {
+        "length": 0.1,
+        "mass": 1.0,
+        "offset": [
+          0.16000000000000003,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shin_right_5",
+      "type": "shin",
+      "side": "right",
+      "params": {
+        "length": 0.1,
+        "mass": 1.0,
+        "offset": [
+          0.16000000000000003,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "thigh_left_6",
+      "type": "thigh",
+      "side": "left",
+      "params": {
+        "length": 0.1,
+        "mass": 1.0,
+        "offset": [
+          -0.16000000000000003,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shin_left_7",
+      "type": "shin",
+      "side": "left",
+      "params": {
+        "length": 0.1,
+        "mass": 1.0,
+        "offset": [
+          -0.16000000000000003,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "thigh_right_8",
+      "type": "thigh",
+      "side": "right",
+      "params": {
+        "length": 0.1,
+        "mass": 1.0,
+        "offset": [
+          -0.16000000000000003,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shin_right_9",
+      "type": "shin",
+      "side": "right",
+      "params": {
+        "length": 0.1,
+        "mass": 1.0,
+        "offset": [
+          -0.16000000000000003,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": "torso_1",
+      "to": "thigh_left_2",
+      "joint_type": "revolute",
+      "name": "hip_left"
+    },
+    {
+      "from": "torso_1",
+      "to": "thigh_right_4",
+      "joint_type": "revolute",
+      "name": "hip_right"
+    },
+    {
+      "from": "thigh_left_2",
+      "to": "shin_left_3",
+      "joint_type": "revolute",
+      "name": "knee_left"
+    },
+    {
+      "from": "thigh_right_4",
+      "to": "shin_right_5",
+      "joint_type": "revolute",
+      "name": "knee_right"
+    },
+    {
+      "from": "torso_1",
+      "to": "thigh_left_6",
+      "joint_type": "revolute",
+      "name": "hip_left"
+    },
+    {
+      "from": "torso_1",
+      "to": "thigh_right_8",
+      "joint_type": "revolute",
+      "name": "hip_right"
+    },
+    {
+      "from": "thigh_left_6",
+      "to": "shin_left_7",
+      "joint_type": "revolute",
+      "name": "knee_left"
+    },
+    {
+      "from": "thigh_right_8",
+      "to": "shin_right_9",
+      "joint_type": "revolute",
+      "name": "knee_right"
+    }
+  ],
+  "metadata": {
+    "motor_torque": 900.0,
+    "max_velocity": 10.0,
+    "joint_damping": 1.0,
+    "is_real_world_config": true,
+    "estimated_cost_usd": 6260.0,
+    "advanced_dynamics": {
+      "stiffness": 45000.0,
+      "backlash": 0.5,
+      "thermal_resistance": 0.3,
+      "continuous_torque": 6.5,
+      "rotor_inertia": 0.012
+    },
+    "design_warnings": [],
+    "bom": [
+      {
+        "id": "MT-003",
+        "name": "伺服电机 1KW",
+        "qty": 12
+      },
+      {
+        "id": "JT-001",
+        "name": "谐波减速器 100:1",
+        "qty": 12
+      },
+      {
+        "id": "PW-004",
+        "name": "锂电池 12S (高压版)",
+        "qty": 1
+      },
+      {
+        "id": "ST-002",
+        "name": "碳纤维板",
+        "qty": 1
+      },
+      {
+        "id": "CT-002",
+        "name": "树莓派 4B",
+        "qty": 1
+      }
+    ]
+  }
+}

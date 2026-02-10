@@ -1,0 +1,10 @@
+import zenoh, time
+conf = zenoh.Config()
+conf.insert_json5("connect/endpoints", '["tcp/127.0.0.1:7447"]')
+print("Pub opening session...")
+z = zenoh.open(conf)
+print("Pub putting...")
+z.put("demo/key", "Hello Zenoh")
+print("Pub done")
+time.sleep(1)
+z.close()

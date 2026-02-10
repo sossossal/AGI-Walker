@@ -198,8 +198,9 @@ python web_panel/server.py
 [Sim2Real 指南 →](docs/SIM2REAL_GUIDE.md)
 
 ### 4. 模块化零件系统
-- **14 个真实零件**: Unitree, Tesla 等
-- **BOM 自动计算**: 成本估算 ¥2000-¥5000
+- **15+ 真实零件**: 新增 12S 高压电池、48V 伺服电机等
+- **智能选型**: 自动匹配电机电压与电池规格，防止电气不匹配
+- **BOM 自动计算**: 实时生成物料清单与成本估算
 - **一键组装**: 像乐高一样组装机器人
 
 [零件库文档 →](docs/MODULAR_ROBOT_BUILDER.md)
@@ -209,6 +210,7 @@ python web_panel/server.py
 - **实时更新**: WebSocket 通信
 - **性能可视化**: 训练曲线、统计数据
 - **Godot 仿真控制** (NEW!):
+  - 🤖 **Agent 指令**: 支持自然语言创建机器人 (e.g., "create quadruped")
   - 🎮 **远程连接**: 一键连接/断开 Godot 仿真器
   - 📤 **模型同步**: 将设计的机器人直接发送到仿真场景
   - ⚡ **实时调参**: 动态调整电机功率、PID 等物理参数

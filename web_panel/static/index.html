@@ -175,6 +175,85 @@
             margin-bottom: 20px;
             opacity: 0.5;
         }
+
+        /* Onboarding Styles */
+        .onboarding-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+        }
+
+        .onboarding-highlight {
+            position: relative;
+            z-index: 9999;
+            background: white;
+            /* Ensure visibility */
+            box-shadow: 0 0 0 4px #10b981;
+            pointer-events: none;
+            /* Block interaction during tour? Or allow? Usually block unless it's a 'click this to continue' step. */
+            /* Let's allow interaction but highlight it. */
+        }
+
+        .onboarding-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 320px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 10000;
+            font-size: 0.95em;
+            line-height: 1.5;
+            color: #333;
+        }
+
+        .onboarding-box h3 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .onboarding-actions {
+            display: flex;
+            margin-top: 15px;
+            gap: 10px;
+        }
+
+        .onboarding-actions button {
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+
+        .btn-prev {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        .btn-prev:hover {
+            background: #fecaca;
+        }
+
+        .btn-next {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-next:hover {
+            background: #059669;
+        }
+
+        .btn-skip {
+            background: transparent;
+            color: #999;
+            border: 1px solid #eee;
+        }
+
+        .btn-skip:hover {
+            background: #f9fafb;
+            color: #666;
+        }
     </style>
 </head>
 
@@ -206,12 +285,23 @@
 
             <div class="card">
                 <h2>⚡ 快速操作</h2>
+                <button onclick="window.location.href='/docs/index.html'"
+                    style="width: 100%; margin-bottom: 10px; background: #3b82f6;">
+                    📚 API 文档
+                </button>
+                <button onclick="window.location.href='/static/distributed.html'"
+                    style="width: 100%; margin-bottom: 10px; background: #8b5cf6;">
+                    🌐 分布式监控
+                </button>
                 <button onclick="window.location.href='/static/design.html'"
                     style="width: 100%; margin-bottom: 10px; background: #6366f1;">
                     🛠️ 设计新机器人
                 </button>
                 <button onclick="createTask()" style="width: 100%; margin-bottom: 10px;">
                     ➕ 创建新任务
+                </button>
+                <button onclick="tour.forceStart()" style="width: 100%; margin-bottom: 10px; background: #8b5cf6;">
+                    🎓 新手引导
                 </button>
                 <button onclick="refreshTasks()" style="width: 100%; background: #10b981;">
                     🔄 刷新任务列表
@@ -253,8 +343,23 @@
 
                 <div id="godot-controls"
                     style="opacity: 0.5; pointer-events: none; display: flex; gap: 20px; align-items: flex-start;">
+
+                    <!-- Left Column: Controls -->
                     <div style="flex: 1;">
-                        <div style="margin-bottom: 10px; font-weight: bold; color: #555;">指令控制</div>
+                        <div
+                            style="margin-bottom: 15px; padding: 15px; background: #f0f9ff; border-radius: 8px; border: 1px solid #bae6fd;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #0369a1;">🤖
+                                Agent 指令</label>
+                            <div style="display: flex; gap: 5px;">
+                                <input type="text" id="agent-command" placeholder="输入指令 (例如: create quadruped)"
+                                    style="flex:1; padding: 8px; border-radius: 4px; border: 1px solid #ddd;"
+                                    onkeypress="if(event.key === 'Enter') sendAgentCommand()">
+                                <button onclick="sendAgentCommand()" style="background: #0ea5e9; padding: 8px 15px;">🚀
+                                    发送</button>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 10px; font-weight: bold; color: #555;">手动控制</div>
                         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                             <button onclick="controlSim('start')" style="background: #10b981;">▶️ 启动</button>
                             <button onclick="controlSim('stop')" style="background: #ef4444;">⏹️ 停止</button>
@@ -276,33 +381,81 @@
                             <label style="display: block; margin-bottom: 5px; color: #555;">物理参数: Motor Power (x<span
                                     id="power-val">1.0</span>)</label>
                             <input type="range" min="0.1" max="5.0" step="0.1" value="1.0" style="width: 100%;"
-                                oninput="updateParam('motor_power_multiplier', this.value)">
+                                oninput="throttledUpdateParam('motor_power_multiplier', this.value, 'power-val', '')">
                         </div>
                     </div>
 
-                    <div
-                        style="flex: 1; background: #f3f4f6; padding: 10px; border-radius: 8px; height: 100%; min-height: 250px; overflow-y: auto;">
-                        <div style="font-weight: bold; color: #555; margin-bottom: 5px;">实时数据流</div>
-                        <pre id="godot-stream"
-                            style="font-size: 0.8em; color: #333; margin: 0; white-space: pre-wrap;">Waiting for data...</pre>
+                    <!-- Right Column: Real-time Data -->
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
+                        <!-- Cards Grid -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div
+                                style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; text-align: center;">
+                                <div style="font-size: 0.8em; color: #6b7280;">位置 X</div>
+                                <div id="card-pos-x" style="font-size: 1.2em; font-weight: bold; color: #3b82f6;">0.00
+                                </div>
+                            </div>
+                            <div
+                                style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; text-align: center;">
+                                <div style="font-size: 0.8em; color: #6b7280;">速度 X</div>
+                                <div id="card-vel-x" style="font-size: 1.2em; font-weight: bold; color: #10b981;">0.00
+                                </div>
+                            </div>
+                            <div
+                                style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; text-align: center;">
+                                <div style="font-size: 0.8em; color: #6b7280;">电池电量</div>
+                                <div id="card-battery" style="font-size: 1.2em; font-weight: bold; color: #f59e0b;">100%
+                                </div>
+                            </div>
+                            <div
+                                style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; text-align: center;">
+                                <div style="font-size: 0.8em; color: #6b7280;">运行时间</div>
+                                <div id="card-time" style="font-size: 1.2em; font-weight: bold; color: #6366f1;">0.0s
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            style="flex: 1; background: #f3f4f6; padding: 10px; border-radius: 8px; height: 100%; min-height: 150px; overflow-y: auto;">
+                            <div style="font-weight: bold; color: #555; margin-bottom: 5px;">原始数据流</div>
+                            <pre id="godot-stream"
+                                style="font-size: 0.8em; color: #333; margin: 0; white-space: pre-wrap;">Waiting for data...</pre>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="tasks-section">
-            <div class="task-header">
-                <h2>📋 任务列表</h2>
-                <span id="task-count">0 个任务</span>
-            </div>
+    </div>
 
-            <div class="task-list" id="task-list">
-                <div class="empty-state">
-                    <p style="font-size: 1.2em;">暂无任务</p>
-                    <p>点击"创建新任务"开始</p>
-                </div>
+    <div class="card" style="margin-bottom: 30px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>📦 零件市场 (Community Parts Store)</h2>
+            <button id="fetch-market-btn" onclick="fetchPartsMarket()" style="background: #f59e0b;">
+                🔄 刷新市场
+            </button>
+        </div>
+
+        <div id="market-list" class="task-list">
+            <div class="empty-state">
+                <p style="font-size: 1.2em;">点击刷新加载云端零件</p>
             </div>
         </div>
+    </div>
+
+    <div class="tasks-section">
+        <div class="task-header">
+            <h2>📋 任务列表</h2>
+            <span id="task-count">0 个任务</span>
+        </div>
+
+        <div class="task-list" id="task-list">
+            <div class="empty-state">
+                <p style="font-size: 1.2em;">暂无任务</p>
+                <p>点击"创建新任务"开始</p>
+            </div>
+        </div>
+    </div>
     </div>
 
     <script>
@@ -520,6 +673,46 @@
             }
         }
 
+        async function sendAgentCommand() {
+            const input = document.getElementById('agent-command');
+            const cmd = input.value.trim();
+            if (!cmd) return;
+
+            // Visual feedback
+            const btn = input.nextElementSibling;
+            const originalText = btn.textContent;
+            btn.textContent = "⏳...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/agent/parse-command', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: cmd })
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    // Auto-fill the JSON area
+                    document.getElementById('robot-json').value = JSON.stringify(data.config, null, 2);
+                    // Flash success
+                    input.style.borderColor = '#10b981';
+                    setTimeout(() => input.style.borderColor = '#ddd', 1000);
+
+                    // Optional: Auto-load? Let's keep it manual for safety as per plan "JSON -> Click Load"
+                    // But maybe we can ask user? For now just fill JSON.
+                } else {
+                    alert("指令解析失败: " + data.message);
+                }
+            } catch (e) {
+                console.error(e);
+                alert("请求失败");
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
         // 修改 WebSocket 处理，增加 Godot 数据支持
         let startTime = null;
         const originalHandleMsg = handleWebSocketMessage;
@@ -573,7 +766,89 @@
                 }
             }
         };
+
+
+        // --- Parts Store Logic ---
+
+        async function fetchPartsMarket() {
+            const btn = document.getElementById('fetch-market-btn');
+            const list = document.getElementById('market-list');
+
+            btn.disabled = true;
+            btn.textContent = "⏳ 加载中...";
+            list.innerHTML = '<div class="empty-state"><p>正在连接云端仓库...</p></div>';
+
+            try {
+                const res = await fetch('/api/parts/market');
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    if (data.parts.length === 0) {
+                        list.innerHTML = '<div class="empty-state"><p>市场暂无零件</p></div>';
+                        return;
+                    }
+
+                    list.innerHTML = data.parts.map(part => `
+                        <div class="task-item" style="display: flex; justify-content: space-between; align-items: center; border-left-color: #f59e0b;">
+                            <div>
+                                <div class="task-name">${part.name} <span style="font-size:0.8em; color:#666; font-weight:normal;">(${part.id})</span></div>
+                                <div style="font-size: 0.9em; color: #555;">
+                                    <span style="background: #eef2ff; padding: 2px 8px; border-radius: 4px; color: #6366f1;">${part.category}</span>
+                                    <span style="margin-left: 10px;">${part.supplier}</span>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-weight: bold; color: #059669; margin-bottom: 5px;">$${part.price}</div>
+                                <button onclick="importPart('${part.id}', '${part.category}', this)" 
+                                    style="padding: 5px 15px; font-size: 0.9em; background: #f59e0b;">
+                                    ⬇️ 导入
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = `<div class="empty-state" style="color: #ef4444;"><p>加载失败: ${data.message}</p></div>`;
+                }
+            } catch (e) {
+                list.innerHTML = `<div class="empty-state" style="color: #ef4444;"><p>网络错误</p></div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "🔄 刷新市场";
+            }
+        }
+
+        async function importPart(id, category, btn) {
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = "⏳";
+
+            try {
+                const res = await fetch('/api/parts/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ part_id: id, category: category })
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    btn.innerHTML = "✅ 已导入";
+                    btn.style.background = "#10b981";
+                } else if (data.status === 'skipped') {
+                    btn.innerHTML = "⚠️ 已存在";
+                    btn.style.background = "#6b7280";
+                } else {
+                    alert("导入失败: " + data.message);
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert("请求失败");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
     </script>
+    <script src="/static/js/onboarding.js"></script>
 </body>
 
 </html>

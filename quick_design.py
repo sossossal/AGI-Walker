@@ -200,18 +200,37 @@ def select_parts(robot_type, scenario, target_height, overrides={}):
 
     # --- 4. 电池 & 电气校验 ---
     powers = PARTS_DB['parts']['power']
-    battery = next((p for p in powers if "lipo" in p['type']), powers[0])
-    selected_parts['battery'] = battery
-    batt_weight = parse_value(battery['specs']['weight'])
-    batt_voltage = parse_value(battery['specs']['voltage'].replace('V', ''))
-    motor_voltage_str = motor['specs'].get('voltage', '0V').replace('V', '')
     
-    # Handle ranges like "24-48"
+    # Calculate motor voltage first
+    motor_voltage_str = motor['specs'].get('voltage', '0V').replace('V', '')
     if '-' in motor_voltage_str:
         mv_min, mv_max = map(float, motor_voltage_str.split('-'))
         motor_voltage = (mv_min + mv_max) / 2
     else:
         motor_voltage = parse_value(motor_voltage_str)
+    
+    # Smart Select: Find battery with voltage closest to motor
+    def get_voltage(p):
+        v_str = p['specs']['voltage'].replace('V', '')
+        if '-' in v_str:
+             low, high = map(float, v_str.split('-'))
+             return (low + high) / 2
+        return float(v_str)
+
+    # Filter by lithium first
+    candidates = [p for p in powers if "lipo" in p['type'] or "li-ion" in p['type']]
+    if not candidates: candidates = powers
+
+    # Sort by voltage difference
+    candidates.sort(key=lambda p: abs(get_voltage(p) - motor_voltage))
+    battery = candidates[0]
+    
+    selected_parts['battery'] = battery
+    batt_weight = parse_value(battery['specs']['weight'])
+    batt_voltage = get_voltage(battery)
+
+    # Re-evaluate motor voltage for display/check (already calc'd above but let's be consistent)
+    # motor_voltage is already float from step 1/4
 
     print(f"  🔋 电源: {CYAN}{battery['name']}{RESET} ({batt_voltage}V, {batt_weight} kg)")
     

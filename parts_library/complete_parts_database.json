@@ -34,7 +34,7 @@
                     "thermal_resistance": "0.5 K/W",
                     "thermal_time_constant": "1200 s"
                 },
-                "price": 120.00,
+                "price": 120.0,
                 "supplier": "Maxon Motor",
                 "applications": [
                     "关节驱动",
@@ -58,7 +58,7 @@
                     "rotor_inertia": "0.001 kg*m^2",
                     "thermal_resistance": "1.2 K/W"
                 },
-                "price": 65.00,
+                "price": 65.0,
                 "supplier": "T-Motor",
                 "applications": [
                     "小型关节",
@@ -83,7 +83,7 @@
                     "thermal_resistance": "0.3 K/W",
                     "accuracy": "0.01°"
                 },
-                "price": 280.00,
+                "price": 280.0,
                 "supplier": "Kollmorgen",
                 "applications": [
                     "主驱动关节",
@@ -103,11 +103,29 @@
                     "weight": "0.6 kg",
                     "rotor_inertia": "0.0004 kg*m^2"
                 },
-                "price": 45.00,
+                "price": 45.0,
                 "supplier": "STEPPERONLINE",
                 "applications": [
                     "精确定位",
                     "轻载应用"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "MT-C01",
+                "name": "Vesta V1 High-Torque Motor",
+                "type": "brushless_custom",
+                "specs": {
+                    "power": "800W",
+                    "voltage": "48V",
+                    "max_torque": "8.5 Nm",
+                    "max_speed": "2500 RPM",
+                    "weight": "0.9 kg"
+                },
+                "price": 150.0,
+                "supplier": "Vesta Robotics",
+                "applications": [
+                    "Heavy Duty Joint"
                 ],
                 "stock": "available"
             }
@@ -125,7 +143,7 @@
                     "condition": "二手/拆机",
                     "max_current": "15A"
                 },
-                "price": 10.00,
+                "price": 10.0,
                 "supplier": "闲鱼/淘宝库存",
                 "applications": [
                     "低成本关节",
@@ -145,7 +163,7 @@
                     "max_current": "30A",
                     "voltage": "24V"
                 },
-                "price": 100.00,
+                "price": 100.0,
                 "supplier": "闲鱼拆机",
                 "applications": [
                     "高性能关节",
@@ -169,7 +187,7 @@
                     "noise_density": "0.005 dps/sqrt(Hz)",
                     "bias_stability": "10 deg/hr"
                 },
-                "price": 25.00,
+                "price": 25.0,
                 "supplier": "InvenSense",
                 "model": "MPU-6050",
                 "applications": [
@@ -189,7 +207,7 @@
                     "output": "0-5V",
                     "weight": "0.05 kg"
                 },
-                "price": 80.00,
+                "price": 80.0,
                 "supplier": "Honeywell",
                 "applications": [
                     "足部压力检测",
@@ -209,7 +227,7 @@
                     "weight": "0.02 kg",
                     "noise": "0.1 deg RMS"
                 },
-                "price": 35.00,
+                "price": 35.0,
                 "supplier": "AMS",
                 "model": "AS5048",
                 "applications": [
@@ -229,7 +247,7 @@
                     "interface": "USB/UART",
                     "weight": "0.18 kg"
                 },
-                "price": 150.00,
+                "price": 150.0,
                 "supplier": "SLAMTEC",
                 "model": "RPLIDAR A1",
                 "applications": [
@@ -250,7 +268,7 @@
                     "interface": "USB 3.0",
                     "weight": "0.07 kg"
                 },
-                "price": 99.00,
+                "price": 99.0,
                 "supplier": "Intel",
                 "model": "RealSense D435",
                 "applications": [
@@ -274,7 +292,7 @@
                     "stiffness": "45000 Nm/rad",
                     "max_speed": "100 RPM"
                 },
-                "price": 220.00,
+                "price": 220.0,
                 "supplier": "Harmonic Drive",
                 "model": "CSF-14-100",
                 "applications": [
@@ -296,7 +314,7 @@
                     "stiffness": "12000 Nm/rad",
                     "max_speed": "200 RPM"
                 },
-                "price": 120.00,
+                "price": 120.0,
                 "supplier": "GAM",
                 "applications": [
                     "通用关节",
@@ -316,7 +334,7 @@
                     "weight": "1.2 kg",
                     "stiffness": "8000 Nm/rad"
                 },
-                "price": 380.00,
+                "price": 380.0,
                 "supplier": "Nabtesco",
                 "applications": [
                     "工业机器人",
@@ -334,7 +352,7 @@
                     "weight": "0.05 kg",
                     "material": "铝合金"
                 },
-                "price": 15.00,
+                "price": 15.0,
                 "supplier": "Lovejoy",
                 "applications": [
                     "电机连接",
@@ -353,7 +371,7 @@
                     "voltage": "5V",
                     "weight": "0.08 kg"
                 },
-                "price": 65.00,
+                "price": 65.0,
                 "supplier": "Omron",
                 "applications": [
                     "位置反馈",
@@ -375,7 +393,7 @@
                     "power": "< 1W",
                     "interface": "SPI/I2C"
                 },
-                "price": 80.00,
+                "price": 80.0,
                 "supplier": "Custom Design",
                 "applications": [
                     "边缘AI推理",
@@ -396,7 +414,7 @@
                     "connectivity": "WiFi, Bluetooth, Ethernet",
                     "power": "~3W"
                 },
-                "price": 55.00,
+                "price": 55.0,
                 "supplier": "Raspberry Pi Foundation",
                 "applications": [
                     "主控制器",
@@ -416,7 +434,7 @@
                     "flash": "256 KB",
                     "sram": "8 KB"
                 },
-                "price": 38.00,
+                "price": 38.0,
                 "supplier": "Arduino",
                 "applications": [
                     "底层控制",
@@ -435,7 +453,7 @@
                     "power": "5-10W",
                     "ai_performance": "472 GFLOPS"
                 },
-                "price": 99.00,
+                "price": 99.0,
                 "supplier": "NVIDIA",
                 "applications": [
                     "AI视觉",
@@ -455,7 +473,7 @@
                     "length": "500mm",
                     "weight_per_meter": "0.41 kg/m"
                 },
-                "price": 8.00,
+                "price": 8.0,
                 "supplier": "Misumi",
                 "applications": [
                     "框架结构",
@@ -474,7 +492,7 @@
                     "weight": "0.09 kg",
                     "strength": "600 MPa"
                 },
-                "price": 25.00,
+                "price": 25.0,
                 "supplier": "DragonPlate",
                 "applications": [
                     "轻量化结构",
@@ -493,7 +511,7 @@
                     "load_rating": "1000N",
                     "material": "不锈钢"
                 },
-                "price": 4.50,
+                "price": 4.5,
                 "supplier": "SKF",
                 "applications": [
                     "关节连接",
@@ -510,7 +528,7 @@
                     "quantity": "完整机器人套件",
                     "finish": "标准质量"
                 },
-                "price": 150.00,
+                "price": 150.0,
                 "supplier": "Custom 3D Print",
                 "applications": [
                     "外壳",
@@ -531,10 +549,29 @@
                     "weight": "0.62 kg",
                     "energy": "111 Wh"
                 },
-                "price": 88.00,
+                "price": 88.0,
                 "supplier": "Tattu",
                 "applications": [
                     "主电源"
+                ],
+                "stock": "available"
+            },
+            {
+                "id": "PW-004",
+                "name": "锂电池 12S (高压版)",
+                "type": "lipo_12s",
+                "specs": {
+                    "voltage": "44.4V",
+                    "capacity": "10000 mAh",
+                    "discharge_rate": "25C",
+                    "weight": "1.2 kg",
+                    "energy": "444 Wh"
+                },
+                "price": 180.0,
+                "supplier": "Tattu",
+                "applications": [
+                    "高功率驱动",
+                    "大型机器人"
                 ],
                 "stock": "available"
             },
@@ -549,7 +586,7 @@
                     "efficiency": "95%",
                     "weight": "0.03 kg"
                 },
-                "price": 12.00,
+                "price": 12.0,
                 "supplier": "TI",
                 "applications": [
                     "电压转换",
@@ -567,7 +604,7 @@
                     "protection": "过充/过放/短路",
                     "balance": "主动平衡"
                 },
-                "price": 35.00,
+                "price": 35.0,
                 "supplier": "Daly BMS",
                 "applications": [
                     "电池保护",
@@ -587,7 +624,7 @@
                     "range": "100m",
                     "interface": "UART/SPI"
                 },
-                "price": 8.00,
+                "price": 8.0,
                 "supplier": "ESP8266",
                 "applications": [
                     "无线通信",
@@ -605,7 +642,7 @@
                     "data_rate": "2 Mbps",
                     "power": "低功耗"
                 },
-                "price": 6.50,
+                "price": 6.5,
                 "supplier": "HC-05",
                 "applications": [
                     "短距离通信",
@@ -625,7 +662,7 @@
                     "voltage_range": "5.5-30V",
                     "pwm_frequency": "20 kHz"
                 },
-                "price": 28.00,
+                "price": 28.0,
                 "supplier": "Pololu",
                 "model": "VNH5019",
                 "applications": [
@@ -642,7 +679,7 @@
                     "connectors": "JST/XT60",
                     "length": "定制"
                 },
-                "price": 15.00,
+                "price": 15.0,
                 "supplier": "Custom",
                 "applications": [
                     "电气连接"
@@ -658,7 +695,7 @@
                     "material": "铝合金",
                     "thermal_resistance": "2.5 °C/W"
                 },
-                "price": 5.00,
+                "price": 5.0,
                 "supplier": "CUI Devices",
                 "applications": [
                     "电机散热",
@@ -735,7 +772,7 @@
                         "quantity": 6
                     }
                 ],
-                "total_cost": 1580.00,
+                "total_cost": 1580.0,
                 "build_time": "80 hours",
                 "difficulty": "中级"
             },
@@ -804,7 +841,7 @@
                         "quantity": 12
                     }
                 ],
-                "total_cost": 2980.00,
+                "total_cost": 2980.0,
                 "build_time": "120 hours",
                 "difficulty": "高级"
             }
@@ -851,7 +888,7 @@
                         "quantity": 1
                     }
                 ],
-                "total_cost": 850.00,
+                "total_cost": 850.0,
                 "build_time": "120 hours",
                 "difficulty": "专家级"
             }

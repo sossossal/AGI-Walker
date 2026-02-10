@@ -1,0 +1,138 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "AGI-Walker Parts Library Schema v2",
+    "description": "Schema for validating the community-contributed parts database",
+    "type": "object",
+    "required": [
+        "metadata",
+        "categories",
+        "parts"
+    ],
+    "properties": {
+        "metadata": {
+            "type": "object",
+            "required": [
+                "version",
+                "last_updated"
+            ],
+            "properties": {
+                "version": {
+                    "type": "string"
+                },
+                "last_updated": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "currency": {
+                    "type": "string",
+                    "default": "USD"
+                },
+                "description": {
+                    "type": "string"
+                }
+            }
+        },
+        "categories": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
+        "parts": {
+            "type": "object",
+            "properties": {
+                "motors": {
+                    "$ref": "#/definitions/partList"
+                },
+                "sensors": {
+                    "$ref": "#/definitions/partList"
+                },
+                "controllers": {
+                    "$ref": "#/definitions/partList"
+                },
+                "joints": {
+                    "$ref": "#/definitions/partList"
+                },
+                "structure": {
+                    "$ref": "#/definitions/partList"
+                },
+                "power": {
+                    "$ref": "#/definitions/partList"
+                },
+                "communication": {
+                    "$ref": "#/definitions/partList"
+                },
+                "accessories": {
+                    "$ref": "#/definitions/partList"
+                }
+            },
+            "additionalProperties": {
+                "$ref": "#/definitions/partList"
+            }
+        }
+    },
+    "definitions": {
+        "partList": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/partItem"
+            }
+        },
+        "partItem": {
+            "type": "object",
+            "required": [
+                "id",
+                "name",
+                "type",
+                "specs",
+                "price",
+                "supplier"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{2,3}-[0-9]{3}$"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "specs": {
+                    "type": "object"
+                },
+                "price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "supplier": {
+                    "type": "string"
+                },
+                "applications": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "stock": {
+                    "type": "string",
+                    "enum": [
+                        "available",
+                        "variable",
+                        "out_of_stock",
+                        "prototype",
+                        "on_demand"
+                    ]
+                },
+                "link": {
+                    "type": "string",
+                    "format": "uri"
+                },
+                "notes": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

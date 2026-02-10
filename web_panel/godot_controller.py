@@ -60,18 +60,28 @@ class GodotController:
     def is_connected(self) -> bool:
         return self.client.is_connected()
 
+    
     def start_simulation(self, physics_config: Optional[Dict] = None) -> bool:
-        # TODO: python_api 需要更新 start_simulation 以支持独立通过 physics 参数启动
-        # 目前 API 需要 robot_config。我们将传入一个空配置或上次的配置
-        # 暂时构造一个 dummy config 或者要求前端传 robot
-        pass 
-        # 修改 plan: 让 server.py 处理逻辑，这里只透传
-        return self.client.send_command('start_sim', {'physics': physics_config or {}})
+        # Harmonized logic: use cached robot config if available
+        # This supports the stateless API call form /api/godot/start which only sends physics
+        
+        # Determine robot config to use
+        # In a real scenario, Godot might already have the robot loaded and just needs 'start_sim'
+        # But our protocol expects 'robot' in start_sim command data sometimes.
+        # Let's send what we have.
+        robot_config = getattr(self, 'cached_robot_config', {})
+        
+        return self.client.start_simulation(robot_config)
 
     def stop_simulation(self) -> bool:
         return self.client.stop_simulation()
 
     def load_robot(self, parts: list, connections: list) -> bool:
+        # Cache the config for later start_simulation calls
+        self.cached_robot_config = {
+            'parts': parts,
+            'connections': connections
+        }
         return self.client.load_robot_config(parts, connections)
 
     def update_params(self, params: Dict) -> bool:

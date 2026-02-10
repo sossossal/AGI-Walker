@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分布式训练监控 - AGI-Walker</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --accent: #3b82f6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .actor-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid var(--text-secondary);
+        }
+
+        .actor-card.active {
+            border-left-color: var(--success);
+        }
+
+        .actor-card.offline {
+            border-left-color: var(--danger);
+            opacity: 0.7;
+        }
+
+        .actor-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .actor-metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+        }
+
+        .metric-value {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 0.75em;
+            background: #eee;
+        }
+
+        .active .status-badge {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .offline .status-badge {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .dashboard-link {
+            text-decoration: none;
+            color: var(--accent);
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🌐 分布式训练监控</h1>
+        <a href="/" class="dashboard-link">← 返回控制台</a>
+    </div>
+
+    <div id="loading" style="text-align: center; color: var(--text-secondary);">
+        正在连接 WebSocket...
+    </div>
+
+    <div id="actors-grid" class="grid">
+        <!-- Actors will be injected here -->
+    </div>
+
+    <script>
+        const actors = {};
+        const grid = document.getElementById('actors-grid');
+        const loading = document.getElementById('loading');
+
+        // WebSocket Connection
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+        const socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => {
+            console.log("Connected to WS");
+            loading.style.display = 'none';
+        };
+
+        socket.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'distributed_update') {
+                updateActor(msg.actor_id, msg.data);
+            }
+        };
+
+        function updateActor(id, data) {
+            let card = document.getElementById(`actor-${id}`);
+
+            // Format Last Seen
+            const lastSeen = new Date(data.last_seen).toLocaleTimeString();
+            const battery = data.data.battery ? data.data.battery.toFixed(1) + '%' : 'N/A';
+            const latency = data.data.latency ? data.data.latency.toFixed(1) + 'ms' : 'N/A';
+
+            // Determine Status (Active if seen recently)
+            // Ideally server handles this, but for now we trust the event is fresh
+
+            const html = `
+                <div class="actor-header">
+                    <span>🤖 ${id}</span>
+                    <span class="status-badge">${data.status.toUpperCase()}</span>
+                </div>
+                <div class="actor-metric">
+                    <span>Last Seen</span>
+                    <span class="metric-value">${lastSeen}</span>
+                </div>
+                <div class="actor-metric">
+                    <span>Battery</span>
+                    <span class="metric-value">${battery}</span>
+                </div>
+                <div class="actor-metric">
+                    <span>Vector Dim</span>
+                    <span class="metric-value">${data.data.vector ? data.data.vector.length : 0}</span>
+                </div>
+            `;
+
+            if (!card) {
+                card = document.createElement('div');
+                card.id = `actor-${id}`;
+                card.className = 'actor-card active';
+                grid.appendChild(card);
+            }
+
+            card.innerHTML = html;
+
+            // Simple visual flash
+            card.style.transform = 'scale(1.02)';
+            setTimeout(() => card.style.transform = 'scale(1)', 100);
+        }
+
+        // Initial Fetch
+        fetch('/api/distributed/status')
+            .then(res => res.json())
+            .then(data => {
+                for (const [id, info] of Object.entries(data.actors)) {
+                    updateActor(id, info);
+                }
+            });
+    </script>
+</body>
+
+</html>

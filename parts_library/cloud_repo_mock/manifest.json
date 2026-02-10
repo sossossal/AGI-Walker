@@ -1,0 +1,9 @@
+{
+    "name": "agi-walker-parts",
+    "description": "Official Community Parts Index for AGI-Walker",
+    "maintainers": [
+        "sossossal"
+    ],
+    "license": "MIT",
+    "parts_index": "parts/"
+}

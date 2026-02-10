@@ -17,6 +17,10 @@ import pydantic
 
 app = FastAPI(title="AGI-Walker Control Panel", version="1.0.0")
 
+# Mount Static Files
+app.mount("/static", StaticFiles(directory="web_panel/static"), name="static")
+app.mount("/docs", StaticFiles(directory="docs/build/html", html=True), name="docs")
+
 # 存储活跃的 WebSocket 连接
 active_connections: List[WebSocket] = []
 
@@ -226,7 +230,10 @@ def godot_broadcast_adaptor(message: Dict[str, Any]):
     except Exception as e:
         print(f"广播适配器错误: {e}")
 
-# 我们在 app startup 时设置这个
+# --- Zenoh Monitor ---
+zenoh_session = None
+distributed_db: Dict[str, Dict[str, Any]] = {}
+
 @app.on_event("startup")
 async def startup_event():
     global loop
@@ -236,6 +243,76 @@ async def startup_event():
         asyncio.run_coroutine_threadsafe(broadcast(msg), loop)
         
     godot_controller.set_broadcast_callback(async_broadcast)
+
+    # Initialize Zenoh
+    print("🌐 [Zenoh] Initializing Monitor Node...")
+    try:
+        import zenoh
+        z_conf = zenoh.Config()
+        # Connect to the known Sidecar/Learner port for peeling
+        z_conf.insert_json5("connect/endpoints", '["tcp/127.0.0.1:7447"]')
+        
+        global zenoh_session
+        zenoh_session = zenoh.open(z_conf)
+        
+        def on_obs(sample):
+            try:
+                # Key: ag/<id>/obs
+                key_parts = str(sample.key_expr).split('/')
+                if len(key_parts) < 3: return
+                actor_id = key_parts[-2]
+                
+                # Payload (Decompression)
+                import zlib
+                raw_bytes = sample.payload.to_bytes() if hasattr(sample.payload, 'to_bytes') else sample.payload
+                
+                if len(raw_bytes) > 0:
+                    header = raw_bytes[0]
+                    data_content = raw_bytes[1:]
+                    
+                    if header == 1: # Zlib
+                        decompressed = zlib.decompress(data_content)
+                        payload = json.loads(decompressed.decode('utf-8'))
+                    elif header == 0: # Raw with header
+                        payload = json.loads(data_content.decode('utf-8'))
+                    else: # Legacy/Raw
+                        payload = json.loads(raw_bytes.decode('utf-8'))
+                else:
+                    payload = {}
+                
+                # Update DB
+                distributed_db[actor_id] = {
+                    "id": actor_id,
+                    "status": "active",
+                    "last_seen": datetime.now().isoformat(),
+                    "data": payload
+                }
+                
+                # Broadcast Update (Throttled ideally, but raw for now)
+                async_broadcast({
+                    "type": "distributed_update",
+                    "actor_id": actor_id,
+                    "data": distributed_db[actor_id]
+                })
+            except Exception as e:
+                print(f"❌ [Zenoh] Error processing obs: {e}")
+                
+        print("   ✅ Subscribing to ag/*/obs")
+        zenoh_session.declare_subscriber("ag/*/obs", on_obs)
+        
+    except Exception as e:
+        print(f"❌ [Zenoh] Failed to init: {e}")
+
+@app.on_event("shutdown")
+def shutdown_event():
+    if zenoh_session:
+        zenoh_session.close()
+
+@app.get("/api/distributed/status")
+async def get_distributed_status():
+    """Get snapshot of distributed actors"""
+    return {"actors": distributed_db}
+
 
 
 # --- Godot API Endpoints ---
@@ -313,8 +390,120 @@ async def godot_update_params(params: Dict[str, Any]):
     raise HTTPException(status_code=500, detail="Failed to update parameters")
 
 
-# 挂载静态文件
-app.mount("/static", StaticFiles(directory="web_panel/static"), name="static")
+# --- Agent Command API ---
+
+class CommandRequest(pydantic.BaseModel):
+    command: str
+
+@app.post("/api/agent/parse-command")
+async def parse_command(req: CommandRequest):
+    """解析自然语言指令并返回 Robot Config"""
+    from web_panel.command_parser import CommandParser
+    
+    try:
+        parser = CommandParser()
+        config = parser.parse(req.command)
+        return {"status": "success", "config": config}
+    except Exception as e:
+        print(f"Command parse error: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+
+# --- Parts Store API ---
+
+@app.get("/api/parts/market")
+async def get_parts_market():
+    """获取云端零件市场列表 (模拟)"""
+    market_path = os.path.join("parts_library", "cloud_repo_mock", "manifest.json")
+    try:
+        if not os.path.exists(market_path):
+            return {"status": "error", "message": "Market unavailable"}
+            
+        with open(market_path, 'r', encoding='utf-8') as f:
+            manifest = json.load(f)
+            
+        # 遍历目录收集所有零件摘要
+        parts_list = []
+        base_dir = os.path.join("parts_library", "cloud_repo_mock", "parts")
+        
+        for root, dirs, files in os.walk(base_dir):
+            for file in files:
+                if file.endswith(".json"):
+                    try:
+                        with open(os.path.join(root, file), 'r', encoding='utf-8') as pf:
+                            part_data = json.load(pf)
+                            # 提取摘要信息
+                            parts_list.append({
+                                "id": part_data.get("id"),
+                                "name": part_data.get("name"),
+                                "type": part_data.get("type"),
+                                "price": part_data.get("price"),
+                                "supplier": part_data.get("supplier"),
+                                "category": os.path.basename(root) # 使用文件夹名作为分类
+                            })
+                    except Exception as e:
+                        print(f"Error reading part {file}: {e}")
+                        
+        return {"status": "success", "manifest": manifest, "parts": parts_list}
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+class ImportPartRequest(pydantic.BaseModel):
+    part_id: str
+    category: str
+
+@app.post("/api/parts/import")
+async def import_part(req: ImportPartRequest):
+    """导入零件到本地库"""
+    # 1. 查找源文件
+    source_path = os.path.join("parts_library", "cloud_repo_mock", "parts", req.category)
+    # 模糊匹配文件名 (因为 id 是 MT-C01, 文件名可能是 mt_c01.json)
+    target_file = None
+    if os.path.exists(source_path):
+        for file in os.listdir(source_path):
+            if file.endswith(".json"):
+                with open(os.path.join(source_path, file), 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if data.get("id") == req.part_id:
+                        target_file = os.path.join(source_path, file)
+                        break
+    
+    if not target_file:
+        raise HTTPException(status_code=404, detail="Part not found in market")
+        
+    try:
+        # 2. 读取零件数据
+        with open(target_file, 'r', encoding='utf-8') as f:
+            new_part = json.load(f)
+            
+        # 3. 读取本地库
+        local_db_path = os.path.join("parts_library", "complete_parts_database.json")
+        with open(local_db_path, 'r', encoding='utf-8') as f:
+            local_db = json.load(f)
+            
+        # 4. 检查是否已存在
+        category_list = local_db["parts"].get(req.category, [])
+        for part in category_list:
+            if part["id"] == req.part_id:
+                return {"status": "skipped", "message": "Part already exists"}
+                
+        # 5. 添加并保存
+        if req.category not in local_db["parts"]:
+            local_db["parts"][req.category] = []
+            
+        local_db["parts"][req.category].append(new_part)
+        
+        with open(local_db_path, 'w', encoding='utf-8') as f:
+            json.dump(local_db, f, indent=4, ensure_ascii=False)
+            
+        return {"status": "success", "message": f"Imported {new_part['name']}"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 if __name__ == "__main__":
