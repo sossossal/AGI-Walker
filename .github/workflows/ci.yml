@@ -60,16 +60,15 @@ jobs:
           pip install pytest pytest-cov pytest-mock stable-baselines3 gymnasium lxml
 
       # 运行核心测试并生成覆盖率报告
-      # 注意：我们将覆盖率范围定位到 agi_walker/ 核心包
       - name: Run Unit Tests with Coverage
         run: |
-          pytest tests/ -v --cov=agi_walker --cov-report=xml
+          pytest tests/ -v --override-ini="addopts=" --cov=agi_walker --cov-report=xml
 
       # 简单的 Import Smoke Test (确保环境至少能从命令行加载)
       - name: Smoke Test - CLI Imports
         run: |
-          python -c "import agi_walker; print('✅ agi_walker loaded')"
-          python -c "import gymnasium; print('✅ gymnasium loaded')"
+          python -c "import agi_walker; print('agi_walker loaded')"
+          python -c "import gymnasium; print('gymnasium loaded')"
 
       # 上传覆盖率 (只在 Ubuntu/3.11 上传一次即可)
       - name: Upload coverage to Codecov
