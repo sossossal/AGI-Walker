@@ -34,7 +34,7 @@ agi_walker_path = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(agi_walker_path))
 
 try:
-    from python_api.godot_client import GodotSimulationClient
+    from python_api.comm.godot_client import GodotSimulationClient
 except ImportError:
     print("Error: Cannot import godot_client. Please check AGI-Walker installation.")
     GodotSimulationClient = None

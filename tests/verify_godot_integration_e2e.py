@@ -23,7 +23,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from python_api.godot_client import GodotSimulationClient, MockGodotServer
+from python_api.comm.godot_client import GodotSimulationClient, MockGodotServer
 
 def verify_integration():
     print("=== Godot Integration DoD Verification ===")

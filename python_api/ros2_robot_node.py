@@ -20,7 +20,7 @@ except ImportError:
 
 # 尝试导入 Zenoh 接口
 try:
-    from python_api.zenoh_interface import ZenohInterface
+    from python_api.comm.zenoh_interface import ZenohInterface
     ZENOH_AVAILABLE = True
 except ImportError:
     ZENOH_AVAILABLE = False

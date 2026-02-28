@@ -3,7 +3,7 @@ import os
 import json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python_api.parts_manager import PartsManager
+from python_api.parts.parts_manager import PartsManager
 from robot_models.base_robot import RobotConfig, LinkConfig, JointConfig, RobotType
 
 def build_custom_quadruped():

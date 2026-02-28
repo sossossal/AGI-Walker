@@ -15,7 +15,7 @@ import sys
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python_api.godot_client import MockGodotServer
+from python_api.comm.godot_client import MockGodotServer
 
 BASE_URL = "http://localhost:8000"
 

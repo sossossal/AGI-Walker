@@ -14,7 +14,7 @@ class TestZenohInterface(unittest.TestCase):
     """测试 Zenoh 接口"""
     
     def setUp(self):
-        from python_api.zenoh_interface import ZenohInterface, ZENOH_AVAILABLE
+        from python_api.comm.zenoh_interface import ZenohInterface, ZENOH_AVAILABLE
         if not ZENOH_AVAILABLE:
             self.skipTest("Zenoh 未安装")
         self.zenoh = ZenohInterface()
@@ -101,7 +101,7 @@ class TestPartsManager(unittest.TestCase):
     """测试零件管理器"""
     
     def setUp(self):
-        from python_api.parts_manager import PartsManager
+        from python_api.parts.parts_manager import PartsManager
         self.pm = PartsManager()
     
     def test_load_parts(self):

@@ -7,7 +7,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python_api.precision_adjuster import PrecisionPartAdjuster
+from python_api.control.precision_adjuster import PrecisionPartAdjuster
 
 
 def demo_motor_precision():

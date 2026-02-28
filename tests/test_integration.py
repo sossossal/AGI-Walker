@@ -23,7 +23,7 @@ def test_zenoh_import():
     print("="*60)
     
     try:
-        from python_api.zenoh_interface import ZenohInterface, ZENOH_AVAILABLE
+        from python_api.comm.zenoh_interface import ZenohInterface, ZENOH_AVAILABLE
         assert ZENOH_AVAILABLE, "Zenoh 未安装"
         print("✅ PASS: Zenoh 模块导入成功")
         test_results["passed"].append("Zenoh 模块导入")
@@ -41,7 +41,7 @@ def test_zenoh_session():
     print("="*60)
     
     try:
-        from python_api.zenoh_interface import ZenohInterface
+        from python_api.comm.zenoh_interface import ZenohInterface
         
         zenoh = ZenohInterface()
         assert zenoh.session is not None, "会话创建失败"
@@ -63,7 +63,7 @@ def test_zenoh_pubsub():
     print("="*60)
     
     try:
-        from python_api.zenoh_interface import ZenohInterface
+        from python_api.comm.zenoh_interface import ZenohInterface
         
         zenoh = ZenohInterface()
         
@@ -103,7 +103,7 @@ def test_tcp_zenoh_bridge():
     print("="*60)
     
     try:
-        from python_api.tcp_zenoh_bridge import TcpZenohBridge
+        from python_api.comm.tcp_zenoh_bridge import TcpZenohBridge
         
         # 创建桥接器 (使用不同端口避免冲突)
         bridge = TcpZenohBridge(tcp_port=9091)
@@ -170,7 +170,7 @@ def test_parts_manager():
     print("="*60)
     
     try:
-        from python_api.parts_manager import PartsManager
+        from python_api.parts.parts_manager import PartsManager
         
         pm = PartsManager()
         

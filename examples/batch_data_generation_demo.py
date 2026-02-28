@@ -7,8 +7,8 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python_api.batch_generator import BatchDataGenerator, GenerationConfig
-from python_api.dataset_manager import DatasetManager
+from python_api.data.batch_generator import BatchDataGenerator, GenerationConfig
+from python_api.data.dataset_manager import DatasetManager
 
 
 def demo_small_batch():

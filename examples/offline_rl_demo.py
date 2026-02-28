@@ -5,7 +5,7 @@
 
 import gymnasium as gym
 from stable_baselines3 import PPO
-from python_api.offline_rl import ExpertDataCollector, OfflineRLTrainer
+from python_api.learning.offline_rl import ExpertDataCollector, OfflineRLTrainer
 
 
 def main():

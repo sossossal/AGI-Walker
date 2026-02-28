@@ -31,19 +31,36 @@ venv/
 .vscode/
 *.swp
 *.swo
+*~
 
 # Project Data (exclude large datasets)
 data/
 !data/.gitkeep
 models/*.pth
+models/*.onnx
 !models/.gitkeep
 
 # Godot
 .import/
+.godot/
 export.cfg
 export_presets.cfg
 *.translation
 *.pck
+
+# 测试/CI 产物
+.coverage
+htmlcov/
+coverage.xml
+*.xml
+test_session.json
+.pytest_cache/
+.ruff_cache/
+
+# 生成产物
+exports/
+robot_forward_1m_demo.png
+offline_data/
 
 # OS
 .DS_Store

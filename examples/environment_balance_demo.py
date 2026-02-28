@@ -8,7 +8,7 @@ import os
 from typing import Dict
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python_api.environment_balance import (
+from python_api.env.environment_balance import (
     EnvironmentBalanceSimulator,
     Environments,
     EnvironmentCondition

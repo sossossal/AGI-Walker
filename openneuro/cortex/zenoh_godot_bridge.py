@@ -14,7 +14,7 @@ import sys
 
 # 添加AGI-Walker路径
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-from python_api.godot_client import GodotSimulationClient
+from python_api.comm.godot_client import GodotSimulationClient
 
 
 class ZenohGodotBridge:

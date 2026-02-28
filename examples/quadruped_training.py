@@ -12,7 +12,7 @@ from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from python_api.quadruped_env import QuadrupedEnv
+from python_api.env.quadruped_env import QuadrupedEnv
 
 
 def make_env():

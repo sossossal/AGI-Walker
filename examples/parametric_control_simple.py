@@ -3,7 +3,7 @@
 """
 
 import numpy as np
-from python_api.parametric_control import ParametricRobotController
+from python_api.control.parametric_control import ParametricRobotController
 
 
 class SimpleController:

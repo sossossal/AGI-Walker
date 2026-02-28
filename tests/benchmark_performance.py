@@ -76,7 +76,7 @@ class PerformanceBenchmark:
         print("="*60)
         
         try:
-            from python_api.optimized_zenoh import OptimizedZenohInterface
+            from python_api.comm.optimized_zenoh import OptimizedZenohInterface
             
             zenoh = OptimizedZenohInterface()
             

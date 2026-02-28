@@ -6,7 +6,7 @@ import asyncio
 # 添加项目根目录以导入 python_api
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python_api.godot_client import GodotSimulationClient
+from python_api.comm.godot_client import GodotSimulationClient
 
 class GodotController:
     _instance = None

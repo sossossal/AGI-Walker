@@ -7,7 +7,7 @@
 import unittest
 import time
 import threading
-from python_api.godot_client import GodotSimulationClient, MockGodotServer
+from python_api.comm.godot_client import GodotSimulationClient, MockGodotServer
 
 
 class TestGodotClient(unittest.TestCase):

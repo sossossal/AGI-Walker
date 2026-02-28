@@ -8,7 +8,7 @@ import os
 import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python_api.zenoh_interface import ZenohInterface, ZENOH_AVAILABLE
+from python_api.comm.zenoh_interface import ZenohInterface, ZENOH_AVAILABLE
 
 
 def demo_zenoh_basic():
@@ -55,7 +55,7 @@ def demo_tcp_zenoh_bridge():
     print("="*60)
     
     try:
-        from python_api.tcp_zenoh_bridge import TcpZenohBridge
+        from python_api.comm.tcp_zenoh_bridge import TcpZenohBridge
     except ImportError:
         print("❌ 桥接器模块未找到")
         return

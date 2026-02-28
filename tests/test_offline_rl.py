@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 def test_offline_rl_imports():
     """Test that offline_rl module can be imported."""
     try:
-        from python_api.offline_rl import ExpertDataCollector, OfflineRLTrainer
+        from python_api.learning.offline_rl import ExpertDataCollector, OfflineRLTrainer
     except ImportError as e:
         pytest.fail(f"Failed to import offline_rl modules: {e}")
 
@@ -27,7 +27,7 @@ def test_data_collector_creation():
     pytest.importorskip("d3rlpy")
     pytest.importorskip("gymnasium")
     
-    from python_api.offline_rl import ExpertDataCollector
+    from python_api.learning.offline_rl import ExpertDataCollector
     try:
         collector = ExpertDataCollector("CartPole-v1")
         assert collector is not None
@@ -39,7 +39,7 @@ def test_trainer_creation():
     pytest.importorskip("d3rlpy")
     pytest.importorskip("gymnasium")
     
-    from python_api.offline_rl import OfflineRLTrainer
+    from python_api.learning.offline_rl import OfflineRLTrainer
     try:
         trainer = OfflineRLTrainer("CartPole-v1", algorithm="cql")
         assert trainer is not None
