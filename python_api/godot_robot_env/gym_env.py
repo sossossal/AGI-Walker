@@ -174,7 +174,7 @@ class GodotRobotEnv(gym.Env):
         if self.socket:
             try:
                 self.socket.close()
-            except:
+            except Exception:
                 pass
             self.socket = None
             self.connected = False

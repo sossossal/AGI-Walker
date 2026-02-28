@@ -33,7 +33,7 @@ def main():
     subparsers = parser.add_subparsers(dest='module', help='功能模块')
     
     # skills 模块
-    skills_parser = subparsers.add_parser(
+    subparsers.add_parser(
         'skills',
         help='Skills系统管理',
         add_help=False

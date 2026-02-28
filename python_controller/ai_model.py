@@ -58,9 +58,9 @@ class OllamaModel(BaseAIModel):
             
             print(f"✅ 模型 {self.model} 已加载")
             
-        except Exception as e:
-            print(f"❌ 无法连接到Ollama服务")
-            print(f"请确保Ollama正在运行: https://ollama.com/")
+        except Exception:
+            print("❌ 无法连接到Ollama服务")
+            print("请确保Ollama正在运行: https://ollama.com/")
             raise
     
     def _create_schema(self) -> Dict:
@@ -339,11 +339,11 @@ if __name__ == "__main__":
     print("执行推理...")
     action = ai.predict(dummy_sensor, "保持平衡")
     
-    print(f"\n预测动作:")
+    print("\n预测动作:")
     print(json.dumps(action, indent=2, ensure_ascii=False))
     
     # 统计
     stats = ai.get_stats()
-    print(f"\n统计信息:")
+    print("\n统计信息:")
     print(f"  推理次数: {stats['total_predictions']}")
     print(f"  平均耗时: {stats['avg_inference_time']*1000:.2f}ms")

@@ -15,19 +15,25 @@ python web_panel/server.py
 
 ---
 
-## 🤖 Agent 指令控制 (NEW!)
+## 🤖 机器人创建 (Robot Creation)
 
-控制面板现支持通过自然语言快速创建机器人模型，适合快速原型设计。
+AGI-Walker 提供两种便捷方式来创建机器人，无需编写代码。
 
-### 使用方法
-1. 在 **Godot 仿真控制** 面板左侧找到 **Agent 指令** 输入框。
-2. 输入指令，例如：
-   - `create quadruped` (创建一个标准四足机器人)
-   - `create hexapod` (创建一个六足机器人)
-   - `create biped` (创建一个双足机器人)
-3. 点击 **🚀 发送**。
-4. 系统将自动解析指令，生成 `RobotConfig` JSON，并填充到下方的文本框中。
+### 1. 🛠️ Interactive Builder (推荐)
+适合快速验证预设构型。
+1. 在 **Godot 仿真控制** 面板中找到 **Interactive Modeling** 区域。
+2. 选择 **Type** (e.g., Quadruped, Hexapod)。
+3. 选择 **Scenario** (e.g., Performance, Low Cost)。
+4. 点击 **🏗️ 生成配置**。系统将自动生成 JSON 并填充到下方文本框。
 5. 点击 **📤 加载** 即可将模型发送到 Godot 场景中。
+
+### 2. 💬 Agent Command (高级)
+通过自然语言进行定制，例如：
+- `create quadruped` (标准四足)
+- `create hexapod` (六足)
+- `create biped` (双足)
+
+点击 **🚀 发送** 后，系统会自动解析并生成配置。
 
 ## 🎮 Godot 仿真控制 (NEW!)
 

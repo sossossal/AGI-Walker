@@ -86,7 +86,7 @@ class AsyncGodotClient:
             print(f"❌ 连接超时: {self.config.host}:{self.config.port}")
             return False
         except ConnectionRefusedError:
-            print(f"❌ 连接被拒绝，请确保Godot仿真器正在运行")
+            print("❌ 连接被拒绝，请确保Godot仿真器正在运行")
             return False
         except Exception as e:
             print(f"❌ 连接错误: {e}")
@@ -101,7 +101,7 @@ class AsyncGodotClient:
             self.writer.close()
             try:
                 await self.writer.wait_closed()
-            except:
+            except Exception:
                 pass
         
         self.reader = None
@@ -310,7 +310,7 @@ class AsyncControllerBase:
     async def _monitor_loop(self):
         """监控协程"""
         while self.running:
-            stats = self.client.get_stats()
+            self.client.get_stats()
             # 可以添加监控逻辑
             await asyncio.sleep(1.0)
 

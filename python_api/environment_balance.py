@@ -130,7 +130,7 @@ class EnvironmentBalanceSimulator(PhysicsSimulator):
             }
         
         # 计算环境影响下的倾斜
-        motor_power = self.params.get('motor_power_multiplier', 1.0)
+        self.params.get('motor_power_multiplier', 1.0)
         mass = self.params.get('mass_multiplier', 1.0)
         stiffness = self.params.get('joint_stiffness', 1.0)
         

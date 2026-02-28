@@ -293,7 +293,7 @@ class InteractiveParameterTuner:
                 try:
                     value = float(cmd[2])
                     result = self.controller.set_physics_param(param_name, value)
-                    print(f"\n✓ 参数已更新")
+                    print("\n✓ 参数已更新")
                     print(f"  影响: {result['impact']}")
                 except ValueError as e:
                     print(f"✗ 错误: {e}")
@@ -301,7 +301,7 @@ class InteractiveParameterTuner:
             elif cmd[0] == 'test':
                 print("\n运行测试...")
                 result = self.controller.run_episode(max_steps=500, render=False)
-                print(f"\n测试结果:")
+                print("\n测试结果:")
                 print(f"  总奖励: {result['total_reward']:.2f}")
                 print(f"  步数: {result['steps']}")
                 print(f"  成功: {'是' if result['success'] else '否'}")

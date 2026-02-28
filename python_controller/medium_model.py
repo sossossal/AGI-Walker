@@ -384,7 +384,7 @@ if __name__ == "__main__":
     
     # 统计
     stats = medium.get_stats()
-    print(f"\n统计信息:")
+    print("\n统计信息:")
     print(f"  推理次数: {stats['total_predictions']}")
     print(f"  平均耗时: {stats['avg_inference_time']*1000:.2f}ms")
     print(f"  日志过滤: {stats['logs_filtered']}")

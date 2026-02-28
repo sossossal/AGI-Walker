@@ -54,11 +54,11 @@ def test_latency(duration: float = 10.0):
         print(f"标准差: {statistics.stdev(latencies):.2f} ms")
         
         # 延迟分布
-        print(f"\n延迟分布:")
-        print(f"  < 5ms:  {sum(1 for l in latencies if l < 5) / len(latencies) * 100:.1f}%")
-        print(f"  < 10ms: {sum(1 for l in latencies if l < 10) / len(latencies) * 100:.1f}%")
-        print(f"  < 20ms: {sum(1 for l in latencies if l < 20) / len(latencies) * 100:.1f}%")
-        print(f"  ≥ 20ms: {sum(1 for l in latencies if l >= 20) / len(latencies) * 100:.1f}%")
+        print("\n延迟分布:")
+        print(f"  < 5ms:  {sum(1 for lat in latencies if lat < 5) / len(latencies) * 100:.1f}%")
+        print(f"  < 10ms: {sum(1 for lat in latencies if lat < 10) / len(latencies) * 100:.1f}%")
+        print(f"  < 20ms: {sum(1 for lat in latencies if lat < 20) / len(latencies) * 100:.1f}%")
+        print(f"  ≥ 20ms: {sum(1 for lat in latencies if lat >= 20) / len(latencies) * 100:.1f}%")
         
         # 判断是否合格
         avg_latency = statistics.mean(latencies)

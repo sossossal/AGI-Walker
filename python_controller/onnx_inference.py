@@ -119,7 +119,7 @@ class ONNXInferenceEngine:
             for inp in self.session.get_inputs():
                 self.input_shapes[inp.name] = inp.shape
             
-            print(f"✅ 模型加载成功")
+            print("✅ 模型加载成功")
             print(f"输入: {self.input_names}")
             print(f"输出: {self.output_names}")
             
@@ -353,7 +353,7 @@ if __name__ == "__main__":
     reflex_model = Path("d:/新建文件夹/AGI-Walker/hive-reflex/reflex_net.onnx")
     
     if reflex_model.exists():
-        print(f"\n=== 测试ReflexNet模型 ===")
+        print("\n=== 测试ReflexNet模型 ===")
         
         if engine.load_model(str(reflex_model)):
             # 预热
@@ -374,8 +374,8 @@ if __name__ == "__main__":
             print("\n延迟统计:")
             print(json.dumps(engine.get_latency_stats(), indent=2))
     else:
-        print(f"\n⚠️ ReflexNet ONNX模型不存在")
-        print(f"请运行: cd hive-reflex && python reflex_net.py")
+        print("\n⚠️ ReflexNet ONNX模型不存在")
+        print("请运行: cd hive-reflex && python reflex_net.py")
         
         # 测试虚拟推理
         if isinstance(engine, DummyONNXEngine):

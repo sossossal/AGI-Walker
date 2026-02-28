@@ -105,12 +105,12 @@ class SkillsLoader:
         
         # 检查是否以 --- 开头
         if not content.startswith("---"):
-            raise ValueError(f"无效的 SKILL.md: 缺少 YAML frontmatter")
+            raise ValueError("无效的 SKILL.md: 缺少 YAML frontmatter")
         
         # 提取 YAML frontmatter (在两个 --- 之间)
         parts = content.split("---", 2)
         if len(parts) < 3:
-            raise ValueError(f"无效的 SKILL.md: frontmatter 格式错误")
+            raise ValueError("无效的 SKILL.md: frontmatter 格式错误")
         
         yaml_content = parts[1]
         data = yaml.safe_load(yaml_content)

@@ -170,7 +170,7 @@ class EvolutionManager:
     async def stage_data_processing(self, input_path: str) -> str:
         """阶段3: 数据标记与清洗"""
         self.current_stage = "DATA_PROC"
-        print(f"\n[Stage 3/4] 数据处理")
+        print("\n[Stage 3/4] 数据处理")
         
         # 1. 自动标记
         labeler = AutoLabeler()

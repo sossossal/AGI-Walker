@@ -36,7 +36,7 @@ void EnhancedMotorJoint::_bind_methods() {
     ClassDB::bind_method(D_METHOD("get_power_consumption"), &EnhancedMotorJoint::get_power_consumption);
     
     // ========== 绑定状态查询 ==========
-    ClassDB::bind_method(D_METHOD("is_overload ed"), &EnhancedMotorJoint::is_overloaded);
+    ClassDB::bind_method(D_METHOD("is_overloaded"), &EnhancedMotorJoint::is_overloaded);
     ClassDB::bind_method(D_METHOD("is_overheating"), &EnhancedMotorJoint::is_overheating);
     ClassDB::bind_method(D_METHOD("get_diagnostic_info"), &EnhancedMotorJoint::get_diagnostic_info);
     

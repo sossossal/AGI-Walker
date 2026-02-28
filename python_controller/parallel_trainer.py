@@ -26,7 +26,7 @@ class ParallelTrainingManager:
         self.result_queue = mp.Queue()
         self.task_queue = mp.Queue()
         
-        print(f"🚀 并行训练管理器初始化")
+        print("🚀 并行训练管理器初始化")
         print(f"   - 工作进程数: {self.num_workers}")
     
     def worker_process(self, worker_id: int, env_fn: Callable, policy_fn: Callable):
@@ -105,7 +105,7 @@ class ParallelTrainingManager:
             try:
                 result = self.result_queue.get(timeout=timeout)
                 results.append(result)
-            except:
+            except Exception:
                 break
         
         return results

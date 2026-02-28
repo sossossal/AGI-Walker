@@ -59,7 +59,7 @@ def main():
                     generate_meshes=args.meshes
                 )
             else:
-                print(f"  警告: SDF转换尚未完全实现")
+                print("  警告: SDF转换尚未完全实现")
                 convert_to_urdf(str(input_file), str(output_file))
             
             # 验证
@@ -67,7 +67,7 @@ def main():
                 if validate_urdf(str(output_file)):
                     success_count += 1
                 else:
-                    print(f"  警告: 验证失败")
+                    print("  警告: 验证失败")
             else:
                 success_count += 1
             

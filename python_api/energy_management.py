@@ -205,28 +205,28 @@ class EnergyManager:
         report.append("能量管理报告")
         report.append("="*70)
         
-        report.append(f"\n电池状态:")
+        report.append("\n电池状态:")
         report.append(f"  容量: {self.battery.capacity_wh:.1f} Wh")
         report.append(f"  当前电量: {self.battery.current_charge_wh:.1f} Wh ({soc:.1f}%)")
         report.append(f"  健康度: {self.battery.health*100:.1f}%")
         report.append(f"  充电周期: {self.battery.charge_cycles}")
         
-        report.append(f"\n功耗统计:")
+        report.append("\n功耗统计:")
         report.append(f"  平均功耗: {avg_power:.1f} W")
         if self.power_history:
             report.append(f"  峰值功耗: {max(self.power_history):.1f} W")
             report.append(f"  最低功耗: {min(self.power_history):.1f} W")
         
-        report.append(f"\n续航预测:")
+        report.append("\n续航预测:")
         if remaining_time < float('inf'):
             if remaining_time >= 1:
                 report.append(f"  剩余时间: {remaining_time:.2f} 小时")
             else:
                 report.append(f"  剩余时间: {remaining_time*60:.1f} 分钟")
         else:
-            report.append(f"  剩余时间: 无限（无负载）")
+            report.append("  剩余时间: 无限（无负载）")
         
-        report.append(f"\n设备详情:")
+        report.append("\n设备详情:")
         active_consumers = [c for c in self.consumers if c.is_active]
         for consumer in active_consumers:
             power = consumer.get_current_power()
@@ -234,7 +234,7 @@ class EnergyManager:
             report.append(f"  {consumer.name:<15} {power:>6.1f}W ({percentage:>5.1f}%)")
         
         # 能效建议
-        report.append(f"\n能效建议:")
+        report.append("\n能效建议:")
         if soc < 20:
             report.append("  ⚠️  电量低于20%，建议充电")
         if avg_power > 200:
@@ -246,7 +246,7 @@ class EnergyManager:
     
     def optimize_power_distribution(self) -> Dict:
         """优化功耗分配"""
-        avg_power = np.mean(self.power_history) if self.power_history else 0
+        np.mean(self.power_history) if self.power_history else 0
         soc = self.battery.get_state_of_charge()
         
         recommendations = {}

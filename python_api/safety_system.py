@@ -191,27 +191,33 @@ class SafetySystem:
         # 检查各项指标
         if 'velocity' in state:
             v = self.check_velocity(state['velocity'])
-            if v: violations.append(v)
+            if v:
+                violations.append(v)
         
         if 'acceleration' in state:
             a = self.check_acceleration(state['acceleration'])
-            if a: violations.append(a)
+            if a:
+                violations.append(a)
         
         if 'joint_torques' in state:
             t = self.check_joint_torque(state['joint_torques'])
-            if t: violations.append(t)
+            if t:
+                violations.append(t)
         
         if 'distances' in state:
             c = self.check_collision(state['distances'])
-            if c: violations.append(c)
+            if c:
+                violations.append(c)
         
         if 'tilt_angle' in state:
             b = self.check_balance(state['tilt_angle'])
-            if b: violations.append(b)
+            if b:
+                violations.append(b)
         
         if 'forces' in state:
             f = self.check_force(state['forces'])
-            if f: violations.append(f)
+            if f:
+                violations.append(f)
         
         # 记录违规
         for violation in violations:
@@ -281,12 +287,12 @@ class SafetySystem:
         report.append("安全系统报告")
         report.append("="*70)
         
-        report.append(f"\n系统状态:")
+        report.append("\n系统状态:")
         status = "紧急停止" if self.emergency_stop_active else "正常运行"
         report.append(f"  状态: {status}")
         report.append(f"  总检查次数: {self.total_checks}")
         
-        report.append(f"\n安全限制:")
+        report.append("\n安全限制:")
         report.append(f"  最大速度: {self.max_velocity} m/s")
         report.append(f"  最大加速度: {self.max_acceleration} m/s²")
         report.append(f"  最大关节扭矩: {self.max_joint_torque} Nm")
@@ -294,13 +300,13 @@ class SafetySystem:
         report.append(f"  安全距离: {self.safe_distance} m")
         report.append(f"  最大倾斜角: {self.max_tilt_angle}°")
         
-        report.append(f"\n违规统计:")
+        report.append("\n违规统计:")
         for level, count in self.violations_count.items():
             if count > 0:
                 report.append(f"  {level.name}: {count} 次")
         
         if self.safety_violations:
-            report.append(f"\n最近违规 (最多10条):")
+            report.append("\n最近违规 (最多10条):")
             for violation in self.safety_violations[-10:]:
                 report.append(f"  [{violation.level.name}] {violation.message}")
         

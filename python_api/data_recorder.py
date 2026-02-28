@@ -172,13 +172,13 @@ class DataRecorder:
         summary.append("数据记录摘要")
         summary.append("="*70)
         
-        summary.append(f"\n会话信息:")
+        summary.append("\n会话信息:")
         summary.append(f"  名称: {self.session_name}")
         summary.append(f"  开始时间: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
         summary.append(f"  持续时间: {self.last_timestamp:.1f}s")
         summary.append(f"  总记录数: {self.record_count}")
         
-        summary.append(f"\n数据统计:")
+        summary.append("\n数据统计:")
         summary.append(f"  状态记录: {len(self.data['timeline'])}")
         summary.append(f"  能量记录: {len(self.data['energy'])}")
         summary.append(f"  热记录: {len(self.data['thermal'])}")
@@ -191,7 +191,7 @@ class DataRecorder:
         if self.data['energy']:
             socs = [r['battery_soc'] for r in self.data['energy']]
             powers = [r['power_w'] for r in self.data['energy']]
-            summary.append(f"\n能量分析:")
+            summary.append("\n能量分析:")
             summary.append(f"  初始电量: {socs[0]:.1f}%")
             summary.append(f"  最终电量: {socs[-1]:.1f}%")
             summary.append(f"  平均功耗: {np.mean(powers):.1f}W")
@@ -200,9 +200,9 @@ class DataRecorder:
         # 安全统计
         if self.data['safety']:
             levels = [r['level'] for r in self.data['safety']]
-            summary.append(f"\n安全分析:")
+            summary.append("\n安全分析:")
             summary.append(f"  最高等级: {max(levels)}")
-            summary.append(f"  告警次数: {sum(1 for l in levels if l > 0)}")
+            summary.append(f"  告警次数: {sum(1 for level in levels if level > 0)}")
         
         return "\n".join(summary)
 
@@ -253,7 +253,7 @@ class DataPlayer:
         if not self.timeline:
             return
         
-        start_time = time.time()
+        time.time()
         last_timestamp = 0
         
         for record in self.timeline:
@@ -338,7 +338,7 @@ if __name__ == "__main__":
     print(f"持续时间: {metadata.get('duration_s', 0):.1f}s")
     
     analysis = player.analyze()
-    print(f"\n分析结果:")
+    print("\n分析结果:")
     print(f"  记录数: {analysis['record_count']}")
     if 'energy' in analysis:
         print(f"  能量消耗: {analysis['energy']['consumed_pct']:.1f}%")

@@ -414,5 +414,5 @@ def batch_optimize_pid(
         gains = tuner.tune(joint, method)
         results[joint] = gains
     
-    print(f"\n✓ 批量优化完成")
+    print("\n✓ 批量优化完成")
     return results

@@ -100,8 +100,8 @@ class KalmanFilter:
         self.x = self.x + K @ y
         
         # 更新协方差
-        I = np.eye(self.state_dim)
-        self.P = (I - K @ self.H) @ self.P
+        eye = np.eye(self.state_dim)
+        self.P = (eye - K @ self.H) @ self.P
     
     def get_state(self) -> np.ndarray:
         """获取当前状态估计"""
@@ -298,7 +298,7 @@ class SensorFusion:
         report.append("传感器融合报告")
         report.append("="*70)
         
-        report.append(f"\n传感器状态:")
+        report.append("\n传感器状态:")
         for name, sensor in self.sensors.items():
             status = "正常" if sensor.is_functional else "故障"
             report.append(f"  {name:<15} {sensor.sensor_type.value:<10} "
@@ -306,7 +306,7 @@ class SensorFusion:
                          f"延迟: {sensor.delay_s*1000:.1f}ms, "
                          f"状态: {status}")
         
-        report.append(f"\n融合状态:")
+        report.append("\n融合状态:")
         report.append(f"  位置: [{self.position[0]:.3f}, {self.position[1]:.3f}, {self.position[2]:.3f}] m")
         report.append(f"  速度: [{self.velocity[0]:.3f}, {self.velocity[1]:.3f}, {self.velocity[2]:.3f}] m/s")
         report.append(f"  速率: {np.linalg.norm(self.velocity):.3f} m/s")
@@ -314,7 +314,7 @@ class SensorFusion:
                      f"Pitch={np.degrees(self.orientation[1]):.1f}°, "
                      f"Yaw={np.degrees(self.orientation[2]):.1f}°")
         
-        report.append(f"\n数据质量:")
+        report.append("\n数据质量:")
         report.append(f"  总读数: {self.total_readings}")
         report.append(f"  失败读数: {self.failed_readings}")
         quality = 1.0 - (self.failed_readings / max(self.total_readings, 1))

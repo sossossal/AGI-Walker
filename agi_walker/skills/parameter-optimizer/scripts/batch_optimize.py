@@ -62,7 +62,7 @@ def main():
         )
         
         if mass_result.success:
-            print(f"✓ 优化成功")
+            print("✓ 优化成功")
             print(f"  COM 误差: {mass_result.com_error:.6f} m")
             print(f"  迭代次数: {mass_result.iterations}")
             

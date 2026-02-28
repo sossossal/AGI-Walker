@@ -16,7 +16,7 @@ def test_model_loading():
     print("="*60)
     
     try:
-        ai = create_ai_model(engine="ollama", model_name="phi3:mini")
+        create_ai_model(engine="ollama", model_name="phi3:mini")
         print("✅ 模型加载成功")
         return True
     except Exception as e:
@@ -55,7 +55,7 @@ def test_inference_speed():
         latencies = []
         for i in range(20):
             t0 = time.time()
-            action = ai.predict(dummy_sensor)
+            ai.predict(dummy_sensor)
             t1 = time.time()
             latencies.append((t1 - t0) * 1000)
             
@@ -66,7 +66,7 @@ def test_inference_speed():
         max_latency = max(latencies)
         min_latency = min(latencies)
         
-        print(f"\n结果:")
+        print("\n结果:")
         print(f"  平均: {avg_latency:.2f}ms")
         print(f"  最小: {min_latency:.2f}ms")
         print(f"  最大: {max_latency:.2f}ms")

@@ -6,7 +6,6 @@ Mock验证脚本
 import sys
 import unittest
 from unittest.mock import MagicMock
-import sys
 from pathlib import Path
 import asyncio
 

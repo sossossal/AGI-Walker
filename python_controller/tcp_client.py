@@ -52,7 +52,7 @@ class GodotClient:
             print(f"❌ 连接超时: {self.host}:{self.port}")
             return False
         except ConnectionRefusedError:
-            print(f"❌ 连接被拒绝，请确保Godot仿真器正在运行")
+            print("❌ 连接被拒绝，请确保Godot仿真器正在运行")
             return False
         except Exception as e:
             print(f"❌ 连接错误: {e}")
@@ -148,7 +148,7 @@ class GodotClient:
         if self.socket:
             try:
                 self.socket.close()
-            except:
+            except Exception:
                 pass
         
         print("🔌 已断开连接")

@@ -140,7 +140,7 @@ class EnhancedController:
             adjustment_interval: 中模型调整间隔（秒）
             verbose: 是否打印详细信息
         """
-        print(f"\n🚀 启动增强控制器")
+        print("\n🚀 启动增强控制器")
         print(f"   目标频率: {target_hz}Hz")
         print(f"   持续时间: {duration}秒")
         print(f"   视觉模式: {'启用' if self.enable_vision else '禁用'}")
@@ -248,9 +248,8 @@ class EnhancedController:
     def _get_ai_action(self, sensor_data: dict) -> dict:
         """获取AI模型动作"""
         # 增强Prompt（如果启用RAG）
-        strategy = self.strategy
         if self.knowledge_base:
-            strategy = self.knowledge_base.augment_prompt(
+            self.knowledge_base.augment_prompt(
                 self.strategy,
                 sensor_data,
                 max_context_length=300

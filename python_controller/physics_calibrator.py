@@ -114,7 +114,6 @@ class PhysicsCalibrator:
         # 1. 修正摩擦系数 (基于损耗估算)
         # 增加摩擦系数
         if gap_report.friction_estimate > 0.0:
-            original_fric = current.friction_coefficient
             # 假设摩擦导致了部分功率损耗
             current.friction_coefficient *= (1.0 + gap_report.friction_estimate)
             updates['friction_coefficient'] = current.friction_coefficient

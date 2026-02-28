@@ -339,7 +339,7 @@ def _generate_report(results: List[Dict]):
     print(f"失败: {total - passed}")
     print(f"成功率: {passed/total*100:.1f}%")
     
-    print(f"\n详细结果:")
+    print("\n详细结果:")
     for result in results:
         status = "✅" if result["passed"] else "❌"
         print(f"  {status} {result['test']}")

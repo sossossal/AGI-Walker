@@ -76,7 +76,7 @@ class GodotSimulationClient:
         if self.socket:
             try:
                 self.socket.close()
-            except:
+            except Exception:
                 pass
             self.socket = None
             
@@ -227,7 +227,7 @@ class GodotSimulationClient:
                 if not chunk:
                     return None
                 data += chunk
-            except:
+            except Exception:
                 return None
         return data
         
@@ -286,7 +286,7 @@ class MockGodotServer:
                 )
                 thread.start()
                 
-            except:
+            except Exception:
                 break
                 
     def _handle_client(self, client: socket.socket):
@@ -315,7 +315,8 @@ class MockGodotServer:
                     vel_x = 0.0
                     
                     for i in range(100): # 持续发送 100 次，模拟一段时间
-                        if not self.running: break
+                        if not self.running:
+                            break
                         
                         # 简单的随机游走模拟
                         vel_x += (random.random() - 0.5) * 0.1
@@ -335,7 +336,7 @@ class MockGodotServer:
                         try:
                             client.sendall(struct.pack('!I', len(json_bytes)))
                             client.sendall(json_bytes)
-                        except:
+                        except Exception:
                             break
                         
                         time.sleep(0.1) # 10Hz 更新率

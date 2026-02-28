@@ -124,7 +124,7 @@ class LoadMonitor:
             if self.consecutive_under_threshold >= self.config.recovery_trigger_count * 2:
                 self.current_mode = ControlMode.AI
                 self.mode_switches += 1
-                print(f"✅ 延迟稳定正常，切回AI控制")
+                print("✅ 延迟稳定正常，切回AI控制")
         
         # 触发回调
         if old_mode != self.current_mode and self.on_mode_change:

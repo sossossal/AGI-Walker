@@ -36,7 +36,7 @@ class PIDTuner:
             print("❌ 无法连接到仿真器")
             return {}
         
-        print(f"\n🧪 测试配置:")
+        print("\n🧪 测试配置:")
         print(f"  Roll PID: Kp={roll_params[0]:.2f}, Ki={roll_params[1]:.2f}, Kd={roll_params[2]:.2f}")
         print(f"  Pitch PID: Kp={pitch_params[0]:.2f}, Ki={pitch_params[1]:.2f}, Kd={pitch_params[2]:.2f}")
         
@@ -104,7 +104,7 @@ class PIDTuner:
             "duration": time.time() - start_time
         }
         
-        print(f"\n📊 测试结果:")
+        print("\n📊 测试结果:")
         print(f"  平均偏差: {avg_deviation:.2f}°")
         print(f"  最大偏差: {max_deviation:.2f}°")
         print(f"  稳定时间: {stable_time:.1f}s / {duration:.1f}s")
@@ -204,7 +204,7 @@ class PIDTuner:
                 
                 time.sleep(2)
         
-        print(f"\n🏆 最终最佳参数:")
+        print("\n🏆 最终最佳参数:")
         print(f"  Kp={best_params[0]:.2f}, Ki={best_params[1]:.2f}, Kd={best_params[2]:.2f}")
         print(f"  评分: {best_score:.1f}/100")
     

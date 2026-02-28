@@ -126,7 +126,7 @@ class AsyncController:
         
         try:
             # 创建并发任务
-            tasks = [
+            [
                 asyncio.create_task(self._sensor_loop()),
                 asyncio.create_task(self._inference_loop()),
                 asyncio.create_task(self._control_loop()),
@@ -339,7 +339,7 @@ class AsyncController:
         
         # 负载监控统计
         load_stats = self.load_monitor.get_stats()
-        print(f"\n负载监控:")
+        print("\n负载监控:")
         print(f"  EMA延迟: {load_stats['ema_latency_ms']:.1f}ms")
         print(f"  超标率: {load_stats['over_threshold_rate']*100:.1f}%")
         print(f"  模式切换: {load_stats['mode_switches']}次")

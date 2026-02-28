@@ -39,7 +39,7 @@ class DatasetManager:
         # 扫描数据集
         self.episodes = self._scan_episodes()
         
-        print(f"数据集管理器初始化完成")
+        print("数据集管理器初始化完成")
         print(f"  目录: {dataset_dir}")
         print(f"  Episodes数量: {len(self.episodes)}")
     
@@ -214,13 +214,13 @@ class DatasetManager:
         report.append(f"\n数据集目录: {self.dataset_dir}")
         report.append(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
-        report.append(f"\n基本信息:")
+        report.append("\n基本信息:")
         report.append(f"  Episodes数量: {stats['num_episodes']}")
         report.append(f"  总步数: {stats['total_steps']:,}")
         report.append(f"  平均Episode长度: {stats['avg_episode_length']:.1f}")
         
         if 'avg_reward' in stats:
-            report.append(f"\n奖励统计:")
+            report.append("\n奖励统计:")
             report.append(f"  平均奖励: {stats['avg_reward']:.2f}")
             report.append(f"  标准差: {stats['std_reward']:.2f}")
             report.append(f"  最小值: {stats['min_reward']:.2f}")
@@ -228,7 +228,7 @@ class DatasetManager:
             report.append(f"  成功率: {stats['success_rate']:.1f}%")
         
         if stats['parameter_ranges']:
-            report.append(f"\n参数范围:")
+            report.append("\n参数范围:")
             for param, ranges in stats['parameter_ranges'].items():
                 report.append(f"  {param}:")
                 report.append(f"    最小: {ranges['min']:.3f}")
@@ -296,7 +296,7 @@ class DatasetManager:
             np.save(output_dir / 'actions.npy', all_actions)
             np.save(output_dir / 'rewards.npy', all_rewards)
             
-            print(f"转换完成:")
+            print("转换完成:")
             print(f"  状态数: {len(all_states)}")
             print(f"  动作数: {len(all_actions)}")
             print(f"  奖励数: {len(all_rewards)}")

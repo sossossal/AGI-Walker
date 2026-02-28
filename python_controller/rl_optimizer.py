@@ -98,7 +98,7 @@ class RLOptimizer:
         self.training_history = []
         self.best_reward = float('-inf')
         
-        print(f"✅ RL优化器初始化完成")
+        print("✅ RL优化器初始化完成")
         print(f"   算法: {self.config.algorithm}")
         print(f"   保存目录: {self.save_dir}")
     
@@ -179,7 +179,7 @@ class RLOptimizer:
         Returns:
             训练结果统计
         """
-        print(f"\n🚀 开始训练")
+        print("\n🚀 开始训练")
         print(f"   总步数: {total_timesteps}")
         print(f"   评估频率: {eval_freq}")
         

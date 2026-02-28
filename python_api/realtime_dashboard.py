@@ -239,7 +239,7 @@ class RealtimeDashboard:
         参数:
             interval: 更新间隔 (ms)
         """
-        ani = animation.FuncAnimation(
+        animation.FuncAnimation(
             self.fig, self.update_plot, 
             interval=interval, blit=True
         )

@@ -175,7 +175,7 @@ class SkillsPanel(QWidget):
             self.skills_list.addItem(item)
         
         # 更新计数
-        count_text = f"可用 Skills ({len(skills)} 个)"
+        f"可用 Skills ({len(skills)} 个)"
         if hasattr(self, 'skills_list'):
             # 更新标题 (如果需要的话)
             pass

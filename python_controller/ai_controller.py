@@ -205,7 +205,7 @@ class AIController:
         
         # AI统计
         ai_stats = self.ai_model.get_stats()
-        print(f"\nAI推理统计:")
+        print("\nAI推理统计:")
         print(f"  总次数: {ai_stats['total_predictions']}")
         print(f"  平均耗时: {ai_stats['avg_inference_time']*1000:.2f}ms")
         print(f"  错误次数: {ai_stats['errors']}")

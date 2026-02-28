@@ -192,7 +192,7 @@ class TrajectoryOptimizer:
         for _ in range(iterations):
             for i in range(1, len(smoothed) - 1):
                 # 保存原始位置
-                prev_x, prev_y = smoothed[i].x, smoothed[i].y
+                _prev_x, _prev_y = smoothed[i].x, smoothed[i].y
                 
                 # 朝向平滑方向移动
                 smoothed[i].x += alpha * (path[i].x - smoothed[i].x)

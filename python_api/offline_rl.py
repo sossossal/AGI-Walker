@@ -80,7 +80,7 @@ class ExpertDataCollector:
             'terminals': np.array(terminals)
         }
         
-        print(f"\n数据收集完成:")
+        print("\n数据收集完成:")
         print(f"  - 样本总数: {len(observations)}")
         print(f"  - 观测维度: {observations[0].shape}")
         print(f"  - 动作维度: {actions[0].shape}")
@@ -186,7 +186,7 @@ class OfflineRLTrainer:
         """在线 Fine-tuning"""
         os.makedirs(save_dir, exist_ok=True)
         
-        print(f"\n开始在线 Fine-tuning")
+        print("\n开始在线 Fine-tuning")
         print(f"训练步数: {n_steps}")
         
         self.model.fit_online(

@@ -106,7 +106,7 @@ class ThermalManager:
     
     def _initialize_components(self, parts_config: Dict):
         """初始化热组件"""
-        motor_power = parts_config.get('motor_power_multiplier', 1.0)
+        parts_config.get('motor_power_multiplier', 1.0)
         num_motors = parts_config.get('num_motors', 6)
         
         # 电机
@@ -239,7 +239,7 @@ class ThermalManager:
         if self.throttling_active:
             report.append(f"节流因子: {self.throttle_factor:.2f} ({(1-self.throttle_factor)*100:.0f}% 功率降低)")
         
-        report.append(f"\n组件温度:")
+        report.append("\n组件温度:")
         report.append(f"{'组件':<15} {'当前温度':<12} {'状态':<10} {'余量':<10} {'利用率':<10}")
         report.append("-"*70)
         
@@ -257,7 +257,7 @@ class ThermalManager:
         cooling_req = self.check_cooling_requirements()
         
         if any(cooling_req.values()):
-            report.append(f"\n散热建议:")
+            report.append("\n散热建议:")
             if cooling_req['needs_heatsink']:
                 report.append(f"  需要散热器: {', '.join(cooling_req['needs_heatsink'])}")
             if cooling_req['needs_fan']:

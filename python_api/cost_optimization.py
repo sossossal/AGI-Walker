@@ -353,7 +353,7 @@ if __name__ == "__main__":
     cost_model = CostModel(config)
     tco = cost_model.calculate_tco(operating_hours=5000, avg_power_w=200)
     
-    print(f"\n运行5000小时的TCO:")
+    print("\n运行5000小时的TCO:")
     print(f"  初始成本: ¥{tco.initial_cost:.0f}")
     print(f"  能量成本: ¥{tco.energy_cost:.0f}")
     print(f"  维护成本: ¥{tco.maintenance_cost:.0f}")

@@ -264,7 +264,7 @@ class BatchDataGenerator:
         all_configs = self.generate_episode_configs()
         remaining_configs = all_configs[start_idx:]
         
-        print(f"\n配置:")
+        print("\n配置:")
         print(f"  总Episodes: {self.config.num_episodes}")
         print(f"  待生成: {len(remaining_configs)}")
         print(f"  并行度: {self.config.num_workers}")
@@ -344,7 +344,7 @@ class BatchDataGenerator:
         print(f"生成速度: {report['episodes_per_hour']:.1f} episodes/小时")
         
         if self.failed_episodes:
-            print(f"\n失败Episodes:")
+            print("\n失败Episodes:")
             for fail in self.failed_episodes[:5]:
                 print(f"  Episode {fail['episode_id']}: {fail['error']}")
         

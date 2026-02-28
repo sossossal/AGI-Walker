@@ -68,7 +68,7 @@ class PhysicsTuner:
             "fell": fall_time is not None
         }
         
-        print(f"\n📊 测试结果:")
+        print("\n📊 测试结果:")
         print(f"  持续时间: {result['duration']:.2f}s")
         print(f"  平均倾斜: {result['avg_tilt']:.2f}°")
         print(f"  最大倾斜: {result['max_tilt']:.2f}°")

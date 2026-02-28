@@ -241,7 +241,7 @@ class RewardDesigner:
             demonstrations: 演示轨迹列表
             target_metric: 目标指标
         """
-        print(f"🔧 开始自动调整权重...")
+        print("🔧 开始自动调整权重...")
         print(f"   演示数据: {len(demonstrations)}条")
         print(f"   目标指标: {target_metric}")
         

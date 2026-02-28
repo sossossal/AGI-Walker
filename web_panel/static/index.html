@@ -325,8 +325,9 @@
             </div>
 
             <!-- Godot Enbedding Control -->
-            <div class="card" style="grid-column: span 3;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div class="card" style="grid-column: span 3; position: relative; overflow: hidden;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; position: relative; z-index: 2;">
                     <h2 style="margin:0;">🎮 Godot 仿真控制</h2>
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <input type="text" id="godot-host" value="127.0.0.1" style="width: 120px; padding: 5px;"
@@ -341,15 +342,27 @@
                     </div>
                 </div>
 
+                <!-- Connection Overlay -->
+                <div id="godot-overlay"
+                    style="position: absolute; top: 60px; left: 0; width: 100%; height: calc(100% - 60px); background: rgba(255,255,255,0.8); z-index: 10; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(2px); transition: opacity 0.3s;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 3em; margin-bottom: 10px;">🔌</div>
+                        <h3 style="color: #666;">仿真器未连接</h3>
+                        <p style="color: #999; margin-bottom: 15px;">请启动 Godot 并点击右上角连接</p>
+                        <button onclick="toggleGodotConnection()" style="background: #10b981; padding: 10px 20px;">尝试连接
+                            (127.0.0.1:9999)</button>
+                    </div>
+                </div>
+
                 <div id="godot-controls"
-                    style="opacity: 0.5; pointer-events: none; display: flex; gap: 20px; align-items: flex-start;">
+                    style="opacity: 0.5; pointer-events: none; display: flex; gap: 20px; align-items: flex-start; transition: opacity 0.3s;">
 
                     <!-- Left Column: Controls -->
                     <div style="flex: 1;">
                         <div
                             style="margin-bottom: 15px; padding: 15px; background: #f0f9ff; border-radius: 8px; border: 1px solid #bae6fd;">
                             <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #0369a1;">🤖
-                                Agent 指令</label>
+                                Agent 指令 (快速原型)</label>
                             <div style="display: flex; gap: 5px;">
                                 <input type="text" id="agent-command" placeholder="输入指令 (例如: create quadruped)"
                                     style="flex:1; padding: 8px; border-radius: 4px; border: 1px solid #ddd;"
@@ -357,6 +370,35 @@
                                 <button onclick="sendAgentCommand()" style="background: #0ea5e9; padding: 8px 15px;">🚀
                                     发送</button>
                             </div>
+                        </div>
+
+                        <!-- Interactive Builder -->
+                        <div
+                            style="margin-bottom: 15px; padding: 15px; background: #fdf2f8; border-radius: 8px; border: 1px solid #fbcfe8;">
+                            <label style="display: block; margin-bottom: 10px; font-weight: bold; color: #db2777;">🛠️
+                                交互式建模 (Builder)</label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <div>
+                                    <label style="font-size: 0.8em; color: #666;">类型</label>
+                                    <select id="builder-type"
+                                        style="width: 100%; padding: 5px; border-radius: 4px; border: 1px solid #ddd;">
+                                        <option value="quadruped">四足 (Quadruped)</option>
+                                        <option value="hexapod">六足 (Hexapod)</option>
+                                        <option value="biped">双足 (Biped)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.8em; color: #666;">预设场景</label>
+                                    <select id="builder-scenario"
+                                        style="width: 100%; padding: 5px; border-radius: 4px; border: 1px solid #ddd;">
+                                        <option value="performance">高性能 (Performance)</option>
+                                        <option value="efficiency">长续航 (Efficiency)</option>
+                                        <option value="low_cost">低成本 (Low Cost)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button onclick="runBuilder()" style="width: 100%; background: #db2777; padding: 8px;">🏗️
+                                生成配置 -> JSON</button>
                         </div>
 
                         <div style="margin-bottom: 10px; font-weight: bold; color: #555;">手动控制</div>
@@ -698,9 +740,6 @@
                     // Flash success
                     input.style.borderColor = '#10b981';
                     setTimeout(() => input.style.borderColor = '#ddd', 1000);
-
-                    // Optional: Auto-load? Let's keep it manual for safety as per plan "JSON -> Click Load"
-                    // But maybe we can ask user? For now just fill JSON.
                 } else {
                     alert("指令解析失败: " + data.message);
                 }
@@ -710,6 +749,69 @@
             } finally {
                 btn.textContent = originalText;
                 btn.disabled = false;
+            }
+        }
+
+        // --- Builder Logic ---
+        async function runBuilder() {
+            const type = document.getElementById('builder-type').value;
+            const scenario = document.getElementById('builder-scenario').value;
+
+            // Construct the command that would generate this
+            // We reuse the /api/generate_robot backend if available, OR we can map to agent command
+            // Ideally we call /api/generate_robot directly if it exists, or simulate an agent command
+            // server.py has /api/generate_robot
+
+            try {
+                // Show loading
+                document.getElementById('robot-json').value = "Generating...";
+
+                const res = await fetch('/api/generate_robot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: "builder_robot",
+                        type: type,
+                        scenario: scenario
+                    })
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    // The backend returns file paths, but we need the JSON content to populate the box.
+                    // We can either fetch the file or just use the agent command API which returns logic?
+                    // Actually /api/generate_robot runs the python script and saves files.
+                    // Let's use the Agent Parser instead as it returns the JSON config directly!
+                    // Construct command: "create {type} for {scenario}"
+                    // Wait, command parser supports "create quadruped", "create hexapod".
+                    // Does it support scenarios? Let's check command_parser.py but for now simple commands work.
+
+                    // Fallback: If generate_robot returns success, we can try to fetch the generated config file?
+                    // OR better: Just map to Agent Command for now as it's purely in-memory/JSON based for Web.
+
+                    const cmd = `create ${type}`;
+                    // To handle scenario, we might need to enhance parser, but let's stick to basic builder.
+                    // Actually, let's use the command parser API directly.
+
+                    const cmdRes = await fetch('/api/agent/parse-command', {
+                        method: 'POST',
+                        body: JSON.stringify({ command: cmd })
+                    });
+                    const cmdData = await cmdRes.json();
+
+                    if (cmdData.status === 'success') {
+                        document.getElementById('robot-json').value = JSON.stringify(cmdData.config, null, 2);
+                    } else {
+                        document.getElementById('robot-json').value = "// Error generating config";
+                    }
+
+                } else {
+                    alert("生成失败: " + data.message);
+                }
+
+            } catch (e) {
+                console.error(e);
+                alert("生成请求错误");
             }
         }
 
@@ -724,7 +826,6 @@
                 const stream = document.getElementById('godot-stream');
 
                 // 更新数值卡片
-                // 兼容旧格式和新格式 (position 可能是 float 也可能是 dict)
                 let posX = "0.00";
                 let velX = "0.00";
 
@@ -749,26 +850,44 @@
             }
             if (message.type === 'godot_connection') {
                 // 同步后端广播的连接状态
-                if (message.status === 'connected') {
-                    isGodotConnected = true;
-                    document.getElementById('godot-status').textContent = "✅ 已连接";
-                    document.getElementById('godot-controls').style.opacity = "1";
-                    document.getElementById('godot-controls').style.pointerEvents = "auto";
-                    document.getElementById('godot-connect-btn').textContent = "🔌 断开";
-                    document.getElementById('godot-connect-btn').style.background = "#ef4444";
-                } else if (message.status === 'disconnected') {
-                    isGodotConnected = false;
-                    document.getElementById('godot-status').textContent = "⛔ 未连接";
-                    document.getElementById('godot-controls').style.opacity = "0.5";
-                    document.getElementById('godot-controls').style.pointerEvents = "none";
-                    document.getElementById('godot-connect-btn').textContent = "🔗 连接";
-                    document.getElementById('godot-connect-btn').style.background = "#10b981";
-                }
+                updateGodotUI(message.status === 'connected');
             }
         };
 
+        function updateGodotUI(connected) {
+            isGodotConnected = connected;
+            const btn = document.getElementById('godot-connect-btn');
+            const status = document.getElementById('godot-status');
+            const controls = document.getElementById('godot-controls');
+            const overlay = document.getElementById('godot-overlay');
+
+            if (connected) {
+                btn.textContent = "🔌 断开";
+                btn.style.background = "#ef4444";
+                status.textContent = "✅ 已连接";
+                status.style.color = "#10b981";
+
+                controls.style.opacity = "1";
+                controls.style.pointerEvents = "auto";
+
+                overlay.style.opacity = "0";
+                setTimeout(() => overlay.style.display = "none", 300);
+            } else {
+                btn.textContent = "🔗 连接";
+                btn.style.background = "#10b981";
+                status.textContent = "⛔ 未连接";
+                status.style.color = "#666";
+
+                controls.style.opacity = "0.5";
+                controls.style.pointerEvents = "none";
+
+                overlay.style.display = "flex";
+                setTimeout(() => overlay.style.opacity = "1", 10);
+            }
+        }
 
         // --- Parts Store Logic ---
+
 
         async function fetchPartsMarket() {
             const btn = document.getElementById('fetch-market-btn');

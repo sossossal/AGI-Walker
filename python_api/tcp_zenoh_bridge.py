@@ -46,7 +46,7 @@ class TcpZenohBridge:
         self.tcp_thread: Optional[threading.Thread] = None
         self.zenoh_thread: Optional[threading.Thread] = None
         
-        print(f"🌉 TCP-Zenoh 桥接器初始化完成")
+        print("🌉 TCP-Zenoh 桥接器初始化完成")
     
     def start(self):
         """启动桥接器"""

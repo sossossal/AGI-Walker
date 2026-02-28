@@ -389,7 +389,7 @@ def convert_to_sdf(
     urdf_temp = output_file.replace(".sdf", "_temp.urdf")
     convert_to_urdf(input_file, urdf_temp)
     
-    print(f"注意: SDF转换当前通过URDF中转")
+    print("注意: SDF转换当前通过URDF中转")
     print(f"临时URDF文件: {urdf_temp}")
     print(f"请使用 gz sdf -p {urdf_temp} > {output_file} 完成转换")
 
@@ -414,7 +414,7 @@ def validate_urdf(urdf_file: str) -> bool:
         links = root.findall(".//link")
         joints = root.findall(".//joint")
         
-        print(f"✓ URDF验证通过")
+        print("✓ URDF验证通过")
         print(f"  - Links: {len(links)}")
         print(f"  - Joints: {len(joints)}")
         

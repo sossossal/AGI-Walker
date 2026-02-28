@@ -337,7 +337,7 @@ class FaultDiagnostics:
         urgent_items = [p for p in plan if p['urgency'] in ['URGENT', 'HIGH']]
         
         if urgent_items:
-            report.append(f"\n紧急维护项目:")
+            report.append("\n紧急维护项目:")
             for item in urgent_items:
                 report.append(f"  [{item['urgency']}] {item['component']}: {item['action']}")
         

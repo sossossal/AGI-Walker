@@ -279,18 +279,18 @@ class InteractivePrecisionTuner:
                         result = self.adjuster.set_parameter(param_name, value)
                         
                         if result['success']:
-                            print(f"\n✓ 参数已更新")
+                            print("\n✓ 参数已更新")
                             print(f"  {param_name}: {result['display_value']}")
                             print(f"  精度: ±{result['precision']}")
                             print(f"  范围: {result['range']}")
                             
                             if result['impact']:
-                                print(f"\n  影响:")
+                                print("\n  影响:")
                                 for key, val in result['impact'].items():
                                     print(f"    {key}: {val}")
                             
                             if not result['is_valid']:
-                                print(f"\n  ⚠️  警告:")
+                                print("\n  ⚠️  警告:")
                                 for warning in result['warnings']:
                                     print(f"    {warning}")
                         else:

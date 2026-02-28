@@ -48,7 +48,7 @@ class OptimizedZenohInterface:
             "serialization_time": 0.0
         }
         
-        print(f"✅ 优化 Zenoh 会话已建立")
+        print("✅ 优化 Zenoh 会话已建立")
         print(f"   - 序列化: {'msgpack' if self.use_msgpack else 'JSON'}")
     
     def _serialize(self, data: Any) -> bytes:
@@ -140,7 +140,7 @@ def benchmark_serialization():
     json_times = []
     for _ in range(1000):
         start = time.perf_counter()
-        data = json.dumps(test_data).encode()
+        json.dumps(test_data).encode()
         json_times.append(time.perf_counter() - start)
     
     # msgpack 测试
@@ -148,7 +148,7 @@ def benchmark_serialization():
         msgpack_times = []
         for _ in range(1000):
             start = time.perf_counter()
-            data = msgpack.packb(test_data, use_bin_type=True)
+            msgpack.packb(test_data, use_bin_type=True)
             msgpack_times.append(time.perf_counter() - start)
         
         print(f"JSON 平均时间:    {np.mean(json_times)*1e6:.2f} μs")
@@ -173,7 +173,7 @@ if __name__ == "__main__":
         
         # 打印统计
         stats = zenoh.get_stats()
-        print(f"\n统计信息:")
+        print("\n统计信息:")
         print(f"  发送消息: {stats['messages_sent']}")
         print(f"  平均序列化时间: {stats['avg_serialization_time_us']:.2f} μs")
         

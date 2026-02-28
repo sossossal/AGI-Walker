@@ -143,7 +143,7 @@ class PIDBalanceTest:
         }
         
         # 打印结果
-        print(f"\n📊 测试结果:")
+        print("\n📊 测试结果:")
         print(f"  持续时间: {result['duration']:.1f}秒")
         print(f"  平均倾斜: {avg_tilt:.2f}°")
         print(f"  最大倾斜: {max_tilt:.2f}°")

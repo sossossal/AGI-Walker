@@ -72,7 +72,7 @@ class MuJoCoBackend:
             self.zenoh.declare_publisher(config.zenoh_state_key)
             self.zenoh.declare_subscriber(config.zenoh_cmd_key, self._on_godot_cmd)
         
-        print(f"✅ MuJoCo 后端初始化完成")
+        print("✅ MuJoCo 后端初始化完成")
         print(f"   - 模型: {config.model_path}")
         print(f"   - DoF: {self.model.nv}")
         print(f"   - 时间步长: {config.timestep*1000:.1f}ms")

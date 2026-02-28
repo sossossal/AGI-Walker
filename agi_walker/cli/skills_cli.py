@@ -80,13 +80,13 @@ def cmd_info(args):
     print(f"路径: {skill.skill_dir}")
     
     if skill.requires:
-        print(f"\n依赖:")
+        print("\n依赖:")
         for dep_type, deps in skill.requires.items():
             print(f"  {dep_type}: {', '.join(deps)}")
     
     # 显示文档
     if args.doc:
-        print(f"\n完整文档:")
+        print("\n完整文档:")
         print("-" * 60)
         doc = get_skill_doc(args.name)
         print(doc)
@@ -96,7 +96,7 @@ def cmd_info(args):
     if scripts_dir.exists():
         scripts = list(scripts_dir.glob("*.py"))
         if scripts:
-            print(f"\n可用脚本:")
+            print("\n可用脚本:")
             for script in scripts:
                 print(f"  - {script.name}")
     
@@ -105,7 +105,7 @@ def cmd_info(args):
     if refs_dir.exists():
         refs = list(refs_dir.glob("*.md"))
         if refs:
-            print(f"\n参考文档:")
+            print("\n参考文档:")
             for ref in refs:
                 print(f"  - {ref.name}")
     
@@ -202,7 +202,7 @@ def main():
     search_parser.add_argument('query', help='搜索关键词')
     
     # categories 命令
-    cat_parser = subparsers.add_parser('categories', help='列出所有分类')
+    subparsers.add_parser('categories', help='列出所有分类')
     
     # validate 命令
     val_parser = subparsers.add_parser('validate', help='验证skills配置')
