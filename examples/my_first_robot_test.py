@@ -7,9 +7,9 @@ import gymnasium as gym
 from stable_baselines3 import PPO
 import time
 
-print("="*70)
+print("=" * 70)
 print("  测试我的机器人")
-print("="*70)
+print("=" * 70)
 
 # ============ 加载模型 ============
 print("\n[1/3] 加载训练好的模型...")
@@ -26,17 +26,17 @@ print("\n[2/3] 创建测试环境...")
 print("  模式: 人类可视化 (如果支持)")
 
 try:
-    env = gym.make('AGI-Walker/Walker2D-v0', render_mode="human")
+    env = gym.make("AGI-Walker/Walker2D-v0", render_mode="human")
 except:
     # 如果不支持渲染，使用普通模式
-    env = gym.make('AGI-Walker/Walker2D-v0')
+    env = gym.make("AGI-Walker/Walker2D-v0")
     print("  注意: 当前环境不支持可视化渲染")
 
 print("  ✓ 环境创建成功！")
 
 # ============ 测试回合 ============
 print("\n[3/3] 开始测试...")
-print("-"*70)
+print("-" * 70)
 
 n_episodes = 5
 episode_rewards = []
@@ -47,36 +47,36 @@ for episode in range(n_episodes):
     done = False
     episode_reward = 0
     step_count = 0
-    
+
     print(f"\n回合 {episode + 1}/{n_episodes}:")
     print("  前进中", end="", flush=True)
-    
+
     while not done and step_count < 1000:
         # 使用训练好的策略预测动作
         action, _states = model.predict(obs, deterministic=True)
-        
+
         # 执行动作
         obs, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
-        
+
         episode_reward += reward
         step_count += 1
-        
+
         # 每100步显示一个点
         if step_count % 100 == 0:
             print(".", end="", flush=True)
-        
+
         # 减速以便观察（如果有渲染）
         time.sleep(0.01)
-    
+
     episode_rewards.append(episode_reward)
     episode_lengths.append(step_count)
-    
+
     print()
     print(f"  结果:")
     print(f"    - 步数: {step_count}")
     print(f"    - 奖励: {episode_reward:.2f}")
-    
+
     if step_count >= 1000:
         print(f"    - 状态: ✓ 成功完成1000步！")
     else:
@@ -87,15 +87,15 @@ env.close()
 # ============ 统计结果 ============
 import numpy as np
 
-print("\n"+"="*70)
+print("\n" + "=" * 70)
 print("  测试结果统计")
-print("="*70)
+print("=" * 70)
 print(f"  回合数: {n_episodes}")
 print(f"  平均奖励: {np.mean(episode_rewards):.2f} ± {np.std(episode_rewards):.2f}")
 print(f"  平均步数: {np.mean(episode_lengths):.1f}")
 print(f"  最高奖励: {np.max(episode_rewards):.2f}")
 print(f"  最低奖励: {np.min(episode_rewards):.2f}")
-print("-"*70)
+print("-" * 70)
 
 # 性能评估
 avg_reward = np.mean(episode_rewards)
@@ -114,7 +114,7 @@ else:
 
 print(f"\n  性能评级: {rating}")
 print(f"  评价: {comment}")
-print("="*70)
+print("=" * 70)
 
 # 建议
 print("\n💡 改进建议:")
@@ -132,4 +132,4 @@ else:
 print("\n查看训练曲线:")
 print("  tensorboard --logdir=./my_robot_logs/")
 print("  访问: http://localhost:6006")
-print("="*70)
+print("=" * 70)

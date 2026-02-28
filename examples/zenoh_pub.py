@@ -1,4 +1,5 @@
 import zenoh, time
+
 conf = zenoh.Config()
 conf.insert_json5("connect/endpoints", '["tcp/127.0.0.1:7447"]')
 print("Pub opening session...")

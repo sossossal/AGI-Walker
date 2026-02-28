@@ -10,14 +10,14 @@ from agi_walker.skills_loader import (
     get_skills_loader,
     list_skills,
     search_skills,
-    get_skill_doc
+    get_skill_doc,
 )
 
 __all__ = [
-    'SkillMetadata',
-    'SkillsLoader',
-    'get_skills_loader',
-    'list_skills',
-    'search_skills',
-    'get_skill_doc'
+    "SkillMetadata",
+    "SkillsLoader",
+    "get_skills_loader",
+    "list_skills",
+    "search_skills",
+    "get_skill_doc",
 ]

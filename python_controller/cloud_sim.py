@@ -14,6 +14,7 @@ from enum import Enum
 
 class CloudPlatform(Enum):
     """云平台类型"""
+
     AWS_ROBOMAKER = "aws_robomaker"
     AZURE_IOT = "azure_iot"
     GOOGLE_CLOUD = "google_cloud"
@@ -24,6 +25,7 @@ class CloudPlatform(Enum):
 @dataclass
 class SimulationJob:
     """仿真任务"""
+
     job_id: str
     platform: CloudPlatform
     status: str
@@ -37,156 +39,154 @@ class SimulationJob:
 class CloudSimInterface:
     """
     云仿真接口
-    
+
     功能：
     1. 启动/停止仿真任务
     2. 管理并行训练
     3. 收集结果
     4. 抽象底层平台差异
     """
-    
+
     def __init__(self, platform: CloudPlatform = CloudPlatform.LOCAL_PROCESS):
         self.platform = platform
         self.active_jobs: Dict[str, SimulationJob] = {}
-        
+
         # 模拟AWS Boto3客户端（如果需要）
         self._aws_client = None
-        
+
         print(f"✅ 云仿真接口初始化: {platform.value}")
-    
+
     async def launch_simulation(
         self,
         robot_config: Dict,
         world_config: Optional[Dict] = None,
-        job_id: Optional[str] = None
+        job_id: Optional[str] = None,
     ) -> str:
         """
         启动仿真任务
-        
+
         Args:
             robot_config: 机器人配置
             world_config: 环境配置
             job_id: 任务ID
-        
+
         Returns:
             任务ID
         """
         if job_id is None:
             job_id = f"sim_{int(time.time())}_{len(self.active_jobs)}"
-        
+
         world_config = world_config or {"gravity": 9.8, "terrain": "flat"}
-        
+
         job = SimulationJob(
             job_id=job_id,
             platform=self.platform,
             status="PENDING",
             robot_config=robot_config,
             world_config=world_config,
-            created_at=time.time()
+            created_at=time.time(),
         )
-        
+
         self.active_jobs[job_id] = job
-        
+
         if self.platform == CloudPlatform.AWS_ROBOMAKER:
             await self._launch_aws(job)
         elif self.platform == CloudPlatform.LOCAL_DOCKER:
             await self._launch_docker(job)
         else:
             await self._launch_local(job)
-        
+
         return job_id
-    
+
     async def _launch_local(self, job: SimulationJob):
         """启动本地进程仿真"""
         print(f"🚀 [Local] 启动仿真: {job.job_id}")
         # 模拟启动延迟
         await asyncio.sleep(1)
         job.status = "RUNNING"
-        
+
         # 在实际实现中，这里会启动Godot进程
         # subprocess.Popen([...])
-    
+
     async def _launch_aws(self, job: SimulationJob):
         """启动AWS RoboMaker仿真"""
         print(f"☁️ [AWS] 提交任务: {job.job_id}")
         # 这里会调用boto3
         # robomaker.create_simulation_job(...)
         job.status = "PROVISIONING"
-    
+
     async def _launch_docker(self, job: SimulationJob):
         """启动Docker仿真"""
         print(f"🐳 [Docker] 启动容器: {job.job_id}")
         # docker.containers.run(...)
         job.status = "STARTING"
-    
+
     async def stop_simulation(self, job_id: str):
         """停止仿真"""
         if job_id not in self.active_jobs:
             return
-        
+
         job = self.active_jobs[job_id]
         print(f"⏹ 停止仿真: {job_id}")
-        
+
         job.status = "STOPPED"
         job.duration = time.time() - job.created_at
-    
+
     async def get_job_status(self, job_id: str) -> str:
         """获取任务状态"""
         if job_id not in self.active_jobs:
             return "UNKNOWN"
-        
+
         job = self.active_jobs[job_id]
-        
+
         # 模拟状态更新
         if job.status == "PROVISIONING":
             if time.time() - job.created_at > 5:
                 job.status = "RUNNING"
-        
+
         return job.status
-    
+
     async def run_parallel_training(
-        self,
-        robot_configs: List[Dict],
-        num_workers: int = 4
+        self, robot_configs: List[Dict], num_workers: int = 4
     ) -> List[str]:
         """
         运行并行训练任务
-        
+
         Args:
             robot_configs: 机器人配置列表
             num_workers: 并行数
-        
+
         Returns:
             任务ID列表
         """
         print(f"⚡ 开始并行训练 (Workers: {num_workers})")
-        
+
         job_ids = []
-        
+
         # 分批启动
         for i in range(0, len(robot_configs), num_workers):
-            batch = robot_configs[i:i + num_workers]
+            batch = robot_configs[i : i + num_workers]
             tasks = []
-            
+
             for config in batch:
                 task = self.launch_simulation(config)
                 tasks.append(task)
-            
+
             # 等待本批次启动
             batch_ids = await asyncio.gather(*tasks)
             job_ids.extend(batch_ids)
-            
+
             print(f"   已启动批次: {len(batch_ids)} 任务")
-        
+
         return job_ids
-    
+
     def collect_results(self, job_id: str) -> Optional[Dict]:
         """收集仿真结果"""
         if job_id not in self.active_jobs:
             return None
-        
+
         job = self.active_jobs[job_id]
-        
+
         # 模拟结果
         return {
             "job_id": job.job_id,
@@ -195,58 +195,58 @@ class CloudSimInterface:
             "metrics": {
                 "survival_time": 100 + job.duration,
                 "distance": job.duration * 0.5,
-                "energy_efficiency": 0.8
-            }
+                "energy_efficiency": 0.8,
+            },
         }
-    
+
     def get_stats(self) -> Dict:
         """获取资源使用统计"""
         status_counts = {}
         for job in self.active_jobs.values():
             status_counts[job.status] = status_counts.get(job.status, 0) + 1
-            
+
         return {
             "platform": self.platform.value,
             "total_jobs": len(self.active_jobs),
             "active_jobs": status_counts.get("RUNNING", 0),
-            "status_distribution": status_counts
+            "status_distribution": status_counts,
         }
 
 
 # 测试代码
 async def test_cloud_sim():
     print("云仿真接口测试\n")
-    
+
     # 本地模式
     local_sim = CloudSimInterface(CloudPlatform.LOCAL_PROCESS)
-    
+
     print("=== 单任务测试 ===")
     config = {"name": "test_robot", "mass": 10}
     job_id = await local_sim.launch_simulation(config)
-    
+
     print(f"任务ID: {job_id}")
     await asyncio.sleep(2)
     print(f"状态: {await local_sim.get_job_status(job_id)}")
-    
+
     await local_sim.stop_simulation(job_id)
     print(f"结果: {local_sim.collect_results(job_id)}")
-    
+
     # AWS模式模拟
     print("\n=== AWS模式模拟 ===")
     aws_sim = CloudSimInterface(CloudPlatform.AWS_ROBOMAKER)
-    
+
     configs = [{"id": i} for i in range(5)]
     job_ids = await aws_sim.run_parallel_training(configs, num_workers=2)
-    
+
     print(f"已启动并行任务: {job_ids}")
-    
+
     # 模拟等待AWS配置
     print("等待配置...")
-    await asyncio.sleep(6) 
-    
+    await asyncio.sleep(6)
+
     status = await aws_sim.get_job_status(job_ids[0])
     print(f"首个任务状态: {status}")
-    
+
     print("\n=== 统计信息 ===")
     print(json.dumps(aws_sim.get_stats(), indent=2))
 

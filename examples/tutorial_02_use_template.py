@@ -10,12 +10,19 @@
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import importlib.util
 
 # 动态导入robot-modeling skill
-skill_path = Path(__file__).parent.parent / "agi_walker" / "skills" / "robot-modeling" / "__init__.py"
+skill_path = (
+    Path(__file__).parent.parent
+    / "agi_walker"
+    / "skills"
+    / "robot-modeling"
+    / "__init__.py"
+)
 spec = importlib.util.spec_from_file_location("robot_modeling", skill_path)
 robot_modeling = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(robot_modeling)

@@ -11,12 +11,19 @@
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import importlib.util
 
 # 动态导入robot-modeling skill
-skill_path = Path(__file__).parent.parent / "agi_walker" / "skills" / "robot-modeling" / "__init__.py"
+skill_path = (
+    Path(__file__).parent.parent
+    / "agi_walker"
+    / "skills"
+    / "robot-modeling"
+    / "__init__.py"
+)
 spec = importlib.util.spec_from_file_location("robot_modeling", skill_path)
 robot_modeling = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(robot_modeling)
@@ -33,19 +40,13 @@ print(f"✓ 创建机器人: my_first_biped")
 # 步骤2: 添加躯干
 print("\n步骤2: 添加躯干")
 robot.add_torso(
-    height=0.6,      # 60cm高
-    width=0.3,       # 30cm宽
-    depth=0.2,       # 20cm厚
-    mass=8.0         # 8kg
+    height=0.6, width=0.3, depth=0.2, mass=8.0  # 60cm高  # 30cm宽  # 20cm厚  # 8kg
 )
 print("✓ 躯干已添加")
 
 # 步骤3: 添加腿部
 print("\n步骤3: 添加左右腿")
-robot.add_leg_pair(
-    thigh_length=0.4,    # 大腿40cm
-    shin_length=0.4      # 小腿40cm
-)
+robot.add_leg_pair(thigh_length=0.4, shin_length=0.4)  # 大腿40cm  # 小腿40cm
 print("✓ 双腿已添加")
 
 # 步骤4: 设置关节阻尼

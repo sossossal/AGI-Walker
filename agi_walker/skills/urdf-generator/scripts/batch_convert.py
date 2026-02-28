@@ -21,19 +21,19 @@ def main():
     parser.add_argument("--format", default="urdf", help="输出格式 (urdf/sdf)")
     parser.add_argument("--meshes", action="store_true", help="生成碰撞网格")
     parser.add_argument("--validate", action="store_true", help="验证生成的URDF")
-    
+
     args = parser.parse_args()
-    
+
     input_path = Path(args.input)
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # 收集输入文件
     if input_path.is_file():
         input_files = [input_path]
     else:
         input_files = list(input_path.glob("*.json"))
-    
+
     print("=" * 60)
     print(f"批量转换: {len(input_files)} 个配置文件")
     print("=" * 60)
@@ -41,27 +41,25 @@ def main():
     print(f"输出: {output_dir}")
     print(f"格式: {args.format.upper()}")
     print()
-    
+
     success_count = 0
-    
+
     for input_file in input_files:
         print(f"处理: {input_file.name}")
-        
+
         try:
             # 生成输出文件名
             output_file = output_dir / f"{input_file.stem}.{args.format}"
-            
+
             # 转换
             if args.format == "urdf":
                 convert_to_urdf(
-                    str(input_file),
-                    str(output_file),
-                    generate_meshes=args.meshes
+                    str(input_file), str(output_file), generate_meshes=args.meshes
                 )
             else:
                 print("  警告: SDF转换尚未完全实现")
                 convert_to_urdf(str(input_file), str(output_file))
-            
+
             # 验证
             if args.validate and args.format == "urdf":
                 if validate_urdf(str(output_file)):
@@ -70,12 +68,12 @@ def main():
                     print("  警告: 验证失败")
             else:
                 success_count += 1
-            
+
         except Exception as e:
             print(f"  错误: {e}")
-        
+
         print()
-    
+
     print("=" * 60)
     print(f"转换完成: {success_count}/{len(input_files)} 成功")
     print("=" * 60)
