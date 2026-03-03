@@ -7,6 +7,7 @@ import sys
 import os
 import time
 import threading
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -26,11 +27,10 @@ def test_zenoh_import():
         assert ZENOH_AVAILABLE, "Zenoh 未安装"
         print("✅ PASS: Zenoh 模块导入成功")
         test_results["passed"].append("Zenoh 模块导入")
-        return True
     except Exception as e:
         print(f"❌ FAIL: {e}")
         test_results["failed"].append(f"Zenoh 模块导入: {e}")
-        return False
+        raise
 
 
 def test_zenoh_session():
@@ -48,11 +48,10 @@ def test_zenoh_session():
         zenoh.close()
         print("✅ PASS: Zenoh 会话创建和关闭成功")
         test_results["passed"].append("Zenoh 会话创建")
-        return True
     except Exception as e:
         print(f"❌ FAIL: {e}")
         test_results["failed"].append(f"Zenoh 会话创建: {e}")
-        return False
+        raise
 
 
 def test_zenoh_pubsub():
@@ -89,11 +88,10 @@ def test_zenoh_pubsub():
         zenoh.close()
         print(f"✅ PASS: 发送并接收到消息: {received_data[0]}")
         test_results["passed"].append("Zenoh Pub/Sub")
-        return True
     except Exception as e:
         print(f"❌ FAIL: {e}")
         test_results["failed"].append(f"Zenoh Pub/Sub: {e}")
-        return False
+        raise
 
 
 def test_tcp_zenoh_bridge():
@@ -120,11 +118,10 @@ def test_tcp_zenoh_bridge():
 
         print("✅ PASS: TCP-Zenoh 桥接器启动和停止成功")
         test_results["passed"].append("TCP-Zenoh 桥接器")
-        return True
     except Exception as e:
         print(f"❌ FAIL: {e}")
         test_results["failed"].append(f"TCP-Zenoh 桥接器: {e}")
-        return False
+        raise
 
 
 def test_ros2_node():
@@ -152,15 +149,14 @@ def test_ros2_node():
 
         print("✅ PASS: ROS 2 节点创建和运行成功")
         test_results["passed"].append("ROS 2 节点")
-        return True
-    except ImportError:
+    except (ImportError, ModuleNotFoundError):
         print("⏭️  SKIP: ROS 2 未安装")
         test_results["skipped"].append("ROS 2 节点 (未安装)")
-        return None
+        pytest.skip("ROS 2 未安装")
     except Exception as e:
         print(f"❌ FAIL: {e}")
         test_results["failed"].append(f"ROS 2 节点: {e}")
-        return False
+        raise
 
 
 def test_parts_manager():
@@ -188,11 +184,10 @@ def test_parts_manager():
 
         print(f"✅ PASS: 零件库加载成功 ({len(pm.parts_db)} 个零件)")
         test_results["passed"].append("零件管理器")
-        return True
     except Exception as e:
         print(f"❌ FAIL: {e}")
         test_results["failed"].append(f"零件管理器: {e}")
-        return False
+        raise
 
 
 def print_summary():
@@ -248,6 +243,8 @@ def main():
     for test_func in tests:
         try:
             test_func()
+        except pytest.skip.Exception:
+            pass
         except Exception as e:
             print(f"❌ 测试异常: {e}")
             test_results["failed"].append(f"{test_func.__name__}: {e}")

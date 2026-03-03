@@ -17,18 +17,15 @@ except ImportError:
     pytest.skip("python_controller.tcp_client 不可用", allow_module_level=True)
 
 
-class TestRunner:
+class RunnerBase:
     """测试运行器基类"""
 
-    def __init__(self):
-        self.results = []
-        self.client = None
-
-    def setup(self):
+    def setup_method(self, method):
         """测试前准备"""
+        self.results = []
         self.client = GodotClient()
 
-    def teardown(self):
+    def teardown_method(self, method):
         """测试后清理"""
         if self.client:
             self.client.close()
@@ -45,7 +42,7 @@ class TestRunner:
         )
 
 
-class TCPCommunicationTest(TestRunner):
+class TCPCommunicationTest(RunnerBase):
     """TCP通信测试"""
 
     def test_connection(self) -> bool:
@@ -57,15 +54,12 @@ class TCPCommunicationTest(TestRunner):
             if success:
                 print("✅ 连接成功")
                 self.record_result("TCP连接", True)
-                return True
             else:
                 print("❌ 连接失败")
                 self.record_result("TCP连接", False)
-                return False
         except Exception as e:
             print(f"❌ 连接错误: {e}")
             self.record_result("TCP连接", False, {"error": str(e)})
-            return False
 
     def test_latency(self, duration: float = 10.0) -> bool:
         """测试2: 通信延迟"""
@@ -116,12 +110,9 @@ class TCPCommunicationTest(TestRunner):
                     "samples": len(latencies),
                 },
             )
-
-            return passed
         else:
             print("❌ 未收到数据")
             self.record_result("通信延迟", False)
-            return False
 
     def test_data_integrity(self, samples: int = 100) -> bool:
         """测试3: 数据完整性"""
@@ -168,10 +159,8 @@ class TCPCommunicationTest(TestRunner):
             },
         )
 
-        return passed
 
-
-class StabilityTest(TestRunner):
+class StabilityTest(RunnerBase):
     """稳定性测试"""
 
     def test_standing_stability(self, duration: float = 30.0) -> bool:
@@ -231,15 +220,12 @@ class StabilityTest(TestRunner):
                     "max_tilt": max_tilt,
                     "avg_height": avg_height,
                     "fell": fell,
-                },
-            )
-
-            return passed
-
-        return False
+                    },
+                    )
 
 
-class PerformanceTest(TestRunner):
+
+class PerformanceTest(RunnerBase):
     """性能测试"""
 
     def test_control_frequency(self, duration: float = 10.0) -> bool:
@@ -278,8 +264,6 @@ class PerformanceTest(TestRunner):
             passed,
             {"loops": loop_count, "duration": elapsed, "frequency_hz": frequency},
         )
-
-        return passed
 
 
 def run_full_test_suite():

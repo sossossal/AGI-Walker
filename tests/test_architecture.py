@@ -6,11 +6,18 @@
 import json
 import time
 import sys
+import os
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 
 # 确保导入路径正确
-sys.path.insert(0, ".")
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+CONTROLLER_PATH = os.path.join(PROJECT_ROOT, "python_controller")
+if CONTROLLER_PATH not in sys.path:
+    sys.path.insert(0, CONTROLLER_PATH)
 
 # 导入测试目标模块
 try:

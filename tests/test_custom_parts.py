@@ -62,8 +62,6 @@ def test_motor_customization():
     assert new_cost > initial_cost, "❌ 成本应该增加"
     print("\n✓ 电机参数调整测试通过")
 
-    return True
-
 
 def test_joint_customization():
     """测试关节定制功能"""
@@ -113,8 +111,6 @@ def test_joint_customization():
     assert new_cost > initial_cost, "❌ 成本应该增加"
     print("\n✓ 关节参数调整测试通过")
 
-    return True
-
 
 def test_stiffness_impact():
     """测试刚度对性能的影响"""
@@ -140,8 +136,6 @@ def test_stiffness_impact():
     # 验证
     assert new_bandwidth > initial_bandwidth, "❌ 控制带宽应该增加"
     print("\n✓ 刚度影响测试通过")
-
-    return True
 
 
 def test_configuration_comparison():
@@ -187,8 +181,6 @@ def test_configuration_comparison():
 
     print("\n✓ 配置对比测试通过")
 
-    return True
-
 
 def test_performance_metrics():
     """测试性能指标计算"""
@@ -217,8 +209,6 @@ def test_performance_metrics():
         print(f"  ✓ {metric}: {value:.3f}")
 
     print("\n✓ 性能指标计算测试通过")
-
-    return True
 
 
 def run_all_tests():

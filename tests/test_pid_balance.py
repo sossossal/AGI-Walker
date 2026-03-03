@@ -17,14 +17,14 @@ except ImportError:
     pytest.skip("python_controller.tcp_client 不可用", allow_module_level=True)
 
 
-class PIDBalanceTest:
-    """PID平衡控制测试器"""
+class PIDBalanceRunner:
+    """PID平衡控制测试运行器 (非 pytest 测试类)"""
 
     def __init__(self):
         self.client = GodotClient()
         self.test_results = []
 
-    def test_configuration(
+    def run_test_configuration(
         self, test_name: str, duration: float = 30.0, enable_pid: bool = True
     ) -> Dict:
         """
@@ -204,17 +204,17 @@ def run_pid_tests():
     print("🧪 PID平衡控制测试")
     print("=" * 60)
 
-    tester = PIDBalanceTest()
+    tester = PIDBalanceRunner()
 
     # 测试1: 无PID控制（基准）
     print("\n⚠️ 注意: 确保Godot中BalanceController节点的enabled=false")
     input("准备好后按Enter开始基准测试...")
-    tester.test_configuration("基准测试-无PID", duration=20.0, enable_pid=False)
+    tester.run_test_configuration("基准测试-无PID", duration=20.0, enable_pid=False)
 
     # 测试2: 启用PID控制
     print("\n⚠️ 现在在Godot中将BalanceController的enabled=true")
     input("准备好后按Enter开始PID测试...")
-    tester.test_configuration("PID控制-默认参数", duration=30.0, enable_pid=True)
+    tester.run_test_configuration("PID控制-默认参数", duration=30.0, enable_pid=True)
 
     # 对比结果
     tester.compare_tests()
