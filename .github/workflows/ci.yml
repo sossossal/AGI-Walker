@@ -61,9 +61,7 @@ jobs:
 
       # 运行核心测试并生成覆盖率报告
       - name: Run Unit Tests with Coverage
-        env:
-          PYTEST_ADDOPTS: "--cov=agi_walker --cov-report=xml"
-        run: pytest tests/ --tb=short
+        run: pytest tests/ -v --tb=short --cov=agi_walker --cov-report=xml
 
       # 简单的 Import Smoke Test (确保环境至少能从命令行加载)
       - name: Smoke Test - CLI Imports
