@@ -59,9 +59,22 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-mock stable-baselines3 gymnasium lxml
 
+      # 诊断: 验证环境
+      - name: Diagnostic - Environment Check
+        run: |
+          python --version
+          pip show pytest pytest-cov
+          python -c "print(open('pytest.ini').read())"
+          python -c "import agi_walker; print('OK: agi_walker')"
+
+      # 诊断: 测试收集
+      - name: Diagnostic - Test Collection
+        continue-on-error: true
+        run: pytest tests/ --collect-only -q
+
       # 运行核心测试并生成覆盖率报告
       - name: Run Unit Tests with Coverage
-        run: pytest tests/ -v --tb=short --cov=agi_walker --cov-report=xml
+        run: pytest tests/ -v --tb=long --cov=agi_walker --cov-report=xml
 
       # 简单的 Import Smoke Test (确保环境至少能从命令行加载)
       - name: Smoke Test - CLI Imports
