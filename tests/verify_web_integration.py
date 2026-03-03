@@ -7,6 +7,7 @@ Simulates:
 4. Web -> /api/godot/start
 5. Verifies data reception via WebSocket (Mocked for this script or real connection)
 """
+
 import requests
 import time
 import os
@@ -19,9 +20,10 @@ from python_api.comm.godot_client import MockGodotServer
 
 BASE_URL = "http://localhost:8000"
 
+
 def verify_web_integration():
     print("=== Web-Godot Integration Verification ===")
-    
+
     # 1. Start Mock Server
     print("[1] Starting Mock Godot Server...")
     server = MockGodotServer(port=9997)
@@ -31,7 +33,9 @@ def verify_web_integration():
     try:
         # 2. Test Agent Command Parsing
         print("[2] Testing Agent Command Parsing...")
-        res = requests.post(f"{BASE_URL}/api/agent/parse-command", json={"command": "create quadruped"})
+        res = requests.post(
+            f"{BASE_URL}/api/agent/parse-command", json={"command": "create quadruped"}
+        )
         if res.status_code == 200 and res.json()["status"] == "success":
             config = res.json()["config"]
             if config["metadata"]["type"] == "quadruped" and len(config["parts"]) > 0:
@@ -45,7 +49,9 @@ def verify_web_integration():
 
         # 3. Test Connect
         print("[3] Testing Connect API...")
-        res = requests.post(f"{BASE_URL}/api/godot/connect", json={"host": "127.0.0.1", "port": 9997})
+        res = requests.post(
+            f"{BASE_URL}/api/godot/connect", json={"host": "127.0.0.1", "port": 9997}
+        )
         if res.status_code == 200 and res.json()["status"] == "connected":
             print("PASS: Connected to Godot via Web API")
         else:
@@ -63,7 +69,9 @@ def verify_web_integration():
 
         # 5. Test Start Simulation
         print("[5] Testing Start Simulation API...")
-        res = requests.post(f"{BASE_URL}/api/godot/start", json={"physics": {"gravity": 9.8}})
+        res = requests.post(
+            f"{BASE_URL}/api/godot/start", json={"physics": {"gravity": 9.8}}
+        )
         if res.status_code == 200 and res.json()["status"] == "started":
             print("PASS: Simulation started via Web API")
         else:
@@ -87,6 +95,7 @@ def verify_web_integration():
         return False
     finally:
         server.stop()
+
 
 if __name__ == "__main__":
     if verify_web_integration():

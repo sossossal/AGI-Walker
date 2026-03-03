@@ -1,4 +1,3 @@
-
 from fastapi.testclient import TestClient
 import sys
 import os
@@ -16,14 +15,17 @@ mock_client = MagicMock()
 mock_client.connect.return_value = True
 mock_client.start_simulation.return_value = True
 mock_client.stop_simulation.return_value = True
-mock_client.is_connected.return_value = True # Simulate connected state for control tests
+mock_client.is_connected.return_value = (
+    True  # Simulate connected state for control tests
+)
 web_panel.godot_controller.godot_controller.client = mock_client
 
 client = TestClient(web_panel.server.app)
 
+
 def test_endpoints():
     print("Testing Godot Endpoints...")
-    
+
     # 1. Connect
     print("1. Testing /api/godot/connect...")
     resp = client.post("/api/godot/connect", json={"host": "127.0.0.1", "port": 9999})
@@ -53,6 +55,7 @@ def test_endpoints():
     assert resp.status_code == 200
 
     print("\n✅ All endpoints verified reachable and defined.")
+
 
 if __name__ == "__main__":
     test_endpoints()

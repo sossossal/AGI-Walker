@@ -16,37 +16,50 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from agi_walker.skills_loader import get_skills_loader
 
+
 @pytest.fixture(scope="module")
 def skills_loader():
     """Fixture to provide a loaded skills loader"""
     return get_skills_loader()
 
+
 @pytest.fixture(scope="module")
 def robot_modeling_skill(skills_loader):
     """Fixture to load the robot-modeling skill module"""
-    skill_file = PROJECT_ROOT / "agi_walker" / "skills" / "robot-modeling" / "__init__.py"
+    skill_file = (
+        PROJECT_ROOT / "agi_walker" / "skills" / "robot-modeling" / "__init__.py"
+    )
     spec = importlib.util.spec_from_file_location("robot_modeling_skill", skill_file)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
+
 @pytest.fixture(scope="module")
 def param_opt_skill(skills_loader):
     """Fixture to load the parameter-optimizer skill module"""
-    skill_file = PROJECT_ROOT / "agi_walker" / "skills" / "parameter-optimizer" / "__init__.py"
-    spec = importlib.util.spec_from_file_location("parameter_optimizer_skill", skill_file)
+    skill_file = (
+        PROJECT_ROOT / "agi_walker" / "skills" / "parameter-optimizer" / "__init__.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "parameter_optimizer_skill", skill_file
+    )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
+
 @pytest.fixture(scope="module")
 def urdf_gen_skill(skills_loader):
     """Fixture to load the urdf-generator skill module"""
-    skill_file = PROJECT_ROOT / "agi_walker" / "skills" / "urdf-generator" / "__init__.py"
+    skill_file = (
+        PROJECT_ROOT / "agi_walker" / "skills" / "urdf-generator" / "__init__.py"
+    )
     spec = importlib.util.spec_from_file_location("urdf_generator_skill", skill_file)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
 
 class TestSkillsLoader:
     def test_loader_initialization(self, skills_loader):
@@ -70,11 +83,14 @@ class TestSkillsLoader:
         categories = skills_loader.get_categories()
         assert len(categories) >= 3
 
+
 class TestRobotModeling:
     def test_builder_basic(self, robot_modeling_skill):
-        robot = robot_modeling_skill.RobotBuilder("test_builder")\
-            .add_torso(height=0.5, mass=5.0)\
+        robot = (
+            robot_modeling_skill.RobotBuilder("test_builder")
+            .add_torso(height=0.5, mass=5.0)
             .build()
+        )
         assert robot.name == "test_builder"
         assert len(robot.parts) > 0
 
@@ -86,16 +102,18 @@ class TestRobotModeling:
         template = robot_modeling_skill.load_template("biped_basic")
         assert template.name == "biped_basic"
 
+
 class TestParamOptimizer:
     def test_optimize_mass(self, robot_modeling_skill, param_opt_skill):
         robot = robot_modeling_skill.load_template("biped_basic")
         result = param_opt_skill.optimize_mass_distribution(
             robot.to_dict(),
             target_com_height=0.22,
-            max_iterations=5  # Reduced iterations for speed
+            max_iterations=5,  # Reduced iterations for speed
         )
         assert result.success
         assert result.iterations > 0
+
 
 class TestURDFGenerator:
     @pytest.fixture
@@ -108,17 +126,14 @@ class TestURDFGenerator:
 
     def test_urdf_generation(self, robot_modeling_skill, urdf_gen_skill, workspace):
         robot = robot_modeling_skill.load_template("biped_basic")
-        
+
         test_json = workspace / "test_config.json"
         test_urdf = workspace / "test_output.urdf"
-        
+
         robot.save(str(test_json))
-        
-        urdf_gen_skill.convert_to_urdf(
-            str(test_json),
-            str(test_urdf)
-        )
-        
+
+        urdf_gen_skill.convert_to_urdf(str(test_json), str(test_urdf))
+
         assert test_urdf.exists()
         assert test_urdf.stat().st_size > 0
 
@@ -126,12 +141,13 @@ class TestURDFGenerator:
         robot = robot_modeling_skill.load_template("biped_basic")
         test_json = workspace / "test_val.json"
         test_urdf = workspace / "test_val.urdf"
-        
+
         robot.save(str(test_json))
         urdf_gen_skill.convert_to_urdf(str(test_json), str(test_urdf))
-        
+
         is_valid = urdf_gen_skill.validate_urdf(str(test_urdf))
         assert is_valid
+
 
 @pytest.mark.integration
 def test_full_workflow(robot_modeling_skill, param_opt_skill, urdf_gen_skill):
@@ -139,40 +155,43 @@ def test_full_workflow(robot_modeling_skill, param_opt_skill, urdf_gen_skill):
     # Using a known location or tempdir
     test_config = PROJECT_ROOT / "configs" / "workflow_test_artifact.json"
     test_urdf = PROJECT_ROOT / "exports" / "workflow_test_artifact.urdf"
-    
+
     try:
         # 1. Model
-        robot = robot_modeling_skill.RobotBuilder("workflow_test")\
-            .add_torso(height=0.5, mass=5.0)\
-            .add_leg_pair(thigh_length=0.3, shin_length=0.3)\
+        robot = (
+            robot_modeling_skill.RobotBuilder("workflow_test")
+            .add_torso(height=0.5, mass=5.0)
+            .add_leg_pair(thigh_length=0.3, shin_length=0.3)
             .build()
-        
+        )
+
         # 2. Optimize
         result = param_opt_skill.optimize_mass_distribution(
-            robot.to_dict(),
-            target_com_height=0.22,
-            max_iterations=5
+            robot.to_dict(), target_com_height=0.22, max_iterations=5
         )
         assert result.success
-        
+
         # 3. Save
         robot.save(str(test_config))
         assert test_config.exists()
-        
+
         # 4. Convert
         urdf_gen_skill.convert_to_urdf(str(test_config), str(test_urdf))
         assert test_urdf.exists()
-        
+
     finally:
         # Cleanup
-        if test_config.exists(): test_config.unlink()
-        if test_urdf.exists(): test_urdf.unlink()
+        if test_config.exists():
+            test_config.unlink()
+        if test_urdf.exists():
+            test_urdf.unlink()
+
 
 @pytest.mark.integration
 def test_cli_tools():
     """Test CLI commands"""
     import subprocess
-    
+
     # helper to run cli command
     def run_cli(*args):
         env = os.environ.copy()
@@ -181,9 +200,9 @@ def test_cli_tools():
             [sys.executable, "-m", "agi_walker.cli", "skills"] + list(args),
             capture_output=True,
             text=True,
-            encoding='utf-8',
+            encoding="utf-8",
             cwd=PROJECT_ROOT,
-            env=env
+            env=env,
         )
         if result.returncode != 0:
             print(f"CLI Error: {result.stderr}")
@@ -202,4 +221,3 @@ def test_cli_tools():
     # 3. search
     result = run_cli("search", "机器人")
     assert result.returncode == 0
-

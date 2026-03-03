@@ -57,55 +57,60 @@ except ImportError as e:
     print(f"导入失败: {e}")
     sys.exit(1)
 
+
 async def run_verification():
     print("🚀 开始Mock验证进化循环...")
-    
+
     # 配置
     config = EvolutionConfig(
         iteration_name="mock_test_v1",
         rl_timesteps=100,
         n_trajectories=10,
         peft_epochs=1,
-        workspace_dir=r"d:\新建文件夹\AGI-Walker"
+        workspace_dir=r"d:\新建文件夹\AGI-Walker",
     )
-    
+
     manager = EvolutionManager(config)
-    
+
     try:
         # 运行循环
         print("\n--- 运行 Stage 1: RL Training ---")
         await manager.stage_rl_training()
         print("✅ RL Training 通过")
-        
+
         print("\n--- 运行 Stage 2: Data Generation ---")
         # 手动设置模型路径
         model_path = str(manager.models_dir / "rl" / "ppo_final.zip")
         await manager.stage_data_generation(model_path)
         print("✅ Data Generation 通过")
-        
+
         print("\n--- 运行 Stage 3: Data Processing ---")
         raw_data_path = manager.data_dir / "raw_trajectories.json"
         await manager.stage_data_processing(str(raw_data_path))
         print("✅ Data Processing 通过")
-        
+
         print("\n--- 运行 Stage 4: PEFT Finetuning ---")
         clean_data_path = manager.data_dir / "train_data.json"
-        
+
         # Mock PEFT Trainer behavior specifically
-        with unittest.mock.patch('training.peft_trainer.PEFTTrainer.train') as mock_train:
+        with unittest.mock.patch(
+            "training.peft_trainer.PEFTTrainer.train"
+        ) as mock_train:
             mock_train.return_value = {"loss": 0.1}
             await manager.stage_model_finetuning(str(clean_data_path))
-            
+
         print("✅ PEFT Finetuning 通过")
-        
+
         print("\n🎉 逻辑验证全部通过！")
         return True
-        
+
     except Exception as e:
         print(f"\n❌ 验证失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     success = asyncio.run(run_verification())

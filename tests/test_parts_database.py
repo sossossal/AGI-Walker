@@ -14,7 +14,7 @@ from pathlib import Path
 
 class TestPartsDatabase:
     """零件库测试类"""
-    
+
     @pytest.fixture
     def parts_db_path(self, tmp_path):
         """创建临时零件库目录"""
@@ -22,11 +22,11 @@ class TestPartsDatabase:
         motors_dir = parts_dir / "motors"
         sensors_dir = parts_dir / "sensors"
         controllers_dir = parts_dir / "controllers"
-        
+
         motors_dir.mkdir(parents=True)
         sensors_dir.mkdir(parents=True)
         controllers_dir.mkdir(parents=True)
-        
+
         # 创建测试零件数据
         test_motor = {
             "part_id": "test_motor",
@@ -36,23 +36,23 @@ class TestPartsDatabase:
             "specifications": {
                 "stall_torque": 1.0,
                 "no_load_speed": 100.0,
-                "voltage": 12.0
+                "voltage": 12.0,
             },
-            "price_usd": 49.99
+            "price_usd": 49.99,
         }
-        
-        with open(motors_dir / "test_motor.json", 'w') as f:
+
+        with open(motors_dir / "test_motor.json", "w") as f:
             json.dump(test_motor, f)
-        
+
         return parts_dir
-    
+
     def test_load_parts_database(self, parts_db_path):
         """测试加载零件库"""
         # 实际实现需要导入 PartsDatabase
         # db = PartsDatabase(str(parts_db_path))
         # assert db is not None
         pass
-    
+
     def test_get_part(self, parts_db_path):
         """测试获取零件信息"""
         # db = PartsDatabase(str(parts_db_path))
@@ -60,14 +60,14 @@ class TestPartsDatabase:
         # assert motor['part_id'] == 'test_motor'
         # assert motor['price_usd'] == 49.99
         pass
-    
+
     def test_get_nonexistent_part(self, parts_db_path):
         """测试获取不存在的零件"""
         # db = PartsDatabase(str(parts_db_path))
         # with pytest.raises(KeyError):
         #     db.get_part("nonexistent")
         pass
-    
+
     def test_list_parts_by_category(self, parts_db_path):
         """测试按类别列出零件"""
         # db = PartsDatabase(str(parts_db_path))
@@ -75,7 +75,7 @@ class TestPartsDatabase:
         # assert len(motors) == 1
         # assert motors[0]['part_id'] == 'test_motor'
         pass
-    
+
     def test_calculate_total_cost(self, parts_db_path):
         """测试计算总成本"""
         # db = PartsDatabase(str(parts_db_path))
@@ -83,12 +83,12 @@ class TestPartsDatabase:
         # total = db.calculate_total_cost(robot_parts)
         # assert total == 99.98
         pass
-    
+
     def test_part_json_schema_validation(self, parts_db_path):
         """测试零件JSON格式验证"""
         # 测试必需字段
         invalid_part = {"part_id": "invalid"}  # 缺少必需字段
-        
+
         # 实际应该抛出验证错误
         # with pytest.raises(ValidationError):
         #     db.validate_part(invalid_part)
@@ -97,17 +97,17 @@ class TestPartsDatabase:
 
 class TestPartSpecifications:
     """零件规格测试"""
-    
+
     def test_motor_torque_positive(self):
         """测试电机扭矩必须为正"""
         # motor_spec = MotorSpec(stall_torque=-1.0)
         # 应该抛出验证错误
         pass
-    
+
     def test_motor_speed_positive(self):
         """测试电机速度必须为正"""
         pass
-    
+
     def test_price_positive(self):
         """测试价格必须为正"""
         pass
