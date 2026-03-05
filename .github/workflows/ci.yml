@@ -10,7 +10,7 @@ on:
 env:
   PYTHON_VERSION: "3.11"
   PYTHONUTF8: "1"
-  PYTHONPATH: "."
+  PYTHONPATH: ${{ github.workspace }}
 
 jobs:
   # -----------------------------------------------------------------------------
@@ -66,7 +66,7 @@ jobs:
         run: |
           python --version
           pip show pytest pytest-cov
-          python -c "print(open('pytest.ini').read())"
+          cat pytest.ini
           python -c "import agi_walker; print('OK: agi_walker')"
 
       # 诊断: 测试收集
@@ -76,7 +76,7 @@ jobs:
 
       # 运行核心测试并生成覆盖率报告
       - name: Run Unit Tests with Coverage
-        run: pytest tests/ -v --tb=long --cov=agi_walker --cov-report=xml
+        run: pytest tests/ -v --tb=long --cov=agi_walker --cov=python_api --cov=python_controller --cov-report=xml
 
       # 简单的 Import Smoke Test (确保环境至少能从命令行加载)
       - name: Smoke Test - CLI Imports

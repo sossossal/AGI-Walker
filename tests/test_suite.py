@@ -13,8 +13,9 @@ pytestmark = pytest.mark.integration
 
 try:
     from python_controller.tcp_client import GodotClient
+    CLIENT_AVAILABLE = True
 except ImportError:
-    pytest.skip("python_controller.tcp_client 不可用", allow_module_level=True)
+    CLIENT_AVAILABLE = False
 
 
 class RunnerBase:
@@ -22,6 +23,8 @@ class RunnerBase:
 
     def setup_method(self, method):
         """测试前准备"""
+        if not CLIENT_AVAILABLE:
+            pytest.skip("python_controller.tcp_client 不可用")
         self.results = []
         self.client = GodotClient()
 
@@ -276,7 +279,7 @@ def run_full_test_suite():
     print("2. 机器人已正确搭建")
     print("3. TCP服务器已启动 (127.0.0.1:9999)")
 
-    input("\n按Enter键开始测试...")
+    # input("\n按Enter键开始测试...")
 
     all_results = []
 
