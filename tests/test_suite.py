@@ -25,8 +25,16 @@ class RunnerBase:
         """测试前准备"""
         if not CLIENT_AVAILABLE:
             pytest.skip("python_controller.tcp_client 不可用")
+        
         self.results = []
         self.client = GodotClient()
+        
+        # 在 CI 环境中自动跳过连接失败的测试
+        try:
+            if not self.client.connect(timeout=0.1):
+                pytest.skip("无法连接到仿真器 (Godot 未运行)")
+        except Exception:
+            pytest.skip("连接仿真器时发生异常 (可能是环境限制)")
 
     def teardown_method(self, method):
         """测试后清理"""
