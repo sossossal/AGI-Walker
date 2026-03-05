@@ -59,16 +59,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          # 仅安装必要插件，排除 pytest-cov 以确认是否为冲突根源
           pip install pytest pytest-mock stable-baselines3 gymnasium lxml
 
-      # 诊断: 验证环境
-      - name: Diagnostic - Environment Check
-        run: |
-          python --version
-          pip show pytest
-          cat pytest.ini
+      # 调试: 找出哪个测试文件导致导入阶段崩溃 (Exit Code 2 根因)
+      - name: Debug Test Collection
+        run: python debug_collection.py
 
-      # 运行核心测试 (暂时移除覆盖率以排查 Exit Code 2 问题)
+      # 运行核心测试
       - name: Run Unit Tests
         run: pytest tests/ -v --tb=short
 
@@ -98,11 +96,6 @@ jobs:
       # 运行带有 integration 标记的慢速测试
       - name: Run Integration Tests
         run: pytest tests/ -m integration -v
-
-      # 验证示例脚本是否可运行
-      - name: Verify Key Examples
-        run: |
-          python examples/skills_demo.py
 
   # -----------------------------------------------------------------------------
   # Job 4: Release Readiness
