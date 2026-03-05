@@ -243,11 +243,13 @@ def main():
     for test_func in tests:
         try:
             test_func()
-        except pytest.skip.Exception:
-            pass
         except Exception as e:
-            print(f"❌ 测试异常: {e}")
-            test_results["failed"].append(f"{test_func.__name__}: {e}")
+            # 识别 pytest.skip 抛出的内部异常 (如果手动运行 main)
+            if "Skipped" in str(type(e)):
+                pass
+            else:
+                print(f"❌ 测试异常: {e}")
+                test_results["failed"].append(f"{test_func.__name__}: {e}")
 
         time.sleep(0.5)  # 测试间隔
 

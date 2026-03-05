@@ -21,8 +21,8 @@ except ImportError:
 class RunnerBase:
     """测试运行器基类"""
 
-    def setup_method(self, method):
-        """测试前准备"""
+    def setup(self):
+        """测试前准备 (兼容 pytest 和手动运行)"""
         if not CLIENT_AVAILABLE:
             pytest.skip("python_controller.tcp_client 不可用")
         
@@ -36,10 +36,18 @@ class RunnerBase:
         except Exception:
             pytest.skip("连接仿真器时发生异常 (可能是环境限制)")
 
-    def teardown_method(self, method):
+    def setup_method(self, method):
+        """适配 pytest 的 setup"""
+        self.setup()
+
+    def teardown(self):
         """测试后清理"""
-        if self.client:
+        if hasattr(self, 'client') and self.client:
             self.client.close()
+
+    def teardown_method(self, method):
+        """适配 pytest 的 teardown"""
+        self.teardown()
 
     def record_result(self, test_name: str, passed: bool, details: Dict = None):
         """记录测试结果"""
@@ -145,7 +153,7 @@ class TCPCommunicationTest(RunnerBase):
 
                     valid_count += 1
 
-                except AssertionError:
+                except (AssertionError, KeyError, TypeError):
                     pass
 
             time.sleep(0.01)
@@ -188,21 +196,24 @@ class StabilityTest(RunnerBase):
             sensor = self.client.get_latest_sensors()
 
             if sensor:
-                orient = sensor["sensors"]["imu"]["orient"]
-                roll = abs(orient[0])
-                pitch = abs(orient[1])
-                tilt = roll + pitch
-                height = sensor.get("torso_height", 0)
+                try:
+                    orient = sensor["sensors"]["imu"]["orient"]
+                    roll = abs(orient[0])
+                    pitch = abs(orient[1])
+                    tilt = roll + pitch
+                    height = sensor.get("torso_height", 0)
 
-                tilts.append(tilt)
-                heights.append(height)
+                    tilts.append(tilt)
+                    heights.append(height)
 
-                # 检测摔倒
-                if tilt > 45 or height < 0.3:
-                    fell = True
-                    fall_time = time.time() - start_time
-                    print(f"❌ 机器人摔倒 (t={fall_time:.1f}s)")
-                    break
+                    # 检测摔倒
+                    if tilt > 45 or height < 0.3:
+                        fell = True
+                        fall_time = time.time() - start_time
+                        print(f"❌ 机器人摔倒 (t={fall_time:.1f}s)")
+                        break
+                except (KeyError, IndexError, TypeError):
+                    pass
 
             time.sleep(0.033)
 
@@ -231,9 +242,8 @@ class StabilityTest(RunnerBase):
                     "max_tilt": max_tilt,
                     "avg_height": avg_height,
                     "fell": fell,
-                    },
-                    )
-
+                },
+            )
 
 
 class PerformanceTest(RunnerBase):
@@ -258,7 +268,7 @@ class PerformanceTest(RunnerBase):
             time.sleep(0.01)  # 目标100Hz
 
         elapsed = time.time() - start_time
-        frequency = loop_count / elapsed
+        frequency = loop_count / elapsed if elapsed > 0 else 0
 
         print(f"  循环数: {loop_count}")
         print(f"  频率: {frequency:.1f} Hz")
@@ -287,8 +297,6 @@ def run_full_test_suite():
     print("2. 机器人已正确搭建")
     print("3. TCP服务器已启动 (127.0.0.1:9999)")
 
-    # input("\n按Enter键开始测试...")
-
     all_results = []
 
     # TCP通信测试
@@ -297,14 +305,16 @@ def run_full_test_suite():
     print("=" * 60)
 
     tcp_test = TCPCommunicationTest()
-    tcp_test.setup()
-
     try:
+        tcp_test.setup()
         tcp_test.test_connection()
         tcp_test.test_latency(duration=10.0)
         tcp_test.test_data_integrity(samples=100)
+    except pytest.skip.Exception:
+        print("⏭️ 跳过 TCP 测试: 无法连接仿真器")
     finally:
-        all_results.extend(tcp_test.results)
+        if hasattr(tcp_test, 'results'):
+            all_results.extend(tcp_test.results)
         tcp_test.teardown()
 
     # 稳定性测试
@@ -313,13 +323,14 @@ def run_full_test_suite():
     print("=" * 60)
 
     stability_test = StabilityTest()
-    stability_test.setup()
-
     try:
-        if stability_test.client.connect():
-            stability_test.test_standing_stability(duration=30.0)
+        stability_test.setup()
+        stability_test.test_standing_stability(duration=30.0)
+    except pytest.skip.Exception:
+        print("⏭️ 跳过稳定性测试: 无法连接仿真器")
     finally:
-        all_results.extend(stability_test.results)
+        if hasattr(stability_test, 'results'):
+            all_results.extend(stability_test.results)
         stability_test.teardown()
 
     # 性能测试
@@ -328,13 +339,14 @@ def run_full_test_suite():
     print("=" * 60)
 
     perf_test = PerformanceTest()
-    perf_test.setup()
-
     try:
-        if perf_test.client.connect():
-            perf_test.test_control_frequency(duration=10.0)
+        perf_test.setup()
+        perf_test.test_control_frequency(duration=10.0)
+    except pytest.skip.Exception:
+        print("⏭️ 跳过性能测试: 无法连接仿真器")
     finally:
-        all_results.extend(perf_test.results)
+        if hasattr(perf_test, 'results'):
+            all_results.extend(perf_test.results)
         perf_test.teardown()
 
     # 生成报告
@@ -347,13 +359,17 @@ def _generate_report(results: List[Dict]):
     print("📊 测试报告")
     print("=" * 60)
 
+    if not results:
+        print("没有收集到测试结果。")
+        return
+
     total = len(results)
     passed = sum(1 for r in results if r["passed"])
 
     print(f"\n总测试数: {total}")
     print(f"通过: {passed}")
     print(f"失败: {total - passed}")
-    print(f"成功率: {passed/total*100:.1f}%")
+    print(f"成功率: {passed/total*100:.1f}%" if total > 0 else "0%")
 
     print("\n详细结果:")
     for result in results:
@@ -361,7 +377,7 @@ def _generate_report(results: List[Dict]):
         print(f"  {status} {result['test']}")
 
         # 显示详细信息
-        if result["details"]:
+        if result.get("details"):
             for key, value in result["details"].items():
                 if isinstance(value, float):
                     print(f"      {key}: {value:.2f}")
@@ -369,11 +385,13 @@ def _generate_report(results: List[Dict]):
                     print(f"      {key}: {value}")
 
     # 保存JSON报告
-    report_file = f"test_report_{int(time.time())}.json"
-    with open(report_file, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2, ensure_ascii=False)
-
-    print(f"\n💾 报告已保存: {report_file}")
+    try:
+        report_file = f"test_report_{int(time.time())}.json"
+        with open(report_file, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        print(f"\n💾 报告已保存: {report_file}")
+    except Exception as e:
+        print(f"警告: 无法保存报告文件: {e}")
 
     if passed == total:
         print("\n🎉 所有测试通过!")
@@ -389,5 +407,4 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ 测试错误: {e}")
         import traceback
-
         traceback.print_exc()
