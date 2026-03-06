@@ -25,6 +25,7 @@ wheels/
 venv/
 .env
 .venv
+test_env/
 
 # IDE
 .idea/
