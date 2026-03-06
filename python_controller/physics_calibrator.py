@@ -68,7 +68,7 @@ class PhysicsCalibrator:
         if config_dir is None:
             # 默认使用项目根目录下的 configs 文件夹
             config_dir = Path(__file__).resolve().parent.parent / "configs"
-        
+
         self.config_dir = Path(config_dir)
         self.config_dir.mkdir(parents=True, exist_ok=True)
 
