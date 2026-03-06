@@ -7,7 +7,7 @@ from tests.mock_godot_server import MockGodotServer
 
 @pytest.fixture
 def mock_server():
-    server = MockGodotServer(port=9998)
+    server = MockGodotServer(port=9992)
     thread = threading.Thread(target=server.start, daemon=True)
     thread.start()
     time.sleep(0.1)  # Wait for server to start
@@ -26,7 +26,7 @@ def test_domain_randomization(mock_server):
     )
     
     env = GodotRobotEnv(
-        port=9998,
+        port=9992,
         randomizer_config=config,
         timeout=2.0
     )
