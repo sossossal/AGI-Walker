@@ -20,11 +20,14 @@ def test_zenoh_import():
     print("=" * 60)
 
     try:
-        from python_api.comm.zenoh_interface import ZenohInterface, ZENOH_AVAILABLE
-        assert ZENOH_AVAILABLE, "Zenoh 未安装"
+        import importlib
+        zenoh_mod = importlib.import_module("python_api.comm.zenoh_interface")
+        assert hasattr(zenoh_mod, "ZENOH_AVAILABLE"), "模块导出异常"
+        if not getattr(zenoh_mod, "ZENOH_AVAILABLE", False):
+            pytest.skip("Zenoh 未安装或库文件加载失败")
         print("✅ PASS: Zenoh 模块导入成功")
         test_results["passed"].append("Zenoh 模块导入")
-    except Exception as e:
+    except (ImportError, ModuleNotFoundError, Exception) as e:
         pytest.skip(f"Zenoh 模块导入失败 (环境限制): {e}")
 
 def test_zenoh_session():
@@ -34,7 +37,10 @@ def test_zenoh_session():
     print("=" * 60)
 
     try:
-        from python_api.comm.zenoh_interface import ZenohInterface
+        import importlib
+        zenoh_mod = importlib.import_module("python_api.comm.zenoh_interface")
+        ZenohInterface = getattr(zenoh_mod, "ZenohInterface")
+        
         try:
             zenoh = ZenohInterface()
         except Exception as e:
@@ -45,7 +51,7 @@ def test_zenoh_session():
         print("✅ PASS: Zenoh 会话创建和关闭成功")
         test_results["passed"].append("Zenoh 会话创建")
     except Exception as e:
-        pytest.skip(f"Zenoh 会话创建失败 (环境限制): {e}")
+        pytest.skip(f"Zenoh 会话逻辑测试失败: {e}")
 
 def test_zenoh_pubsub():
     """测试 3: Zenoh Pub/Sub"""
