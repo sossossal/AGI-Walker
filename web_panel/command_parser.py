@@ -16,99 +16,55 @@ class CommandParser:
     
     def parse(self, command: str) -> Dict[str, Any]:
         """
-        Parse a text command and return a Robot Configuration.
-        
-        Args:
-            command: Natural language command string
-            
-        Returns:
-            Dict containing 'parts' and 'connections' keys, or error info.
+        Parse a text command and extract parameters for the Skills robot builder.
+        Simulates an LLM intent understanding module.
         """
         cmd_lower = command.lower()
         
-        # Default templates
+        # Default generated parameters
+        skills_params = {
+            "name": "ai_generated_robot",
+            "type": "biped",
+            "torso_height": 0.5,
+            "torso_mass": 5.0,
+            "thigh_length": 0.3,
+            "shin_length": 0.3,
+            "target_com_height": 0.22
+        }
+
+        # 1. Type extraction
+        if "四足" in cmd_lower or "quadruped" in cmd_lower or "狗" in cmd_lower:
+            skills_params["type"] = "quadruped"
+            skills_params["name"] = "ai_quadruped"
+            skills_params["target_com_height"] = 0.15
+        elif "双足" in cmd_lower or "biped" in cmd_lower or "人" in cmd_lower:
+            skills_params["type"] = "biped"
+            skills_params["name"] = "ai_biped"
+            skills_params["target_com_height"] = 0.25
+
+        # 2. Dimensions extraction (Regex simulation)
+        height_match = re.search(r'高(?:度)?.*?([\d\.]+)\s*[m米]', cmd_lower)
+        if height_match:
+            skills_params["torso_height"] = float(height_match.group(1))
+
+        mass_match = re.search(r'重(?:量)?.*?([\d\.]+)\s*[k千]', cmd_lower)
+        if mass_match:
+            skills_params["torso_mass"] = float(mass_match.group(1))
+            
+        leg_match = re.search(r'大腿.*?([\d\.]+)\s*[m米]', cmd_lower)
+        if leg_match:
+            skills_params["thigh_length"] = float(leg_match.group(1))
+
+        # Build response
         config = {
-            "parts": [],
+            "parts": [], # Legacy requirement fallback
             "connections": [],
             "metadata": {
                 "source_command": command,
-                "type": "unknown"
-            }
+                "type": skills_params["type"],
+                "is_from_skills_llm": True
+            },
+            "skills_params": skills_params
         }
-        
-        # 1. Determine Robot Type
-        if "quadruped" in cmd_lower or "四足" in cmd_lower:
-            config = self._create_quadruped_template()
-            config["metadata"]["type"] = "quadruped"
-        elif "hexapod" in cmd_lower or "六足" in cmd_lower:
-            config = self._create_hexapod_template()
-            config["metadata"]["type"] = "hexapod"
-        elif "biped" in cmd_lower or "双足" in cmd_lower:
-            config = self._create_biped_template()
-            config["metadata"]["type"] = "biped"
-        else:
-            # Default to simple arm if unknown or ask for clarification (here we default to simple test bot)
-            config = self._create_simple_bot_template()
-            config["metadata"]["type"] = "simple_bot"
             
         return config
-
-    def _create_simple_bot_template(self):
-        """Creates a simple single-motor test bot"""
-        return {
-            "parts": [
-                {"id": "base", "type": "structure", "model": "Base_Block", "position": [0, 0, 0]},
-                {"id": "motor_1", "type": "motor", "model": "XM430-W350", "position": [0, 0.1, 0]}
-            ],
-            "connections": [
-                {"from": "base", "to": "motor_1"}
-            ],
-            "metadata": {}
-        }
-
-    def _create_quadruped_template(self):
-        """Creates a basic quadruped structure"""
-        # Simplified representation for the MVP
-        parts = [{"id": "body", "type": "structure", "model": "Main_Body", "position": [0, 0, 0.2]}]
-        connections = []
-        
-        # 4 legs
-        legs = ["fl", "fr", "bl", "br"]
-        offsets = [[0.1, 0.1], [0.1, -0.1], [-0.1, 0.1], [-0.1, -0.1]]
-        
-        for i, leg in enumerate(legs):
-            # Hip Motor
-            motor_id = f"motor_{leg}_hip"
-            parts.append({
-                "id": motor_id, 
-                "type": "motor", 
-                "model": "XM430-W350", 
-                "position": [offsets[i][0], offsets[i][1], 0.2]
-            })
-            connections.append({"from": "body", "to": motor_id})
-            
-            # Leg segment
-            leg_id = f"leg_{leg}"
-            parts.append({
-                "id": leg_id,
-                "type": "structure",
-                "model": "Leg_Rod",
-                "position": [offsets[i][0], offsets[i][1], 0.1] # Simplified pos
-            })
-            connections.append({"from": motor_id, "to": leg_id})
-            
-        return {"parts": parts, "connections": connections, "metadata": {}}
-
-    def _create_hexapod_template(self):
-        """Creates a basic hexapod structure"""
-        parts = [{"id": "body", "type": "structure", "model": "Hex_Body", "position": [0, 0, 0.1]}]
-        connections = []
-        # Implement placeholder
-        return {"parts": parts, "connections": connections, "metadata": {}}
-
-    def _create_biped_template(self):
-        """Creates a basic biped structure"""
-        parts = [{"id": "pelvis", "type": "structure", "model": "Pelvis", "position": [0, 0, 0.5]}]
-        connections = []
-        # Implement placeholder
-        return {"parts": parts, "connections": connections, "metadata": {}}

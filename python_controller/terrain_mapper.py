@@ -6,7 +6,7 @@
 
 import numpy as np
 from dataclasses import dataclass
-from typing import Tuple, List, Optional
+from typing import Tuple
 
 
 @dataclass

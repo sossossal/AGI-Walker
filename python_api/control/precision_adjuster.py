@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from python_api.parts.custom_parts import CustomMotor, CustomJoint
 from python_api.physics_validator import PhysicsValidator
-import numpy as np
 
 
 class PrecisionPartAdjuster:

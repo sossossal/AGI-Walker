@@ -4,7 +4,6 @@
 """
 
 import time
-import json
 from tcp_client import GodotClient
 from typing import Dict, List
 

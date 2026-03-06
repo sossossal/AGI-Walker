@@ -15,7 +15,7 @@ import base64
 import numpy as np
 from PIL import Image
 import io
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 import time
 
 

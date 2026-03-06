@@ -14,7 +14,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agi_walker.skills_loader import (
     get_skills_loader,
-    list_skills,
     search_skills,
     get_skill_doc,
 )

@@ -6,7 +6,7 @@
 
 import json
 import time
-from typing import Dict, List, Optional
+from typing import Dict, List
 from collections import deque
 from ai_model import BaseAIModel
 

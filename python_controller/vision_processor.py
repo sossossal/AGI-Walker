@@ -6,9 +6,7 @@
 
 import numpy as np
 import time
-from typing import Dict, List, Optional, Union
-import json
-import os
+from typing import List, Union
 
 # 尝试导入 transformers，如果不存在则使用 Mock
 try:

@@ -3,9 +3,7 @@ ROS 2 机器人节点
 将 AGI-Walker 集成到 ROS 2 生态系统
 """
 
-import sys
-import json
-from typing import List, Optional
+from typing import Optional
 
 try:
     import rclpy

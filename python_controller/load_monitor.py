@@ -3,8 +3,7 @@
 边缘层负载监控脚本，实现动态负载均衡和PID fallback
 """
 
-import time
-from typing import Dict, Optional, Callable, Deque
+from typing import Optional, Callable, Deque
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum

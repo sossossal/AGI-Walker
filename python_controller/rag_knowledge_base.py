@@ -3,10 +3,9 @@ RAG物理知识库（Retrieval-Augmented Generation）
 离线部署版本，用于增强大模型的物理知识
 """
 
-import os
 import json
 import pickle
-from typing import List, Dict, Optional, Tuple
+from typing import List, Optional, Tuple
 from dataclasses import dataclass
 from pathlib import Path
 

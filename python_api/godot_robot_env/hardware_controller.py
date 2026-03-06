@@ -6,7 +6,7 @@ AGI-Walker 硬件控制器接口
 import can
 import struct
 import time
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 import logging
 
 logging.basicConfig(level=logging.INFO)

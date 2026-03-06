@@ -5,8 +5,7 @@
 
 import numpy as np
 import gymnasium as gym
-from typing import Optional, List, Union
-import os
+from typing import Optional
 
 
 class ImitationLearner:

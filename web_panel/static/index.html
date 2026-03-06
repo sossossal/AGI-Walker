@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="module" src="https://unpkg.com/urdf-viewer/dist/urdf-viewer-element.min.js"></script>
     <title>AGI-Walker 控制面板</title>
     <style>
         * {
@@ -470,6 +471,28 @@
 
     </div>
 
+    <!-- ========== AGENT COMMAND CENTER ========== -->
+    <div class="card"
+        style="margin-bottom: 30px; background: linear-gradient(145deg, #f8fafc, #eff6ff); border: 1px solid #bfdbfe;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 style="color: #1e40af;">🧠 Agent AI 助手 (LLM 指令中枢)</h2>
+            <span
+                style="font-size: 0.85em; color: #3b82f6; background: #dbeafe; padding: 4px 10px; border-radius: 12px;">自动对接
+                Skills 流水线</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <input id="agent-input" type="text" placeholder="例如: 我需要一个能在雪地里运送货物的四足机器人，高度 0.6 米，重 20kg..."
+                style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #93c5fd; font-size: 0.95em;">
+            <button id="agent-btn" onclick="sendAgentCommand()"
+                style="background: #2563eb; padding: 12px 24px; font-weight: bold;">
+                ✨ AI 生成配置
+            </button>
+        </div>
+        <div id="agent-response"
+            style="margin-top: 15px; font-size: 0.9em; color: #475569; display: none; padding: 12px; background: #e0f2fe; border-radius: 8px; border-left: 4px solid #3b82f6;">
+        </div>
+    </div>
+
     <!-- ========== SKILLS SYSTEM PANEL ========== -->
     <div class="card" style="margin-bottom: 30px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -576,6 +599,17 @@
             </div>
             <button onclick="runSkillsExportURDF()" style="background:#10b981; padding:10px 28px;">📄 导出 URDF</button>
             <div id="urdf-result" style="margin-top:12px; display:none;"></div>
+
+            <!-- 3D 预览容器 (Export Tab) -->
+            <div id="web-3d-container-urdf"
+                style="margin-top:20px; border:1px solid #ccc; border-radius:8px; overflow:hidden; display:none;">
+                <div
+                    style="background:#f3f4f6; padding:8px; font-weight:bold; color:#555; text-align:center; border-bottom:1px solid #ccc;">
+                    🌐 Web 3D URDF 预览</div>
+                <urdf-viewer id="web-viewer-urdf" up="-Z" display-shadow tabindex="0"
+                    style="width:100%; height:400px; background:#e2e8f0; display:block; outline:none;"
+                    urdf=""></urdf-viewer>
+            </div>
         </div>
 
         <!-- Tab: Pipeline -->
@@ -616,6 +650,17 @@
             </button>
             <div id="pipeline-log"
                 style="margin-top:14px; background:#1e1b4b; border-radius:8px; padding:14px; color:#a5b4fc; font-family:monospace; font-size:0.85em; display:none; white-space:pre-wrap;">
+            </div>
+
+            <!-- 3D 预览容器 (Pipeline Tab) -->
+            <div id="web-3d-container-pl"
+                style="margin-top:20px; border:1px solid #ccc; border-radius:8px; overflow:hidden; display:none;">
+                <div
+                    style="background:#f3f4f6; padding:8px; font-weight:bold; color:#555; text-align:center; border-bottom:1px solid #ccc;">
+                    🌐 Web 3D URDF 预览</div>
+                <urdf-viewer id="web-viewer-pl" up="-Z" display-shadow tabindex="0"
+                    style="width:100%; height:400px; background:#e2e8f0; display:block; outline:none;"
+                    urdf=""></urdf-viewer>
             </div>
         </div>
     </div>
@@ -1118,6 +1163,60 @@
         }
 
         // ============================================================
+        // Agent Command JS
+        // ============================================================
+
+        async function sendAgentCommand() {
+            const inputEl = document.getElementById('agent-input');
+            const responseEl = document.getElementById('agent-response');
+            const btn = document.getElementById('agent-btn');
+            const command = inputEl.value.trim();
+
+            if (!command) return;
+
+            btn.innerHTML = "⏳ 思考中...";
+            btn.disabled = true;
+            responseEl.style.display = 'block';
+            responseEl.innerHTML = "Agent 正在分析需求并生成结构方案...";
+
+            try {
+                const res = await fetch('/api/agent/parse-command', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: command })
+                });
+                const data = await res.json();
+
+                if (data.status === 'success' && data.config.skills_params) {
+                    const p = data.config.skills_params;
+                    responseEl.innerHTML = `✅ <b>分析完成！</b> Agent 已为您自动填充了 Skills 建模表单与优化目标。<br>
+                    🤖 类型: ${p.type} | ⚖️ 躯干质量: ${p.torso_mass}kg | 📏 期望 COM 高度: ${p.target_com_height}m<br>
+                    <span style="color:#2563eb; cursor:pointer;" onclick="switchSkillsTab('pipeline')">👉 点击此处跳转到【一键流水线】并检查</span>`;
+
+                    // Autofill Pipeline Tab
+                    document.getElementById('pl-name').value = p.name || 'ai_robot';
+                    document.getElementById('pl-type').value = p.type || 'biped';
+                    document.getElementById('pl-com').value = p.target_com_height || 0.22;
+
+                    // Autofill Model Tab
+                    document.getElementById('sk-name').value = p.name || 'ai_robot';
+                    document.getElementById('sk-type').value = p.type || 'biped';
+                    if (p.torso_height) document.getElementById('sk-height').value = p.torso_height;
+                    if (p.torso_mass) document.getElementById('sk-mass').value = p.torso_mass;
+                    if (p.thigh_length) document.getElementById('sk-thigh').value = p.thigh_length;
+                    if (p.shin_length) document.getElementById('sk-shin').value = p.shin_length;
+                } else {
+                    responseEl.innerHTML = `❌ 解析失败: ${data.message || '未知错误'}`;
+                }
+            } catch (e) {
+                responseEl.innerHTML = `❌ 请求异常: ${e.message}`;
+            } finally {
+                btn.innerHTML = "✨ AI 生成配置";
+                btn.disabled = false;
+            }
+        }
+
+        // ============================================================
         // Skills System JS
         // ============================================================
 
@@ -1229,6 +1328,12 @@
                 });
                 const data = await res.json();
                 showResult('urdf-result', data, `URDF 已导出 (valid=${data.valid}): ${data.urdf_path}`);
+                if (data.status === 'success' && data.urdf_path) {
+                    document.getElementById('web-3d-container-urdf').style.display = 'block';
+                    // The server mounted /robots to 'robots', so paths like 'robots/urdf/...' map exactly to '/robots/urdf/...'
+                    const urlPath = '/' + data.urdf_path.replace(/\\/g, '/');
+                    document.getElementById('web-viewer-urdf').setAttribute('urdf', urlPath);
+                }
             } finally {
                 btn.textContent = '📄 导出 URDF'; btn.disabled = false;
             }
@@ -1258,6 +1363,12 @@
                 if (data.status === 'success') {
                     logEl.textContent += `\n\n✅ 流水线完成!\n📁 配置: ${data.config_path}\n📄 URDF: ${data.urdf_path || '未导出'}`;
                     logEl.style.color = '#86efac';
+
+                    if (data.urdf_path) {
+                        document.getElementById('web-3d-container-pl').style.display = 'block';
+                        const urlPath = '/' + data.urdf_path.replace(/\\/g, '/');
+                        document.getElementById('web-viewer-pl').setAttribute('urdf', urlPath);
+                    }
                 } else {
                     logEl.textContent += `\n❌ 失败: ${data.message}`;
                     logEl.style.color = '#fca5a5';

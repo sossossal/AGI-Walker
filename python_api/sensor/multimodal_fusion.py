@@ -4,7 +4,7 @@
 """
 
 import time
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from dataclasses import dataclass
 import numpy as np
 

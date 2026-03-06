@@ -3,7 +3,6 @@ Parts Database - Python interface to robot parts library
 """
 
 import json
-import os
 from typing import Dict, List, Optional
 from pathlib import Path
 

@@ -218,3 +218,33 @@ func reset_pose():
 	torso.angular_velocity = Vector3.ZERO
 	left_leg.linear_velocity = Vector3.ZERO
 	right_leg.linear_velocity = Vector3.ZERO
+
+func apply_sim_params(params: Dictionary):
+	"""应用域随机化参数 (Sim2Real)"""
+	if not is_scene_ready:
+		return
+		
+	# 1. 质量缩放
+	if params.has("mass_scale"):
+		var scale = float(params["mass_scale"])
+		torso.mass = 5.0 * scale
+		left_leg.mass = 1.0 * scale
+		right_leg.mass = 1.0 * scale
+		
+	# 2. 摩擦力缩放
+	if params.has("friction_scale"):
+		var f_scale = float(params["friction_scale"])
+		for body in [torso, left_leg, right_leg]:
+			if body.physics_material_override:
+				body.physics_material_override.friction = 1.0 * f_scale
+			else:
+				var mat = PhysicsMaterial.new()
+				mat.friction = 1.0 * f_scale
+				body.physics_material_override = mat
+
+	# 3. 电机强度缩放
+	if params.has("motor_strength"):
+		var m_scale = float(params["motor_strength"])
+		var force = MOTOR_FORCE * m_scale
+		hip_left.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, force)
+		hip_right.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, force)

@@ -5,7 +5,7 @@ Godot Robot Environment - OpenAI Gym/Gymnasium Compatible Interface
 
 import gymnasium as gym
 import numpy as np
-from typing import Dict, Any, Tuple, Optional
+from typing import Dict, Tuple, Optional
 import socket
 import json
 import time
@@ -312,47 +312,53 @@ class GodotRobotEnv(gym.Env):
         return obs, reward, terminated, truncated, info
 
     def _send_command(self, command: Dict):
-        """发送指令到 Godot"""
+        """发送指令到 Godot (带 4 字节小端序长度前缀)"""
         if not self.connected:
             raise RuntimeError("Not connected to Godot simulator")
 
         try:
-            message = json.dumps(command) + "\n"
-            self.socket.sendall(message.encode("utf-8"))
+            json_str = json.dumps(command)
+            data = json_str.encode("utf-8")
+            # 4-byte Little Endian length prefix
+            length_prefix = len(data).to_bytes(4, byteorder="little")
+            self.socket.sendall(length_prefix + data)
         except Exception as e:
             print(f"❌ Failed to send command: {e}")
             self.connected = False
             raise
 
     def _receive_observation(self) -> Dict:
-        """从 Godot 接收观察数据"""
+        """从 Godot 接收观察数据 (带 4 字节小端序长度前缀)"""
         if not self.connected:
             raise RuntimeError("Not connected to Godot simulator")
 
         try:
-            # 接收数据直到缓冲区中有完整的换行符
-            while b"\n" not in self.buffer:
+            # 接收长度前缀 (4 字节)
+            while len(self.buffer) < 4:
                 chunk = self.socket.recv(4096)
                 if not chunk:
                     raise ConnectionError("Connection closed by Godot")
                 self.buffer += chunk
 
-            # 分割第一条消息
-            line, rest = self.buffer.split(b"\n", 1)
-            self.buffer = rest  # 保留剩余数据
+            length = int.from_bytes(self.buffer[:4], byteorder="little")
 
-            # 解析 JSON
-            message = line.decode("utf-8").strip()
-            if not message:  # 空行处理
-                return self._receive_observation()  # 递归读取下一条
+            # 接收完整 payload
+            while len(self.buffer) < 4 + length:
+                chunk = self.socket.recv(4096)
+                if not chunk:
+                    raise ConnectionError("Connection closed by Godot")
+                self.buffer += chunk
 
+            # 提取消息
+            message_bytes = self.buffer[4 : 4 + length]
+            self.buffer = self.buffer[4 + length :]
+
+            message = message_bytes.decode("utf-8").strip()
             data = json.loads(message)
 
-            # 转换为 observation 格式
             return self._parse_sensor_data(data)
 
         except Exception as e:
-            # 移除这里的emoji防止再次崩溃
             print(f"Failed to receive observation: {e}")
             self.connected = False
             raise

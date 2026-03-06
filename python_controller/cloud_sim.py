@@ -3,7 +3,6 @@
 兼容AWS RoboMaker和本地并行仿真
 """
 
-import os
 import json
 import time
 import asyncio

@@ -11,7 +11,7 @@ from dataclasses import dataclass, asdict
 import xml.etree.ElementTree as ET
 
 from sim2real_gap import PhysicsParams, Sim2RealGapEstimator
-from sim2real_analyzer import Sim2RealAnalyzer, GapReport
+from sim2real_analyzer import GapReport
 
 
 @dataclass

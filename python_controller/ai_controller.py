@@ -4,7 +4,6 @@ AI驱动的机器人控制器
 """
 
 import time
-import json
 from typing import Optional
 from tcp_client import GodotClient
 from ai_model import create_ai_model, BaseAIModel

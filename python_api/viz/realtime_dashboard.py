@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.gridspec import GridSpec
 import numpy as np
-from typing import Dict, List
 from collections import deque
 import time
 

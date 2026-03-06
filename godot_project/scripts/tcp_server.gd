@@ -95,7 +95,11 @@ func _process_command(cmd):
 	
 	if cmd.type == "reset":
 		print("🔄 [TCP] Resetting Simulation")
-		# Reset logic here
+		if robot_node != null:
+			if robot_node.has_method("reset_pose"):
+				robot_node.reset_pose()
+			if cmd.has("sim_params") and robot_node.has_method("apply_sim_params"):
+				robot_node.apply_sim_params(cmd.get("sim_params"))
 		response = _get_observation()
 		
 	elif cmd.type == "step":

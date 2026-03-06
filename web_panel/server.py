@@ -19,6 +19,8 @@ app = FastAPI(title="AGI-Walker Control Panel", version="1.0.0")
 
 # Mount Static Files
 app.mount("/static", StaticFiles(directory="web_panel/static"), name="static")
+os.makedirs("robots", exist_ok=True)
+app.mount("/robots", StaticFiles(directory="robots"), name="robots")
 app.mount("/docs", StaticFiles(directory="docs/build/html", html=True), name="docs")
 
 # 存储活跃的 WebSocket 连接

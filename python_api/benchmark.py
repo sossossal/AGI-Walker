@@ -5,7 +5,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import gymnasium as gym
-from typing import List, Dict
+from typing import Dict
 import time
 
 

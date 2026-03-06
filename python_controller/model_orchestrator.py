@@ -5,10 +5,10 @@
 """
 
 import time
-from typing import Dict, Optional, Literal, Callable
+from typing import Optional, Callable
 from dataclasses import dataclass
 from enum import Enum
-from ai_model import BaseAIModel, OllamaModel, create_ai_model
+from ai_model import BaseAIModel, create_ai_model
 from medium_model import MediumModel
 
 

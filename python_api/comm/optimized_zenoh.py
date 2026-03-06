@@ -3,7 +3,7 @@
 """
 
 import json
-from typing import Callable, Any, Optional, Dict
+from typing import Callable, Any, Dict
 import time
 
 try:
