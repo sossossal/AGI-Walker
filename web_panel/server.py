@@ -506,6 +506,208 @@ async def import_part(req: ImportPartRequest):
 
 
 
+# ---------------------------------------------------------------------------
+# Skills System API
+# ---------------------------------------------------------------------------
+
+@app.get("/api/skills/list")
+async def skills_list():
+    """列出所有可用 Skills 及其元数据"""
+    try:
+        import sys
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if root_dir not in sys.path:
+            sys.path.insert(0, root_dir)
+        from agi_walker.skills_loader import get_skills_loader
+        loader = get_skills_loader()
+        skills = loader.get_skills_list()
+        result = []
+        for skill in skills:
+            result.append({
+                "name": skill.name,
+                "display_name": skill.display_name,
+                "description": skill.description,
+                "version": skill.version,
+                "category": skill.category,
+                "requires": skill.requires,
+            })
+        return {"status": "success", "skills": result, "count": len(result)}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+class ModelRequest(pydantic.BaseModel):
+    name: str = "web_robot"
+    robot_type: str = "biped"  # biped | quadruped
+    torso_height: float = 0.5
+    torso_mass: float = 5.0
+    thigh_length: float = 0.3
+    shin_length: float = 0.3
+
+@app.post("/api/skills/model")
+async def skills_model(req: ModelRequest):
+    """调用 robot-modeling Skill 构建机器人模型"""
+    try:
+        import sys
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if root_dir not in sys.path:
+            sys.path.insert(0, root_dir)
+        import importlib.util
+        from pathlib import Path
+        skill_file = Path(root_dir) / "agi_walker" / "skills" / "robot-modeling" / "__init__.py"
+        spec = importlib.util.spec_from_file_location("robot_modeling_skill", skill_file)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        builder = module.RobotBuilder(req.name).add_torso(height=req.torso_height, mass=req.torso_mass)
+        if req.robot_type == "biped":
+            builder = builder.add_leg_pair(thigh_length=req.thigh_length, shin_length=req.shin_length)
+        robot = builder.build()
+        config_path = os.path.join(root_dir, "configs", f"{req.name}.json")
+        robot.save(config_path)
+        return {
+            "status": "success",
+            "robot_name": robot.name,
+            "parts_count": len(robot.parts),
+            "config_path": config_path,
+            "robot_dict": robot.to_dict()
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+class OptimizeRequest(pydantic.BaseModel):
+    config_path: str
+    target_com_height: float = 0.22
+    max_iterations: int = 50
+
+@app.post("/api/skills/optimize")
+async def skills_optimize(req: OptimizeRequest):
+    """调用 parameter-optimizer Skill 对机器人参数进行优化"""
+    try:
+        import sys
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if root_dir not in sys.path:
+            sys.path.insert(0, root_dir)
+        import importlib.util, json
+        from pathlib import Path
+        skill_file = Path(root_dir) / "agi_walker" / "skills" / "parameter-optimizer" / "__init__.py"
+        spec = importlib.util.spec_from_file_location("param_opt_skill", skill_file)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        with open(req.config_path, encoding="utf-8") as f:
+            robot_dict = json.load(f)
+        result = module.optimize_mass_distribution(
+            robot_dict,
+            target_com_height=req.target_com_height,
+            max_iterations=req.max_iterations
+        )
+        return {
+            "status": "success",
+            "success": result.success,
+            "iterations": result.iterations,
+            "final_com_height": getattr(result, "final_com_height", None),
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+class ExportURDFRequest(pydantic.BaseModel):
+    config_path: str
+    output_name: str = ""
+
+@app.post("/api/skills/export-urdf")
+async def skills_export_urdf(req: ExportURDFRequest):
+    """调用 urdf-generator Skill 将机器人配置转换为 URDF"""
+    try:
+        import sys
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if root_dir not in sys.path:
+            sys.path.insert(0, root_dir)
+        import importlib.util
+        from pathlib import Path
+        skill_file = Path(root_dir) / "agi_walker" / "skills" / "urdf-generator" / "__init__.py"
+        spec = importlib.util.spec_from_file_location("urdf_gen_skill", skill_file)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        name = req.output_name or Path(req.config_path).stem
+        exports_dir = Path(root_dir) / "exports"
+        exports_dir.mkdir(exist_ok=True)
+        output_path = str(exports_dir / f"{name}.urdf")
+        module.convert_to_urdf(req.config_path, output_path)
+        is_valid = module.validate_urdf(output_path)
+        return {
+            "status": "success",
+            "urdf_path": output_path,
+            "valid": is_valid,
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+class PipelineRequest(pydantic.BaseModel):
+    name: str = "pipeline_robot"
+    robot_type: str = "biped"
+    torso_height: float = 0.5
+    torso_mass: float = 5.0
+    thigh_length: float = 0.3
+    shin_length: float = 0.3
+    target_com_height: float = 0.22
+    max_iterations: int = 30
+    export_urdf: bool = True
+
+@app.post("/api/skills/pipeline")
+async def skills_pipeline(req: PipelineRequest):
+    """一键完整流水线: 建模 → 参数优化 → URDF 导出"""
+    log = []
+    try:
+        # Step 1: Model
+        model_req = ModelRequest(
+            name=req.name, robot_type=req.robot_type,
+            torso_height=req.torso_height, torso_mass=req.torso_mass,
+            thigh_length=req.thigh_length, shin_length=req.shin_length
+        )
+        model_res = await skills_model(model_req)
+        if model_res["status"] != "success":
+            return {"status": "error", "step": "model", "message": model_res["message"], "log": log}
+        log.append(f"✅ 建模完成: {model_res['robot_name']} ({model_res['parts_count']} parts)")
+
+        # Step 2: Optimize
+        opt_req = OptimizeRequest(
+            config_path=model_res["config_path"],
+            target_com_height=req.target_com_height,
+            max_iterations=req.max_iterations
+        )
+        opt_res = await skills_optimize(opt_req)
+        if opt_res["status"] != "success":
+            log.append(f"⚠️ 参数优化失败 (scipy 可能未安装): {opt_res['message']}")
+        else:
+            log.append(f"✅ 优化完成: {opt_res['iterations']} 次迭代, 成功={opt_res['success']}")
+
+        # Step 3: Export URDF
+        urdf_path = None
+        if req.export_urdf:
+            urdf_req = ExportURDFRequest(config_path=model_res["config_path"], output_name=req.name)
+            urdf_res = await skills_export_urdf(urdf_req)
+            if urdf_res["status"] != "success":
+                log.append(f"⚠️ URDF 导出失败: {urdf_res['message']}")
+            else:
+                urdf_path = urdf_res["urdf_path"]
+                log.append(f"✅ URDF 导出完成: {urdf_path} (valid={urdf_res['valid']})")
+
+        return {
+            "status": "success",
+            "log": log,
+            "config_path": model_res["config_path"],
+            "urdf_path": urdf_path,
+            "robot_dict": model_res["robot_dict"]
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e), "log": log}
+
+
 if __name__ == "__main__":
     print("🌐 启动 AGI-Walker Web 控制面板")
     print("访问: http://localhost:8000")
