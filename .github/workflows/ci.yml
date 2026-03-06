@@ -59,8 +59,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          # 仅安装必要插件，排除 pytest-cov 以确认是否为冲突根源
+          # 核心测试插件
           pip install pytest pytest-mock stable-baselines3 gymnasium lxml
+          # scipy: 用于 Skills/parameter-optimizer 完整工作流测试
+          pip install scipy
 
       # 调试: 找出哪个测试文件导致导入阶段崩溃 (Exit Code 2 根因)
       - name: Debug Test Collection
