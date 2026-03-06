@@ -1,48 +1,44 @@
 import os
 import sys
-import traceback
-import importlib.util
+import subprocess
 
-def debug_imports():
-    print("--- 调试测试文件导入 ---")
-    # 显式设置路径
-    root_dir = os.getcwd()
-    if root_dir not in sys.path:
-        sys.path.insert(0, root_dir)
-    
+def run_tests_individually():
+    print("--- 逐个运行测试文件进行深度诊断 ---")
     test_dir = "tests"
-    if not os.path.exists(test_dir):
-        print(f"错误: 找不到目录 {test_dir}")
-        return
-
     files = [f for f in os.listdir(test_dir) if f.startswith("test_") and f.endswith(".py")]
     files.sort()
     
-    failed = False
+    global_failed = False
     for f in files:
-        module_name = f"tests.{f[:-3]}"
-        file_path = os.path.join(test_dir, f)
-        print(f"尝试导入 {f}...", end=" ", flush=True)
-        try:
-            # 使用 importlib 动态加载
-            spec = importlib.util.spec_from_file_location(module_name, file_path)
-            module = importlib.util.module_from_spec(spec)
-            # 模拟 pytest 的行为，将模块加入 sys.modules
-            sys.modules[module_name] = module
-            spec.loader.exec_module(module)
-            print("OK")
-        except Exception:
-            print("FAILED!")
-            traceback.print_exc()
-            failed = True
+        print(f"\n>>> 运行 {f} ...")
+        # 运行 pytest 并捕获输出
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", os.path.join(test_dir, f), "-v", "--tb=short"],
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            print(f"OK: {f} 通过")
+        elif result.returncode == 5:
+            print(f"SKIP: {f} 未发现测试用例")
+        else:
+            print(f"FAIL: {f} 返回状态码 {result.returncode}")
+            print("--- 错误日志摘要 ---")
+            # 打印 stdout 和 stderr 的最后 20 行
+            output = result.stdout + result.stderr
+            lines = output.splitlines()
+            for line in lines[-30:]:
+                print(line)
+            global_failed = True
             print("-" * 40)
     
-    if failed:
-        print("
-结论: 部分测试文件在导入阶段崩溃，这正是 Exit Code 2 的原因。")
+    if global_failed:
+        print("\n诊断完成: 发现失败的测试文件。")
+        # 注意：这里我们故意不以非零状态码退出，
+        # 以便让 CI 继续运行主 pytest 步骤，从而让我们看到完整的测试矩阵。
     else:
-        print("
-结论: 所有测试文件导入正常，请检查 pytest 插件冲突。")
+        print("\n诊断完成: 所有文件在独立运行时均正常。")
 
 if __name__ == "__main__":
-    debug_imports()
+    run_tests_individually()
