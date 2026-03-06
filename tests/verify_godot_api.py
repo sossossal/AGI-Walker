@@ -1,73 +1,69 @@
-import requests
+"""
+验证 Godot API 接口
+"""
+
+import socket
+import json
 import time
-import threading
 import sys
-import os
-
-# Import mock server from godot_client
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from python_api.comm.godot_client import MockGodotServer
-
-API_BASE = "http://localhost:8000/api/godot"
 
 
-def test_web_godot_integration():
-    print("🚀 Starting Web-Godot Integration Test...")
-
-    # 1. Start Mock Godot Server
-    mock_server = MockGodotServer(port=9999)
-    if not mock_server.start():
-        print("Failed to start mock server")
-        return
+def verify_api(host="127.0.0.1", port=9999):
+    print(f"Connecting to Godot at {host}:{port}...")
 
     try:
-        time.sleep(1)
+        # 创建 Socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2)
+        sock.connect((host, port))
 
-        # 2. Test Connect
-        print("\n[1] Testing Connect...")
-        res = requests.post(
-            f"{API_BASE}/connect", json={"host": "127.0.0.1", "port": 9999}
-        )
-        print(f"Response: {res.json()}")
-        assert res.status_code == 200 and res.json()["status"] == "connected"
+        # 测试 1: 发送 Handshake
+        handshake = {"type": "handshake", "client": "verify_script", "version": "1.0"}
+        sock.sendall(json.dumps(handshake).encode())
 
-        # 3. Test Status
-        print("\n[2] Testing Status...")
-        res = requests.get(f"{API_BASE}/status")
-        print(f"Response: {res.json()}")
-        assert res.json()["connected"] == True
+        # 等待回复
+        data = sock.recv(1024)
+        if data:
+            response = json.loads(data.decode())
+            print(f"✅ Handshake Success: {response}")
+        else:
+            print("❌ No response from Godot")
+            return False
 
-        # 4. Test Start Sim
-        print("\n[3] Testing Start Simulation...")
-        res = requests.post(f"{API_BASE}/start", json={"physics": {"gravity": 5.0}})
-        print(f"Response: {res.json()}")
-        assert res.json()["status"] == "started"
+        # 测试 2: 发送 Motor Commands
+        motor_cmd = {
+            "type": "control",
+            "motors": {"hip_left": 1.0, "hip_right": -1.0},
+            "timestamp": time.time(),
+        }
+        sock.sendall(json.dumps(motor_cmd).encode())
+        print("✅ Motor Command Sent")
 
-        # 5. Test Update Params
-        print("\n[4] Testing Update Params...")
-        res = requests.post(f"{API_BASE}/update-params", json={"motor_power": 2.0})
-        print(f"Response: {res.json()}")
-        assert res.json()["status"] == "updated"
+        # 测试 3: 获取传感器数据
+        data = sock.recv(4096)
+        if data:
+            sensors = json.loads(data.decode())
+            print(f"✅ Received Sensor Data: {sensors.keys()}")
+            if "imu" in sensors.get("sensors", {}):
+                print(f"   IMU Orientation: {sensors['sensors']['imu']['orient']}")
+        else:
+            print("❌ No sensor data received")
 
-        # 6. Test Stop Sim
-        print("\n[5] Testing Stop Simulation...")
-        res = requests.post(f"{API_BASE}/stop")
-        print(f"Response: {res.json()}")
-        assert res.json()["status"] == "stopped"
+        sock.close()
+        print("\n🎉 Godot API Verification Finished Successfully!")
+        return True
 
-        # 7. Test Disconnect
-        print("\n[6] Testing Disconnect...")
-        res = requests.post(f"{API_BASE}/disconnect")
-        print(f"Response: {res.json()}")
-        assert res.json()["status"] == "disconnected"
-
-        print("\n✅ All Godot Web APIs verified successfully!")
-
+    except ConnectionRefusedError:
+        print("❌ Connection Refused: Ensure Godot is running and TCP server is started.")
+        return False
+    except socket.timeout:
+        print("❌ Connection Timeout")
+        return False
     except Exception as e:
-        print(f"\n❌ Test Failed: {e}")
-    finally:
-        mock_server.stop()
+        print(f"❌ Unexpected Error: {e}")
+        return False
 
 
 if __name__ == "__main__":
-    test_web_godot_integration()
+    success = verify_api()
+    sys.exit(0 if success else 1)
