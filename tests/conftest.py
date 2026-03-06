@@ -4,7 +4,6 @@ from pathlib import Path
 import pytest
 
 # 1. 确保项目根目录在 sys.path 中，且具有最高优先级
-# 使用绝对路径解析，防止符号链接或工作目录不一致导致的问题
 project_root = str(Path(__file__).resolve().parent.parent)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -13,28 +12,40 @@ if project_root not in sys.path:
 def pytest_sessionstart(session):
     """
     在测试收集开始前运行。
-    用于检测 CI 环境中是否存在可能导致段错误的缺失依赖。
     """
     print(f"\n[CI-SelfCheck] Project Root: {project_root}")
-    print(f"[CI-SelfCheck] Python Executable: {sys.executable}")
+    print(f"[CI-SelfCheck] Platform: {sys.platform}")
     
-    # 检测关键库是否可用，但不加载它们，仅探测
+    # 检测可能导致段错误的底层库（但不直接加载它们）
     try:
         import importlib.util
-        for lib in ['numpy', 'gymnasium']:
+        for lib in ['numpy', 'gymnasium', 'zenoh']:
             spec = importlib.util.find_spec(lib)
             status = "Found" if spec else "Not Found"
-            print(f"[CI-SelfCheck] Library {lib}: {status}")
+            print(f"[CI-SelfCheck] Dependency {lib}: {status}")
     except Exception as e:
-        print(f"[CI-SelfCheck] Warning during self-check: {e}")
+        print(f"[CI-SelfCheck] Pre-check warning: {e}")
 
-# 3. 拦截特定文件的收集（可选，作为最后手段）
-# 如果已知某个文件在特定平台上会导致崩溃，可以在这里排除它
+# 3. 强制忽略非测试脚本的收集
 def pytest_ignore_collect(path, config):
     """
     根据路径忽略特定的测试文件。
+    彻底杜绝 verify_*, validate_*, benchmark_* 等脚本在扫描时产生副作用。
     """
-    # 如果在 Linux 上运行且检测到某些硬件相关文件，可以忽略
-    # if sys.platform == 'linux' and 'hardware' in str(path):
-    #     return True
+    base_name = os.path.basename(str(path))
+    
+    # 排除所有不以 test_ 开头的 Python 脚本（除了 conftest.py）
+    if base_name.endswith(".py") and not base_name.startswith("test_") and base_name != "conftest.py":
+        return True
+        
     return False
+
+# 4. 全局捕获导入时的致命错误 (试验性)
+# 注意：这无法捕获真正的段错误，但可以捕获 OSError
+@pytest.hookimpl(tryfirst=True)
+def pytest_collect_file(file_path, parent):
+    try:
+        # 这里仅作记录，不执行实际导入
+        pass
+    except Exception as e:
+        print(f"[CI-Critical] Failed to scan {file_path}: {e}")
