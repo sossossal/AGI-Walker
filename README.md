@@ -123,9 +123,9 @@ python agi_walker/gui/skills_browser.py
 
 📚 **完整文档**: 
 - [Skills系统指南](.agent/AGENTS.md)
-- [CLI使用](docs/CLI_GUIDE.md)
-- [GUI使用](docs/GUI_GUIDE.md)
-- [开发新Skill](docs/SKILLS_DEVELOPMENT.md)
+- [CLI使用](docs/guides/CLI_GUIDE.md)
+- [GUI使用](docs/guides/GUI_GUIDE.md)
+- [开发新Skill](docs/guides/SKILLS_DEVELOPMENT.md)
 
 
 ---
@@ -195,7 +195,7 @@ python web_panel/server.py
 - **BOM 自动计算**: 实时生成物料清单与成本估算
 - **一键组装**: 像乐高一样组装机器人
 
-[零件库文档 →](docs/MODULAR_ROBOT_BUILDER.md)
+[零件库文档 →](docs/hardware/MODULAR_ROBOT_BUILDER.md)
 
 ### 5. Web 控制面板
 - **任务管理**: 创建、监控、评估
@@ -208,14 +208,14 @@ python web_panel/server.py
   - ⚡ **实时调参**: 动态调整电机功率、PID 等物理参数
   - 📊 **状态反馈**: 实时查看位置、速度、电量等传感器数据
 
-[Web 面板指南 →](docs/WEB_PANEL_GUIDE.md)
+[Web 面板指南 →](docs/guides/WEB_PANEL_GUIDE.md)
 
 ### 6. 硬件部署支持
 - **ESP32 固件**: Zenoh-Pico 通信
 - **ROS 2 集成**: 标准机器人生态
 - **完整文档**: BOM、接线图、烧录指南
 
-[硬件部署 →](docs/HARDWARE_DEPLOYMENT.md)
+[硬件部署 →](docs/hardware/HARDWARE_DEPLOYMENT.md)
 
 ---
 
@@ -273,7 +273,7 @@ python web_panel/server.py
 - [**API 文档**](docs/api/) - 完整 API 参考
 - [**任务库**](examples/tasks/README.md) - 10 个标准任务
 - [**开发者指南**](docs/guides/developer_guide.md) - 贡献代码
-- [**硬件部署**](docs/HARDWARE_DEPLOYMENT.md) - 真实机器人
+- [**硬件部署**](docs/hardware/HARDWARE_DEPLOYMENT.md) - 真实机器人
 - [**性能基准**](tests/benchmark_performance.py) - 性能测试
 
 ---
@@ -286,7 +286,7 @@ python web_panel/server.py
 | 物体抓取 | SAC | 72% | 训练中 |
 | 避障导航 | PPO | 90% | 训练中 |
 
-[模型库 →](docs/MODEL_ZOO.md)
+[模型库 →](docs/architecture/MODEL_ZOO.md)
 
 ---
 
@@ -298,7 +298,7 @@ python web_panel/server.py
 - 💡 [提出新功能](https://github.com/sossossal/AGI-Walker/discussions)
 - 📝 [改进文档](docs/)
 - 🎯 [贡献任务](examples/tasks/)
-- 🤖 [分享模型](docs/MODEL_ZOO.md)
+- 🤖 [分享模型](docs/architecture/MODEL_ZOO.md)
 
 [贡献指南 →](CONTRIBUTING.md)
 

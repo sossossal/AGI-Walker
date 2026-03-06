@@ -1,0 +1,165 @@
+
+[CI-SelfCheck] Project Root: D:\新建文件夹\AGI-Walker
+[CI-SelfCheck] Platform: win32
+[CI-SelfCheck] Dependency numpy: Found
+[CI-SelfCheck] Dependency gymnasium: Found
+[CI-SelfCheck] Dependency zenoh: Found
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.0.2, pluggy-1.6.0 -- D:\新建文件夹\AGI-Walker\test_env\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: D:\新建文件夹\AGI-Walker
+configfile: pytest.ini
+plugins: mock-3.15.1
+collecting ... collected 123 items / 1 skipped
+
+tests/test_ai_system.py::test_model_loading SKIPPED                      [  0%]
+tests/test_ai_system.py::test_inference_speed SKIPPED                    [  1%]
+tests/test_ai_system.py::test_json_format SKIPPED                        [  2%]
+tests/test_ai_system.py::test_safety_checker SKIPPED                     [  3%]
+tests/test_architecture.py::TestLoadMonitor::test_initial_state PASSED   [  4%]
+tests/test_architecture.py::TestLoadMonitor::test_latency_recording PASSED [  4%]
+tests/test_architecture.py::TestLoadMonitor::test_fallback_trigger PASSED [  5%]
+tests/test_architecture.py::TestLoadMonitor::test_recovery_from_fallback PASSED [  6%]
+tests/test_architecture.py::TestLoadMonitor::test_pid_control_action PASSED [  7%]
+tests/test_architecture.py::TestSimplePIDController::test_zero_error PASSED [  8%]
+tests/test_architecture.py::TestSimplePIDController::test_positive_roll PASSED [  8%]
+tests/test_architecture.py::TestSimplePIDController::test_output_limits PASSED [  9%]
+tests/test_architecture.py::TestRAGKnowledgeBase::test_knowledge_loading PASSED [ 10%]
+tests/test_architecture.py::TestRAGKnowledgeBase::test_keyword_retrieval PASSED [ 11%]
+tests/test_architecture.py::TestRAGKnowledgeBase::test_prompt_augmentation PASSED [ 12%]
+tests/test_architecture.py::test_vision_processor_mock SKIPPED (视觉模块不可用) [ 13%]
+tests/test_architecture.py::test_multimodal_fusion_mock SKIPPED          [ 13%]
+tests/test_architecture.py::test_load_monitor_integration PASSED         [ 14%]
+tests/test_custom_parts.py::test_motor_customization PASSED              [ 15%]
+tests/test_custom_parts.py::test_joint_customization PASSED              [ 16%]
+tests/test_custom_parts.py::test_stiffness_impact PASSED                 [ 17%]
+tests/test_custom_parts.py::test_configuration_comparison PASSED         [ 17%]
+tests/test_custom_parts.py::test_performance_metrics PASSED              [ 18%]
+tests/test_environment.py::TestGodotRobotEnv::test_env_creation PASSED   [ 19%]
+tests/test_environment.py::TestGodotRobotEnv::test_reset PASSED          [ 20%]
+tests/test_environment.py::TestGodotRobotEnv::test_step PASSED           [ 21%]
+tests/test_environment.py::TestGodotRobotEnv::test_observation_space_shape PASSED [ 21%]
+tests/test_environment.py::TestGodotRobotEnv::test_action_space_bounds PASSED [ 22%]
+tests/test_environment.py::TestEnvironmentPresets::test_earth_preset PASSED [ 23%]
+tests/test_environment.py::TestEnvironmentPresets::test_moon_preset PASSED [ 24%]
+tests/test_environment.py::TestEnvironmentPresets::test_mars_preset PASSED [ 25%]
+tests/test_environment.py::TestEnvironmentPresets::test_custom_gravity PASSED [ 26%]
+tests/test_environment.py::TestDomainRandomization::test_randomization_on_reset PASSED [ 26%]
+tests/test_environment.py::TestDomainRandomization::test_friction_randomization PASSED [ 27%]
+tests/test_environment.py::TestDomainRandomization::test_sensor_noise PASSED [ 28%]
+tests/test_environment.py::TestRewardFunction::test_forward_velocity_reward PASSED [ 29%]
+tests/test_environment.py::TestRewardFunction::test_energy_penalty PASSED [ 30%]
+tests/test_environment.py::TestRewardFunction::test_survival_bonus PASSED [ 30%]
+tests/test_extended.py::TestZenohInterface::test_session_creation PASSED [ 31%]
+tests/test_extended.py::TestZenohInterface::test_publisher_creation PASSED [ 32%]
+tests/test_extended.py::TestZenohInterface::test_publish PASSED          [ 33%]
+tests/test_extended.py::TestZenohInterface::test_subscriber_creation PASSED [ 34%]
+tests/test_extended.py::TestTaskEditor::test_create_task PASSED          [ 34%]
+tests/test_extended.py::TestTaskEditor::test_set_param PASSED            [ 35%]
+tests/test_extended.py::TestTaskEditor::test_save_load_task PASSED       [ 36%]
+tests/test_extended.py::TestPartsManager::test_load_parts PASSED         [ 37%]
+tests/test_extended.py::TestPartsManager::test_get_part PASSED           [ 38%]
+tests/test_extended.py::TestPartsManager::test_calculate_bom PASSED      [ 39%]
+tests/test_extended.py::TestTaskEnvironments::test_stair_climbing_env PASSED [ 39%]
+tests/test_extended.py::TestTaskEnvironments::test_object_grasping_env PASSED [ 40%]
+tests/test_godot_client.py::TestGodotClient::test_connection 客户端处理错误: [WinError 10054] 远程主机强迫关闭了一个现有的连接。
+PASSED      [ 41%]
+tests/test_godot_client.py::TestGodotClient::test_connection_timeout PASSED [ 42%]
+tests/test_godot_client.py::TestGodotClient::test_data_callback PASSED   [ 43%]
+tests/test_godot_client.py::TestGodotClient::test_send_commands PASSED   [ 43%]
+tests/test_hardware_controller.py::TestIMC22Controller::test_controller_initialization SKIPPED [ 44%]
+tests/test_hardware_controller.py::TestIMC22Controller::test_send_command SKIPPED [ 45%]
+tests/test_hardware_controller.py::TestIMC22Controller::test_command_angle_bounds SKIPPED [ 46%]
+tests/test_hardware_controller.py::TestIMC22Controller::test_command_compliance_bounds SKIPPED [ 47%]
+tests/test_hardware_controller.py::TestIMC22Controller::test_read_status SKIPPED [ 47%]
+tests/test_hardware_controller.py::TestIMC22Controller::test_discover_nodes SKIPPED [ 48%]
+tests/test_hardware_controller.py::TestIMC22Controller::test_real_hardware_connection SKIPPED [ 49%]
+tests/test_hardware_controller.py::TestHardwareEnvironment::test_hardware_env_creation SKIPPED [ 50%]
+tests/test_hardware_controller.py::TestHardwareEnvironment::test_hardware_reset SKIPPED [ 51%]
+tests/test_hardware_controller.py::TestHardwareEnvironment::test_hardware_step SKIPPED [ 52%]
+tests/test_hardware_controller.py::TestCANProtocol::test_message_id_calculation PASSED [ 52%]
+tests/test_hardware_controller.py::TestCANProtocol::test_angle_encoding PASSED [ 53%]
+tests/test_hardware_controller.py::TestCANProtocol::test_angle_decoding PASSED [ 54%]
+tests/test_hardware_controller.py::TestCANProtocol::test_compliance_encoding PASSED [ 55%]
+tests/test_integration.py::test_zenoh_import PASSED                      [ 56%]
+tests/test_integration.py::test_zenoh_session PASSED                     [ 56%]
+tests/test_integration.py::test_zenoh_pubsub PASSED                      [ 57%]
+tests/test_integration.py::test_tcp_zenoh_bridge PASSED                  [ 58%]
+tests/test_integration.py::test_ros2_node SKIPPED (ROS 2 未安装)         [ 59%]
+tests/test_integration.py::test_parts_manager PASSED                     [ 60%]
+tests/test_latency.py::test_latency SKIPPED (无法连接到仿真器 (Godot 未运行)) [ 60%]
+tests/test_offline_rl.py::test_offline_rl_imports PASSED                 [ 61%]
+tests/test_offline_rl.py::test_d3rlpy_installed SKIPPED (d3rlpy not
+installed)                                                               [ 62%]
+tests/test_offline_rl.py::test_data_collector_creation PASSED            [ 63%]
+tests/test_parts_database.py::TestPartsDatabase::test_load_parts_database PASSED [ 64%]
+tests/test_parts_database.py::TestPartsDatabase::test_get_part PASSED    [ 65%]
+tests/test_parts_database.py::TestPartsDatabase::test_get_nonexistent_part PASSED [ 65%]
+tests/test_parts_database.py::TestPartsDatabase::test_list_parts_by_category PASSED [ 66%]
+tests/test_parts_database.py::TestPartsDatabase::test_calculate_total_cost PASSED [ 67%]
+tests/test_parts_database.py::TestPartsDatabase::test_part_json_schema_validation PASSED [ 68%]
+tests/test_parts_database.py::TestPartSpecifications::test_motor_torque_positive PASSED [ 69%]
+tests/test_parts_database.py::TestPartSpecifications::test_motor_speed_positive PASSED [ 69%]
+tests/test_parts_database.py::TestPartSpecifications::test_price_positive PASSED [ 70%]
+tests/test_pid_balance.py::TestPIDBalance::test_pid_default_config SKIPPED [ 71%]
+tests/test_skill_validation.py::test_validation_description_type PASSED  [ 72%]
+tests/test_skill_validation.py::test_validation_description_empty PASSED [ 73%]
+tests/test_skill_validation.py::test_validation_requires_element_type PASSED [ 73%]
+tests/test_skill_validation.py::test_validation_requires_is_list PASSED  [ 74%]
+tests/test_skills_loader.py::test_skills_loader_init PASSED              [ 75%]
+tests/test_skills_loader.py::test_parse_skill_metadata PASSED            [ 76%]
+tests/test_skills_loader.py::test_get_skill_doc PASSED                   [ 77%]
+tests/test_skills_loader.py::test_search_skills PASSED                   [ 78%]
+tests/test_skills_loader.py::test_get_skill_by_category PASSED           [ 78%]
+tests/test_skills_loader.py::test_invalid_skill_md PASSED                [ 79%]
+tests/test_skills_loader.py::test_missing_required_fields PASSED         [ 80%]
+tests/test_skills_loader.py::test_skill_display_name PASSED              [ 81%]
+tests/test_skills_loader.py::test_get_all_categories PASSED              [ 82%]
+tests/test_skills_loader.py::test_invalid_description_type PASSED        [ 82%]
+tests/test_skills_loader.py::test_empty_description PASSED               [ 83%]
+tests/test_skills_loader.py::test_invalid_requires_element PASSED        [ 84%]
+tests/test_skills_loader.py::test_requires_null_value PASSED             [ 85%]
+tests/test_skills_system.py::TestSkillsLoader::test_loader_initialization PASSED [ 86%]
+tests/test_skills_system.py::TestSkillsLoader::test_list_skills PASSED   [ 86%]
+tests/test_skills_system.py::TestSkillsLoader::test_get_skill PASSED     [ 87%]
+tests/test_skills_system.py::TestSkillsLoader::test_search_skills PASSED [ 88%]
+tests/test_skills_system.py::TestSkillsLoader::test_get_categories PASSED [ 89%]
+tests/test_skills_system.py::TestRobotModeling::test_builder_basic PASSED [ 90%]
+tests/test_skills_system.py::TestRobotModeling::test_list_templates PASSED [ 91%]
+tests/test_skills_system.py::TestRobotModeling::test_load_template PASSED [ 91%]
+tests/test_skills_system.py::TestParamOptimizer::test_optimize_mass ERROR [ 92%]
+tests/test_skills_system.py::TestURDFGenerator::test_urdf_generation PASSED [ 93%]
+tests/test_skills_system.py::TestURDFGenerator::test_urdf_validation PASSED [ 94%]
+tests/test_skills_system.py::test_full_workflow ERROR                    [ 95%]
+tests/test_skills_system.py::test_cli_tools PASSED                       [ 95%]
+tests/test_suite.py::TCPCommunicationTest::test_connection SKIPPED       [ 96%]
+tests/test_suite.py::TCPCommunicationTest::test_latency SKIPPED          [ 97%]
+tests/test_suite.py::TCPCommunicationTest::test_data_integrity SKIPPED   [ 98%]
+tests/test_suite.py::StabilityTest::test_standing_stability SKIPPED      [ 99%]
+tests/test_suite.py::PerformanceTest::test_control_frequency SKIPPED     [100%]
+
+=================================== ERRORS ====================================
+___________ ERROR at setup of TestParamOptimizer.test_optimize_mass ___________
+tests\test_skills_system.py:48: in param_opt_skill
+    spec.loader.exec_module(module)
+<frozen importlib._bootstrap_external>:999: in exec_module
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+agi_walker\skills\parameter-optimizer\__init__.py:12: in <module>
+    from scipy.optimize import minimize, differential_evolution
+E   ModuleNotFoundError: No module named 'scipy'
+____________________ ERROR at setup of test_full_workflow _____________________
+tests\test_skills_system.py:48: in param_opt_skill
+    spec.loader.exec_module(module)
+<frozen importlib._bootstrap_external>:999: in exec_module
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+agi_walker\skills\parameter-optimizer\__init__.py:12: in <module>
+    from scipy.optimize import minimize, differential_evolution
+E   ModuleNotFoundError: No module named 'scipy'
+=========================== short test summary info ===========================
+ERROR tests/test_skills_system.py::TestParamOptimizer::test_optimize_mass - ModuleNotFoundError: No module named 'scipy'
+ERROR tests/test_skills_system.py::test_full_workflow - ModuleNotFoundError: No module named 'scipy'
+================== 96 passed, 26 skipped, 2 errors in 10.33s ==================

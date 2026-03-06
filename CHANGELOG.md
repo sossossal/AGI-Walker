@@ -44,14 +44,14 @@
     *   PWM 舵机控制
     *   传感器数据采集
     *   PlatformIO 项目配置
-*   **硬件部署文档** (`docs/HARDWARE_DEPLOYMENT.md`)
+*   **硬件部署文档** (`docs/hardware/HARDWARE_DEPLOYMENT.md`)
     *   完整 BOM 清单
     *   接线图和拓扑图
     *   烧录和调试指南
 
 ### 📚 文档更新
-*   新增 `docs/OPENNEURO_INTEGRATION.md` - Zenoh/ROS 2 集成指南
-*   新增 `docs/HARDWARE_DEPLOYMENT.md` - 硬件部署完整指南
+*   新增 `docs/algorithm_and_sim/OPENNEURO_INTEGRATION.md` - Zenoh/ROS 2 集成指南
+*   新增 `docs/hardware/HARDWARE_DEPLOYMENT.md` - 硬件部署完整指南
 *   更新 `README.md` - 添加 OpenNeuro 特性说明
 *   更新 `requirements.txt` - 添加 Zenoh 依赖
 

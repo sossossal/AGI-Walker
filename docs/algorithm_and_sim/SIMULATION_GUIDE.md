@@ -173,4 +173,4 @@ env = GodotRobotEnv(
 )
 ```
 
-更多详细信息，请参阅专门手册：[MODULAR_ROBOT_BUILDER.md](docs/MODULAR_ROBOT_BUILDER.md)。
+更多详细信息，请参阅专门手册：[MODULAR_ROBOT_BUILDER.md](../hardware/MODULAR_ROBOT_BUILDER.md)。

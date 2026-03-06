@@ -153,9 +153,9 @@ python agi_walker/gui/skills_browser.py
 
 - [Skills系统指南](.agent/AGENTS.md)
 - [实战教程](docs/AGENT_ROBOT_TUTORIAL.md)
-- [CLI使用](docs/CLI_GUIDE.md)
-- [GUI使用](docs/GUI_GUIDE.md)
-- [Skills开发](docs/SKILLS_DEVELOPMENT.md)
+- [CLI使用](../guides/CLI_GUIDE.md)
+- [GUI使用](../guides/GUI_GUIDE.md)
+- [Skills开发](../guides/SKILLS_DEVELOPMENT.md)
 
 ## 🎯 快速开始
 
@@ -185,7 +185,7 @@ convert_to_urdf("robot.json", "robot.urdf")
 
 ---
 
-**完整更新日志**: [SKILLS_CHANGELOG.md](SKILLS_CHANGELOG.md)
+**完整更新日志**: [SKILLS_CHANGELOG.md](../archive_and_reports/SKILLS_CHANGELOG.md)
 ```
 
 ---

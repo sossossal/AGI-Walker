@@ -185,4 +185,4 @@ A: 运行 `pip install -r requirements.txt` 确保依赖完整。
 
 - [GitHub 仓库](https://github.com/sossossal/AGI-Walker)
 - [贡献指南](../CONTRIBUTING.md)
-- [技术债务计划](TECH_DEBT_PLAN.md)
+- [技术债务计划](../archive_and_reports/TECH_DEBT_PLAN.md)

@@ -70,7 +70,7 @@ ros2 service call /stop_simulation std_srvs/srv/Trigger
 ## 📚 文档
 
 详细文档请参考：
-- [ROS 2集成设计文档](../../docs/ROS2_INTEGRATION_DESIGN.md)
+- [ROS 2集成设计文档](../../docs/ros2/ROS2_INTEGRATION_DESIGN.md)
 
 ## ⚙️ 参数
 

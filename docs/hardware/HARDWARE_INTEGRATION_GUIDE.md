@@ -347,9 +347,9 @@ hardware_control_loop()
 
 ## 📚 参考资源
 
-- [IMC-22 硬件规格](HARDWARE_SPEC.md)
+- [IMC-22 硬件规格](../hardware/HARDWARE_SPEC.md)
 - [Hive-Reflex SDK 指南](../hive-reflex/SDK_GUIDE.md)
-- [AGI-Walker 零件库](PARTS_LIBRARY_GUIDE.md)
+- [AGI-Walker 零件库](../hardware/PARTS_LIBRARY_GUIDE.md)
 
 ---
 
