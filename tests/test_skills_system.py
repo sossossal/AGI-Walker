@@ -38,6 +38,7 @@ def robot_modeling_skill(skills_loader):
 @pytest.fixture(scope="module")
 def param_opt_skill(skills_loader):
     """Fixture to load the parameter-optimizer skill module"""
+    pytest.importorskip("scipy")
     skill_file = (
         PROJECT_ROOT / "agi_walker" / "skills" / "parameter-optimizer" / "__init__.py"
     )
