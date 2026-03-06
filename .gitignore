@@ -66,3 +66,9 @@ offline_data/
 # OS
 .DS_Store
 Thumbs.db
+
+# 临时/调试文件
+out.txt
+reorg_docs.py
+pytest_errors.txt
+debug_collection.py
