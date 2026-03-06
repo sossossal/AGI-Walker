@@ -15,7 +15,19 @@ extends Control
 @onready var status_label = $VBoxContainer/StatusLabel
 
 var python_path = "python"
-var script_path = "D:/新建文件夹/AGI-Walker/quick_design.py"
+var script_path = ProjectSettings.globalize_path("res://../quick_design.py")
+
+func _ready():
+	# 检查脚本是否存在，如果不存在尝试其他可能位置
+	if not FileAccess.file_exists(script_path):
+		var base_dir = ProjectSettings.globalize_path("res://")
+		# 尝试从 addons 目录向上查找
+		script_path = base_dir.path_join("../quick_design.py")
+		if not FileAccess.file_exists(script_path):
+			# 最后的尝试：假设在根目录
+			script_path = base_dir.get_base_dir().get_base_dir().path_join("quick_design.py")
+	
+	print("AGI-Walker Designer: Using script at ", script_path)
 
 func _on_generate_btn_pressed():
 	status_label.text = "[color=yellow]Generating...[/color]"

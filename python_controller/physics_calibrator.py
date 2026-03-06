@@ -63,8 +63,12 @@ class PhysicsCalibrator:
     def __init__(
         self,
         base_params: Optional[PhysicsParams] = None,
-        config_dir: str = "d:/新建文件夹/AGI-Walker/configs",
+        config_dir: Optional[str] = None,
     ):
+        if config_dir is None:
+            # 默认使用项目根目录下的 configs 文件夹
+            config_dir = Path(__file__).resolve().parent.parent / "configs"
+        
         self.config_dir = Path(config_dir)
         self.config_dir.mkdir(parents=True, exist_ok=True)
 

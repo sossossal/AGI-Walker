@@ -88,8 +88,11 @@ class EnhancedController:
         if enable_rag:
             print("5. 初始化RAG知识库...")
             try:
+                # 使用基于项目根目录的相对路径
+                root_dir = Path(__file__).resolve().parent.parent
+                index_path = root_dir / "knowledge" / "physics_index"
                 self.knowledge_base = PhysicsKnowledgeBase(
-                    index_path="d:/新建文件夹/AGI-Walker/knowledge/physics_index",
+                    index_path=str(index_path),
                     use_embeddings=False,  # 离线模式
                 )
             except Exception as e:

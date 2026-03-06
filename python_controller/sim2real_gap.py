@@ -188,9 +188,11 @@ class Sim2RealGapEstimator:
     def __init__(
         self,
         model_path: Optional[str] = None,
-        data_dir: str = "d:/新建文件夹/AGI-Walker/offline_data/sim2real",
+        data_dir: Optional[str] = None,
     ):
-        self.data_dir = Path(data_dir)
+        # 动态获取项目根目录
+        project_root = Path(__file__).resolve().parent.parent
+        self.data_dir = Path(data_dir) if data_dir else project_root / "offline_data" / "sim2real"
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
         # Gap校正网络

@@ -342,7 +342,8 @@ if __name__ == "__main__":
     print(json.dumps(engine.get_model_info(), indent=2))
 
     # 如果有现有ONNX模型，测试推理
-    reflex_model = Path("d:/新建文件夹/AGI-Walker/hive-reflex/reflex_net.onnx")
+    project_root = Path(__file__).resolve().parent.parent
+    reflex_model = project_root / "hive-reflex" / "reflex_net.onnx"
 
     if reflex_model.exists():
         print("\n=== 测试ReflexNet模型 ===")

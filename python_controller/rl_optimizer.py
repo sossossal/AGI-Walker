@@ -72,7 +72,7 @@ class RLOptimizer:
         self,
         env,
         config: Optional[RLConfig] = None,
-        save_dir: str = "d:/新建文件夹/AGI-Walker/models/rl",
+        save_dir: Optional[str] = None,
     ):
         """
         初始化RL优化器
@@ -86,7 +86,10 @@ class RLOptimizer:
             raise ImportError("Stable-Baselines3不可用")
 
         self.config = config or RLConfig()
-        self.save_dir = Path(save_dir)
+        
+        # 动态获取项目根目录
+        project_root = Path(__file__).resolve().parent.parent
+        self.save_dir = Path(save_dir) if save_dir else project_root / "models" / "rl"
         self.save_dir.mkdir(parents=True, exist_ok=True)
 
         # 包装环境

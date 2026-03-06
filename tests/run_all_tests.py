@@ -64,7 +64,9 @@ def run_test(module):
     print(f"   Desc: {module['desc']}")
     print(f"{'='*60}")
 
-    file_path = Path("d:/新建文件夹/AGI-Walker") / module["path"]
+    # 获取项目根目录 (假设脚本在 tests/ 目录下)
+    root_dir = Path(__file__).parent.parent.absolute()
+    file_path = root_dir / module["path"]
     if not file_path.exists():
         print(f"❌ File not found: {file_path}")
         return False, "File Missing"
@@ -74,12 +76,13 @@ def run_test(module):
         # 强制使用 UTF-8 环境
         env = sys.modules["os"].environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONPATH"] = str(root_dir)
 
         # 使用当前 python 解释器运行
         # 设置 cwd 为项目根目录，确保导入正确
         result = subprocess.run(
             [sys.executable, str(file_path)],
-            cwd="d:/新建文件夹/AGI-Walker",
+            cwd=str(root_dir),
             capture_output=True,
             text=True,
             encoding="utf-8",

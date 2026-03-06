@@ -31,7 +31,7 @@ class EvolutionConfig:
     """进化循环配置"""
 
     # 路径配置
-    workspace_dir: str = "d:/新建文件夹/AGI-Walker"
+    workspace_dir: str = str(Path(__file__).resolve().parent.parent)
     iteration_name: str = "evo_v1"
 
     # RL配置

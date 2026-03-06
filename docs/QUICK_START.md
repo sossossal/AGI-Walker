@@ -308,7 +308,8 @@ pip install gymnasium numpy
 
 **解决**: 检查路径是否正确：
 ```python
-db = PartsDatabase("d:/新建文件夹/AGI-Walker/parts_library")
+# 初始化零件库 (自动定位项目根目录)
+db = PartsDatabase("./parts_library")
 ```
 
 ### Q4: 测试脚本没有输出

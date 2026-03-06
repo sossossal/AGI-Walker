@@ -59,7 +59,7 @@ class PEFTTrainer:
         self,
         base_model: str = "microsoft/phi-2",
         config: Optional[PEFTConfig] = None,
-        output_dir: str = "d:/新建文件夹/AGI-Walker/models/peft"
+        output_dir: Optional[str] = None
     ):
         """
         初始化训练器
@@ -71,7 +71,10 @@ class PEFTTrainer:
         """
         self.base_model = base_model
         self.config = config or PEFTConfig()
-        self.output_dir = Path(output_dir)
+        
+        # 动态获取项目根目录
+        project_root = Path(__file__).resolve().parent.parent
+        self.output_dir = Path(output_dir) if output_dir else project_root / "models" / "peft"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
         # 模型和tokenizer（延迟加载）

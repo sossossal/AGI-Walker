@@ -143,8 +143,10 @@ class TestRAGKnowledgeBase(unittest.TestCase):
     """RAG知识库测试"""
 
     def setUp(self):
+        # 使用基于项目根目录的相对路径
+        index_path = os.path.join(PROJECT_ROOT, "knowledge", "test_index")
         self.kb = PhysicsKnowledgeBase(
-            index_path="d:/新建文件夹/AGI-Walker/knowledge/test_index",
+            index_path=index_path,
             use_embeddings=False,
         )
 

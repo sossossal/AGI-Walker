@@ -416,6 +416,7 @@ if __name__ == "__main__":
     
     # 保存配置
     print("\n=== 保存配置 ===")
-    save_robot_config(biped.config, "d:/新建文件夹/AGI-Walker/robot_models/biped/config.json")
-    save_robot_config(quadruped.config, "d:/新建文件夹/AGI-Walker/robot_models/quadruped/config.json")
-    save_robot_config(wheeled.config, "d:/新建文件夹/AGI-Walker/robot_models/wheeled/config.json")
+    project_root = Path(__file__).resolve().parent.parent
+    save_robot_config(biped.config, str(project_root / "robot_models" / "biped" / "config.json"))
+    save_robot_config(quadruped.config, str(project_root / "robot_models" / "quadruped" / "config.json"))
+    save_robot_config(wheeled.config, str(project_root / "robot_models" / "wheeled" / "config.json"))

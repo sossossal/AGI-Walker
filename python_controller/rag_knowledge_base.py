@@ -434,9 +434,12 @@ class PhysicsKnowledgeBase:
 if __name__ == "__main__":
     print("RAG物理知识库测试\n")
 
+    # 动态获取项目根目录
+    project_root = Path(__file__).resolve().parent.parent
+    
     # 创建知识库（离线模式，不使用嵌入）
     kb = PhysicsKnowledgeBase(
-        index_path="d:/新建文件夹/AGI-Walker/knowledge/physics_index",
+        index_path=str(project_root / "knowledge" / "physics_index"),
         use_embeddings=False,  # 离线模式
     )
 

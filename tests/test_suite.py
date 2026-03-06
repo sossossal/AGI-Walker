@@ -310,8 +310,11 @@ def run_full_test_suite():
         tcp_test.test_connection()
         tcp_test.test_latency(duration=10.0)
         tcp_test.test_data_integrity(samples=100)
-    except pytest.skip.Exception:
-        print("⏭️ 跳过 TCP 测试: 无法连接仿真器")
+    except Exception as e:
+        if "skip" in str(e).lower() or "Skipped" in type(e).__name__:
+            print("⏭️ 跳过 TCP 测试: 无法连接仿真器或组件不可用")
+        else:
+            print(f"❌ TCP 测试运行出错: {e}")
     finally:
         if hasattr(tcp_test, 'results'):
             all_results.extend(tcp_test.results)
@@ -326,8 +329,11 @@ def run_full_test_suite():
     try:
         stability_test.setup()
         stability_test.test_standing_stability(duration=30.0)
-    except pytest.skip.Exception:
-        print("⏭️ 跳过稳定性测试: 无法连接仿真器")
+    except Exception as e:
+        if "skip" in str(e).lower() or "Skipped" in type(e).__name__:
+            print("⏭️ 跳过稳定性测试: 无法连接仿真器")
+        else:
+            print(f"❌ 稳定性测试运行出错: {e}")
     finally:
         if hasattr(stability_test, 'results'):
             all_results.extend(stability_test.results)
@@ -342,8 +348,11 @@ def run_full_test_suite():
     try:
         perf_test.setup()
         perf_test.test_control_frequency(duration=10.0)
-    except pytest.skip.Exception:
-        print("⏭️ 跳过性能测试: 无法连接仿真器")
+    except Exception as e:
+        if "skip" in str(e).lower() or "Skipped" in type(e).__name__:
+            print("⏭️ 跳过性能测试: 无法连接仿真器")
+        else:
+            print(f"❌ 性能测试运行出错: {e}")
     finally:
         if hasattr(perf_test, 'results'):
             all_results.extend(perf_test.results)
