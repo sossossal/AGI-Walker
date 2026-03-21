@@ -300,3 +300,5 @@ metadata:
     skill = loader.get_skill("null-req")
     assert skill.requires["python_modules"] == []
     assert skill.requires["bins"] == []
+
+

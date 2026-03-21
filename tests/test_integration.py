@@ -10,8 +10,12 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# 需要 Zenoh/TCP/ROS2 等外部服务
+pytestmark = pytest.mark.integration
+
 # 测试结果记录
 test_results = {"passed": [], "failed": [], "skipped": []}
+
 
 def test_zenoh_import():
     """测试 1: Zenoh 模块导入"""
