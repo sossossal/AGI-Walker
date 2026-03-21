@@ -9,7 +9,7 @@ Skills 是包含 SKILL.md 文件的目录,提供特定领域的专业知识和�
 
 import yaml
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, field
 
 
@@ -120,12 +120,8 @@ class SkillsLoader:
         if "description" not in data:
             raise ValueError("SKILL.md 缺少 'description' 字段")
 
-        name = data["name"]
-        description = data["description"]
-        if not isinstance(name, str) or not name.strip():
-            raise ValueError("SKILL.md 的 'name' 字段必须是非空字符串")
-        if not isinstance(description, str) or not description.strip():
-            raise ValueError("SKILL.md 的 'description' 字段必须是非空字符串")
+        name = self._require_non_empty_string(data, "name")
+        description = self._require_non_empty_string(data, "description")
         
         # 提取可选的 metadata
         raw_metadata = data.get("metadata") or {}
@@ -141,29 +137,49 @@ class SkillsLoader:
             raise ValueError("SKILL.md 的 'metadata.agi_walker.requires' 字段必须是对象")
 
         normalized_requires = self._normalize_requires(requires)
+        emoji = self._optional_string(metadata, "emoji", "📦")
+        category = self._optional_string(metadata, "category", "其他")
         
         return SkillMetadata(
             name=name,
             description=description,
-            emoji=metadata.get("emoji", "📦"),
-            category=metadata.get("category", "其他"),
+            emoji=emoji,
+            category=category,
             requires=normalized_requires
         )
     
+
+    def _require_non_empty_string(self, data: Dict[str, Any], field_name: str) -> str:
+        """读取并校验必填的非空字符串字段。"""
+        value = data[field_name]
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"SKILL.md 的 '{field_name}' 字段必须是非空字符串")
+        return value.strip()
+
+    def _optional_string(self, data: Dict[str, Any], field_name: str, default: str) -> str:
+        """读取并校验可选字符串字段。"""
+        value = data.get(field_name, default)
+        if value is None:
+            return default
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"SKILL.md 的 'metadata.agi_walker.{field_name}' 字段必须是非空字符串")
+        return value.strip()
 
     def _normalize_requires(self, requires: Dict[str, Any]) -> Dict[str, List[str]]:
         """规范化 requires 配置并进行类型校验。"""
         normalized: Dict[str, List[str]] = {}
         for key, value in requires.items():
+            if not isinstance(key, str) or not key.strip():
+                raise ValueError("SKILL.md 的 'metadata.agi_walker.requires' 键必须是非空字符串")
             if value is None:
-                normalized[key] = []
+                normalized[key.strip()] = []
                 continue
 
             if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
                 raise ValueError(
                     f"SKILL.md 的 'metadata.agi_walker.requires.{key}' 必须是字符串列表"
                 )
-            normalized[key] = value
+            normalized[key.strip()] = [item.strip() for item in value]
 
         return normalized
 

@@ -209,6 +209,47 @@ description: "描述"
     assert len(loader.skills) == 0
 
 
+def test_invalid_optional_metadata_string_type(temp_skills_dir):
+    """测试可选 metadata 字段类型错误时会跳过 skill"""
+    skill_dir = temp_skills_dir / "bad-emoji-skill"
+    skill_dir.mkdir()
+
+    (skill_dir / "SKILL.md").write_text("""---
+name: bad-emoji-skill
+description: "描述"
+metadata:
+  agi_walker:
+    emoji: [invalid]
+---
+""", encoding="utf-8")
+
+    loader = SkillsLoader(str(temp_skills_dir))
+    assert loader.get_skill("bad-emoji-skill") is None
+    assert len(loader.skills) == 0
+
+
+def test_requires_null_value_normalized_to_empty_list(temp_skills_dir):
+    """测试 requires 的 null 值会被规范化为空列表"""
+    skill_dir = temp_skills_dir / "null-requires-skill"
+    skill_dir.mkdir()
+
+    (skill_dir / "SKILL.md").write_text("""---
+name: null-requires-skill
+description: "描述"
+metadata:
+  agi_walker:
+    requires:
+      python_modules:
+---
+""", encoding="utf-8")
+
+    loader = SkillsLoader(str(temp_skills_dir))
+    skill = loader.get_skill("null-requires-skill")
+
+    assert skill is not None
+    assert skill.requires["python_modules"] == []
+
+
 def test_skill_display_name():
     """测试 skill 显示名称"""
     skill = SkillMetadata(
