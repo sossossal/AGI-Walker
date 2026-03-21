@@ -18,7 +18,9 @@ func _ready():
 		
 	# Try to find a robot node in the scene
 	# In headless verification, we might need to spawn a dummy one
-	robot_node = get_tree().root.find_child("Robot", true, false)
+	robot_node = get_tree().root.find_child("*Robot*", true, false)
+	if not robot_node and get_tree().current_scene:
+		robot_node = get_tree().current_scene.find_child("*Robot*", true, false)
 
 func _process(delta):
 	# 1. Accept New Connections
@@ -120,6 +122,9 @@ func _process_command(cmd):
 	_send_response(response)
 
 func _get_observation():
+	if robot_node != null and robot_node.has_method("get_sensor_data"):
+		return robot_node.get_sensor_data()
+		
 	var vec = []
 	vec.resize(24)
 	vec.fill(0.1)

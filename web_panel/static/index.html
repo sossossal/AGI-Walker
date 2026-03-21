@@ -523,6 +523,103 @@
         </div>
     </div>
 
+    <!-- ========== GODOT ENGINE CONSOLE ========== -->
+    <div class="card" id="godot-console-card"
+        style="margin-bottom: 30px; background: linear-gradient(145deg, #0f172a, #1e293b); border: 1px solid #334155; color: #e2e8f0;">
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+            <h2 style="color: #4ade80; margin: 0;">🎮 Godot 引擎控制台</h2>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span id="godot-status-dot"
+                    style="width:12px; height:12px; border-radius:50%; background:#ef4444; display:inline-block; box-shadow: 0 0 6px #ef4444;"></span>
+                <span id="godot-status-text" style="font-size:0.85em; color:#94a3b8;">未运行</span>
+            </div>
+        </div>
+
+        <!-- 场景选择 + 启动停止 -->
+        <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
+            <select id="godot-scene-select"
+                style="flex:1; min-width:200px; background:#1e293b; color:#e2e8f0; border:1px solid #475569; padding:8px 12px; border-radius:8px;">
+                <option value="demo_generated_biped.tscn">🤖 双足机器人 Demo</option>
+                <option value="main.tscn">🌐 主场景 (main.tscn)</option>
+            </select>
+            <input id="godot-exe-input" type="text" placeholder="Godot 可执行路径 (留空自动检测)"
+                style="flex:2; background:#1e293b; color:#e2e8f0; border:1px solid #475569; padding:8px 12px; border-radius:8px; font-size:0.9em;">
+            <button onclick="launchGodot()"
+                style="background: #22c55e; color: #fff; padding: 8px 20px; font-weight: bold; border-radius: 8px; border:none; cursor:pointer;">
+                ▶ 启动
+            </button>
+            <button onclick="stopGodot()"
+                style="background: #ef4444; color: #fff; padding: 8px 20px; font-weight: bold; border-radius: 8px; border:none; cursor:pointer;">
+                ⏹ 停止
+            </button>
+        </div>
+
+        <!-- 启动日志 -->
+        <div id="godot-launch-log"
+            style="background:#020617; padding:10px 14px; border-radius:8px; font-size:0.82em; color:#64748b; min-height:32px; margin-bottom:14px; font-family:monospace;">
+            等待启动...
+        </div>
+
+        <!-- 传感器面板 -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+            <div style="background:#1e293b; border:1px solid #374151; border-radius:10px; padding:12px; text-align:center;">
+                <div style="font-size:0.75em; color:#64748b; margin-bottom:4px;">躯干高度</div>
+                <div id="sensor-height" style="font-size:1.6em; font-weight:bold; color:#4ade80;">--</div>
+                <div style="font-size:0.7em; color:#475569;">m</div>
+            </div>
+            <div style="background:#1e293b; border:1px solid #374151; border-radius:10px; padding:12px; text-align:center;">
+                <div style="font-size:0.75em; color:#64748b; margin-bottom:4px;">俯仰角 Pitch</div>
+                <div id="sensor-pitch" style="font-size:1.6em; font-weight:bold; color:#38bdf8;">--</div>
+                <div style="font-size:0.7em; color:#475569;">deg</div>
+            </div>
+            <div style="background:#1e293b; border:1px solid #374151; border-radius:10px; padding:12px; text-align:center;">
+                <div style="font-size:0.75em; color:#64748b; margin-bottom:4px;">翻滚角 Roll</div>
+                <div id="sensor-roll" style="font-size:1.6em; font-weight:bold; color:#f472b6;">--</div>
+                <div style="font-size:0.7em; color:#475569;">deg</div>
+            </div>
+        </div>
+
+        <!-- 电机控制 -->
+        <div style="background:#1e293b; border:1px solid #374151; border-radius:10px; padding:14px; margin-bottom:12px;">
+            <div style="font-size:0.85em; color:#94a3b8; margin-bottom:10px;">⚙️ 电机手动控制</div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <label style="width:90px; font-size:0.85em; color:#94a3b8;">左髋速度:</label>
+                    <input type="range" id="motor-left" min="-5" max="5" step="0.1" value="0"
+                        oninput="document.getElementById('motor-left-val').textContent=this.value+' rad/s'; updateGodotMotor();"
+                        style="flex:1; accent-color:#4ade80;">
+                    <span id="motor-left-val" style="width:80px; font-size:0.85em; color:#4ade80; text-align:right;">0 rad/s</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <label style="width:90px; font-size:0.85em; color:#94a3b8;">右髋速度:</label>
+                    <input type="range" id="motor-right" min="-5" max="5" step="0.1" value="0"
+                        oninput="document.getElementById('motor-right-val').textContent=this.value+' rad/s'; updateGodotMotor();"
+                        style="flex:1; accent-color:#38bdf8;">
+                    <span id="motor-right-val" style="width:80px; font-size:0.85em; color:#38bdf8; text-align:right;">0 rad/s</span>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+                <button onclick="setMotorPreset(3, -3)"
+                    style="flex:1; background:#374151; padding:6px; font-size:0.8em; border-radius:6px; border:none; color:#e2e8f0; cursor:pointer;">
+                    ▶ 同步正转
+                </button>
+                <button onclick="setMotorPreset(-3, 3)"
+                    style="flex:1; background:#374151; padding:6px; font-size:0.8em; border-radius:6px; border:none; color:#e2e8f0; cursor:pointer;">
+                    ◀ 同步反转
+                </button>
+                <button onclick="setMotorPreset(0, 0)"
+                    style="flex:1; background:#374151; padding:6px; font-size:0.8em; border-radius:6px; border:none; color:#e2e8f0; cursor:pointer;">
+                    ⏸ 停止
+                </button>
+                <button onclick="toggleAutoWalk()"  id="autowalk-btn"
+                    style="flex:1; background:#6366f1; padding:6px; font-size:0.8em; border-radius:6px; border:none; color:#e2e8f0; cursor:pointer;">
+                    🚶 自动步行
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========== SKILLS SYSTEM PANEL ========== -->
     <div class="card" style="margin-bottom: 30px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -1554,6 +1651,148 @@
                 }
             } finally {
                 btn.textContent = '🚀 启动完整流水线'; btn.disabled = false;
+            }
+        }
+    </script>
+    <script>
+        // ============================================================
+        // Godot 引擎控制台 JS
+        // ============================================================
+        let _autoWalkTimer = null;
+        let _autoWalkPhase = 0;
+        let _godotStatusTimer = null;
+
+        async function launchGodot() {
+            const scene = document.getElementById('godot-scene-select').value;
+            const exe   = document.getElementById('godot-exe-input').value.trim();
+            const log   = document.getElementById('godot-launch-log');
+            log.style.color = '#fbbf24';
+            log.textContent = '⏳ 正在启动 Godot 引擎...';
+            try {
+                const res = await fetch('/api/godot/launch', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({scene, godot_exe: exe})
+                });
+                const data = await res.json();
+                if (data.status === 'launched') {
+                    log.style.color = '#4ade80';
+                    log.textContent = `✅ 已启动 PID=${data.pid} | 场景: ${data.scene} | 等待 TCP 连通...`;
+                    _startStatusPolling();
+                } else if (data.status === 'already_running') {
+                    log.style.color = '#38bdf8';
+                    log.textContent = `ℹ️ 实例已在运行 (PID=${data.pid})`;
+                } else {
+                    log.style.color = '#f87171';
+                    log.textContent = `❌ ${data.message}`;
+                }
+            } catch(e) {
+                log.style.color = '#f87171';
+                log.textContent = `❌ 请求失败: ${e.message}`;
+            }
+        }
+
+        async function stopGodot() {
+            const log = document.getElementById('godot-launch-log');
+            log.style.color = '#fbbf24';
+            log.textContent = '⏹ 正在停止...';
+            _stopStatusPolling();
+            try {
+                const res = await fetch('/api/godot/stop', {method: 'POST'});
+                const data = await res.json();
+                log.style.color = '#94a3b8';
+                log.textContent = `🛑 ${data.status}`;
+                _updateStatusUI(false, false);
+            } catch(e) {
+                log.style.color = '#f87171';
+                log.textContent = `❌ ${e.message}`;
+            }
+        }
+
+        function _startStatusPolling() {
+            if (_godotStatusTimer) return;
+            _godotStatusTimer = setInterval(_pollGodotStatus, 1500);
+        }
+
+        function _stopStatusPolling() {
+            if (_godotStatusTimer) { clearInterval(_godotStatusTimer); _godotStatusTimer = null; }
+        }
+
+        async function _pollGodotStatus() {
+            try {
+                const res = await fetch('/api/godot/status');
+                const data = await res.json();
+                _updateStatusUI(data.engine_running, data.tcp_connected);
+                if (data.last_sensor && Object.keys(data.last_sensor).length) {
+                    _updateSensorDisplay(data.last_sensor);
+                }
+            } catch(e) {}
+        }
+
+        function _updateStatusUI(running, connected) {
+            const dot  = document.getElementById('godot-status-dot');
+            const text = document.getElementById('godot-status-text');
+            if (!running) {
+                dot.style.background = '#ef4444'; dot.style.boxShadow = '0 0 6px #ef4444';
+                text.textContent = '未运行';
+            } else if (!connected) {
+                dot.style.background = '#fbbf24'; dot.style.boxShadow = '0 0 6px #fbbf24';
+                text.textContent = '运行中 | TCP 连接中...';
+            } else {
+                dot.style.background = '#22c55e'; dot.style.boxShadow = '0 0 8px #22c55e';
+                text.textContent = '🟢 在线 | TCP 已连接';
+            }
+        }
+
+        function _updateSensorDisplay(sensor) {
+            if (sensor.torso_height != null)
+                document.getElementById('sensor-height').textContent = parseFloat(sensor.torso_height).toFixed(3);
+            const orient = sensor?.sensors?.imu?.orient;
+            if (orient) {
+                document.getElementById('sensor-pitch').textContent = parseFloat(orient[1]).toFixed(1) + '°';
+                document.getElementById('sensor-roll').textContent  = parseFloat(orient[0]).toFixed(1) + '°';
+            }
+        }
+
+        async function updateGodotMotor() {
+            const left  = parseFloat(document.getElementById('motor-left').value);
+            const right = parseFloat(document.getElementById('motor-right').value);
+            try {
+                const res = await fetch('/api/godot/control', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({hip_left: left, hip_right: right})
+                });
+                const data = await res.json();
+                if (data.response?.sensors) _updateSensorDisplay(data.response);
+            } catch(e) {}
+        }
+
+        function setMotorPreset(left, right) {
+            document.getElementById('motor-left').value  = left;
+            document.getElementById('motor-right').value = right;
+            document.getElementById('motor-left-val').textContent  = left  + ' rad/s';
+            document.getElementById('motor-right-val').textContent = right + ' rad/s';
+            updateGodotMotor();
+        }
+
+        function toggleAutoWalk() {
+            const btn = document.getElementById('autowalk-btn');
+            if (_autoWalkTimer) {
+                clearInterval(_autoWalkTimer);
+                _autoWalkTimer = null;
+                btn.style.background = '#6366f1';
+                btn.textContent = '🚶 自动步行';
+                setMotorPreset(0, 0);
+            } else {
+                btn.style.background = '#ec4899';
+                btn.textContent = '⏸ 停止步行';
+                _autoWalkPhase = 0;
+                _autoWalkTimer = setInterval(() => {
+                    _autoWalkPhase += 0.15;
+                    const v = Math.sin(_autoWalkPhase) * 3.5;
+                    setMotorPreset(parseFloat(v.toFixed(1)), parseFloat(-v.toFixed(1)));
+                }, 80);  // ~12Hz 正弦步态驱动
             }
         }
     </script>

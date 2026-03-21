@@ -1,0 +1,55 @@
+{
+  "id": "biped_3d_robot",
+  "name": "3D 物理双足机器骨架",
+  "description": "一键生成具有躯干、左右腿和伺服电机关节的完整物理组合体，自带控制脚本",
+  "scene_setup": {
+    "type": "Node3D",
+    "name": "GeneratedBipedRobot",
+    "children": [
+      {
+        "type": "RigidBody3D",
+        "name": "Torso",
+        "properties": {"mass": 10.0, "position": {"x":0.0, "y":1.5, "z":0.0}},
+        "children": [
+          {"type": "CollisionShape3D", "name": "TorsoShape"}
+        ]
+      },
+      {
+        "type": "RigidBody3D",
+        "name": "LeftLeg",
+        "properties": {"mass": 2.0, "position": {"x":-0.3, "y":1.0, "z":0.0}},
+        "children": [
+          {"type": "CollisionShape3D", "name": "LeftLegShape"}
+        ]
+      },
+      {
+        "type": "RigidBody3D",
+        "name": "RightLeg",
+        "properties": {"mass": 2.0, "position": {"x":0.3, "y":1.0, "z":0.0}},
+        "children": [
+          {"type": "CollisionShape3D", "name": "RightLegShape"}
+        ]
+      },
+      {
+        "type": "HingeJoint3D",
+        "name": "HipLeft",
+        "properties": {
+          "node_a": "../Torso",
+          "node_b": "../LeftLeg",
+          "position": {"x":-0.25, "y":1.5, "z":0.0}
+        }
+      },
+      {
+        "type": "HingeJoint3D",
+        "name": "HipRight",
+        "properties": {
+          "node_a": "../Torso",
+          "node_b": "../RightLeg",
+          "position": {"x":0.25, "y":1.5, "z":0.0}
+        }
+      }
+    ]
+  },
+  "script_name": "basic_balance_controller.gd",
+  "script_code": "extends Node3D\n\n@onready var hip_left: HingeJoint3D = $HipLeft\n@onready var hip_right: HingeJoint3D = $HipRight\nvar time_passed: float = 0.0\n\nfunc _ready():\n\thip_left.set_flag(HingeJoint3D.FLAG_ENABLE_MOTOR, true)\n\thip_right.set_flag(HingeJoint3D.FLAG_ENABLE_MOTOR, true)\n\thip_left.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, 200.0)\n\thip_right.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, 200.0)\n\nfunc _physics_process(delta):\n\ttime_passed += delta\n\tvar target_vel = sin(time_passed * 4.0) * 3.0\n\thip_left.set_param(HingeJoint3D.PARAM_MOTOR_TARGET_VELOCITY, target_vel)\n\thip_right.set_param(HingeJoint3D.PARAM_MOTOR_TARGET_VELOCITY, -target_vel)\n"
+}

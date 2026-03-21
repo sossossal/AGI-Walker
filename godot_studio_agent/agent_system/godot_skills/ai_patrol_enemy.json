@@ -1,0 +1,31 @@
+{
+  "id": "ai_patrol_enemy",
+  "name": "AI 寻路巡逻怪",
+  "description": "生成一个带有自动寻路导航与检测光环的 2D 敌对实体",
+  "scene_setup": {
+    "type": "CharacterBody2D",
+    "name": "PatrolEnemy",
+    "children": [
+      {
+        "type": "CollisionShape2D",
+        "name": "BodyShape"
+      },
+      {
+        "type": "NavigationAgent2D",
+        "name": "NavAgent"
+      },
+      {
+        "type": "Area2D",
+        "name": "VisionArea",
+        "children": [
+          {
+            "type": "CollisionShape2D",
+            "name": "VisionShape"
+          }
+        ]
+      }
+    ]
+  },
+  "script_name": "ai_patrol_enemy.gd",
+  "script_code": "extends CharacterBody2D\n\n@export var speed: float = 100.0\n@onready var nav_agent: NavigationAgent2D = $NavAgent\n@onready var vision_area: Area2D = $VisionArea\nvar gravity = ProjectSettings.get_setting(\"physics/2d/default_gravity\")\nvar target: Node2D = null\n\nfunc _ready():\n\tvision_area.body_entered.connect(_on_body_entered)\n\tvision_area.body_exited.connect(_on_body_exited)\n\nfunc _physics_process(delta):\n\tif not is_on_floor():\n\t\tvelocity.y += gravity * delta\n\tif target:\n\t\tnav_agent.target_position = target.global_position\n\t\tvar next_pos = nav_agent.get_next_path_position()\n\t\tvar direction = global_position.direction_to(next_pos)\n\t\tvelocity.x = direction.x * speed\n\telse:\n\t\tvelocity.x = move_toward(velocity.x, 0, speed)\n\tmove_and_slide()\n\nfunc _on_body_entered(body: Node):\n\tif body.name == \"Player2D\" or body.name == \"Player\": target = body\n\nfunc _on_body_exited(body: Node):\n\tif body == target: target = null\n"
+}

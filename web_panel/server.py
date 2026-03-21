@@ -557,6 +557,46 @@ async def get_godot_agent_roles():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+# ---------------------------------------------------------------------------
+# Godot Agent Skills API
+# ---------------------------------------------------------------------------
+import glob
+
+@app.get("/api/godot_skills/list")
+async def list_godot_skills():
+    """获取所有可用的 Godot 技能"""
+    try:
+        skills_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "godot_studio_agent", "agent_system", "godot_skills")
+        skills = []
+        for f in glob.glob(os.path.join(skills_dir, "*.json")):
+            with open(f, "r", encoding="utf-8") as fp:
+                data = json.load(fp)
+                skills.append({
+                    "id": data.get("id"),
+                    "name": data.get("name"),
+                    "description": data.get("description")
+                })
+        return {"status": "success", "skills": skills}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+class GodotSkillApplyRequest(pydantic.BaseModel):
+    skill_id: str
+
+@app.post("/api/godot_skills/apply")
+async def apply_godot_skill(req: GodotSkillApplyRequest):
+    """获取完整单个神盾局技能配置"""
+    try:
+        skills_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "godot_studio_agent", "agent_system", "godot_skills")
+        skill_file = os.path.join(skills_dir, f"{req.skill_id}.json")
+        if not os.path.exists(skill_file):
+            return {"status": "error", "message": "Skill not found"}
+        with open(skill_file, "r", encoding="utf-8") as fp:
+            data = json.load(fp)
+            return {"status": "success", "data": data}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 # --- Parts Store API ---
 
 @app.get("/api/parts/market")
@@ -853,6 +893,198 @@ async def skills_pipeline(req: PipelineRequest):
         }
     except Exception as e:
         return {"status": "error", "message": str(e), "log": log}
+
+
+# ===========================================================================
+# Godot 引擎远程控制桥接层 (Godot Bridge)
+# ===========================================================================
+import threading
+import socket
+import struct
+import time
+
+GODOT_PROJECT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "godot_project")
+
+class GodotBridge:
+    """管理 Godot 进程生命周期，并透过 TCP 与其通信。"""
+    
+    def __init__(self):
+        self.process: Optional[subprocess.Popen] = None
+        self.sock: Optional[socket.socket] = None
+        self.last_sensor: Dict = {}
+        self.tcp_lock = threading.Lock()
+        self._tcp_host = "127.0.0.1"
+        self._tcp_port = 9000  # 与 tcp_server.gd 一致
+
+    def launch(self, scene: str = "demo_generated_biped.tscn", godot_exe: str = "") -> Dict:
+        """启动 Godot 进程（Headless 或窗口模式）"""
+        if self.process and self.process.poll() is None:
+            return {"status": "already_running", "pid": self.process.pid}
+        
+        exe = godot_exe or self._find_godot_exe()
+        if not exe:
+            return {"status": "error", "message": "未找到 Godot 可执行文件，请在请求中传入 godot_exe 路径"}
+        
+        scene_path = os.path.join(GODOT_PROJECT_DIR, scene)
+        if not os.path.exists(scene_path):
+            return {"status": "error", "message": f"场景文件不存在: {scene_path}"}
+        
+        cmd = [exe, "--path", GODOT_PROJECT_DIR, scene_path]
+        try:
+            self.process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0
+            )
+            # 等待引擎启动后自动连接 TCP
+            threading.Thread(target=self._delayed_tcp_connect, daemon=True).start()
+            return {"status": "launched", "pid": self.process.pid, "scene": scene, "exe": exe}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    def _find_godot_exe(self) -> str:
+        """智能搜索 Godot 可执行文件"""
+        candidates = [
+            "godot",
+            r"C:\Program Files\Godot\Godot_v4.2.2-stable_win64.exe",
+            r"C:\Godot\Godot_v4.2.2-stable_win64.exe",
+            r"D:\Godot\Godot_v4.2.2-stable_win64.exe",
+        ]
+        for c in candidates:
+            if os.path.isfile(c):
+                return c
+            # 也尝试 PATH 查找
+            try:
+                subprocess.run([c, "--version"], capture_output=True, timeout=2)
+                return c
+            except:
+                continue
+        return ""
+
+    def _delayed_tcp_connect(self, delay: float = 3.0):
+        """延迟连接 TCP（等 Godot 完全起来）"""
+        time.sleep(delay)
+        self._connect_tcp()
+
+    def _connect_tcp(self) -> bool:
+        with self.tcp_lock:
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(3.0)
+                s.connect((self._tcp_host, self._tcp_port))
+                s.settimeout(None)
+                self.sock = s
+                return True
+            except Exception as e:
+                self.sock = None
+                return False
+
+    def stop(self) -> Dict:
+        """终止 Godot 进程"""
+        if self.sock:
+            try: self.sock.close()
+            except: pass
+            self.sock = None
+        if self.process:
+            if self.process.poll() is None:
+                self.process.terminate()
+                self.process = None
+                return {"status": "stopped"}
+            else:
+                self.process = None
+                return {"status": "was_not_running"}
+        return {"status": "no_process"}
+
+    def is_running(self) -> bool:
+        return self.process is not None and self.process.poll() is None
+
+    def is_connected(self) -> bool:
+        return self.sock is not None
+
+    def _send_recv(self, payload: Dict) -> Optional[Dict]:
+        """使用长度前缀协议与 Godot 通信"""
+        if not self.sock:
+            if not self._connect_tcp():
+                return None
+        with self.tcp_lock:
+            try:
+                data = json.dumps(payload).encode("utf-8")
+                msg = struct.pack("<I", len(data)) + data
+                self.sock.sendall(msg)
+                
+                # 读取响应长度
+                raw_len = b""
+                while len(raw_len) < 4:
+                    chunk = self.sock.recv(4 - len(raw_len))
+                    if not chunk: return None
+                    raw_len += chunk
+                resp_len = struct.unpack("<I", raw_len)[0]
+                
+                # 读取响应内容
+                raw_body = b""
+                while len(raw_body) < resp_len:
+                    chunk = self.sock.recv(resp_len - len(raw_body))
+                    if not chunk: return None
+                    raw_body += chunk
+                return json.loads(raw_body.decode("utf-8"))
+            except Exception as e:
+                self.sock = None
+                return None
+
+    def get_sensors(self) -> Dict:
+        resp = self._send_recv({"type": "reset"}) or {}
+        if resp:
+            self.last_sensor = resp
+        return resp
+
+    def send_motor(self, hip_left: float, hip_right: float) -> Dict:
+        resp = self._send_recv({"type": "step", "action": [hip_left, hip_right]}) or {}
+        if resp:
+            self.last_sensor = resp
+        return resp
+
+
+# 全局单例桥接对象
+_godot_bridge = GodotBridge()
+
+
+class GodotLaunchRequest(pydantic.BaseModel):
+    scene: str = "demo_generated_biped.tscn"
+    godot_exe: str = ""
+
+class GodotMotorRequest(pydantic.BaseModel):
+    hip_left: float = 0.0
+    hip_right: float = 0.0
+
+
+@app.post("/api/godot/launch")
+async def godot_launch(req: GodotLaunchRequest):
+    """启动 Godot 引擎并加载指定场景"""
+    result = _godot_bridge.launch(scene=req.scene, godot_exe=req.godot_exe)
+    return result
+
+@app.post("/api/godot/stop")
+async def godot_stop():
+    """停止 Godot 引擎进程"""
+    return _godot_bridge.stop()
+
+@app.get("/api/godot/status")
+async def godot_status():
+    """获取 Godot 进程状态与最新传感器读数"""
+    return {
+        "engine_running": _godot_bridge.is_running(),
+        "tcp_connected": _godot_bridge.is_connected(),
+        "last_sensor": _godot_bridge.last_sensor,
+        "pid": _godot_bridge.process.pid if _godot_bridge.process else None,
+    }
+
+@app.post("/api/godot/control")
+async def godot_control(req: GodotMotorRequest):
+    """向运行中的 Godot 机器人发送电机速度指令"""
+    if not _godot_bridge.is_connected() and not _godot_bridge._connect_tcp():
+        return {"status": "error", "message": "未连接到 Godot TCP 服务器，请先启动场景"}
+    result = _godot_bridge.send_motor(req.hip_left, req.hip_right)
+    return {"status": "ok", "response": result}
 
 
 if __name__ == "__main__":
