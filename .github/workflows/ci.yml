@@ -2,7 +2,7 @@ name: AGI-Walker CI/CD
 
 on:
   push:
-    branches: [main, develop, ci/day2-7-quality-gates]
+    branches: [main, develop]
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
