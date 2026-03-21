@@ -255,7 +255,7 @@ class SkillsLoader:
     def validate_skill_dependencies(self, skill_name: str) -> Dict[str, List[str]]:
         """验证 skill 的依赖项
 
-        检查所需的 Python 模块和二进制工具是否可用。
+        检查所需的 Python 模块、二进制工具和物理文件是否可用。
 
         Args:
             skill_name: Skill 名称
@@ -264,14 +264,15 @@ class SkillsLoader:
             Dict包含缺失的依赖项:
             {
                 "python_modules": ["missing_module1", ...],
-                "bins": ["missing_bin1", ...]
+                "bins": ["missing_bin1", ...],
+                "files": ["missing_file1", ...]
             }
         """
         skill = self.skills.get(skill_name)
         if not skill:
             return {"error": [f"Skill '{skill_name}' 不存在"]}
 
-        missing = {"python_modules": [], "bins": []}
+        missing = {"python_modules": [], "bins": [], "files": []}
 
         # 检查 Python 模块
         if "python_modules" in skill.requires:
@@ -290,6 +291,14 @@ class SkillsLoader:
             for bin_name in skill.requires["bins"]:
                 if not shutil.which(bin_name):
                     missing["bins"].append(bin_name)
+                    
+        # 检查物理文件
+        if "files" in skill.requires:
+            project_root = Path(__file__).parent.parent
+            for file_path in skill.requires["files"]:
+                full_path = project_root / file_path
+                if not full_path.exists():
+                    missing["files"].append(file_path)
 
         return missing
 

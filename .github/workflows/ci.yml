@@ -83,6 +83,13 @@ jobs:
           python -c "import agi_walker; print('agi_walker loaded')"
           python -c "import gymnasium; print('gymnasium loaded')"
 
+      # ★ Skills 质量门禁端到端校验
+      # 会验证 SKILL.md 解析并检查所有 requires 是否物理存在
+      - name: Validate Skills & Check Assets
+        run: |
+          export PYTHONPATH=${GITHUB_WORKSPACE}
+          python python_api/tools/validate_skills.py
+
   # -----------------------------------------------------------------------------
   # Job 3: Integration & Specialized Tests
   # -----------------------------------------------------------------------------
