@@ -3,10 +3,11 @@ AGI-Walker Web 控制面板
 基于 FastAPI 的 Web 服务器
 """
 
+from enum import Enum
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
-from typing import List, Dict, Any
+from fastapi.responses import HTMLResponse, FileResponse
+from typing import List, Dict, Any, Optional
 import json
 import asyncio
 from datetime import datetime
@@ -30,10 +31,26 @@ active_connections: List[WebSocket] = []
 tasks_db: Dict[str, Dict[str, Any]] = {}
 
 
+# --- 统一 WebSocket 消息类型枚举 ---
+class WsMessageType(str, Enum):
+    ping       = "ping"
+    subscribe  = "subscribe"
+    command    = "command"
+
+
 @app.get("/")
 async def root():
-    """主页"""
-    return HTMLResponse(content=open("web_panel/static/index.html").read())
+    """主页（使用 FileResponse 避免编码风险）"""
+    html_path = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    return FileResponse(html_path, media_type="text/html")
+
+
+# --- Pydantic 请求模型 ---
+class TaskCreate(pydantic.BaseModel):
+    name: str
+    description: Optional[str] = ""
+    priority: Optional[str] = "normal"
+    extra: Optional[Dict[str, Any]] = None
 
 
 @app.get("/api/tasks")
@@ -43,18 +60,19 @@ async def get_tasks():
 
 
 @app.post("/api/tasks")
-async def create_task(task: Dict[str, Any]):
+async def create_task(task: TaskCreate):
     """创建新任务"""
     task_id = f"task_{len(tasks_db) + 1}"
-    task["id"] = task_id
-    task["status"] = "pending"
-    task["created_at"] = datetime.now().isoformat()
-    tasks_db[task_id] = task
-    
+    task_data = task.model_dump()
+    task_data["id"] = task_id
+    task_data["status"] = "pending"
+    task_data["created_at"] = datetime.now().isoformat()
+    tasks_db[task_id] = task_data
+
     # 广播更新
-    await broadcast({"type": "task_created", "task": task})
-    
-    return {"task_id": task_id, "task": task}
+    await broadcast({"type": "task_created", "task": task_data})
+
+    return {"task_id": task_id, "task": task_data}
 
 
 @app.post("/api/generate_robot")
@@ -185,28 +203,45 @@ async def websocket_endpoint(websocket: WebSocket):
     """WebSocket 连接 (实时更新)"""
     await websocket.accept()
     active_connections.append(websocket)
-    
+
     try:
         while True:
-            # 接收客户端消息
             data = await websocket.receive_text()
-            message = json.loads(data)
-            
-            # 处理消息
-            if message["type"] == "ping":
+            try:
+                message = json.loads(data)
+            except json.JSONDecodeError:
+                await websocket.send_json({"type": "error", "message": "invalid JSON"})
+                continue
+
+            msg_type = message.get("type", "")
+            # 消息类型校验：只允许已知类型
+            try:
+                WsMessageType(msg_type)
+            except ValueError:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": f"unknown message type: {msg_type!r}",
+                    "allowed": [m.value for m in WsMessageType]
+                })
+                continue
+
+            if msg_type == WsMessageType.ping:
                 await websocket.send_json({"type": "pong"})
-            
+
     except WebSocketDisconnect:
         active_connections.remove(websocket)
 
 
 async def broadcast(message: Dict[str, Any]):
     """广播消息到所有连接"""
+    disconnected = []
     for connection in active_connections:
         try:
             await connection.send_json(message)
-        except:
-            pass
+        except Exception:
+            disconnected.append(connection)
+    for conn in disconnected:
+        active_connections.remove(conn)
 
 
 from web_panel.godot_controller import godot_controller
@@ -381,14 +416,18 @@ async def godot_stop():
         return {"status": "stopped"}
     raise HTTPException(status_code=500, detail="Failed to stop simulation")
 
+class UpdateParamsRequest(pydantic.BaseModel):
+    params: Dict[str, Any]
+
+
 @app.post("/api/godot/update-params")
-async def godot_update_params(params: Dict[str, Any]):
+async def godot_update_params(req: UpdateParamsRequest):
     """实时更新参数"""
     if not godot_controller.is_connected():
         raise HTTPException(status_code=400, detail="Godot not connected")
-        
-    if godot_controller.update_params(params):
-        return {"status": "updated", "params": params}
+
+    if godot_controller.update_params(req.params):
+        return {"status": "updated", "params": req.params}
     raise HTTPException(status_code=500, detail="Failed to update parameters")
 
 

@@ -876,7 +876,8 @@
                 await fetch('/api/godot/update-params', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ [name]: parseFloat(value) })
+                    // Day 4 已改为 UpdateParamsRequest 格式
+                    body: JSON.stringify({ params: { [name]: parseFloat(value) } })
                 });
             } catch (e) { console.error(e); }
         }
@@ -910,16 +911,21 @@
             }
         }
 
+        // — 全局方法：将 Agent 输出的 config 发送到 Godot ---
+        let agentPendingConfig = null;
+
         async function sendAgentCommand() {
-            const input = document.getElementById('agent-command');
-            const cmd = input.value.trim();
+            // 支持两个入口：小区域的 agent-command + 对话区的 agent-input
+            const inSmall = document.getElementById('agent-command');
+            const inLarge = document.getElementById('agent-input');
+            const cmd = (inSmall ? inSmall.value.trim() : '') ||
+                        (inLarge ? inLarge.value.trim() : '');
             if (!cmd) return;
 
             // Visual feedback
-            const btn = input.nextElementSibling;
-            const originalText = btn.textContent;
-            btn.textContent = "⏳...";
-            btn.disabled = true;
+            const btns = [document.getElementById('agent-btn'),
+                          inSmall ? inSmall.nextElementSibling : null].filter(Boolean);
+            btns.forEach(b => { b.disabled = true; b.textContent = '⏳...'; });
 
             try {
                 const res = await fetch('/api/agent/parse-command', {
@@ -930,20 +936,63 @@
                 const data = await res.json();
 
                 if (data.status === 'success') {
-                    // Auto-fill the JSON area
-                    document.getElementById('robot-json').value = JSON.stringify(data.config, null, 2);
-                    // Flash success
-                    input.style.borderColor = '#10b981';
-                    setTimeout(() => input.style.borderColor = '#ddd', 1000);
+                    agentPendingConfig = data.config;
+
+                    // 填充 robot-json 框
+                    const robotJsonArea = document.getElementById('robot-json');
+                    if (robotJsonArea) robotJsonArea.value = JSON.stringify(data.config, null, 2);
+
+                    // Day 7: 在 agent-response 展示 JSON 预览 + 确认按鈕
+                    const resp = document.getElementById('agent-response');
+                    if (resp) {
+                        resp.style.display = 'block';
+                        resp.innerHTML = `
+                            <strong>✅ 解析成功</strong>—请确认以下配置：<br>
+                            <pre style="background:#1e293b;color:#a5f3fc;border-radius:6px;padding:10px;font-size:0.82em;overflow:auto;max-height:220px;margin:8px 0;">${JSON.stringify(data.config, null, 2)}</pre>
+                            <div style="display:flex;gap:10px;margin-top:8px;">
+                                <button onclick="confirmSendToGodot()" style="background:#10b981;padding:8px 18px;font-size:0.9em;">🚀 确认发送到 Godot</button>
+                                <button onclick="document.getElementById('agent-response').style.display='none';agentPendingConfig=null;" style="background:#6b7280;padding:8px 14px;font-size:0.9em;">✕ 取消</button>
+                            </div>`;
+                    }
+
+                    // 闪烁输入框边框
+                    [inSmall, inLarge].filter(Boolean).forEach(el => {
+                        el.style.borderColor = '#10b981';
+                        setTimeout(() => el.style.borderColor = '', 1200);
+                    });
                 } else {
-                    alert("指令解析失败: " + data.message);
+                    alert('指令解析失败: ' + (data.message || 'unknown'));
                 }
             } catch (e) {
                 console.error(e);
-                alert("请求失败");
+                alert('请求失败');
             } finally {
-                btn.textContent = originalText;
-                btn.disabled = false;
+                btns.forEach(b => { b.disabled = false; b.textContent = b.id === 'agent-btn' ? '✨ AI 生成配置' : '🚀 发送'; });
+            }
+        }
+
+        async function confirmSendToGodot() {
+            if (!agentPendingConfig) { alert('没有待确认的配置'); return; }
+            if (!isGodotConnected) { alert('请先连接 Godot'); return; }
+
+            const { parts = [], connections = [] } = agentPendingConfig;
+            try {
+                const res = await fetch('/api/godot/load-robot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ parts, connections })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    document.getElementById('agent-response').style.display = 'none';
+                    agentPendingConfig = null;
+                    alert('模型已发送到 Godot! 请点击“启动”开始仿真。');
+                } else {
+                    alert('发送失败: ' + (data.detail || data.message));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('发送失败');
             }
         }
 
@@ -1046,6 +1095,14 @@
             if (message.type === 'godot_connection') {
                 // 同步后端广播的连接状态
                 updateGodotUI(message.status === 'connected');
+            }
+            if (message.type === 'godot_error') {
+                // 显示 Godot 错误提示
+                const stream = document.getElementById('godot-stream');
+                const errMsg = `[ERROR] ${message.message || 'Godot error'}`;
+                stream.textContent = errMsg + '\n' + stream.textContent.slice(0, 200);
+                stream.style.color = '#ef4444';
+                setTimeout(() => stream.style.color = '#333', 4000);
             }
         };
 
