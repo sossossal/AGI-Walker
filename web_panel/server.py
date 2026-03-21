@@ -1061,12 +1061,16 @@ class GodotMotorRequest(pydantic.BaseModel):
 async def godot_launch(req: GodotLaunchRequest):
     """启动 Godot 引擎并加载指定场景"""
     result = _godot_bridge.launch(scene=req.scene, godot_exe=req.godot_exe)
+    if result["status"] in ("launched", "already_running"):
+        await broadcast({"type": "simulation_started", "data": result})
     return result
 
 @app.post("/api/godot/stop")
 async def godot_stop():
     """停止 Godot 引擎进程"""
-    return _godot_bridge.stop()
+    result = _godot_bridge.stop()
+    await broadcast({"type": "simulation_stopped", "data": result})
+    return result
 
 @app.get("/api/godot/status")
 async def godot_status():
@@ -1082,9 +1086,36 @@ async def godot_status():
 async def godot_control(req: GodotMotorRequest):
     """向运行中的 Godot 机器人发送电机速度指令"""
     if not _godot_bridge.is_connected() and not _godot_bridge._connect_tcp():
-        return {"status": "error", "message": "未连接到 Godot TCP 服务器，请先启动场景"}
-    result = _godot_bridge.send_motor(req.hip_left, req.hip_right)
+        msg = "未连接到 Godot TCP 服务器，请先启动场景"
+        await broadcast({"type": "simulation_error", "message": msg})
+        return {"status": "error", "message": msg}
+    result = await asyncio.to_thread(_godot_bridge.send_motor, req.hip_left, req.hip_right)
     return {"status": "ok", "response": result}
+
+
+# ===========================================================================
+# WebSocket 遥测与系统主循环守护进程
+# ===========================================================================
+async def telemetry_loop():
+    """后台 20Hz 循环提取最新传感器并广播帧数据"""
+    while True:
+        try:
+            if _godot_bridge.is_connected():
+                # 借助 asyncio.to_thread 防止底层 socket.recv 阻塞主线程
+                sensors = await asyncio.to_thread(_godot_bridge.get_sensors)
+                if sensors:
+                    await broadcast({
+                        "type": "telemetry_update",
+                        "data": sensors
+                    })
+        except Exception as e:
+            pass # Socket errors are silently bypassed and retried
+        await asyncio.sleep(0.05)
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(telemetry_loop())
+
 
 
 if __name__ == "__main__":

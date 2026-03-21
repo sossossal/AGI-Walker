@@ -1678,7 +1678,6 @@
                 if (data.status === 'launched') {
                     log.style.color = '#4ade80';
                     log.textContent = `✅ 已启动 PID=${data.pid} | 场景: ${data.scene} | 等待 TCP 连通...`;
-                    _startStatusPolling();
                 } else if (data.status === 'already_running') {
                     log.style.color = '#38bdf8';
                     log.textContent = `ℹ️ 实例已在运行 (PID=${data.pid})`;
@@ -1696,7 +1695,6 @@
             const log = document.getElementById('godot-launch-log');
             log.style.color = '#fbbf24';
             log.textContent = '⏹ 正在停止...';
-            _stopStatusPolling();
             try {
                 const res = await fetch('/api/godot/stop', {method: 'POST'});
                 const data = await res.json();
@@ -1709,25 +1707,43 @@
             }
         }
 
-        function _startStatusPolling() {
-            if (_godotStatusTimer) return;
-            _godotStatusTimer = setInterval(_pollGodotStatus, 1500);
+        let _godotWs = null;
+        function _connectGodotWS() {
+            if (_godotWs) return;
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            _godotWs = new WebSocket(`${protocol}//${window.location.host}/ws`);
+            
+            _godotWs.onopen = () => console.log("Godot WS Connected");
+            _godotWs.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === "telemetry_update") {
+                        _updateStatusUI(true, true);
+                        _updateSensorDisplay(msg.data);
+                    } else if (msg.type === "simulation_started") {
+                        _updateStatusUI(true, true);
+                        document.getElementById('godot-launch-log').textContent = `✅ 引擎回传: 仿真已启动 (PID=${msg.data?.pid || ''})`;
+                        document.getElementById('godot-launch-log').style.color = '#4ade80';
+                    } else if (msg.type === "simulation_stopped") {
+                        _updateStatusUI(false, false);
+                    } else if (msg.type === "simulation_error") {
+                        const log = document.getElementById('godot-launch-log');
+                        log.style.color = '#f87171';
+                        log.textContent = `❌ ${msg.message}`;
+                        _updateStatusUI(true, false);
+                    }
+                } catch(e) {}
+            };
+            
+            _godotWs.onclose = () => {
+                _godotWs = null;
+                setTimeout(_connectGodotWS, 3000);
+            };
         }
+        
+        // 页面启动时自动接驳实时遥测总线
+        window.addEventListener('DOMContentLoaded', _connectGodotWS);
 
-        function _stopStatusPolling() {
-            if (_godotStatusTimer) { clearInterval(_godotStatusTimer); _godotStatusTimer = null; }
-        }
-
-        async function _pollGodotStatus() {
-            try {
-                const res = await fetch('/api/godot/status');
-                const data = await res.json();
-                _updateStatusUI(data.engine_running, data.tcp_connected);
-                if (data.last_sensor && Object.keys(data.last_sensor).length) {
-                    _updateSensorDisplay(data.last_sensor);
-                }
-            } catch(e) {}
-        }
 
         function _updateStatusUI(running, connected) {
             const dot  = document.getElementById('godot-status-dot');
