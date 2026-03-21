@@ -152,6 +152,63 @@ name: bad-skill
     assert len(loader.skills) == 0
 
 
+def test_invalid_metadata_type(temp_skills_dir):
+    """测试 metadata 类型错误时会跳过 skill"""
+    skill_dir = temp_skills_dir / "bad-metadata-skill"
+    skill_dir.mkdir()
+
+    # metadata 必须是对象,不能是列表
+    (skill_dir / "SKILL.md").write_text("""---
+name: bad-metadata-skill
+description: "描述"
+metadata:
+  - invalid
+---
+""", encoding="utf-8")
+
+    loader = SkillsLoader(str(temp_skills_dir))
+    assert loader.get_skill("bad-metadata-skill") is None
+    assert len(loader.skills) == 0
+
+
+def test_invalid_requires_item_type(temp_skills_dir):
+    """测试 requires 子字段类型错误时会跳过 skill"""
+    skill_dir = temp_skills_dir / "bad-requires-skill"
+    skill_dir.mkdir()
+
+    # requires.python_modules 必须是字符串列表
+    (skill_dir / "SKILL.md").write_text("""---
+name: bad-requires-skill
+description: "描述"
+metadata:
+  agi_walker:
+    requires:
+      python_modules: numpy
+---
+""", encoding="utf-8")
+
+    loader = SkillsLoader(str(temp_skills_dir))
+    assert loader.get_skill("bad-requires-skill") is None
+    assert len(loader.skills) == 0
+
+
+def test_invalid_name_type(temp_skills_dir):
+    """测试 name 类型错误时会跳过 skill"""
+    skill_dir = temp_skills_dir / "bad-name-skill"
+    skill_dir.mkdir()
+
+    # name 必须是非空字符串
+    (skill_dir / "SKILL.md").write_text("""---
+name: [invalid]
+description: "描述"
+---
+""", encoding="utf-8")
+
+    loader = SkillsLoader(str(temp_skills_dir))
+    assert loader.get_skill("bad-name-skill") is None
+    assert len(loader.skills) == 0
+
+
 def test_skill_display_name():
     """测试 skill 显示名称"""
     skill = SkillMetadata(

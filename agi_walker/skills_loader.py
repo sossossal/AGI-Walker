@@ -1,7 +1,7 @@
 """
 AGI-Walker Skills 加载器
 
-基于 Moltbot Skills 系统设计,提供模块化的知识包加载和管理功能。
+基于 MoltBot Skills 系统设计,提供模块化的知识包加载和管理功能。
 
 Skills 是包含 SKILL.md 文件的目录,提供特定领域的专业知识和工具。
 加载器实现渐进式披露机制,仅在需要时加载完整文档,避免上下文污染。
@@ -9,7 +9,7 @@ Skills 是包含 SKILL.md 文件的目录,提供特定领域的专业知识和�
 
 import yaml
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 
 
@@ -111,24 +111,62 @@ class SkillsLoader:
         
         yaml_content = parts[1]
         data = yaml.safe_load(yaml_content)
+        if not isinstance(data, dict):
+            raise ValueError("无效的 SKILL.md: frontmatter 必须是 YAML 映射")
         
         # 提取必需字段
         if "name" not in data:
             raise ValueError("SKILL.md 缺少 'name' 字段")
         if "description" not in data:
             raise ValueError("SKILL.md 缺少 'description' 字段")
+
+        name = data["name"]
+        description = data["description"]
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("SKILL.md 的 'name' 字段必须是非空字符串")
+        if not isinstance(description, str) or not description.strip():
+            raise ValueError("SKILL.md 的 'description' 字段必须是非空字符串")
         
         # 提取可选的 metadata
-        metadata = data.get("metadata", {}).get("agi_walker", {})
+        raw_metadata = data.get("metadata") or {}
+        if not isinstance(raw_metadata, dict):
+            raise ValueError("SKILL.md 的 'metadata' 字段必须是对象")
+
+        metadata = raw_metadata.get("agi_walker", {}) or {}
+        if not isinstance(metadata, dict):
+            raise ValueError("SKILL.md 的 'metadata.agi_walker' 字段必须是对象")
+
+        requires = metadata.get("requires", {}) or {}
+        if not isinstance(requires, dict):
+            raise ValueError("SKILL.md 的 'metadata.agi_walker.requires' 字段必须是对象")
+
+        normalized_requires = self._normalize_requires(requires)
         
         return SkillMetadata(
-            name=data["name"],
-            description=data["description"],
+            name=name,
+            description=description,
             emoji=metadata.get("emoji", "📦"),
             category=metadata.get("category", "其他"),
-            requires=metadata.get("requires", {})
+            requires=normalized_requires
         )
     
+
+    def _normalize_requires(self, requires: Dict[str, Any]) -> Dict[str, List[str]]:
+        """规范化 requires 配置并进行类型校验。"""
+        normalized: Dict[str, List[str]] = {}
+        for key, value in requires.items():
+            if value is None:
+                normalized[key] = []
+                continue
+
+            if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+                raise ValueError(
+                    f"SKILL.md 的 'metadata.agi_walker.requires.{key}' 必须是字符串列表"
+                )
+            normalized[key] = value
+
+        return normalized
+
     def get_skill(self, name: str) -> Optional[SkillMetadata]:
         """获取指定名称的 skill
         
@@ -172,9 +210,8 @@ class SkillsLoader:
         ]
     
     def get_categories(self) -> List[str]:
-        """获取所有分类"""
-        categories = set(skill.category for skill in self.skills.values())
-        return sorted(categories)
+        """获取所有分类（兼容旧接口，结果按名称排序）。"""
+        return self.get_all_categories()
     
     def get_skill_doc(self, skill_name: str) -> str:
         """获取 skill 的完整文档
