@@ -9,8 +9,11 @@
 [![GitHub Stars](https://img.shields.io/github/stars/sossossal/AGI-Walker?style=social)](https://github.com/sossossal/AGI-Walker)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
-[![Documentation](https://img.shields.io/badge/docs-complete-success.svg)](docs/)
+[![Tests](https://img.shields.io/badge/tests-core_passing-green.svg)](tests/)
+[![Documentation](https://img.shields.io/badge/docs-base_available-blue.svg)](docs/)
+
+> **🚧 当前状态指南 (Project Status)**:  
+> Web Godot 控制面板 (Beta) | Godot 全双工集成 (WIP) | 自动化测试质量门禁 (已实装)
 
 [English](README_EN.md) | [中文](README.md) | [文档](docs/) | [演示](examples/) | [Discord](https://discord.gg/agi-walker)
 
@@ -45,10 +48,10 @@
 - **Navigation**: 避障导航、动态环境
 - **Multi-Agent**: 协作搬运、编队行走
 
-### 🌍 最完整的 Sim2Real 工具链
+### 🌍 构建中的 Sim2Real 交互链 (WIP)
 - 数据差异分析器 - 自动识别虚实差距
 - 物理参数校准 - 在线优化仿真参数
-- 任务编辑器 - 可视化对比虚拟与现实
+- 任务编辑器 - 探索前端直连底层的双栖控制
 
 ### 🤖 智能化 Skills 系统 (NEW!)
 - **3个核心Skills** - 从建模到优化到URDF转换的完整工作流
