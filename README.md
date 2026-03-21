@@ -18,6 +18,20 @@
 
 ---
 
+## 📂 项目目录架构与功能防腐视界
+
+随着项目的迭代演进，AGI-Walker 构建出了以 Python 反控为首结合多路终端的双栖生态。核心模块索引如下：
+
+- 🎮 **`godot_project/`** — Godot 物理仿真主程，包含真实场景与 TCPServer 通信链路。
+- 🧩 **`godot_studio_agent/`** — 驻留 Godot 的编辑引擎插件，负责智能聊天中控与一键生成自动化网格。
+- 🤖 **`python_controller/`** & **`python_api/`** — Godot 外部强连接 RL 控制网络兼并数据流水线。
+- 🌐 **`web_panel/`** — 基于 FastAPI 的总指平台，集成了 Sim2Real 表盘及神盾局 3D 在线 Web 操作台。
+- 📦 **`parts_library/`** — 机器人预制件云端商城 Mock 与组件仓库。
+- 🎯 **`sysid/`**, **`training/`** — 高阶控制算法与强化模型管线。
+- ⚠️ _旁挂模块_：`hive-reflex/` 与 `imc22-rtl/` (隶属于底层固件/RTL设计参考)。
+
+---
+
 ## 🌟 为什么选择 AGI-Walker?
 
 ### ⚡ 业界最快的通信性能
