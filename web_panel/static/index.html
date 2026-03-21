@@ -325,6 +325,36 @@
                 </div>
             </div>
 
+            <!-- Sim2Real Gap -->
+            <div class="card" style="grid-column: span 1;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2 style="margin: 0;">🌉 Sim2Real 校准</h2>
+                    <button onclick="runSim2RealAnalysis()" style="background: #f59e0b; padding: 5px 12px; font-size: 0.85em;">
+                        🔍 运行分析
+                    </button>
+                </div>
+                <div class="stat">
+                    <span>状态误差 (RMSE)</span>
+                    <span class="stat-value" id="s2r-rmse">--</span>
+                </div>
+                <!-- 进度条区域 -->
+                <div style="margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #666; margin-bottom: 5px;">
+                        <span>摩擦系数建议修正</span><span id="s2r-friction-val">--</span>
+                    </div>
+                    <div style="width: 100%; background: #e5e7eb; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 10px;">
+                        <div id="s2r-friction-bar" style="width: 50%; height: 100%; background: #6366f1; transition: width 0.5s;"></div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #666; margin-bottom: 5px;">
+                        <span>质量校准修正</span><span id="s2r-mass-val">--</span>
+                    </div>
+                    <div style="width: 100%; background: #e5e7eb; height: 6px; border-radius: 3px; overflow: hidden;">
+                        <div id="s2r-mass-bar" style="width: 50%; height: 100%; background: #10b981; transition: width 0.5s;"></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Godot Enbedding Control -->
             <div class="card" style="grid-column: span 3; position: relative; overflow: hidden;">
                 <div
@@ -1231,10 +1261,30 @@
 
             if (!command) return;
 
+            // 显示并设置样式使其具备滚动聊天框的特质
+            responseEl.style.display = 'block';
+            responseEl.style.maxHeight = '250px';
+            responseEl.style.overflowY = 'auto';
+            responseEl.style.background = '#f8fafc';
+            
+            // 插入用户消息气泡
+            responseEl.innerHTML += `<div style="margin-bottom:8px;text-align:right;">
+                <span style="background:#e5e7eb; color:#333; padding:6px 12px; border-radius:15px; display:inline-block; font-size:0.95em;">
+                    🧑 ${command}
+                </span>
+            </div>`;
+            inputEl.value = '';
+
             btn.innerHTML = "⏳ 思考中...";
             btn.disabled = true;
-            responseEl.style.display = 'block';
-            responseEl.innerHTML = "Agent 正在分析需求并生成结构方案...";
+            
+            const loadingId = 'loading-' + Date.now();
+            responseEl.innerHTML += `<div id="${loadingId}" style="margin-bottom:8px;">
+                <span style="background:#e0e7ff; color:#3730a3; padding:6px 12px; border-radius:15px; display:inline-block; font-size:0.95em;">
+                    🤖 Agent: 正在神盾局大脑内解析需求...
+                </span>
+            </div>`;
+            responseEl.scrollTop = responseEl.scrollHeight;
 
             try {
                 const res = await fetch('/api/agent/parse-command', {
@@ -1243,12 +1293,24 @@
                     body: JSON.stringify({ command: command })
                 });
                 const data = await res.json();
+                
+                document.getElementById(loadingId)?.remove();
 
                 if (data.status === 'success' && data.config.skills_params) {
                     const p = data.config.skills_params;
-                    responseEl.innerHTML = `✅ <b>分析完成！</b> Agent 已为您自动填充了 Skills 建模表单与优化目标。<br>
-                    🤖 类型: ${p.type} | ⚖️ 躯干质量: ${p.torso_mass}kg | 📏 期望 COM 高度: ${p.target_com_height}m<br>
-                    <span style="color:#2563eb; cursor:pointer;" onclick="switchSkillsTab('pipeline')">👉 点击此处跳转到【一键流水线】并检查</span>`;
+                    const parserStr = data.config.metadata.parser === "LLM" 
+                        ? '<span style="color:#d946ef;font-weight:bold;">⚡ LLM 引擎</span>' 
+                        : '<span style="color:#64748b;">⚙️ 正则规则兜底</span>';
+                        
+                    responseEl.innerHTML += `<div style="margin-bottom:12px;">
+                        <div style="background:#dcfce7; padding:10px 14px; border-radius:12px; display:inline-block; border-left: 4px solid #10b981; font-size:0.95em;">
+                            ✅ <b>分析完成！(${parserStr})</b><br>
+                            🤖 类型: <b>${p.type}</b> | ⚖️ 躯干质量: <b>${p.torso_mass}</b>kg | 📏 期望 COM: <b>${p.target_com_height}</b>m<br>
+                            <span style="color:#2563eb; cursor:pointer; margin-top:5px; display:inline-block;" onclick="switchSkillsTab('pipeline')">
+                                👉 点击此处跳转到【一键流水线】并检查
+                            </span>
+                        </div>
+                    </div>`;
 
                     // Autofill Pipeline Tab
                     document.getElementById('pl-name').value = p.name || 'ai_robot';
@@ -1263,12 +1325,72 @@
                     if (p.thigh_length) document.getElementById('sk-thigh').value = p.thigh_length;
                     if (p.shin_length) document.getElementById('sk-shin').value = p.shin_length;
                 } else {
-                    responseEl.innerHTML = `❌ 解析失败: ${data.message || '未知错误'}`;
+                    responseEl.innerHTML += `<div style="margin-bottom:8px;">
+                        <span style="background:#fee2e2; color:#b91c1c; padding:6px 12px; border-radius:15px; display:inline-block; font-size:0.95em;">
+                            ❌ 解析失败: ${data.message || '未知错误'}
+                        </span>
+                    </div>`;
                 }
             } catch (e) {
-                responseEl.innerHTML = `❌ 请求异常: ${e.message}`;
+                document.getElementById(loadingId)?.remove();
+                responseEl.innerHTML += `<div style="margin-bottom:8px;">
+                    <span style="background:#fee2e2; color:#b91c1c; padding:6px 12px; border-radius:15px; display:inline-block; font-size:0.95em;">
+                        ❌ 请求异常: ${e.message}
+                    </span>
+                </div>`;
             } finally {
                 btn.innerHTML = "✨ AI 生成配置";
+                btn.disabled = false;
+                responseEl.scrollTop = responseEl.scrollHeight;
+            }
+        }
+
+        // ============================================================
+        // Sim2Real API JS
+        // ============================================================
+
+        async function runSim2RealAnalysis() {
+            const btn = event.target || document.querySelector('button[onclick="runSim2RealAnalysis()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ 分析中...'; 
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/sim2real/analyze', {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mock: true })
+                });
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    const gap = data.data;
+                    document.getElementById('s2r-rmse').textContent = gap.state_rmse.toFixed(4);
+                    
+                    // index 0 is friction, index 5 is mass_scale
+                    const frictionOffset = gap.param_correction[0];
+                    const massOffset = gap.param_correction[5];
+                    
+                    document.getElementById('s2r-friction-val').textContent = (frictionOffset > 0 ? '+' : '') + frictionOffset.toFixed(3);
+                    document.getElementById('s2r-mass-val').textContent = (massOffset > 0 ? '+' : '') + massOffset.toFixed(3);
+                    
+                    // Normalize for width (assume max offset is +/- 0.3 for mapping to 0%-100% bar)
+                    const fWidth = Math.max(0, Math.min(100, 50 + (frictionOffset / 0.3) * 50));
+                    const mWidth = Math.max(0, Math.min(100, 50 + (massOffset / 0.1) * 50));
+                    
+                    document.getElementById('s2r-friction-bar').style.width = fWidth + '%';
+                    document.getElementById('s2r-mass-bar').style.width = mWidth + '%';
+                    
+                    btn.innerHTML = '✅ 分析完成';
+                    setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 3000);
+                } else {
+                    alert('分析失败: ' + data.message);
+                    btn.innerHTML = originalText; 
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert('网络异常: ' + e.message);
+                btn.innerHTML = originalText; 
                 btn.disabled = false;
             }
         }

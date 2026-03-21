@@ -84,9 +84,32 @@ func _send_command(command: String) -> void:
 		if json and result_label:
 			var msg = json.get("message", "")
 			var code_data = json.get("data", {}).get("code", "")
+			var script_name = json.get("data", {}).get("script_name", "generated_script.gd")
 			var display = "[color=cyan]%s[/color]" % msg
 			if code_data:
-				display += "\n[color=green]---  代码已生成  ---[/color]\n" + code_data.substr(0, 300) + ("..." if code_data.length() > 300 else "")
+				# 1. 尝试保存并重新加载为资源
+				var save_path = "res://" + script_name
+				var file = FileAccess.open(save_path, FileAccess.WRITE)
+				if file:
+					file.store_string(code_data)
+					file.close()
+					display += "\n[color=yellow]💾 已保存至 " + save_path + "[/color]"
+					
+					# 必须强制扫描文件系统让 ResourceLoader 能找到新文件
+					EditorInterface.get_resource_filesystem().scan()
+					var script_res = load(save_path)
+					
+					# 2. 尝试挂载到选中的节点
+					var selection = EditorInterface.get_selection().get_selected_nodes()
+					if selection.size() > 0:
+						var target = selection[0]
+						if target.get_script() == null or target.get_script().resource_path != save_path:
+							target.set_script(script_res)
+							display += "\n[color=green]🔗 已挂载至: " + target.name + "[/color]"
+					else:
+						display += "\n[color=gray](未选中节点，代码已保存但不挂载)[/color]"
+
+				display += "\n[color=gray]--- 代码预览 ---[/color]\n" + code_data.substr(0, 200) + ("..." if code_data.length() > 200 else "")
 			result_label.text = display
 		elif result_label:
 			result_label.text = "[color=red]请求失败[/color]"

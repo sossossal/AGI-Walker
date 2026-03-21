@@ -431,7 +431,53 @@ async def godot_update_params(req: UpdateParamsRequest):
     raise HTTPException(status_code=500, detail="Failed to update parameters")
 
 
+# --- Sim2Real API ---
+
+class Sim2RealAnalyzeRequest(pydantic.BaseModel):
+    mock: bool = True
+
+@app.post("/api/sim2real/analyze")
+async def analyze_sim2real_gap(req: Sim2RealAnalyzeRequest):
+    """提取或计算最新的一段 Sim2Real 差距图谱"""
+    import sys
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if root_dir not in sys.path:
+        sys.path.insert(0, root_dir)
+    
+    try:
+        from python_controller.sim2real_gap import Sim2RealGapEstimator
+        estimator = Sim2RealGapEstimator(data_dir=os.path.join(root_dir, "offline_data", "sim2real"))
+        
+        # 制造一套有偏差的 mock_data 以供网页端演示
+        sim_state = {
+            "sensors": {
+                "imu": {"orient": [5.0, -3.0, 0.0], "gyro": [0.1, 0.0, 0.0]},
+                "joints": {
+                    "hip_left": {"angle": 10.0, "velocity": 0.5},
+                    "hip_right": {"angle": -8.0, "velocity": -0.3},
+                },
+            },
+            "torso_height": 1.45,
+        }
+        real_state = {
+            "sensors": {
+                "imu": {"orient": [5.5, -2.8, 0.1], "gyro": [0.12, 0.02, 0.01]},
+                "joints": {
+                    "hip_left": {"angle": 10.5, "velocity": 0.55},
+                    "hip_right": {"angle": -7.5, "velocity": -0.25},
+                },
+            },
+            "torso_height": 1.43,
+        }
+        
+        gap_report = estimator.estimate_gap(sim_state, real_state)
+        return {"status": "success", "data": gap_report}
+    except Exception as e:
+        print(f"Sim2Real Error: {e}")
+        return {"status": "error", "message": str(e)}
+
 # --- Agent Command API ---
+
 
 class CommandRequest(pydantic.BaseModel):
     command: str
@@ -450,6 +496,66 @@ async def parse_command(req: CommandRequest):
         return {"status": "error", "message": str(e)}
 
 
+# ---------------------------------------------------------------------------
+# Godot Studio Agent API (Milestone 2 integration)
+# ---------------------------------------------------------------------------
+
+class GodotAgentCommandRequest(pydantic.BaseModel):
+    command: str
+    context: Optional[Dict[str, Any]] = None
+    godot_project_path: Optional[str] = None
+
+class GodotAgentPipelineRequest(pydantic.BaseModel):
+    commands: List[str]
+    context: Optional[Dict[str, Any]] = None
+
+def get_godot_agent_router():
+    import sys
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    agent_dir = os.path.join(root_dir, "godot_studio_agent")
+    if agent_dir not in sys.path:
+        sys.path.insert(0, agent_dir)
+        
+    if not hasattr(app, "godot_agent_router"):
+        from agent_system.router import GodotStudioRouter
+        app.godot_agent_router = GodotStudioRouter()
+    return app.godot_agent_router
+
+@app.post("/execute")
+async def execute_godot_agent_command(req: GodotAgentCommandRequest):
+    """执行 Godot Studio Agent 命令 (供 Godot 插件调用)"""
+    try:
+        router = get_godot_agent_router()
+        if req.godot_project_path:
+            router.godot_cli.project_path = req.godot_project_path
+        result = router.execute(req.command, req.context)
+        result["timestamp"] = datetime.now().isoformat()
+        return result
+    except Exception as e:
+        print(f"Agent Execute Error: {e}")
+        return {"status": "error", "message": str(e), "data": {"code": ""}}
+
+@app.post("/pipeline")
+async def execute_godot_agent_pipeline(req: GodotAgentPipelineRequest):
+    """执行多步骤命令流水线"""
+    try:
+        router = get_godot_agent_router()
+        results = router.execute_pipeline(req.commands)
+        return {
+            "success": all(r.get("success") for r in results),
+            "steps": len(results),
+            "results": results,
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@app.get("/roles")
+async def get_godot_agent_roles():
+    """获取所有可用角色信息"""
+    try:
+        return {"roles": get_godot_agent_router().get_roles_info()}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 # --- Parts Store API ---
 
