@@ -12,21 +12,23 @@ def validate_workflows():
     for wf_file in workflows_dir.glob("*.yml"):
         with open(wf_file, "r", encoding="utf-8") as f:
             try:
-                data = yaml.safe_load(f)
-                env = data.get("env", {})
+                content = f.read()
+                # Check for action versions
+                # We want to see @v6 for checkout and setup-python
+                checkout_v6 = "actions/checkout@v6" in content
+                python_v6 = "actions/setup-python@v6" in content
                 
-                # Check for FORCE_JAVASCRIPT_ACTIONS_TO_NODE24
-                # It should be present and equal to 'true' (string) or true (bool)
-                node24_val = env.get("FORCE_JAVASCRIPT_ACTIONS_TO_NODE24")
+                issues = []
+                if "actions/checkout@" in content and not checkout_v6:
+                    issues.append("actions/checkout should be @v6")
+                if "actions/setup-python@" in content and not python_v6:
+                    issues.append("actions/setup-python should be @v6")
                 
-                if node24_val is None:
-                    print(f"❌ {wf_file.name}: Missing FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 env variable.")
-                    all_valid = False
-                elif str(node24_val).lower() != 'true':
-                    print(f"❌ {wf_file.name}: FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 should be 'true', found '{node24_val}'.")
+                if issues:
+                    print(f"❌ {wf_file.name}: {', '.join(issues)}")
                     all_valid = False
                 else:
-                    print(f"✅ {wf_file.name}: Valid Node.js 24 configuration.")
+                    print(f"✅ {wf_file.name}: Valid native Node.js 24 configuration.")
                     
             except Exception as e:
                 print(f"❌ {wf_file.name}: Failed to parse YAML: {e}")
