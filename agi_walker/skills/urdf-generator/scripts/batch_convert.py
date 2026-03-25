@@ -5,6 +5,9 @@
 将多个AGI-Walker配置批量转换为URDF/SDF格式。
 """
 
+from typing import Any, Dict, Tuple, List, Optional
+import logging
+logger = logging.getLogger(__name__)
 import argparse
 import sys
 from pathlib import Path
@@ -14,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 from agi_walker.skills.urdf_generator import convert_to_urdf, validate_urdf
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="批量转换机器人配置为URDF/SDF")
     parser.add_argument("--input", required=True, help="输入目录或文件")
     parser.add_argument("--output", required=True, help="输出目录")
@@ -34,18 +37,18 @@ def main():
     else:
         input_files = list(input_path.glob("*.json"))
 
-    print("=" * 60)
-    print(f"批量转换: {len(input_files)} 个配置文件")
-    print("=" * 60)
-    print(f"输入: {input_path}")
-    print(f"输出: {output_dir}")
-    print(f"格式: {args.format.upper()}")
-    print()
+    logger.info("=" * 60)
+    logger.info(f"批量转换: {len(input_files)} 个配置文件")
+    logger.info("=" * 60)
+    logger.info(f"输入: {input_path}")
+    logger.info(f"输出: {output_dir}")
+    logger.info(f"格式: {args.format.upper()}")
+    logger.info()
 
     success_count = 0
 
     for input_file in input_files:
-        print(f"处理: {input_file.name}")
+        logger.info(f"处理: {input_file.name}")
 
         try:
             # 生成输出文件名
@@ -57,7 +60,7 @@ def main():
                     str(input_file), str(output_file), generate_meshes=args.meshes
                 )
             else:
-                print("  警告: SDF转换尚未完全实现")
+                logger.warning("  警告: SDF转换尚未完全实现")
                 convert_to_urdf(str(input_file), str(output_file))
 
             # 验证
@@ -65,18 +68,18 @@ def main():
                 if validate_urdf(str(output_file)):
                     success_count += 1
                 else:
-                    print("  警告: 验证失败")
+                    logger.error("  警告: 验证失败")
             else:
                 success_count += 1
 
         except Exception as e:
-            print(f"  错误: {e}")
+            logger.info(f"  错误: {e}")
 
-        print()
+        logger.info()
 
-    print("=" * 60)
-    print(f"转换完成: {success_count}/{len(input_files)} 成功")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info(f"转换完成: {success_count}/{len(input_files)} 成功")
+    logger.info("=" * 60)
 
 
 if __name__ == "__main__":

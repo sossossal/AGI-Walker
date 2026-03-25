@@ -8,6 +8,10 @@ import time
 from typing import Dict, Optional, Literal
 from abc import ABC, abstractmethod
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class BaseAIModel(ABC):
     """AI模型基类"""
@@ -26,7 +30,7 @@ class BaseAIModel(ABC):
 class OllamaModel(BaseAIModel):
     """Ollama AI模型"""
 
-    def __init__(self, model_name: str = "phi3:mini"):
+    def __init__(self, model_name: str = "phi3:mini") -> None:
         try:
             import ollama
 
@@ -45,23 +49,23 @@ class OllamaModel(BaseAIModel):
         # 验证模型可用
         self._verify_model()
 
-    def _verify_model(self):
+    def _verify_model(self) -> None:
         """验证模型是否可用"""
         try:
             models = self.ollama.list()
             available = [m["name"] for m in models.get("models", [])]
 
             if not any(self.model in m for m in available):
-                print(f"⚠️ 模型 {self.model} 未找到")
-                print(f"可用模型: {available}")
-                print(f"\n请运行: ollama pull {self.model}")
+                logger.info(f"⚠️ 模型 {self.model} 未找到")
+                logger.info(f"可用模型: {available}")
+                logger.info(f"\n请运行: ollama pull {self.model}")
                 raise ValueError(f"模型 {self.model} 不可用")
 
-            print(f"✅ 模型 {self.model} 已加载")
+            logger.info(f"✅ 模型 {self.model} 已加载")
 
         except Exception:
-            print("❌ 无法连接到Ollama服务")
-            print("请确保Ollama正在运行: https://ollama.com/")
+            logger.info("❌ 无法连接到Ollama服务")
+            logger.info("请确保Ollama正在运行: https://ollama.com/")
             raise
 
     def _create_schema(self) -> Dict:
@@ -135,13 +139,13 @@ class OllamaModel(BaseAIModel):
             return action
 
         except json.JSONDecodeError as e:
-            print(f"❌ JSON解析错误: {e}")
-            print(f"   原始响应: {response.get('response', 'N/A')[:200]}")
+            logger.info(f"❌ JSON解析错误: {e}")
+            logger.info(f"   原始响应: {response.get('response', 'N/A')[:200]}")
             self.errors += 1
             return self._default_action()
 
         except Exception as e:
-            print(f"❌ AI推理错误: {e}")
+            logger.info(f"❌ AI推理错误: {e}")
             self.errors += 1
             return self._default_action()
 
@@ -203,7 +207,7 @@ class OllamaModel(BaseAIModel):
 class LlamaCppModel(BaseAIModel):
     """llama.cpp AI模型（高级）"""
 
-    def __init__(self, model_path: str, grammar_path: Optional[str] = None):
+    def __init__(self, model_path: str, grammar_path: Optional[str] = None) -> None:
         try:
             from llama_cpp import Llama
 
@@ -211,7 +215,7 @@ class LlamaCppModel(BaseAIModel):
         except ImportError:
             raise ImportError("请安装llama-cpp-python: pip install llama-cpp-python")
 
-        print(f"加载模型: {model_path}")
+        logger.info(f"加载模型: {model_path}")
         self.model = self.Llama(
             model_path=model_path,
             n_ctx=2048,
@@ -225,7 +229,7 @@ class LlamaCppModel(BaseAIModel):
         self.total_time = 0.0
         self.errors = 0
 
-        print("✅ 模型加载成功")
+        logger.info("✅ 模型加载成功")
 
     def predict(self, sensor_data: Dict, strategy: str = "") -> Dict:
         """AI推理"""
@@ -259,7 +263,7 @@ class LlamaCppModel(BaseAIModel):
             return action
 
         except Exception as e:
-            print(f"❌ 推理错误: {e}")
+            logger.info(f"❌ 推理错误: {e}")
             self.errors += 1
             return {"motors": {"hip_left": 0.0, "hip_right": 0.0}}
 
@@ -325,7 +329,7 @@ def create_ai_model(
 
 # 测试代码
 if __name__ == "__main__":
-    print("AI模型测试\n")
+    logger.info("AI模型测试\n")
 
     # 创建模型
     ai = create_ai_model(engine="ollama", model_name="phi3:mini")
@@ -343,14 +347,14 @@ if __name__ == "__main__":
     }
 
     # 测试推理
-    print("执行推理...")
+    logger.info("执行推理...")
     action = ai.predict(dummy_sensor, "保持平衡")
 
-    print("\n预测动作:")
-    print(json.dumps(action, indent=2, ensure_ascii=False))
+    logger.info("\n预测动作:")
+    logger.info(json.dumps(action, indent=2, ensure_ascii=False))
 
     # 统计
     stats = ai.get_stats()
-    print("\n统计信息:")
-    print(f"  推理次数: {stats['total_predictions']}")
-    print(f"  平均耗时: {stats['avg_inference_time']*1000:.2f}ms")
+    logger.info("\n统计信息:")
+    logger.info(f"  推理次数: {stats['total_predictions']}")
+    logger.info(f"  平均耗时: {stats['avg_inference_time']*1000:.2f}ms")

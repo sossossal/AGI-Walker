@@ -5,26 +5,26 @@
 
 import time
 import argparse
+import logging
 from pathlib import Path
 
-# 导入核心模块
-from tcp_client import GodotClient
-from model_orchestrator import create_orchestrator
-from load_monitor import LoadMonitor, SimplePIDController, ControlMode
-from rag_knowledge_base import PhysicsKnowledgeBase
+logger = logging.getLogger(__name__)
+
+# 导入核心模块 - 使用绝对导入
+from python_controller.tcp_client import GodotClient
+from python_controller.model_orchestrator import create_orchestrator
+from python_controller.load_monitor import LoadMonitor, SimplePIDController, ControlMode
+from python_controller.rag_knowledge_base import PhysicsKnowledgeBase
+from typing import Any, List, Tuple, Dict, Optional
 
 # 导入视觉和融合模块
-import sys
-
-sys.path.insert(0, "../python_api")
 try:
-    from vision_processor import create_vision_processor
-    from multimodal_fusion import create_multimodal_fusion
-
+    from python_api.vision_processor import create_vision_processor
+    from python_api.multimodal_fusion import create_multimodal_fusion
     VISION_AVAILABLE = True
 except ImportError:
     VISION_AVAILABLE = False
-    print("⚠️ 视觉模块不可用")
+    logger.warning("Vision module not available")
 
 
 class EnhancedController:
@@ -56,28 +56,28 @@ class EnhancedController:
             enable_vision: 是否启用视觉输入
             enable_rag: 是否启用RAG知识库
         """
-        print("=" * 50)
-        print("初始化增强控制器")
-        print("=" * 50)
+        logger.info("=" * 50)
+        logger.info("初始化增强控制器")
+        logger.info("=" * 50)
 
         self.strategy = strategy
         self.enable_vision = enable_vision and VISION_AVAILABLE
 
         # Godot客户端
-        print("\n1. 初始化Godot客户端...")
+        logger.info("\n1. 初始化Godot客户端...")
         self.client = GodotClient()
 
         # PID控制器（fallback）
-        print("2. 初始化PID控制器...")
+        logger.info("2. 初始化PID控制器...")
         self.pid_controller = SimplePIDController(kp=2.5, ki=0.15, kd=0.8)
 
         # 负载监控器
-        print("3. 初始化负载监控器...")
+        logger.info("3. 初始化负载监控器...")
         self.load_monitor = LoadMonitor(self.pid_controller)
         self.load_monitor.on_mode_change = self._on_mode_change
 
         # 模型编排器
-        print("4. 初始化模型编排器...")
+        logger.info("4. 初始化模型编排器...")
         self.orchestrator = create_orchestrator(
             small_model=small_model, medium_model=medium_model
         )
@@ -85,7 +85,7 @@ class EnhancedController:
         # RAG知识库
         self.knowledge_base = None
         if enable_rag:
-            print("5. 初始化RAG知识库...")
+            logger.info("5. 初始化RAG知识库...")
             try:
                 # 使用基于项目根目录的相对路径
                 root_dir = Path(__file__).resolve().parent.parent
@@ -95,13 +95,13 @@ class EnhancedController:
                     use_embeddings=False,  # 离线模式
                 )
             except Exception as e:
-                print(f"⚠️ RAG初始化失败: {e}")
+                logger.warning(f"RAG initialization failed: {e}")
 
         # 视觉处理（可选）
         self.vision_processor = None
         self.fusion_module = None
         if self.enable_vision:
-            print("6. 初始化视觉处理模块...")
+            logger.info("6. 初始化视觉处理模块...")
             self.vision_processor = create_vision_processor()
             self.fusion_module = create_multimodal_fusion(self.vision_processor)
 
@@ -120,12 +120,12 @@ class EnhancedController:
             "avg_loop_time": 0.0,
         }
 
-        print("\n✅ 增强控制器初始化完成")
-        print("=" * 50)
-
+        logger.info("\n✅ 增强控制器初始化完成")
+        logger.info("=" * 50)
+    def _on_mode_change(self, old_mode: ControlMode, new_mode: ControlMode) -> None:
     def _on_mode_change(self, old_mode: ControlMode, new_mode: ControlMode):
         """控制模式切换回调"""
-        print(f"🔄 控制模式切换: {old_mode.value} -> {new_mode.value}")
+        logger.info(f"🔄 控制模式切换: {old_mode.value} -> {new_mode.value}")
 
     def run(
         self,
@@ -143,15 +143,15 @@ class EnhancedController:
             adjustment_interval: 中模型调整间隔（秒）
             verbose: 是否打印详细信息
         """
-        print("\n🚀 启动增强控制器")
-        print(f"   目标频率: {target_hz}Hz")
-        print(f"   持续时间: {duration}秒")
-        print(f"   视觉模式: {'启用' if self.enable_vision else '禁用'}")
-        print(f"   RAG增强: {'启用' if self.knowledge_base else '禁用'}")
+        logger.info("Starting enhanced controller")
+        logger.info(f"   Target frequency: {target_hz}Hz")
+        logger.info(f"   Duration: {duration}s")
+        logger.info(f"   Vision mode: {'enabled' if self.enable_vision else 'disabled'}")
+        logger.info(f"   RAG enhancer: {'enabled' if self.knowledge_base else 'disabled'}")
 
         # 连接Godot
         if not self.client.connect():
-            print("❌ 无法连接到Godot仿真")
+            logger.error("Failed to connect to Godot simulation")
             return
 
         self.is_running = True
@@ -216,9 +216,9 @@ class EnhancedController:
                     time.sleep(sleep_time)
 
         except KeyboardInterrupt:
-            print("\n⏹ 用户中断")
+            logger.info("Interrupt by user")
         except Exception as e:
-            print(f"\n❌ 运行错误: {e}")
+            logger.error(f"Runtime error: {e}")
             self.stats["errors"] += 1
         finally:
             self._cleanup()
@@ -260,7 +260,7 @@ class EnhancedController:
         result = self.orchestrator.process(sensor_data, context="realtime")
 
         return result
-
+    def _do_environment_adjustment(self, sensor_data: dict) -> None:
     def _do_environment_adjustment(self, sensor_data: dict):
         """执行环境感知调整"""
         try:
@@ -280,8 +280,8 @@ class EnhancedController:
                 self.pid_controller.kd *= tuning.get("kd_factor", 1.0)
 
         except Exception as e:
-            print(f"⚠️ 环境调整错误: {e}")
-
+            logger.warning(f"Environment adjustment error: {e}")
+    def _add_log_entry(self, sensor_data: dict, action: dict) -> None:
     def _add_log_entry(self, sensor_data: dict, action: dict):
         """添加日志条目"""
         orient = sensor_data.get("sensors", {}).get("imu", {}).get("orient", [0, 0, 0])
@@ -307,7 +307,7 @@ class EnhancedController:
             log_entry["message"] = "高度过低"
 
         self.orchestrator.add_log(log_entry)
-
+    def _print_status(self, sensor_data: dict, ai_time: float, loop_times: list) -> List:
     def _print_status(self, sensor_data: dict, ai_time: float, loop_times: list):
         """打印状态信息"""
         orient = sensor_data.get("sensors", {}).get("imu", {}).get("orient", [0, 0, 0])
@@ -318,57 +318,57 @@ class EnhancedController:
         fps = 1.0 / avg_loop if avg_loop > 0 else 0
 
         mode = self.load_monitor.current_mode.value
-        mode_emoji = {"ai": "🤖", "pid": "🔧", "hybrid": "🔀"}.get(mode, "❓")
+        mode_text = {"ai": "[AI]", "pid": "[PID]", "hybrid": "[HYBRID]"}.get(mode, "[?]")
 
-        print(
-            f"\r[{elapsed:6.1f}s] {mode_emoji} {mode:6s} | "
+        logger.info(
+            f"\r[{elapsed:6.1f}s] {mode_text} {mode:6s} | "
             f"Roll: {orient[0]:+6.1f}° Pitch: {orient[1]:+6.1f}° | "
-            f"高度: {height:.2f}m | "
-            f"AI延迟: {ai_time*1000:5.1f}ms | "
+            f"Height: {height:.2f}m | "
+            f"AI latency: {ai_time*1000:5.1f}ms | "
             f"FPS: {fps:.0f}",
             end="",
         )
-
+    def _cleanup(self) -> None:
     def _cleanup(self):
         """清理资源"""
         self.is_running = False
 
-        print("\n\n" + "=" * 50)
-        print("控制器统计")
-        print("=" * 50)
+        logger.info("\n\n" + "=" * 50)
+        logger.info("控制器统计")
+        logger.info("=" * 50)
 
         elapsed = time.time() - self.start_time
 
-        print(f"运行时长: {elapsed:.1f}秒")
-        print(f"总循环数: {self.stats['total_loops']}")
-        print(
+        logger.info(f"运行时长: {elapsed:.1f}秒")
+        logger.info(f"总循环数: {self.stats['total_loops']}")
+        logger.info(
             f"AI控制: {self.stats['ai_loops']} ({100*self.stats['ai_loops']/max(1,self.stats['total_loops']):.1f}%)"
         )
-        print(
+        logger.info(
             f"PID控制: {self.stats['pid_loops']} ({100*self.stats['pid_loops']/max(1,self.stats['total_loops']):.1f}%)"
         )
-        print(
+        logger.info(
             f"混合模式: {self.stats['hybrid_loops']} ({100*self.stats['hybrid_loops']/max(1,self.stats['total_loops']):.1f}%)"
         )
-        print(f"错误数: {self.stats['errors']}")
+        logger.info(f"错误数: {self.stats['errors']}")
 
         # 负载监控统计
-        print("\n负载监控:")
+        logger.info("\n负载监控:")
         load_stats = self.load_monitor.get_stats()
-        print(f"  EMA延迟: {load_stats['ema_latency_ms']:.1f}ms")
-        print(f"  超标率: {load_stats['over_threshold_rate']*100:.1f}%")
-        print(f"  模式切换: {load_stats['mode_switches']}次")
+        logger.info(f"  EMA延迟: {load_stats['ema_latency_ms']:.1f}ms")
+        logger.info(f"  超标率: {load_stats['over_threshold_rate']*100:.1f}%")
+        logger.info(f"  模式切换: {load_stats['mode_switches']}次")
 
         # 模型编排统计
-        print("\n模型调用:")
+        logger.info("\n模型调用:")
         orch_stats = self.orchestrator.get_stats()
         for tier, count in orch_stats.get("tier_usage", {}).items():
-            print(f"  {tier}: {count}次")
+            logger.info(f"  {tier}: {count}次")
 
         self.client.close()
-        print("\n连接已关闭")
+        logger.info("\n连接已关闭")
 
-
+def main() -> None:
 def main():
     """主函数"""
     parser = argparse.ArgumentParser(description="AGI-Walker增强控制器")

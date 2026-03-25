@@ -4,6 +4,10 @@
 """
 
 import multiprocessing as mp
+
+import logging
+
+logger = logging.getLogger(__name__)
 from typing import List, Dict, Any, Callable
 import numpy as np
 import time
@@ -20,18 +24,18 @@ class ParallelTrainingManager:
     - 资源监控
     """
 
-    def __init__(self, num_workers: int = None):
+    def __init__(self, num_workers: int = None) -> None:
         self.num_workers = num_workers or mp.cpu_count()
         self.workers: List[mp.Process] = []
         self.result_queue = mp.Queue()
         self.task_queue = mp.Queue()
 
-        print("🚀 并行训练管理器初始化")
-        print(f"   - 工作进程数: {self.num_workers}")
+        logger.info("🚀 并行训练管理器初始化")
+        logger.info(f"   - 工作进程数: {self.num_workers}")
 
-    def worker_process(self, worker_id: int, env_fn: Callable, policy_fn: Callable):
+    def worker_process(self, worker_id: int, env_fn: Callable, policy_fn: Callable) -> List:
         """工作进程"""
-        print(f"Worker {worker_id} 启动")
+        logger.info(f"Worker {worker_id} 启动")
 
         # 创建环境
         env = env_fn()
@@ -71,21 +75,21 @@ class ParallelTrainingManager:
                 self.result_queue.put({"worker_id": worker_id, "results": results})
 
             except Exception as e:
-                print(f"Worker {worker_id} 错误: {e}")
+                logger.info(f"Worker {worker_id} 错误: {e}")
                 break
 
-        print(f"Worker {worker_id} 停止")
+        logger.info(f"Worker {worker_id} 停止")
 
-    def start_workers(self, env_fn: Callable, policy_fn: Callable):
+    def start_workers(self, env_fn: Callable, policy_fn: Callable) -> List:
         """启动工作进程"""
         for i in range(self.num_workers):
             p = mp.Process(target=self.worker_process, args=(i, env_fn, policy_fn))
             p.start()
             self.workers.append(p)
 
-        print(f"✅ {self.num_workers} 个工作进程已启动")
+        logger.info(f"✅ {self.num_workers} 个工作进程已启动")
 
-    def submit_task(self, task: Dict[str, Any]):
+    def submit_task(self, task: Dict[str, Any]) -> None:
         """提交训练任务"""
         self.task_queue.put(task)
 
@@ -102,7 +106,7 @@ class ParallelTrainingManager:
 
         return results
 
-    def stop_workers(self):
+    def stop_workers(self) -> List:
         """停止所有工作进程"""
         for _ in range(self.num_workers):
             self.task_queue.put("STOP")
@@ -110,7 +114,7 @@ class ParallelTrainingManager:
         for worker in self.workers:
             worker.join(timeout=5)
 
-        print("🛑 所有工作进程已停止")
+        logger.info("🛑 所有工作进程已停止")
 
 
 # ==================== 简化的策略类 (用于测试) ====================
@@ -119,23 +123,28 @@ class ParallelTrainingManager:
 class DummyPolicy:
     """虚拟策略 (用于测试)"""
 
-    def get_action(self, obs):
+    def get_action(self, obs) -> Any:
         return np.random.randn(8)
 
 
 # ==================== 示例代码 ====================
 
 if __name__ == "__main__":
-    import gymnasium as gym
+    try:
+        import gymnasium as gym
+    except ImportError:
+        logger.error("❌ gymnasium 未安装")
+        logger.error("   运行: pip install gymnasium")
+        exit(1)
 
-    print("🧪 并行训练管理器测试\n")
+    logger.info("🧪 并行训练管理器测试\n")
 
     # 环境工厂函数
-    def make_env():
+    def make_env() -> Any:
         return gym.make("CartPole-v1")
 
     # 策略工厂函数
-    def make_policy():
+    def make_policy() -> Any:
         return DummyPolicy()
 
     # 创建管理器
@@ -149,17 +158,17 @@ if __name__ == "__main__":
         manager.submit_task({"num_episodes": 5})
 
     # 等待结果
-    print("\n等待训练完成...")
+    logger.info("\n等待训练完成...")
     time.sleep(10)
 
     # 获取结果
     results = manager.get_results()
-    print(f"\n收到 {len(results)} 个结果")
+    logger.info(f"\n收到 {len(results)} 个结果")
 
     for result in results:
         worker_id = result["worker_id"]
         avg_reward = np.mean([r["reward"] for r in result["results"]])
-        print(f"Worker {worker_id}: 平均奖励 = {avg_reward:.2f}")
+        logger.info(f"Worker {worker_id}: 平均奖励 = {avg_reward:.2f}")
 
     # 停止
     manager.stop_workers()

@@ -3,6 +3,9 @@
 测试 PartsDatabase 类的核心功能
 """
 
+import logging
+from typing import Any, Optional, Dict, List, Tuple
+logger = logging.getLogger(__name__)
 import pytest
 import json
 import os
@@ -46,14 +49,14 @@ class TestPartsDatabase:
 
         return parts_dir
 
-    def test_load_parts_database(self, parts_db_path):
+    def test_load_parts_database(self, parts_db_path) -> None:
         """测试加载零件库"""
         # 实际实现需要导入 PartsDatabase
         # db = PartsDatabase(str(parts_db_path))
         # assert db is not None
         pass
 
-    def test_get_part(self, parts_db_path):
+    def test_get_part(self, parts_db_path) -> None:
         """测试获取零件信息"""
         # db = PartsDatabase(str(parts_db_path))
         # motor = db.get_part("test_motor")
@@ -61,14 +64,14 @@ class TestPartsDatabase:
         # assert motor['price_usd'] == 49.99
         pass
 
-    def test_get_nonexistent_part(self, parts_db_path):
+    def test_get_nonexistent_part(self, parts_db_path) -> None:
         """测试获取不存在的零件"""
         # db = PartsDatabase(str(parts_db_path))
         # with pytest.raises(KeyError):
         #     db.get_part("nonexistent")
         pass
 
-    def test_list_parts_by_category(self, parts_db_path):
+    def test_list_parts_by_category(self, parts_db_path) -> None:
         """测试按类别列出零件"""
         # db = PartsDatabase(str(parts_db_path))
         # motors = db.list_parts_by_category("motor")
@@ -76,7 +79,7 @@ class TestPartsDatabase:
         # assert motors[0]['part_id'] == 'test_motor'
         pass
 
-    def test_calculate_total_cost(self, parts_db_path):
+    def test_calculate_total_cost(self, parts_db_path) -> None:
         """测试计算总成本"""
         # db = PartsDatabase(str(parts_db_path))
         # robot_parts = ["test_motor", "test_motor"]  # 2个相同电机
@@ -84,7 +87,7 @@ class TestPartsDatabase:
         # assert total == 99.98
         pass
 
-    def test_part_json_schema_validation(self, parts_db_path):
+    def test_part_json_schema_validation(self, parts_db_path) -> None:
         """测试零件JSON格式验证"""
         # 测试必需字段
         invalid_part = {"part_id": "invalid"}  # 缺少必需字段
@@ -98,17 +101,17 @@ class TestPartsDatabase:
 class TestPartSpecifications:
     """零件规格测试"""
 
-    def test_motor_torque_positive(self):
+    def test_motor_torque_positive(self) -> None:
         """测试电机扭矩必须为正"""
         # motor_spec = MotorSpec(stall_torque=-1.0)
         # 应该抛出验证错误
         pass
 
-    def test_motor_speed_positive(self):
+    def test_motor_speed_positive(self) -> None:
         """测试电机速度必须为正"""
         pass
 
-    def test_price_positive(self):
+    def test_price_positive(self) -> None:
         """测试价格必须为正"""
         pass
 

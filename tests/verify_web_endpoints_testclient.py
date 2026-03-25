@@ -1,3 +1,6 @@
+import logging
+from typing import Any, Optional, Dict, List, Tuple
+logger = logging.getLogger(__name__)
 import pytest
 pytest.importorskip("fastapi")
 
@@ -26,38 +29,38 @@ web_panel.godot_controller.godot_controller.client = mock_client
 client = TestClient(web_panel.server.app)
 
 
-def test_endpoints():
-    print("Testing Godot Endpoints...")
+def test_endpoints() -> None:
+    logger.info("Testing Godot Endpoints...")
 
     # 1. Connect
-    print("1. Testing /api/godot/connect...")
+    logger.info("1. Testing /api/godot/connect...")
     resp = client.post("/api/godot/connect", json={"host": "127.0.0.1", "port": 9999})
-    print(f"   Status: {resp.status_code}")
-    print(f"   Response: {resp.json()}")
+    logger.info(f"   Status: {resp.status_code}")
+    logger.info(f"   Response: {resp.json()}")
     assert resp.status_code == 200
     assert resp.json()["status"] == "connected"
 
     # 2. Status
-    print("2. Testing /api/godot/status...")
+    logger.info("2. Testing /api/godot/status...")
     resp = client.get("/api/godot/status")
-    print(f"   Response: {resp.json()}")
+    logger.info(f"   Response: {resp.json()}")
     assert resp.status_code == 200
     assert resp.json()["connected"] == True
 
     # 3. Start
-    print("3. Testing /api/godot/start...")
+    logger.info("3. Testing /api/godot/start...")
     resp = client.post("/api/godot/start", json={"physics": {"gravity": 9.8}})
-    print(f"   Status: {resp.status_code}")
+    logger.info(f"   Status: {resp.status_code}")
     assert resp.status_code == 200
     assert resp.json()["status"] == "started"
 
     # 4. Stop
-    print("4. Testing /api/godot/stop...")
+    logger.info("4. Testing /api/godot/stop...")
     resp = client.post("/api/godot/stop")
-    print(f"   Status: {resp.status_code}")
+    logger.info(f"   Status: {resp.status_code}")
     assert resp.status_code == 200
 
-    print("\n✅ All endpoints verified reachable and defined.")
+    logger.info("\n✅ All endpoints verified reachable and defined.")
 
 
 if __name__ == "__main__":

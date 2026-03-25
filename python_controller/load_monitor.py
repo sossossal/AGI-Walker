@@ -8,6 +8,10 @@ from collections import deque
 from dataclasses import dataclass
 from enum import Enum
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ControlMode(Enum):
     """控制模式"""
@@ -40,7 +44,7 @@ class LoadMonitor:
     4. 支持混合模式平滑过渡
     """
 
-    def __init__(self, pid_controller, config: Optional[LoadMonitorConfig] = None):
+    def __init__(self, pid_controller, config: Optional[LoadMonitorConfig] = None) -> None:
         """
         初始化负载监控器
 
@@ -68,7 +72,7 @@ class LoadMonitor:
         # 回调
         self.on_mode_change: Optional[Callable[[ControlMode, ControlMode], None]] = None
 
-    def record_latency(self, latency_ms: float):
+    def record_latency(self, latency_ms: float) -> None:
         """
         记录推理延迟
 
@@ -99,7 +103,7 @@ class LoadMonitor:
         # 检查是否需要切换模式
         self._check_mode_switch()
 
-    def _check_mode_switch(self):
+    def _check_mode_switch(self) -> None:
         """检查是否需要切换控制模式"""
         old_mode = self.current_mode
 
@@ -108,13 +112,13 @@ class LoadMonitor:
             if self.consecutive_over_threshold >= self.config.fallback_trigger_count:
                 self.current_mode = ControlMode.PID
                 self.mode_switches += 1
-                print(f"⚠️ 延迟超标({self.ema_latency:.1f}ms)，切换到PID控制")
+                logger.info(f"⚠️ 延迟超标({self.ema_latency:.1f}ms)，切换到PID控制")
 
         elif self.current_mode == ControlMode.PID:
             # PID模式下，延迟恢复正常切回AI
             if self.consecutive_under_threshold >= self.config.recovery_trigger_count:
                 self.current_mode = ControlMode.HYBRID  # 先进入混合模式过渡
-                print(f"✅ 延迟恢复正常({self.ema_latency:.1f}ms)，进入混合模式")
+                logger.info(f"✅ 延迟恢复正常({self.ema_latency:.1f}ms)，进入混合模式")
 
         elif self.current_mode == ControlMode.HYBRID:
             # 混合模式下，持续正常则切回AI
@@ -124,7 +128,7 @@ class LoadMonitor:
             ):
                 self.current_mode = ControlMode.AI
                 self.mode_switches += 1
-                print("✅ 延迟稳定正常，切回AI控制")
+                logger.info("✅ 延迟稳定正常，切回AI控制")
 
         # 触发回调
         if old_mode != self.current_mode and self.on_mode_change:
@@ -237,7 +241,7 @@ class LoadMonitor:
             "consecutive_under": self.consecutive_under_threshold,
         }
 
-    def reset(self):
+    def reset(self) -> None:
         """重置状态"""
         self.latency_history.clear()
         self.ema_latency = 0.0
@@ -329,7 +333,7 @@ class SimplePIDController:
 
         return hip_left, hip_right
 
-    def reset(self):
+    def reset(self) -> None:
         """重置积分项"""
         self.integral_roll = 0.0
         self.integral_pitch = 0.0
@@ -342,7 +346,7 @@ if __name__ == "__main__":
     import json
     import random
 
-    print("负载监控器测试\n")
+    logger.info("负载监控器测试\n")
 
     # 创建PID控制器
     pid = SimplePIDController(kp=2.0, ki=0.1, kd=0.5)
@@ -361,30 +365,30 @@ if __name__ == "__main__":
         }
     }
 
-    print("=== 模拟正常延迟 ===")
+    logger.info("=== 模拟正常延迟 ===")
     for i in range(15):
         latency = random.uniform(10, 18)  # 正常延迟
         monitor.record_latency(latency)
-        print(f"延迟: {latency:.1f}ms, 模式: {monitor.current_mode.value}")
+        logger.info(f"延迟: {latency:.1f}ms, 模式: {monitor.current_mode.value}")
 
-    print("\n=== 模拟延迟超标 ===")
+    logger.info("\n=== 模拟延迟超标 ===")
     for i in range(10):
         latency = random.uniform(25, 40)  # 超标延迟
         monitor.record_latency(latency)
-        print(f"延迟: {latency:.1f}ms, 模式: {monitor.current_mode.value}")
+        logger.info(f"延迟: {latency:.1f}ms, 模式: {monitor.current_mode.value}")
 
     # 测试控制动作
-    print("\n=== 测试PID控制 ===")
+    logger.info("\n=== 测试PID控制 ===")
     action = monitor.get_control_action(sensor_data)
-    print(f"控制动作: {json.dumps(action, indent=2)}")
+    logger.info(f"控制动作: {json.dumps(action, indent=2)}")
 
-    print("\n=== 模拟延迟恢复 ===")
+    logger.info("\n=== 模拟延迟恢复 ===")
     for i in range(25):
         latency = random.uniform(8, 15)  # 恢复正常
         monitor.record_latency(latency)
-        print(f"延迟: {latency:.1f}ms, 模式: {monitor.current_mode.value}")
+        logger.info(f"延迟: {latency:.1f}ms, 模式: {monitor.current_mode.value}")
 
     # 统计
-    print("\n=== 统计信息 ===")
+    logger.info("\n=== 统计信息 ===")
     stats = monitor.get_stats()
-    print(json.dumps(stats, indent=2))
+    logger.info(json.dumps(stats, indent=2))

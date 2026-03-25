@@ -10,38 +10,66 @@
       }
     },
     {
-      "id": "leg_left_2",
-      "type": "leg",
+      "id": "thigh_left_2",
+      "type": "thigh",
       "side": "left",
       "params": {
-        "thigh_length": 0.175,
-        "shin_length": 0.175,
-        "hip_joint": "revolute",
-        "knee_joint": "revolute"
+        "length": 0.175,
+        "mass": 1.0
       }
     },
     {
-      "id": "leg_right_3",
-      "type": "leg",
+      "id": "shin_left_3",
+      "type": "shin",
+      "side": "left",
+      "params": {
+        "length": 0.175,
+        "mass": 1.0
+      }
+    },
+    {
+      "id": "thigh_right_4",
+      "type": "thigh",
       "side": "right",
       "params": {
-        "thigh_length": 0.175,
-        "shin_length": 0.175,
-        "hip_joint": "revolute",
-        "knee_joint": "revolute"
+        "length": 0.175,
+        "mass": 1.0
+      }
+    },
+    {
+      "id": "shin_right_5",
+      "type": "shin",
+      "side": "right",
+      "params": {
+        "length": 0.175,
+        "mass": 1.0
       }
     }
   ],
   "connections": [
     {
       "from": "torso_1",
-      "to": "leg_left_2",
-      "joint_type": "revolute"
+      "to": "thigh_left_2",
+      "joint_type": "revolute",
+      "name": "hip_left"
     },
     {
       "from": "torso_1",
-      "to": "leg_right_3",
-      "joint_type": "revolute"
+      "to": "thigh_right_4",
+      "joint_type": "revolute",
+      "name": "hip_right"
+    },
+    {
+      "from": "thigh_left_2",
+      "to": "shin_left_3",
+      "joint_type": "revolute",
+      "name": "knee_left"
+    },
+    {
+      "from": "thigh_right_4",
+      "to": "shin_right_5",
+      "joint_type": "revolute",
+      "name": "knee_right"
     }
   ],
   "metadata": {}

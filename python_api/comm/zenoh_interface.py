@@ -14,7 +14,7 @@ try:
     ZENOH_AVAILABLE = True
 except ImportError:
     ZENOH_AVAILABLE = False
-    print("⚠️ Zenoh 未安装，请运行: pip install eclipse-zenoh")
+    print("Zenoh not installed. Run: pip install eclipse-zenoh")
 
 
 @dataclass
@@ -64,7 +64,7 @@ class ZenohInterface:
             )
 
         self.session = zenoh.open(zenoh_config)
-        print(f"✅ Zenoh 会话已建立 (mode: {self.config.mode})")
+        print(f"Zenoh session established (mode: {self.config.mode})")
 
     def declare_publisher(self, key: str) -> None:
         """
@@ -76,7 +76,7 @@ class ZenohInterface:
         if key not in self.publishers:
             pub = self.session.declare_publisher(key)
             self.publishers[key] = pub
-            print(f"📤 Publisher 已创建: {key}")
+            print(f"Publisher created: {key}")
 
     def publish(self, key: str, data: Any, serialize: bool = True) -> None:
         """
@@ -112,11 +112,11 @@ class ZenohInterface:
                 # 如果不是 JSON，直接传递原始字节
                 callback(payload_bytes)
             except Exception as e:
-                print(f"⚠️ Subscriber callback error: {e}")
+                print(f"Subscriber callback error: {e}")
 
         sub = self.session.declare_subscriber(key, zenoh_callback)
         self.subscribers[key] = sub
-        print(f"📥 Subscriber 已创建: {key}")
+        print(f"Subscriber created: {key}")
 
     def close(self):
         """关闭 Zenoh 会话"""
@@ -127,7 +127,7 @@ class ZenohInterface:
 
         if self.session:
             self.session.close()
-        print("🔌 Zenoh 会话已关闭")
+        print("Zenoh session closed")
 
 
 # ==================== 示例代码 ====================

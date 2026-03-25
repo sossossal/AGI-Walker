@@ -71,7 +71,13 @@ class SkillsLoader:
 
     def load_all_skills(self) -> None:
         """扫描并加载所有 skills 的 metadata"""
-        for skill_path in self.skills_dir.iterdir():
+        try:
+            skill_paths = list(self.skills_dir.iterdir())
+        except OSError as e:
+            logger.error(f"无法访问 skills 目录 {self.skills_dir}: {e}")
+            return
+
+        for skill_path in skill_paths:
             if not skill_path.is_dir():
                 continue
 
@@ -325,7 +331,11 @@ def get_skills_loader(skills_dir: str = "agi_walker/skills") -> SkillsLoader:
         SkillsLoader 实例
     """
     global _skills_loader_instance
-    if _skills_loader_instance is None:
+    requested_dir = Path(skills_dir)
+    if (
+        _skills_loader_instance is None
+        or _skills_loader_instance.skills_dir != requested_dir
+    ):
         _skills_loader_instance = SkillsLoader(skills_dir)
     return _skills_loader_instance
 

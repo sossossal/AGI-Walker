@@ -4,13 +4,17 @@ PID控制器 - Python实现
 """
 
 import time
+
+import logging
+
+logger = logging.getLogger(__name__)
 from typing import Optional, Dict
 
 
 class PIDController:
     """PID控制器类"""
 
-    def __init__(self, kp: float = 1.0, ki: float = 0.0, kd: float = 0.0):
+    def __init__(self, kp: float = 1.0, ki: float = 0.0, kd: float = 0.0) -> None:
         """
         初始化PID控制器
 
@@ -120,24 +124,24 @@ class PIDController:
 
         return output
 
-    def set_limits(self, output_min: float, output_max: float):
+    def set_limits(self, output_min: float, output_max: float) -> List:
         """设置输出限制"""
         self.output_min = output_min
         self.output_max = output_max
 
-    def set_integral_limits(self, integral_min: float, integral_max: float):
+    def set_integral_limits(self, integral_min: float, integral_max: float) -> List:
         """设置积分限制"""
         self.integral_min = integral_min
         self.integral_max = integral_max
 
-    def reset(self):
+    def reset(self) -> None:
         """重置PID状态"""
         self.integral = 0.0
         self.last_error = 0.0
         self.last_time = time.time()
         self.iteration_count = 0
 
-    def set_tunings(self, kp: float, ki: float, kd: float):
+    def set_tunings(self, kp: float, ki: float, kd: float) -> List:
         """动态调整PID参数"""
         self.kp = kp
         self.ki = ki
@@ -153,15 +157,15 @@ class PIDController:
             "error": self.last_error,
         }
 
-    def print_status(self):
+    def print_status(self) -> List:
         """打印PID状态"""
         terms = self.get_terms()
-        print(f"PID状态 [Kp={self.kp:.2f}, Ki={self.ki:.2f}, Kd={self.kd:.2f}]")
-        print(f"  误差: {terms['error']:.3f}")
-        print(f"  P项: {terms['p_term']:.3f}")
-        print(f"  I项: {terms['i_term']:.3f} (积分={terms['integral']:.3f})")
-        print(f"  D项: {terms['d_term']:.3f}")
-        print(f"  迭代: {self.iteration_count}")
+        logger.info(f"PID状态 [Kp={self.kp:.2f}, Ki={self.ki:.2f}, Kd={self.kd:.2f}]")
+        logger.info(f"  误差: {terms['error']:.3f}")
+        logger.info(f"  P项: {terms['p_term']:.3f}")
+        logger.info(f"  I项: {terms['i_term']:.3f} (积分={terms['integral']:.3f})")
+        logger.info(f"  D项: {terms['d_term']:.3f}")
+        logger.info(f"  迭代: {self.iteration_count}")
 
 
 class BalanceController:
@@ -223,17 +227,17 @@ class BalanceController:
             }
         }
 
-    def set_target_posture(self, roll: float, pitch: float):
+    def set_target_posture(self, roll: float, pitch: float) -> None:
         """设置目标姿态"""
         self.target_roll = roll
         self.target_pitch = pitch
 
-    def reset(self):
+    def reset(self) -> None:
         """重置控制器"""
         self.roll_pid.reset()
         self.pitch_pid.reset()
 
-    def tune_pid(self, axis: str, kp: float, ki: float, kd: float):
+    def tune_pid(self, axis: str, kp: float, ki: float, kd: float) -> None:
         """动态调整PID参数"""
         if axis.lower() == "roll":
             self.roll_pid.set_tunings(kp, ki, kd)
@@ -247,7 +251,7 @@ if __name__ == "__main__":
     pid = PIDController(kp=2.0, ki=0.1, kd=0.5)
     pid.set_limits(-100, 100)
 
-    print("PID控制器测试\n")
+    logger.info("PID控制器测试\n")
 
     # 模拟控制过程
     setpoint = 10.0  # 目标值
@@ -262,8 +266,8 @@ if __name__ == "__main__":
 
         # 打印状态
         if i % 5 == 0:
-            print(f"步骤 {i}: 测量值={measured:.2f}, 输出={output:.2f}")
+            logger.info(f"步骤 {i}: 测量值={measured:.2f}, 输出={output:.2f}")
 
-    print(f"\n最终测量值: {measured:.2f}")
-    print(f"目标值: {setpoint:.2f}")
-    print(f"误差: {abs(setpoint - measured):.2f}")
+    logger.info(f"\n最终测量值: {measured:.2f}")
+    logger.info(f"目标值: {setpoint:.2f}")
+    logger.info(f"误差: {abs(setpoint - measured):.2f}")

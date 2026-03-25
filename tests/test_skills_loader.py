@@ -2,6 +2,9 @@
 Skills 加载器单元测试
 """
 
+import logging
+from typing import Any, Optional, Dict, List, Tuple
+logger = logging.getLogger(__name__)
 import pytest
 from pathlib import Path
 import tempfile
@@ -47,14 +50,14 @@ metadata:
     return skill_dir
 
 
-def test_skills_loader_init(temp_skills_dir):
+def test_skills_loader_init(temp_skills_dir) -> None:
     """测试加载器初始化"""
     loader = SkillsLoader(str(temp_skills_dir))
     assert loader.skills_dir == temp_skills_dir
     assert len(loader.skills) == 0
 
 
-def test_parse_skill_metadata(sample_skill, temp_skills_dir):
+def test_parse_skill_metadata(sample_skill, temp_skills_dir) -> None:
     """测试解析 skill metadata"""
     loader = SkillsLoader(str(temp_skills_dir))
     assert len(loader.skills) == 1
@@ -69,7 +72,7 @@ def test_parse_skill_metadata(sample_skill, temp_skills_dir):
     assert "numpy" in skill.requires["python_modules"]
 
 
-def test_get_skill_doc(sample_skill, temp_skills_dir):
+def test_get_skill_doc(sample_skill, temp_skills_dir) -> None:
     """测试获取 skill 文档"""
     loader = SkillsLoader(str(temp_skills_dir))
     doc = loader.get_skill_doc("test-skill")
@@ -79,7 +82,7 @@ def test_get_skill_doc(sample_skill, temp_skills_dir):
     assert "---" not in doc  # frontmatter 应该被移除
 
 
-def test_search_skills(temp_skills_dir):
+def test_search_skills(temp_skills_dir) -> None:
     """测试 skill 搜索"""
     # 创建多个 skills
     for i in range(3):
@@ -106,7 +109,7 @@ description: "描述 {i}"
     assert len(results) == 3
 
 
-def test_get_skill_by_category(temp_skills_dir):
+def test_get_skill_by_category(temp_skills_dir) -> None:
     """测试按类别获取 skills"""
     # 创建不同类别的 skills
     categories = ["建模", "优化", "建模"]
@@ -134,7 +137,7 @@ metadata:
     assert len(opt_skills) == 1
 
 
-def test_invalid_skill_md(temp_skills_dir):
+def test_invalid_skill_md(temp_skills_dir) -> None:
     """测试无效的 SKILL.md"""
     skill_dir = temp_skills_dir / "invalid-skill"
     skill_dir.mkdir()
@@ -146,7 +149,7 @@ def test_invalid_skill_md(temp_skills_dir):
     assert len(loader.skills) == 0
 
 
-def test_missing_required_fields(temp_skills_dir):
+def test_missing_required_fields(temp_skills_dir) -> None:
     """测试缺少必需字段"""
     skill_dir = temp_skills_dir / "bad-skill"
     skill_dir.mkdir()
@@ -164,13 +167,13 @@ name: bad-skill
     assert len(loader.skills) == 0
 
 
-def test_skill_display_name():
+def test_skill_display_name() -> None:
     """测试 skill 显示名称"""
     skill = SkillMetadata(name="test", description="Test", emoji="🧪")
     assert skill.display_name == "🧪 test"
 
 
-def test_get_all_categories(temp_skills_dir):
+def test_get_all_categories(temp_skills_dir) -> None:
     """测试获取所有类别"""
     categories = ["建模", "优化", "转换", "建模"]
     for i, cat in enumerate(categories):
@@ -204,7 +207,7 @@ def create_skill(skills_dir, name, content):
     (skill_dir / "SKILL.md").write_text(content, encoding="utf-8")
 
 
-def test_invalid_description_type(temp_skills_dir):
+def test_invalid_description_type(temp_skills_dir) -> None:
     """Test that description must be a string (not list/number)"""
     # Case 1: List
     create_skill(
@@ -232,7 +235,7 @@ description: 12345
     assert "bad-desc-num" not in loader.skills
 
 
-def test_empty_description(temp_skills_dir):
+def test_empty_description(temp_skills_dir) -> None:
     """Test that description cannot be empty or whitespace"""
     # Case 1: Empty
     create_skill(
@@ -260,7 +263,7 @@ description: "   "
     assert "white-desc" not in loader.skills
 
 
-def test_invalid_requires_element(temp_skills_dir):
+def test_invalid_requires_element(temp_skills_dir) -> None:
     """Test that requires elements must be strings"""
     create_skill(
         temp_skills_dir,
@@ -279,7 +282,7 @@ metadata:
     assert "bad-req-type" not in loader.skills
 
 
-def test_requires_null_value(temp_skills_dir):
+def test_requires_null_value(temp_skills_dir) -> None:
     """Test that requires null values are normalized to empty list"""
     create_skill(
         temp_skills_dir,

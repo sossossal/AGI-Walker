@@ -76,7 +76,7 @@ def demo_scenario_2_high_power():
         print(f"  实际距离: {result['distance_traveled']:.2f} m")
         print(f"  用时: {result['time_taken']:.2f} s")
         print(f"  平均速度: {result['avg_speed']:.2f} m/s")
-        print(f"  ✓ 速度提升明显！")
+        print(f"  速度提升明显！")
 
     return result
 
@@ -114,7 +114,7 @@ def demo_scenario_3_too_heavy():
     print(f"  成功: {result['success']}")
     print(f"  失败原因: {result.get('reason', 'N/A')}")
     print(f"  实际距离: {result['distance_traveled']:.2f} m")
-    print(f"  ❌ 机器人无法自主移动！")
+    print(f"  机器人无法自主移动！")
 
     return result
 
@@ -146,7 +146,7 @@ def demo_scenario_4_unstable():
     if not result["success"]:
         print(f"  失败原因: {result.get('reason', 'N/A')}")
         print(f"  摔倒位置: {result['distance_traveled']:.2f} m")
-        print(f"  ⚠️ 关节过软导致失去平衡！")
+        print(f"  关节过软导致失去平衡！")
 
     return result
 
@@ -179,7 +179,7 @@ def demo_scenario_5_optimized():
         print(f"  实际距离: {result['distance_traveled']:.2f} m")
         print(f"  用时: {result['time_taken']:.2f} s")
         print(f"  平均速度: {result['avg_speed']:.2f} m/s")
-        print(f"  🌟 性能优秀！")
+        print(f"  性能优秀！")
 
     return result
 
@@ -214,7 +214,7 @@ def compare_all_scenarios():
     print("-" * 70)
 
     for name, result in results:
-        success = "✓" if result["success"] else "✗"
+        success = "是" if result["success"] else "否"
         distance = result["distance_traveled"]
         time_taken = result.get("time_taken", 0.0)
         speed = result.get("avg_speed", 0.0) if result["success"] else 0.0
@@ -270,7 +270,7 @@ def visualize_trajectories(results):
 
         plt.tight_layout()
         plt.savefig("robot_forward_1m_demo.png", dpi=150)
-        print("\n📊 轨迹图已保存: robot_forward_1m_demo.png")
+        print("\n轨迹图已保存: robot_forward_1m_demo.png")
 
     except ImportError:
         print("\n注意: matplotlib 未安装，跳过可视化")
@@ -278,7 +278,7 @@ def visualize_trajectories(results):
 
 def main():
     print("\n" + "=" * 70)
-    print("🤖 让机器人前进1米 - 零件参数调整DEMO")
+    print("让机器人前进1米 - 零件参数调整DEMO")
     print("=" * 70)
 
     print("\n本演示展示:")
@@ -301,22 +301,22 @@ def main():
     print("关键发现")
     print("=" * 70)
     print("""
-1. 💪 电机功率影响速度
+1. 电机功率影响速度
    - 功率提升30% → 速度提升~20%
    
-2. ⚖️ 质量影响稳定性
+2. 质量影响稳定性
    - 过重会导致无法移动
    - 轻量化可提升性能
    
-3. 🔧 关节刚度影响稳定
+3. 关节刚度影响稳定
    - 过低会导致摔倒
    - 过高会导致震荡
    
-4. 🎯 优化配置最佳
+4. 优化配置最佳
    - 功率 +30%, 质量 -10%
    - 刚度 +20%, 摩擦 -5%
    
-⚠️  参数违反物理规律会导致:
+参数违反物理规律会导致:
    - 无法移动 (功率不足)
    - 摔倒 (不稳定)
    - 震荡 (参数不当)
@@ -328,4 +328,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"错误: {e}")
+        import traceback
+        traceback.print_exc()

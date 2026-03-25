@@ -9,12 +9,19 @@ Real-time Dashboard
 - 告警显示
 """
 
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from matplotlib.gridspec import GridSpec
 import numpy as np
 from collections import deque
 import time
+import logging
+
+logger = logging.getLogger(__name__)
+
+try:
+    import matplotlib.pyplot as plt
+    import matplotlib.animation as animation
+    from matplotlib.gridspec import GridSpec
+except ImportError:
+    plt = None
 
 
 class RealtimeDashboard:
@@ -47,7 +54,10 @@ class RealtimeDashboard:
         self.max_warnings = 10
 
         # 创建图形
-        self.setup_plots()
+        if plt is not None:
+            self.setup_plots()
+        else:
+            logger.warning("matplotlib not available - dashboard visualization disabled")
 
     def setup_plots(self):
         """设置绘图"""
@@ -250,8 +260,11 @@ class RealtimeDashboard:
 
     def save_snapshot(self, filename: str):
         """保存当前快照"""
+        if plt is None:
+            logger.error("matplotlib not available - cannot save snapshot")
+            return
         self.fig.savefig(filename, dpi=150, bbox_inches="tight")
-        print(f"仪表板快照已保存: {filename}")
+        logger.info(f"仪表板快照已保存: {filename}")
 
 
 class SimpleTextDashboard:
@@ -268,36 +281,39 @@ class SimpleTextDashboard:
 
         # 清屏 (简化版)
         if self.update_count % 10 == 0:
-            print("\n" + "=" * 70)
-            print(f"时间: {elapsed:.1f}s | 更新次数: {self.update_count}")
-            print("-" * 70)
+            logger.info("=" * 70)
+            logger.info(f"时间: {elapsed:.1f}s | 更新次数: {self.update_count}")
+            logger.info("-" * 70)
 
             # 电池
             battery_bar = "█" * int(energy / 5) + "░" * (20 - int(energy / 5))
-            print(f"电池: [{battery_bar}] {energy:.1f}%")
+            logger.info(f"电池: [{battery_bar}] {energy:.1f}%")
 
             # 温度
             temp_status = "正常" if temp < 70 else ("警告" if temp < 85 else "危险")
-            print(f"温度: {temp:.1f}°C ({temp_status})")
+            logger.info(f"温度: {temp:.1f}°C ({temp_status})")
 
             # 速度
-            print(f"速度: {velocity:.2f} m/s")
+            logger.info(f"速度: {velocity:.2f} m/s")
 
             # 安全
             safety_names = ["安全", "警告", "危险", "紧急"]
-            print(f"安全: {safety_names[min(safety, 3)]}")
+            logger.info(f"安全: {safety_names[min(safety, 3)]}")
 
 
 if __name__ == "__main__":
-    print("实时监控仪表板加载完成")
-    print("\n模式:")
-    print("  1. 图形界面 (需要matplotlib)")
-    print("  2. 文本界面")
+    import logging
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    
+    logger.info("实时监控仪表板加载完成")
+    logger.info("模式:")
+    logger.info("  1. 图形界面 (需要matplotlib)")
+    logger.info("  2. 文本界面")
 
     # 使用简化文本版本示例
     dashboard = SimpleTextDashboard()
 
-    print("\n运行5秒模拟...")
+    logger.info("运行5秒模拟...")
     for i in range(50):
         # 模拟数据
         energy = max(100 - i * 2, 0)
@@ -308,5 +324,5 @@ if __name__ == "__main__":
         dashboard.update(energy, temp, velocity, safety)
         time.sleep(0.1)
 
-    print("\n" + "=" * 70)
-    print("演示完成")
+    logger.info("=" * 70)
+    logger.info("演示完成")

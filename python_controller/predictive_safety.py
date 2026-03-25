@@ -4,6 +4,10 @@
 """
 
 import numpy as np
+
+import logging
+
+logger = logging.getLogger(__name__)
 from typing import List, Optional
 from dataclasses import dataclass
 from enum import Enum
@@ -381,7 +385,7 @@ class PredictiveSafetyChecker:
 if __name__ == "__main__":
     import json
 
-    print("预测性安全检查测试\n")
+    logger.info("预测性安全检查测试\n")
 
     # 创建检查器
     checker = PredictiveSafetyChecker(prediction_horizon=5)
@@ -401,24 +405,24 @@ if __name__ == "__main__":
 
     safe_action = {"motors": {"hip_left": 8.0, "hip_right": -5.0}}
 
-    print("=== 测试安全动作 ===")
+    logger.info("=== 测试安全动作 ===")
     result = checker.check_action(normal_state, safe_action)
-    print(f"安全: {result.safe}")
-    print(f"风险等级: {result.risk_level.value}")
-    print(f"风险分数: {result.risk_score:.2f}")
+    logger.info(f"安全: {result.safe}")
+    logger.info(f"风险等级: {result.risk_level.value}")
+    logger.info(f"风险分数: {result.risk_score:.2f}")
 
     # 危险动作
     dangerous_action = {"motors": {"hip_left": 80.0, "hip_right": -75.0}}
 
-    print("\n=== 测试危险动作 ===")
+    logger.info("\n=== 测试危险动作 ===")
     result = checker.check_action(normal_state, dangerous_action)
-    print(f"安全: {result.safe}")
-    print(f"风险等级: {result.risk_level.value}")
-    print(f"风险分数: {result.risk_score:.2f}")
-    print(f"原因: {result.reasons}")
+    logger.info(f"安全: {result.safe}")
+    logger.info(f"风险等级: {result.risk_level.value}")
+    logger.info(f"风险分数: {result.risk_score:.2f}")
+    logger.info(f"原因: {result.reasons}")
 
     if result.modified_action:
-        print(f"修正后动作: {result.modified_action['motors']}")
+        logger.info(f"修正后动作: {result.modified_action['motors']}")
 
     # 不稳定状态
     unstable_state = {
@@ -433,11 +437,11 @@ if __name__ == "__main__":
         "torso_height": 1.2,
     }
 
-    print("\n=== 测试不稳定状态 ===")
+    logger.info("\n=== 测试不稳定状态 ===")
     result = checker.check_action(unstable_state, safe_action)
-    print(f"安全: {result.safe}")
-    print(f"风险等级: {result.risk_level.value}")
+    logger.info(f"安全: {result.safe}")
+    logger.info(f"风险等级: {result.risk_level.value}")
 
     # 统计
-    print("\n=== 统计信息 ===")
-    print(json.dumps(checker.get_stats(), indent=2))
+    logger.info("\n=== 统计信息 ===")
+    logger.info(json.dumps(checker.get_stats(), indent=2))

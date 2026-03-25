@@ -19,7 +19,7 @@ def demo_zenoh_basic():
     print("=" * 60)
 
     if not ZENOH_AVAILABLE:
-        print("❌ Zenoh 未安装，跳过")
+        print("Zenoh not installed, skipping")
         return
 
     zenoh = ZenohInterface()
@@ -29,7 +29,7 @@ def demo_zenoh_basic():
 
     def on_state(data):
         received_count[0] += 1
-        print(f"  📥 [State] {data}")
+        print(f"  [State] {data}")
 
     zenoh.declare_subscriber("demo/robot/state", on_state)
 
@@ -40,10 +40,10 @@ def demo_zenoh_basic():
     for i in range(5):
         cmd = {"timestamp": time.time(), "joint_positions": [i * 0.1, i * 0.2, i * 0.3]}
         zenoh.publish("demo/robot/cmd", cmd)
-        print(f"  📤 [Cmd] {cmd}")
+        print(f"  [Cmd] {cmd}")
         time.sleep(0.5)
 
-    print(f"\n✅ 演示完成，接收到 {received_count[0]} 条消息")
+    print(f"\nDemo completed, received {received_count[0]} messages")
     zenoh.close()
 
 
@@ -56,7 +56,7 @@ def demo_tcp_zenoh_bridge():
     try:
         from python_api.comm.tcp_zenoh_bridge import TcpZenohBridge
     except ImportError:
-        print("❌ 桥接器模块未找到")
+        print("Bridge module not found")
         return
 
     print("\n启动桥接器...")
@@ -70,7 +70,7 @@ def demo_tcp_zenoh_bridge():
     time.sleep(5)
 
     bridge.stop()
-    print("✅ 桥接器已停止")
+    print("Bridge stopped")
 
 
 def demo_ros2_node():
@@ -83,7 +83,7 @@ def demo_ros2_node():
         import rclpy
         from python_api.ros2_robot_node import AGIWalkerNode
     except ImportError:
-        print("❌ ROS 2 未安装，跳过")
+        print("ROS 2 not installed, skipping")
         print("   安装方法: sudo apt install ros-jazzy-rclpy")
         return
 
@@ -102,11 +102,11 @@ def demo_ros2_node():
 
     node.destroy_node()
     rclpy.shutdown()
-    print("✅ ROS 2 节点已停止")
+    print("ROS 2 node stopped")
 
 
 def main():
-    print("\n🚀 AGI-Walker × OpenNeuro 集成演示")
+    print("\nAGI-Walker x OpenNeuro integration demo")
     print("=" * 60)
 
     demos = [
@@ -120,13 +120,13 @@ def main():
         try:
             func()
         except Exception as e:
-            print(f"❌ 演示失败: {e}")
+            print(f"Demo failed: {e}")
 
         if i < len(demos):
             input("\n按 Enter 继续下一个演示...")
 
     print("\n" + "=" * 60)
-    print("🎉 所有演示完成!")
+    print("All demos completed")
     print("=" * 60)
 
 

@@ -15,9 +15,9 @@ print("=" * 70)
 print("\n[1/3] 加载训练好的模型...")
 try:
     model = PPO.load("my_robot_models/my_robot_final")
-    print("  ✓ 模型加载成功！")
+    print("  Model loaded successfully")
 except FileNotFoundError:
-    print("  ✗ 错误: 未找到模型文件")
+    print("  Error: model file not found")
     print("  请先运行 'python my_first_robot_train.py' 训练模型")
     exit(1)
 
@@ -32,7 +32,7 @@ except:
     env = gym.make("AGI-Walker/Walker2D-v0")
     print("  注意: 当前环境不支持可视化渲染")
 
-print("  ✓ 环境创建成功！")
+print("  Environment created successfully")
 
 # ============ 测试回合 ============
 print("\n[3/3] 开始测试...")
@@ -78,7 +78,7 @@ for episode in range(n_episodes):
     print(f"    - 奖励: {episode_reward:.2f}")
 
     if step_count >= 1000:
-        print(f"    - 状态: ✓ 成功完成1000步！")
+        print("    - 状态: 成功完成1000步")
     else:
         print(f"    - 状态: 提前终止")
 
@@ -100,13 +100,13 @@ print("-" * 70)
 # 性能评估
 avg_reward = np.mean(episode_rewards)
 if avg_reward > 200:
-    rating = "🌟🌟🌟 优秀！"
+    rating = "优秀"
     comment = "机器人已经学会稳定行走"
 elif avg_reward > 100:
-    rating = "⭐⭐ 良好"
+    rating = "良好"
     comment = "机器人表现不错，可以继续训练提升"
 elif avg_reward > 50:
-    rating = "⭐ 及格"
+    rating = "及格"
     comment = "机器人初步掌握了平衡，建议增加训练时间"
 else:
     rating = "需改进"
@@ -123,7 +123,7 @@ if avg_reward < 150:
     print("  2. 尝试调整学习率")
     print("  3. 使用离线RL或模仿学习加速训练")
 else:
-    print("  ✓ 当前性能已经很好!")
+    print("  当前性能已经很好")
     print("  可以尝试:")
     print("    - 四足机器人: examples/quadruped_training.py")
     print("    - 更复杂的环境")

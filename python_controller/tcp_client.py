@@ -10,11 +10,15 @@ import queue
 import time
 from typing import Optional, Dict
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class GodotClient:
     """Godot仿真器TCP客户端"""
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 9999):
+    def __init__(self, host: str = "127.0.0.1", port: int = 9999) -> None:
         self.host = host
         self.port = port
         self.socket: Optional[socket.socket] = None
@@ -39,7 +43,7 @@ class GodotClient:
             self.socket.connect((self.host, self.port))
             self.socket.settimeout(None)  # 切换到阻塞模式
 
-            print(f"✅ 已连接到Godot仿真器 {self.host}:{self.port}")
+            logger.info(f"✅ 已连接到Godot仿真器 {self.host}:{self.port}")
 
             # 启动接收线程
             self.running = True
@@ -49,22 +53,22 @@ class GodotClient:
             return True
 
         except socket.timeout:
-            print(f"❌ 连接超时: {self.host}:{self.port}")
+            logger.info(f"❌ 连接超时: {self.host}:{self.port}")
             return False
         except ConnectionRefusedError:
-            print("❌ 连接被拒绝，请确保Godot仿真器正在运行")
+            logger.info("❌ 连接被拒绝，请确保Godot仿真器正在运行")
             return False
         except Exception as e:
-            print(f"❌ 连接错误: {e}")
+            logger.info(f"❌ 连接错误: {e}")
             return False
 
-    def _recv_loop(self):
+    def _recv_loop(self) -> None:
         """接收线程 - 持续接收传感器数据"""
         while self.running:
             try:
                 data = self.socket.recv(4096).decode("utf-8")
                 if not data:
-                    print("⚠️ 服务器关闭连接")
+                    logger.info("⚠️ 服务器关闭连接")
                     break
 
                 self.buffer += data
@@ -90,12 +94,12 @@ class GodotClient:
                             self.sensor_queue.put(sensor_data)
 
                     except json.JSONDecodeError as e:
-                        print(f"⚠️ JSON解析错误: {e}")
-                        print(f"   原始数据: {line}")
+                        logger.info(f"⚠️ JSON解析错误: {e}")
+                        logger.info(f"   原始数据: {line}")
 
             except Exception as e:
                 if self.running:
-                    print(f"❌ 接收错误: {e}")
+                    logger.info(f"❌ 接收错误: {e}")
                 break
 
         self.running = False
@@ -126,7 +130,7 @@ class GodotClient:
             return True
 
         except Exception as e:
-            print(f"❌ 发送错误: {e}")
+            logger.info(f"❌ 发送错误: {e}")
             return False
 
     def get_stats(self) -> Dict:
@@ -138,7 +142,7 @@ class GodotClient:
             "queue_size": self.sensor_queue.qsize(),
         }
 
-    def close(self):
+    def close(self) -> None:
         """关闭连接"""
         self.running = False
 
@@ -151,7 +155,7 @@ class GodotClient:
             except Exception:
                 pass
 
-        print("🔌 已断开连接")
+        logger.info("🔌 已断开连接")
 
 
 # 测试代码
@@ -159,11 +163,11 @@ if __name__ == "__main__":
     client = GodotClient()
 
     if not client.connect():
-        print("连接失败，退出")
+        logger.info("连接失败，退出")
         exit(1)
 
-    print("\n📡 开始接收传感器数据...")
-    print("按 Ctrl+C 退出\n")
+    logger.info("\n📡 开始接收传感器数据...")
+    logger.info("按 Ctrl+C 退出\n")
 
     try:
         last_print = time.time()
@@ -176,7 +180,7 @@ if __name__ == "__main__":
                 # 每秒打印一次
                 now = time.time()
                 if now - last_print >= 1.0:
-                    print(
+                    logger.info(
                         f"[{sensor_data['timestamp']:.2f}s] "
                         f"躯干高度: {sensor_data['torso_height']:.3f}m | "
                         f"姿态: Roll={sensor_data['sensors']['imu']['orient'][0]:.1f}° "
@@ -184,7 +188,7 @@ if __name__ == "__main__":
                     )
 
                     stats = client.get_stats()
-                    print(
+                    logger.info(
                         f"   统计: 收到{stats['packets_received']}包 | "
                         f"发送{stats['packets_sent']}包 | "
                         f"队列{stats['queue_size']}/10"
@@ -203,6 +207,6 @@ if __name__ == "__main__":
             time.sleep(0.01)  # 100Hz轮询
 
     except KeyboardInterrupt:
-        print("\n\n⏹️ 用户中断")
+        logger.info("\n\n⏹️ 用户中断")
     finally:
         client.close()

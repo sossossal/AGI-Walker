@@ -4,6 +4,8 @@ Robot Modeling Skill - 快速机器人建模工具
 提供 RobotBuilder 类和预设模板加载功能。
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import json
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -36,7 +38,7 @@ class RobotConfig:
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
 
-        print(f"✓ 机器人配置已保存到: {filepath}")
+        logger.info(f"Robot config saved to: {filepath}")
 
 
 class RobotBuilder:
@@ -53,7 +55,7 @@ class RobotBuilder:
         )
     """
 
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         self.name = name
         self.parts: List[Dict] = []
         self.connections: List[Dict] = []

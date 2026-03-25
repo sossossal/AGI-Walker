@@ -211,7 +211,7 @@ class MultimodalFusion:
             return result
 
         except Exception as e:
-            print(f"⚠️ 视觉处理错误: {e}")
+            print(f"Vision processing error: {e}")
             return None
 
     def _fuse_obstacles(self, vision_result: Optional[dict]) -> List[dict]:

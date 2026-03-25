@@ -10,13 +10,16 @@ from pathlib import Path
 from typing import Optional, Callable
 from dataclasses import dataclass
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 # 延迟导入SB3
 sb3 = None
 VecEnv = None
 
 
-def _init_sb3():
+def _init_sb3() -> None:
     """延迟初始化Stable-Baselines3"""
     global sb3, VecEnv
     if sb3 is None:
@@ -26,11 +29,11 @@ def _init_sb3():
 
             sb3 = _sb3
             VecEnv = DummyVecEnv
-            print(f"✅ Stable-Baselines3 v{sb3.__version__} 已加载")
+            logger.info(f"Stable-Baselines3 v{sb3.__version__} loaded")
             return True
         except ImportError:
-            print("⚠️ Stable-Baselines3未安装")
-            print("请运行: pip install stable-baselines3")
+            logger.warning("Stable-Baselines3 not installed")
+            logger.warning("Run: pip install stable-baselines3")
             return False
     return True
 
@@ -102,11 +105,11 @@ class RLOptimizer:
         self.training_history = []
         self.best_reward = float("-inf")
 
-        print("✅ RL优化器初始化完成")
-        print(f"   算法: {self.config.algorithm}")
-        print(f"   保存目录: {self.save_dir}")
+        logger.info("✅ RL优化器初始化完成")
+        logger.info(f"   算法: {self.config.algorithm}")
+        logger.info(f"   保存目录: {self.save_dir}")
 
-    def _create_model(self):
+    def _create_model(self) -> None:
         """创建RL模型"""
         algorithm = self.config.algorithm.upper()
 
@@ -183,9 +186,9 @@ class RLOptimizer:
         Returns:
             训练结果统计
         """
-        print("\n🚀 开始训练")
-        print(f"   总步数: {total_timesteps}")
-        print(f"   评估频率: {eval_freq}")
+        logger.info("\n 开始训练")
+        logger.info(f"   总步数: {total_timesteps}")
+        logger.info(f"   评估频率: {eval_freq}")
 
         start_time = time.time()
 
@@ -229,7 +232,7 @@ class RLOptimizer:
         # 保存最终模型
         final_path = self.save_dir / f"{self.config.algorithm.lower()}_final.zip"
         self.model.save(str(final_path))
-        print(f"✅ 模型已保存: {final_path}")
+        logger.info(f"✅ 模型已保存: {final_path}")
 
         # 记录历史
         result = {
@@ -246,7 +249,7 @@ class RLOptimizer:
         """评估当前策略"""
         from stable_baselines3.common.evaluation import evaluate_policy
 
-        print(f"\n📊 评估策略 ({n_episodes} episodes)")
+        logger.info(f"\n📊 评估策略 ({n_episodes} episodes)")
 
         mean_reward, std_reward = evaluate_policy(
             self.model,
@@ -261,11 +264,11 @@ class RLOptimizer:
             "n_episodes": n_episodes,
         }
 
-        print(f"   平均奖励: {mean_reward:.2f} ± {std_reward:.2f}")
+        logger.info(f"   平均奖励: {mean_reward:.2f} ± {std_reward:.2f}")
 
         return result
 
-    def load(self, path: str):
+    def load(self, path: str) -> bool:
         """加载已保存的模型"""
         algorithm = self.config.algorithm.upper()
 
@@ -278,9 +281,9 @@ class RLOptimizer:
         elif algorithm == "A2C":
             self.model = sb3.A2C.load(path, env=self.vec_env or self.env)
 
-        print(f"✅ 模型已加载: {path}")
+        logger.info(f"✅ 模型已加载: {path}")
 
-    def export_policy_onnx(self, output_path: str):
+    def export_policy_onnx(self, output_path: str) -> None:
         """导出策略为ONNX格式"""
         try:
             import torch
@@ -302,10 +305,10 @@ class RLOptimizer:
                 output_names=["action"],
             )
 
-            print(f"✅ 策略已导出为ONNX: {output_path}")
+            logger.info(f"✅ 策略已导出为ONNX: {output_path}")
 
         except Exception as e:
-            print(f"❌ ONNX导出失败: {e}")
+            logger.info(f" ONNX导出失败: {e}")
 
     def get_action(
         self, observation: np.ndarray, deterministic: bool = True
@@ -326,18 +329,18 @@ class RLOptimizer:
 class DummyEnv:
     """虚拟环境（用于测试）"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         import gymnasium as gym
 
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(12,))
         self.action_space = gym.spaces.Box(low=-1, high=1, shape=(2,))
         self._step_count = 0
 
-    def reset(self, seed=None, options=None):
+    def reset(self, seed=None, options=None) -> None:
         self._step_count = 0
         return np.zeros(12, dtype=np.float32), {}
 
-    def step(self, action):
+    def step(self, action) -> Tuple:
         self._step_count += 1
         obs = np.random.randn(12).astype(np.float32) * 0.1
         reward = 1.0 - np.abs(obs[0])  # 简单奖励
@@ -345,11 +348,11 @@ class DummyEnv:
         truncated = self._step_count > 1000
         return obs, reward, terminated, truncated, {}
 
-    def close(self):
+    def close(self) -> None:
         pass
 
 
-def main():
+def main() -> None:
     """主函数"""
     parser = argparse.ArgumentParser(description="RL策略优化器")
 
@@ -370,14 +373,15 @@ def main():
 
     # 创建环境
     if args.use_godot:
-        import sys
-
-        sys.path.insert(0, "../python_api/godot_robot_env")
-        from gym_env import GodotRobotEnv
-
-        env = GodotRobotEnv()
+        try:
+            from python_api.godot_robot_env.gym_env import GodotRobotEnv
+            env = GodotRobotEnv()
+        except ImportError as e:
+            logger.error(f"Godot environment not available: {e}")
+            logger.warning("Falling back to virtual env...")
+            env = DummyEnv()
     else:
-        print("使用虚拟环境进行测试...")
+        logger.info("Using virtual environment for testing...")
         env = DummyEnv()
 
     # 创建配置
@@ -393,11 +397,11 @@ def main():
     eval_result = optimizer.evaluate(n_episodes=5)
 
     # 打印结果
-    print("\n" + "=" * 50)
-    print("训练完成")
-    print("=" * 50)
-    print(json.dumps(result, indent=2))
-    print(json.dumps(eval_result, indent=2))
+    logger.info("\n" + "=" * 50)
+    logger.info("训练完成")
+    logger.info("=" * 50)
+    logger.info(json.dumps(result, indent=2))
+    logger.info(json.dumps(eval_result, indent=2))
 
     env.close()
 

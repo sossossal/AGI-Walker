@@ -13,6 +13,19 @@ import numpy as np
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 import heapq
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def setup_logging():
+    """Configure basic logging for demonstration purposes"""
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter("%(levelname)s: %(message)s")
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
 
 
 @dataclass
@@ -296,12 +309,13 @@ class TaskScheduler:
 
 
 if __name__ == "__main__":
-    print("任务规划系统加载完成")
+    setup_logging()
+    logger.info("任务规划系统加载完成")
 
     # 示例1: A*路径规划
-    print("\n" + "=" * 70)
-    print("示例1: A*路径规划")
-    print("=" * 70)
+    logger.info("=" * 70)
+    logger.info("示例1: A*路径规划")
+    logger.info("=" * 70)
 
     start = Point(0, 0)
     goal = Point(5, 5)
@@ -315,27 +329,27 @@ if __name__ == "__main__":
 
     planner = AStarPlanner(start, goal, obstacles, grid_resolution=0.2)
 
-    print(f"\n规划路径: ({start.x}, {start.y}) -> ({goal.x}, {goal.y})")
-    print(f"障碍物数量: {len(obstacles)}")
+    logger.info(f"规划路径: ({start.x}, {start.y}) -> ({goal.x}, {goal.y})")
+    logger.info(f"障碍物数量: {len(obstacles)}")
 
     path = planner.plan()
 
     if path:
-        print(f"✓ 找到路径! 路径点数: {len(path)}")
+        logger.info(f"找到路径! 路径点数: {len(path)}")
         path_length = TrajectoryOptimizer.calculate_path_length(path)
-        print(f"  路径长度: {path_length:.2f} m")
+        logger.info(f"  路径长度: {path_length:.2f} m")
 
         # 平滑路径
         smoothed = TrajectoryOptimizer.smooth_path(path, iterations=20)
         smoothed_length = TrajectoryOptimizer.calculate_path_length(smoothed)
-        print(f"  平滑后长度: {smoothed_length:.2f} m")
+        logger.info(f"  平滑后长度: {smoothed_length:.2f} m")
     else:
-        print("✗ 未找到路径")
+        logger.warning("未找到路径")
 
     # 示例2: 任务调度
-    print("\n" + "=" * 70)
-    print("示例2: 任务调度")
-    print("=" * 70)
+    logger.info("=" * 70)
+    logger.info("示例2: 任务调度")
+    logger.info("=" * 70)
 
     scheduler = TaskScheduler()
 
@@ -373,16 +387,16 @@ if __name__ == "__main__":
 
     schedule = scheduler.schedule()
 
-    print(f"\n调度了 {len(schedule)} 个任务:")
-    print(f"{'任务':<20} {'开始时间':<12} {'结束时间':<12}")
-    print("-" * 50)
+    logger.info(f"调度了 {len(schedule)} 个任务:")
+    logger.info(f"{'任务':<20} {'开始时间':<12} {'结束时间':<12}")
+    logger.info("-" * 50)
 
     for item in schedule:
         task = item["task"]
-        print(
+        logger.info(
             f"{task['name']:<20} {item['start_time']:<12.1f} {item['end_time']:<12.1f}"
         )
 
     if schedule:
         total_time = schedule[-1]["end_time"]
-        print(f"\n总完成时间: {total_time:.1f}s")
+        logger.info(f"总完成时间: {total_time:.1f}s")

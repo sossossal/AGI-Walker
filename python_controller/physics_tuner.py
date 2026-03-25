@@ -4,6 +4,10 @@
 """
 
 import time
+
+import logging
+
+logger = logging.getLogger(__name__)
 from tcp_client import GodotClient
 from typing import Dict, List
 
@@ -11,7 +15,7 @@ from typing import Dict, List
 class PhysicsTuner:
     """物理参数调优器"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.client = GodotClient()
         self.test_results = []
 
@@ -19,10 +23,10 @@ class PhysicsTuner:
         """测试当前参数下的稳定性"""
 
         if not self.client.connect():
-            print("❌ 无法连接到仿真器")
+            logger.info("❌ 无法连接到仿真器")
             return {}
 
-        print(f"\n🧪 开始稳定性测试 (持续{duration}秒)...")
+        logger.info(f"\n🧪 开始稳定性测试 (持续{duration}秒)...")
 
         start_time = time.time()
 
@@ -48,7 +52,7 @@ class PhysicsTuner:
                 # 检测摔倒
                 if tilt > 45 and fall_time is None:
                     fall_time = time.time() - start_time
-                    print(f"❌ 机器人摔倒! (t={fall_time:.2f}s)")
+                    logger.info(f"❌ 机器人摔倒! (t={fall_time:.2f}s)")
                     break
 
             time.sleep(0.033)  # 30Hz
@@ -67,11 +71,11 @@ class PhysicsTuner:
             "fell": fall_time is not None,
         }
 
-        print("\n📊 测试结果:")
-        print(f"  持续时间: {result['duration']:.2f}s")
-        print(f"  平均倾斜: {result['avg_tilt']:.2f}°")
-        print(f"  最大倾斜: {result['max_tilt']:.2f}°")
-        print(f"  稳定性评分: {result['stability_score']:.1f}/100")
+        logger.info("\n📊 测试结果:")
+        logger.info(f"  持续时间: {result['duration']:.2f}s")
+        logger.info(f"  平均倾斜: {result['avg_tilt']:.2f}°")
+        logger.info(f"  最大倾斜: {result['max_tilt']:.2f}°")
+        logger.info(f"  稳定性评分: {result['stability_score']:.1f}/100")
 
         return result
 
@@ -81,7 +85,7 @@ class PhysicsTuner:
         if not self.client.connect():
             return {}
 
-        print("\n🧪 测试电机响应速度...")
+        logger.info("\n🧪 测试电机响应速度...")
 
         # 发送目标角度
         target_angle = 30.0
@@ -116,22 +120,22 @@ class PhysicsTuner:
         self.client.close()
 
         if reached:
-            print(f"✅ 电机响应时间: {response_time:.3f}s")
+            logger.info(f"✅ 电机响应时间: {response_time:.3f}s")
             return {"response_time": response_time, "success": True}
         else:
-            print("❌ 电机未能到达目标位置")
+            logger.info("❌ 电机未能到达目标位置")
             return {"response_time": None, "success": False}
 
-    def run_parameter_sweep(self, param_sets: List[Dict]):
+    def run_parameter_sweep(self, param_sets: List[Dict]) -> None:
         """批量测试多组参数"""
 
-        print("\n" + "=" * 60)
-        print("🔬 参数扫描测试")
-        print("=" * 60)
+        logger.info("\n" + "=" * 60)
+        logger.info("🔬 参数扫描测试")
+        logger.info("=" * 60)
 
         for i, params in enumerate(param_sets, 1):
-            print(f"\n--- 测试组 {i}/{len(param_sets)} ---")
-            print(f"参数: {params}")
+            logger.info(f"\n--- 测试组 {i}/{len(param_sets)} ---")
+            logger.info(f"参数: {params}")
 
             # 注意: 实际应用中需要动态修改Godot中的参数
             # 这里只是测试框架
@@ -145,7 +149,7 @@ class PhysicsTuner:
         # 输出最佳结果
         self._print_best_results()
 
-    def _print_best_results(self):
+    def _print_best_results(self) -> List:
         """打印最佳测试结果"""
 
         if not self.test_results:
@@ -156,15 +160,15 @@ class PhysicsTuner:
             self.test_results, key=lambda x: x["stability_score"], reverse=True
         )
 
-        print("\n" + "=" * 60)
-        print("🏆 最佳参数配置")
-        print("=" * 60)
+        logger.info("\n" + "=" * 60)
+        logger.info("🏆 最佳参数配置")
+        logger.info("=" * 60)
 
         for i, result in enumerate(sorted_results[:3], 1):
-            print(f"\n#{i} 稳定性评分: {result['stability_score']:.1f}")
-            print(f"   参数: {result.get('params', 'N/A')}")
-            print(f"   持续: {result['duration']:.2f}s")
-            print(f"   倾斜: {result['avg_tilt']:.2f}°")
+            logger.info(f"\n#{i} 稳定性评分: {result['stability_score']:.1f}")
+            logger.info(f"   参数: {result.get('params', 'N/A')}")
+            logger.info(f"   持续: {result['duration']:.2f}s")
+            logger.info(f"   倾斜: {result['avg_tilt']:.2f}°")
 
 
 # 使用示例
@@ -172,9 +176,9 @@ if __name__ == "__main__":
     tuner = PhysicsTuner()
 
     # 测试当前配置
-    print("=" * 60)
-    print("🎯 测试当前物理配置")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("🎯 测试当前物理配置")
+    logger.info("=" * 60)
 
     # 稳定性测试
     tuner.test_stability(duration=30.0)
@@ -182,4 +186,4 @@ if __name__ == "__main__":
     # 电机响应测试
     # tuner.test_motor_response()
 
-    print("\n✅ 测试完成")
+    logger.info("\n✅ 测试完成")

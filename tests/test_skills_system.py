@@ -3,6 +3,9 @@ AGI-Walker Skills System Tests
 Converts the old script-style tests to proper pytest functions.
 """
 
+import logging
+from typing import Any, Optional, Dict, List, Tuple
+logger = logging.getLogger(__name__)
 import pytest
 import sys
 import os
@@ -63,30 +66,30 @@ def urdf_gen_skill(skills_loader):
 
 
 class TestSkillsLoader:
-    def test_loader_initialization(self, skills_loader):
+    def test_loader_initialization(self, skills_loader) -> None:
         assert len(skills_loader) >= 3
 
-    def test_list_skills(self, skills_loader):
+    def test_list_skills(self, skills_loader) -> None:
         skills = skills_loader.get_skills_list()
         assert len(skills) >= 3
 
-    def test_get_skill(self, skills_loader):
+    def test_get_skill(self, skills_loader) -> None:
         skill = skills_loader.get_skill("robot-modeling")
         assert skill is not None
         assert skill.name == "robot-modeling"
 
-    def test_search_skills(self, skills_loader):
+    def test_search_skills(self, skills_loader) -> None:
         # Assuming "机器人" description exists in some skill
         results = skills_loader.search_skills("机器人")
         assert len(results) > 0
 
-    def test_get_categories(self, skills_loader):
+    def test_get_categories(self, skills_loader) -> None:
         categories = skills_loader.get_categories()
         assert len(categories) >= 3
 
 
 class TestRobotModeling:
-    def test_builder_basic(self, robot_modeling_skill):
+    def test_builder_basic(self, robot_modeling_skill) -> None:
         robot = (
             robot_modeling_skill.RobotBuilder("test_builder")
             .add_torso(height=0.5, mass=5.0)
@@ -95,17 +98,17 @@ class TestRobotModeling:
         assert robot.name == "test_builder"
         assert len(robot.parts) > 0
 
-    def test_list_templates(self, robot_modeling_skill):
+    def test_list_templates(self, robot_modeling_skill) -> None:
         templates = robot_modeling_skill.list_templates()
         assert len(templates) >= 2
 
-    def test_load_template(self, robot_modeling_skill):
+    def test_load_template(self, robot_modeling_skill) -> None:
         template = robot_modeling_skill.load_template("biped_basic")
         assert template.name == "biped_basic"
 
 
 class TestParamOptimizer:
-    def test_optimize_mass(self, robot_modeling_skill, param_opt_skill):
+    def test_optimize_mass(self, robot_modeling_skill, param_opt_skill) -> None:
         robot = robot_modeling_skill.load_template("biped_basic")
         result = param_opt_skill.optimize_mass_distribution(
             robot.to_dict(),
@@ -125,7 +128,7 @@ class TestURDFGenerator:
         yield temp_dir
         shutil.rmtree(temp_dir)
 
-    def test_urdf_generation(self, robot_modeling_skill, urdf_gen_skill, workspace):
+    def test_urdf_generation(self, robot_modeling_skill, urdf_gen_skill, workspace) -> None:
         robot = robot_modeling_skill.load_template("biped_basic")
 
         test_json = workspace / "test_config.json"
@@ -138,7 +141,7 @@ class TestURDFGenerator:
         assert test_urdf.exists()
         assert test_urdf.stat().st_size > 0
 
-    def test_urdf_validation(self, robot_modeling_skill, urdf_gen_skill, workspace):
+    def test_urdf_validation(self, robot_modeling_skill, urdf_gen_skill, workspace) -> None:
         robot = robot_modeling_skill.load_template("biped_basic")
         test_json = workspace / "test_val.json"
         test_urdf = workspace / "test_val.urdf"
@@ -151,7 +154,7 @@ class TestURDFGenerator:
 
 
 @pytest.mark.integration
-def test_full_workflow(robot_modeling_skill, param_opt_skill, urdf_gen_skill):
+def test_full_workflow(robot_modeling_skill, param_opt_skill, urdf_gen_skill) -> None:
     # Temp file paths
     # Using a known location or tempdir
     test_config = PROJECT_ROOT / "configs" / "workflow_test_artifact.json"
@@ -189,7 +192,7 @@ def test_full_workflow(robot_modeling_skill, param_opt_skill, urdf_gen_skill):
 
 
 @pytest.mark.integration
-def test_cli_tools():
+def test_cli_tools() -> None:
     """Test CLI commands"""
     import subprocess
 
@@ -206,7 +209,7 @@ def test_cli_tools():
             env=env,
         )
         if result.returncode != 0:
-            print(f"CLI Error: {result.stderr}")
+            logger.error(f"CLI Error: {result.stderr}")
         return result
 
     # 1. list

@@ -1,5 +1,8 @@
+import logging
+logger = logging.getLogger(__name__)
 import os
 import sys
+import tempfile
 from pathlib import Path
 import pytest
 
@@ -8,13 +11,21 @@ project_root = str(Path(__file__).resolve().parent.parent)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+# 1.1 将临时目录固定到仓库内，避免 Windows 用户目录权限问题
+_temp_root = Path(project_root) / "test_env" / "tmp"
+_temp_root.mkdir(parents=True, exist_ok=True)
+os.environ["TMP"] = str(_temp_root)
+os.environ["TEMP"] = str(_temp_root)
+os.environ["TMPDIR"] = str(_temp_root)
+tempfile.tempdir = str(_temp_root)
+
 # 2. 全局环境检测与防御
 def pytest_sessionstart(session):
     """
     在测试收集开始前运行。
     """
-    print(f"\n[CI-SelfCheck] Project Root: {project_root}")
-    print(f"[CI-SelfCheck] Platform: {sys.platform}")
+    logger.info(f"\n[CI-SelfCheck] Project Root: {project_root}")
+    logger.info(f"[CI-SelfCheck] Platform: {sys.platform}")
     
     # 检测可能导致段错误的底层库（但不直接加载它们）
     try:
@@ -22,9 +33,9 @@ def pytest_sessionstart(session):
         for lib in ['numpy', 'gymnasium', 'zenoh']:
             spec = importlib.util.find_spec(lib)
             status = "Found" if spec else "Not Found"
-            print(f"[CI-SelfCheck] Dependency {lib}: {status}")
+            logger.info(f"[CI-SelfCheck] Dependency {lib}: {status}")
     except Exception as e:
-        print(f"[CI-SelfCheck] Pre-check warning: {e}")
+        logger.info(f"[CI-SelfCheck] Pre-check warning: {e}")
 
 # 3. 强制忽略非测试脚本的收集
 def pytest_ignore_collect(path, config):
@@ -48,4 +59,4 @@ def pytest_collect_file(file_path, parent):
         # 这里仅作记录，不执行实际导入
         pass
     except Exception as e:
-        print(f"[CI-Critical] Failed to scan {file_path}: {e}")
+        logger.info(f"[CI-Critical] Failed to scan {file_path}: {e}")

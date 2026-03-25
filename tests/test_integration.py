@@ -3,6 +3,9 @@ AGI-Walker 集成测试套件
 测试 OpenNeuro 通信框架的所有核心功能
 """
 
+import logging
+from typing import Any, Optional, Dict, List, Tuple
+logger = logging.getLogger(__name__)
 import sys
 import os
 import time
@@ -17,11 +20,11 @@ pytestmark = pytest.mark.integration
 test_results = {"passed": [], "failed": [], "skipped": []}
 
 
-def test_zenoh_import():
+def test_zenoh_import() -> None:
     """测试 1: Zenoh 模块导入"""
-    print("\n" + "=" * 60)
-    print("测试 1: Zenoh 模块导入")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("测试 1: Zenoh 模块导入")
+    logger.info("=" * 60)
 
     try:
         import importlib
@@ -29,16 +32,16 @@ def test_zenoh_import():
         assert hasattr(zenoh_mod, "ZENOH_AVAILABLE"), "模块导出异常"
         if not getattr(zenoh_mod, "ZENOH_AVAILABLE", False):
             pytest.skip("Zenoh 未安装或库文件加载失败")
-        print("✅ PASS: Zenoh 模块导入成功")
+        logger.info("✅ PASS: Zenoh 模块导入成功")
         test_results["passed"].append("Zenoh 模块导入")
     except (ImportError, ModuleNotFoundError, Exception) as e:
         pytest.skip(f"Zenoh 模块导入失败 (环境限制): {e}")
 
-def test_zenoh_session():
+def test_zenoh_session() -> None:
     """测试 2: Zenoh 会话创建"""
-    print("\n" + "=" * 60)
-    print("测试 2: Zenoh 会话创建")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("测试 2: Zenoh 会话创建")
+    logger.info("=" * 60)
 
     try:
         import importlib
@@ -52,16 +55,16 @@ def test_zenoh_session():
 
         assert zenoh.session is not None, "会话创建失败"
         zenoh.close()
-        print("✅ PASS: Zenoh 会话创建和关闭成功")
+        logger.info("✅ PASS: Zenoh 会话创建和关闭成功")
         test_results["passed"].append("Zenoh 会话创建")
     except Exception as e:
         pytest.skip(f"Zenoh 会话逻辑测试失败: {e}")
 
-def test_zenoh_pubsub():
+def test_zenoh_pubsub() -> None:
     """测试 3: Zenoh Pub/Sub"""
-    print("\n" + "=" * 60)
-    print("测试 3: Zenoh Pub/Sub 通信")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("测试 3: Zenoh Pub/Sub 通信")
+    logger.info("=" * 60)
 
     try:
         from python_api.comm.zenoh_interface import ZenohInterface
@@ -85,16 +88,16 @@ def test_zenoh_pubsub():
         assert received_data[0] == test_data, "数据不匹配"
 
         zenoh.close()
-        print(f"✅ PASS: 发送并接收到消息: {received_data[0]}")
+        logger.info(f"✅ PASS: 发送并接收到消息: {received_data[0]}")
         test_results["passed"].append("Zenoh Pub/Sub")
     except Exception as e:
         pytest.skip(f"Zenoh Pub/Sub 测试失败 (环境限制): {e}")
 
-def test_tcp_zenoh_bridge():
+def test_tcp_zenoh_bridge() -> None:
     """测试 4: TCP-Zenoh 桥接器"""
-    print("\n" + "=" * 60)
-    print("测试 4: TCP-Zenoh 桥接器")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("测试 4: TCP-Zenoh 桥接器")
+    logger.info("=" * 60)
 
     try:
         from python_api.comm.tcp_zenoh_bridge import TcpZenohBridge
@@ -108,16 +111,16 @@ def test_tcp_zenoh_bridge():
         assert bridge.running, "桥接器未运行"
         bridge.stop()
 
-        print("✅ PASS: TCP-Zenoh 桥接器启动和停止成功")
+        logger.info("✅ PASS: TCP-Zenoh 桥接器启动和停止成功")
         test_results["passed"].append("TCP-Zenoh 桥接器")
     except Exception as e:
         pytest.skip(f"TCP-Zenoh 桥接器测试失败: {e}")
 
-def test_ros2_node():
+def test_ros2_node() -> None:
     """测试 5: ROS 2 节点"""
-    print("\n" + "=" * 60)
-    print("测试 5: ROS 2 节点")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("测试 5: ROS 2 节点")
+    logger.info("=" * 60)
 
     try:
         import rclpy
@@ -130,20 +133,20 @@ def test_ros2_node():
         node.destroy_node()
         rclpy.shutdown()
 
-        print("✅ PASS: ROS 2 节点创建和运行成功")
+        logger.info("✅ PASS: ROS 2 节点创建和运行成功")
         test_results["passed"].append("ROS 2 节点")
     except (ImportError, ModuleNotFoundError):
-        print("⏭️  SKIP: ROS 2 未安装")
+        logger.warning("⏭️  SKIP: ROS 2 未安装")
         test_results["skipped"].append("ROS 2 节点 (未安装)")
         pytest.skip("ROS 2 未安装")
     except Exception as e:
         pytest.skip(f"ROS 2 节点测试失败 (环境限制): {e}")
 
-def test_parts_manager():
+def test_parts_manager() -> None:
     """测试 6: 零件管理器"""
-    print("\n" + "=" * 60)
-    print("测试 6: 零件管理器")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("测试 6: 零件管理器")
+    logger.info("=" * 60)
 
     try:
         from python_api.parts.parts_manager import PartsManager
@@ -157,7 +160,7 @@ def test_parts_manager():
         bom = pm.calculate_bom(["go_m8010", "lipo_4s_5000mah"])
         assert bom["total_cost_usd"] > 0, "BOM 计算错误"
 
-        print(f"✅ PASS: 零件库加载成功 ({len(pm.parts_db)} 个零件)")
+        logger.info(f"✅ PASS: 零件库加载成功 ({len(pm.parts_db)} 个零件)")
         test_results["passed"].append("零件管理器")
     except Exception as e:
         pytest.skip(f"零件管理器测试失败: {e}")

@@ -3,6 +3,9 @@ AI控制系统测试套件
 验证AI模型和控制器的各项功能
 """
 
+import logging
+from typing import Any, Optional, Dict, List, Tuple
+logger = logging.getLogger(__name__)
 import time
 import json
 import pytest
@@ -22,26 +25,26 @@ def check_ai_available():
         pytest.skip("python_controller.ai_model 不可用")
 
 
-def test_model_loading():
+def test_model_loading() -> None:
     """测试1: 模型加载"""
     check_ai_available()
-    print("\n" + "=" * 60)
-    print("测试1: 模型加载")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("测试1: 模型加载")
+    logger.info("=" * 60)
 
     try:
         create_ai_model(engine="ollama", model_name="phi3:mini")
-        print("✅ 模型加载成功")
+        logger.info("✅ 模型加载成功")
     except Exception as e:
         pytest.fail(f"模型加载失败: {e}")
 
 
-def test_inference_speed():
+def test_inference_speed() -> None:
     """测试2: 推理速度"""
     check_ai_available()
-    print("\n" + "=" * 60)
-    print("测试2: 推理速度")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("测试2: 推理速度")
+    logger.info("=" * 60)
 
     try:
         ai = create_ai_model()
@@ -59,12 +62,12 @@ def test_inference_speed():
         }
 
         # 预热
-        print("预热中...")
+        logger.info("预热中...")
         for _ in range(3):
             ai.predict(dummy_sensor)
 
         # 测试
-        print("执行测试...")
+        logger.info("执行测试...")
         latencies = []
         for i in range(20):
             t0 = time.time()
@@ -73,30 +76,30 @@ def test_inference_speed():
             latencies.append((t1 - t0) * 1000)
 
             if i % 5 == 0:
-                print(f"  推理 {i+1}/20: {latencies[-1]:.1f}ms")
+                logger.info(f"  推理 {i+1}/20: {latencies[-1]:.1f}ms")
 
         avg_latency = sum(latencies) / len(latencies)
         max_latency = max(latencies)
         min_latency = min(latencies)
 
-        print("\n结果:")
-        print(f"  平均: {avg_latency:.2f}ms")
-        print(f"  最小: {min_latency:.2f}ms")
-        print(f"  最大: {max_latency:.2f}ms")
+        logger.info("\n结果:")
+        logger.info(f"  平均: {avg_latency:.2f}ms")
+        logger.info(f"  最小: {min_latency:.2f}ms")
+        logger.info(f"  最大: {max_latency:.2f}ms")
 
         assert avg_latency < 200, f"速度过慢 ({avg_latency:.1f}ms > 200ms)"
-        print(f"✅ 速度测试通过 ({avg_latency:.1f}ms < 200ms)")
+        logger.info(f"✅ 速度测试通过 ({avg_latency:.1f}ms < 200ms)")
 
     except Exception as e:
         pytest.fail(f"速度测试失败: {e}")
 
 
-def test_json_format():
+def test_json_format() -> None:
     """测试3: JSON格式验证"""
     check_ai_available()
-    print("\n" + "=" * 60)
-    print("测试3: JSON格式验证")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("测试3: JSON格式验证")
+    logger.info("=" * 60)
 
     try:
         ai = create_ai_model()
@@ -112,7 +115,7 @@ def test_json_format():
             "torso_height": 1.45,
         }
 
-        print("测试10次推理...")
+        logger.info("测试10次推理...")
         success_count = 0
 
         for i in range(10):
@@ -134,26 +137,26 @@ def test_json_format():
                 success_count += 1
 
             except AssertionError as e:
-                print(f"  第{i+1}次失败: {e}")
+                logger.info(f"  第{i+1}次失败: {e}")
             except Exception as e:
-                print(f"  第{i+1}次错误: {e}")
+                logger.info(f"  第{i+1}次错误: {e}")
 
         success_rate = success_count / 10 * 100
-        print(f"\n结果: {success_count}/10 成功 ({success_rate:.1f}%)")
+        logger.info(f"\n结果: {success_count}/10 成功 ({success_rate:.1f}%)")
 
         assert success_rate >= 90, f"JSON格式错误率过高 ({success_rate:.1f}% 成功)"
-        print(f"✅ JSON格式测试通过 ({success_rate:.1f}%)")
+        logger.info(f"✅ JSON格式测试通过 ({success_rate:.1f}%)")
 
     except Exception as e:
         pytest.fail(f"格式测试失败: {e}")
 
 
-def test_safety_checker():
+def test_safety_checker() -> None:
     """测试4: 安全检查器"""
     check_ai_available()
-    print("\n" + "=" * 60)
-    print("测试4: 安全检查器")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("测试4: 安全检查器")
+    logger.info("=" * 60)
 
     try:
         from python_controller.ai_controller import SafetyChecker
@@ -177,10 +180,10 @@ def test_safety_checker():
             assert "motors" in result
             assert isinstance(result["motors"].get("hip_left", 0), (int, float))
 
-            print(f"  {expected}: ✅")
+            logger.info(f"  {expected}: ✅")
             passed += 1
 
-        print(f"\n✅ 安全检查器测试通过 ({passed}/{len(test_cases)})")
+        logger.info(f"\n✅ 安全检查器测试通过 ({passed}/{len(test_cases)})")
 
     except Exception as e:
         pytest.fail(f"安全检查器测试失败: {e}")
@@ -188,13 +191,13 @@ def test_safety_checker():
 
 def run_all_tests():
     """运行所有测试 (兼容脚本模式)"""
-    print("\n" + "=" * 60)
-    print("🧪 AGI-Walker AI控制系统测试套件")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("🧪 AGI-Walker AI控制系统测试套件")
+    logger.info("=" * 60)
 
     # 在脚本模式下直接调用这些函数，需要跳过 pytest 逻辑
     if not AI_MODULES_AVAILABLE:
-        print("❌ 模块不可用，无法运行测试")
+        logger.info("❌ 模块不可用，无法运行测试")
         return False
 
     try:
@@ -204,7 +207,7 @@ def run_all_tests():
         test_safety_checker()
         return True
     except Exception as e:
-        print(f"❌ 测试运行出错: {e}")
+        logger.info(f"❌ 测试运行出错: {e}")
         return False
 
 
@@ -215,8 +218,8 @@ if __name__ == "__main__":
         success = run_all_tests()
         sys.exit(0 if success else 1)
     except KeyboardInterrupt:
-        print("\n\n⏹️ 测试中断")
+        logger.info("\n\n⏹️ 测试中断")
         sys.exit(1)
     except Exception as e:
-        print(f"\n❌ 测试崩溃: {e}")
+        logger.info(f"\n❌ 测试崩溃: {e}")
         sys.exit(1)

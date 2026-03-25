@@ -7,6 +7,8 @@ AGI-Walker Agent 指令解析器 (Day 7 增强版 -> Milestone 3 LLM 融合版)
   - 当 LLM 环境未配置或请求失败时，安全回退到本地的强正则机制
   - 输出 skills_params 供 /api/skills/pipeline 直接消费
 """
+import logging
+logger = logging.getLogger(__name__)
 import re
 import json
 import urllib.request
@@ -46,7 +48,7 @@ class CommandParser:
         try:
             skills_params = self._llm_parse(prompt)
         except Exception as e:
-            print(f"⚠️ LLM 解析失败，正在回退到正则机制: {e}")
+            logger.info(f"LLM parse failed, falling back to regex: {e}")
 
         # 2. 回退机制：正则表达式匹配
         if not skills_params:

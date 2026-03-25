@@ -207,6 +207,7 @@
 
         // Godot Logic
         let isConnected = false;
+        const godotSessionId = new URLSearchParams(window.location.search).get('session') || 'default';
         let lastGeneratedConfigPath = "";
 
         // 覆盖原始表单提交，为了保存 config path
@@ -245,6 +246,7 @@
                         controls.style.pointerEvents = "auto";
 
                         startWebSocket();
+                        console.info(`[Godot] design.html uses legacy REST control and session-aware WebSocket telemetry for session '${godotSessionId}'.`);
                     } else {
                         alert("连接失败: " + (data.error || "Unknown"));
                     }
@@ -320,13 +322,13 @@
             await fetch('/api/godot/update-params', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(params)
+                body: JSON.stringify({ params })
             });
         }
 
         function startWebSocket() {
             const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-            const ws = new WebSocket(`${protocol}://${window.location.host}/ws`);
+            const ws = new WebSocket(`${protocol}://${window.location.host}/ws/${godotSessionId}`);
 
             ws.onmessage = (event) => {
                 const msg = JSON.parse(event.data);
@@ -334,6 +336,12 @@
                     const display = document.getElementById('godot-data-display');
                     display.textContent = JSON.stringify(msg.data, null, 2);
                     display.scrollTop = display.scrollHeight;
+                } else if (msg.type === 'telemetry_update') {
+                    const display = document.getElementById('godot-data-display');
+                    display.textContent = JSON.stringify(msg.data, null, 2);
+                    display.scrollTop = display.scrollHeight;
+                } else if (msg.type === 'simulation_error') {
+                    console.warn('[Godot] simulation_error:', msg.message || msg.payload?.error || msg);
                 }
             };
         }

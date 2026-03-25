@@ -8,11 +8,15 @@ from typing import Optional
 from tcp_client import GodotClient
 from ai_model import create_ai_model, BaseAIModel
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class SafetyChecker:
     """安全检查器"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # 关节限位
         self.joint_limits = {"hip_left": (-45, 90), "hip_right": (-45, 90)}
 
@@ -27,7 +31,7 @@ class SafetyChecker:
         for joint, angle in action.get("motors", {}).items():
             # 类型检查
             if not isinstance(angle, (int, float)):
-                print(f"⚠️ {joint} 角度类型错误: {type(angle)}")
+                logger.info(f"⚠️ {joint} 角度类型错误: {type(angle)}")
                 angle = 0.0
 
             # 限位检查
@@ -37,7 +41,7 @@ class SafetyChecker:
                 angle = max(min_angle, min(max_angle, angle))
 
                 if angle != original_angle:
-                    print(f"⚠️ {joint} 角度限位: {original_angle:.1f}° → {angle:.1f}°")
+                    logger.info(f"⚠️ {joint} 角度限位: {original_angle:.1f}° → {angle:.1f}°")
 
             # 速度限制
             if joint in self.last_angles:
@@ -48,7 +52,7 @@ class SafetyChecker:
                     angle = self.last_angles[joint] + (
                         max_change if change > 0 else -max_change
                     )
-                    print(f"⚠️ {joint} 速度限制: {change:.1f}° → {max_change:.1f}°")
+                    logger.info(f"⚠️ {joint} 速度限制: {change:.1f}° → {max_change:.1f}°")
 
             safe_action["motors"][joint] = angle
             self.last_angles[joint] = angle
@@ -81,7 +85,7 @@ class AIController:
         self.start_time = None
         self.fall_time = None
 
-    def run(self, duration: float = 120.0, target_hz: float = 30.0):
+    def run(self, duration: float = 120.0, target_hz: float = 30.0) -> None:
         """
         运行AI控制循环
 
@@ -90,17 +94,17 @@ class AIController:
             target_hz: 目标控制频率
         """
         if not self.client.connect():
-            print("❌ 无法连接到Godot仿真器")
+            logger.info("❌ 无法连接到Godot仿真器")
             return
 
-        print("\n" + "=" * 60)
-        print("🤖 AI控制器启动")
-        print("=" * 60)
-        print(f"模型: {self.ai_model.__class__.__name__}")
-        print(f"策略: {self.strategy}")
-        print(f"目标频率: {target_hz} Hz")
-        print(f"运行时长: {duration} 秒")
-        print("=" * 60 + "\n")
+        logger.info("\n" + "=" * 60)
+        logger.info("🤖 AI控制器启动")
+        logger.info("=" * 60)
+        logger.info(f"模型: {self.ai_model.__class__.__name__}")
+        logger.info(f"策略: {self.strategy}")
+        logger.info(f"目标频率: {target_hz} Hz")
+        logger.info(f"运行时长: {duration} 秒")
+        logger.info("=" * 60 + "\n")
 
         self.start_time = time.time()
         loop_time_target = 1.0 / target_hz
@@ -117,7 +121,7 @@ class AIController:
 
                 # 2. 检查稳定性
                 if not self._check_stability(sensor_data):
-                    print("❌ 机器人摔倒!")
+                    logger.info("❌ 机器人摔倒!")
                     self.fall_time = time.time() - self.start_time
                     break
 
@@ -142,7 +146,7 @@ class AIController:
 
                 # 警告：推理太慢
                 if ai_time > 0.05:  # 50ms
-                    print(f"⚠️ AI推理延迟: {ai_time*1000:.1f}ms")
+                    logger.info(f"⚠️ AI推理延迟: {ai_time*1000:.1f}ms")
 
                 # 7. 控制频率
                 sleep_time = max(0, loop_time_target - loop_time)
@@ -150,7 +154,7 @@ class AIController:
                     time.sleep(sleep_time)
 
         except KeyboardInterrupt:
-            print("\n\n⏹️ 用户中断")
+            logger.info("\n\n⏹️ 用户中断")
 
         finally:
             self._cleanup()
@@ -170,12 +174,12 @@ class AIController:
 
         return True
 
-    def _print_status(self, sensor_data: dict, ai_time: float, loop_time: float):
+    def _print_status(self, sensor_data: dict, ai_time: float, loop_time: float) -> List:
         """打印状态信息"""
         orient = sensor_data["sensors"]["imu"]["orient"]
         elapsed = time.time() - self.start_time
 
-        print(
+        logger.info(
             f"[{elapsed:6.1f}s] "
             f"Roll: {orient[0]:5.1f}° | "
             f"Pitch: {orient[1]:5.1f}° | "
@@ -185,37 +189,37 @@ class AIController:
             f"频率: {1/loop_time:4.1f}Hz"
         )
 
-    def _cleanup(self):
+    def _cleanup(self) -> None:
         """清理和统计"""
         self.client.close()
 
         # 打印总结
-        print("\n" + "=" * 60)
-        print("📊 运行总结")
-        print("=" * 60)
+        logger.info("\n" + "=" * 60)
+        logger.info("📊 运行总结")
+        logger.info("=" * 60)
 
         elapsed = time.time() - self.start_time if self.start_time else 0
 
-        print(f"运行时间: {elapsed:.1f}秒")
-        print(f"总循环数: {self.loop_count}")
-        print(f"平均频率: {self.loop_count/elapsed:.1f}Hz" if elapsed > 0 else "N/A")
+        logger.info(f"运行时间: {elapsed:.1f}秒")
+        logger.info(f"总循环数: {self.loop_count}")
+        logger.info(f"平均频率: {self.loop_count/elapsed:.1f}Hz" if elapsed > 0 else "N/A")
 
         if self.fall_time:
-            print(f"摔倒时间: {self.fall_time:.1f}秒")
+            logger.info(f"摔倒时间: {self.fall_time:.1f}秒")
         else:
-            print("状态: ✅ 稳定站立")
+            logger.info("状态: ✅ 稳定站立")
 
         # AI统计
         ai_stats = self.ai_model.get_stats()
-        print("\nAI推理统计:")
-        print(f"  总次数: {ai_stats['total_predictions']}")
-        print(f"  平均耗时: {ai_stats['avg_inference_time']*1000:.2f}ms")
-        print(f"  错误次数: {ai_stats['errors']}")
+        logger.info("\nAI推理统计:")
+        logger.info(f"  总次数: {ai_stats['total_predictions']}")
+        logger.info(f"  平均耗时: {ai_stats['avg_inference_time']*1000:.2f}ms")
+        logger.info(f"  错误次数: {ai_stats['errors']}")
 
         if ai_stats.get("error_rate"):
-            print(f"  错误率: {ai_stats['error_rate']*100:.1f}%")
+            logger.info(f"  错误率: {ai_stats['error_rate']*100:.1f}%")
 
-        print("=" * 60 + "\n")
+        logger.info("=" * 60 + "\n")
 
 
 # 使用示例

@@ -1,8 +1,8 @@
 """
-任务: 斜坡行走 (Slope Walking)
-目标: 在不同坡度的斜坡上行走
-难度: ⭐⭐ (简单)
-机器人: 四足/双足
+:  (Slope Walking)
+: 
+:  ()
+: /
 """
 
 import sys
@@ -15,9 +15,8 @@ sys.path.insert(
 import gymnasium as gym
 import numpy as np
 
-
 class SlopeWalkingEnv(gym.Env):
-    """斜坡行走环境"""
+    """"""
 
     def __init__(self, slope_angle=15.0):
         super().__init__()
@@ -40,13 +39,13 @@ class SlopeWalkingEnv(gym.Env):
 
     def step(self, action):
         self.joint_pos += action * 0.1
-        self.robot_pos[0] += 0.02  # 前进
+        self.robot_pos[0] += 0.02  # 
         self.robot_pos[2] = 0.5 + self.robot_pos[0] * np.tan(
             self.slope_angle
-        )  # 高度随斜坡变化
+        )  # 
 
-        reward = 0.1  # 前进奖励
-        done = self.robot_pos[0] >= 10.0  # 10米
+        reward = 0.1  # 
+        done = self.robot_pos[0] >= 10.0  # 10
 
         return (
             self._get_observation(),
@@ -61,15 +60,14 @@ class SlopeWalkingEnv(gym.Env):
             [self.joint_pos, np.zeros(8), self.robot_pos, np.zeros(6)]
         ).astype(np.float32)
 
-
 if __name__ == "__main__":
     gym.register(id="SlopeWalking-v0", entry_point="__main__:SlopeWalkingEnv")
     env = SlopeWalkingEnv(slope_angle=15)
-    print("⛰️ 斜坡行走任务 Demo")
+    print("Slope walking task demo")
     obs, _ = env.reset()
     for _ in range(500):
         action = env.action_space.sample()
         obs, reward, _, done, info = env.step(action)
         if done:
             break
-    print(f"✅ Demo 完成, 距离={info['distance']:.2f}m")
+    print(f"Demo completed, distance={info['distance']:.2f}m")

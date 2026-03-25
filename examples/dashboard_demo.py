@@ -15,8 +15,8 @@ try:
     HAS_QT = True
 except ImportError:
     HAS_QT = False
-    print("⚠️ 未安装 PyQt6，将使用 OpenCV 窗口显示")
-    print("建议安装: pip install PyQt6")
+    print("PyQt6 not installed; falling back to OpenCV window display")
+    print("Recommended: pip install PyQt6")
 
 HOST = "127.0.0.1"
 PORT = 9998
@@ -35,10 +35,10 @@ class VideoReceiver:
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.sock.connect((HOST, PORT))
                 self.running = True
-                print(f"✅ 已连接到视频流: {HOST}:{PORT}")
+                print(f"Connected to video stream: {HOST}:{PORT}")
                 return
             except ConnectionRefusedError:
-                print(f"⏳ 等待 Godot 视频服务器启动... ({HOST}:{PORT})")
+                print(f"Waiting for Godot video server... ({HOST}:{PORT})")
                 time.sleep(2)
 
     def start_loop(self, callback=None):
@@ -70,8 +70,12 @@ class VideoReceiver:
                         callback(frame)
 
             except Exception as e:
-                print(f"❌ 连接错误: {e}")
-                self.sock.close()
+                print(f"Connection error: {e}")
+                if self.sock:
+                    try:
+                        self.sock.close()
+                    except OSError:
+                        pass
                 self.connect()  # 尝试重连
 
     def _recv_exact(self, n):
@@ -147,23 +151,14 @@ if HAS_QT:
 
 def run_cv_app():
     receiver = VideoReceiver()
-    receiver.connect()
-
-    print("按 'q' 退出 OpenCV 窗口")
-
-    while True:
-        # 手动轮询接收 (简单实现)
-        # 注意：这里实际上应该在线程里跑，为了简单起见，我们假设 VideoReceiver 的 loop 稍微改一下
-        # 但为了复用 VideoReceiver，我们还是开个线程吧
-        pass
-
-    # 由于 VideoReceiver 是阻塞 loop，我们直接用 callback
     def show_frame(frame):
         cv2.imshow("AGI-Walker Remote Stream", frame)
         if cv2.waitKey(1) & 0xFF == ord("q"):
-            sys.exit(0)
+            receiver.running = False
 
+    print("Press 'q' to quit the OpenCV window")
     receiver.start_loop(show_frame)
+    cv2.destroyAllWindows()
 
 
 # ================= Main =================

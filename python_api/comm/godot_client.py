@@ -49,7 +49,7 @@ class GodotSimulationClient:
             self.socket.settimeout(None)  # 连接后取消超时
 
             self.connected = True
-            print(f"✓ 已连接到Godot服务器 {self.host}:{self.port}")
+            print(f"Connected to Godot server {self.host}:{self.port}")
 
             # 启动接收线程
             self.running = True
@@ -61,13 +61,19 @@ class GodotSimulationClient:
             return True
 
         except socket.timeout:
-            print(f"✗ 连接超时: Godot服务器 {self.host}:{self.port} 未响应")
+            print(f"Connection timed out: Godot server {self.host}:{self.port} did not respond")
             return False
         except ConnectionRefusedError:
-            print(f"✗ 连接被拒绝: Godot服务器未启动或端口 {self.port} 不可用")
+            print(f"Connection refused: Godot server is not running or port {self.port} is unavailable")
             return False
         except Exception as e:
-            print(f"✗ 连接失败: {e}")
+            print(f"Connection failed: {e}")
+            if self.socket:
+                try:
+                    self.socket.close()
+                except OSError:
+                    pass
+                self.socket = None
             return False
 
     def disconnect(self):
@@ -77,12 +83,20 @@ class GodotSimulationClient:
 
         if self.socket:
             try:
+                try:
+                    self.socket.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
                 self.socket.close()
-            except Exception:
+            except OSError:
                 pass
             self.socket = None
 
-        print("已断开Godot连接")
+        if self.receive_thread and self.receive_thread.is_alive():
+            self.receive_thread.join(timeout=1.0)
+        self.receive_thread = None
+
+        print("Disconnected from Godot")
 
     def send_command(self, command: str, data: Optional[Dict] = None) -> bool:
         """
@@ -96,7 +110,7 @@ class GodotSimulationClient:
             是否发送成功
         """
         if not self.connected or not self.socket:
-            print("✗ 未连接到Godot服务器")
+            print("Not connected to Godot server")
             return False
 
         try:
@@ -114,7 +128,7 @@ class GodotSimulationClient:
             return True
 
         except Exception as e:
-            print(f"✗ 发送命令失败: {e}")
+            print(f"Failed to send command: {e}")
             self.disconnect()
             return False
 
@@ -199,7 +213,7 @@ class GodotSimulationClient:
 
             except Exception as e:
                 if self.running:
-                    print(f"✗ 接收数据错误: {e}")
+                    print(f"Receive loop error: {e}")
                 break
 
         self.connected = False
@@ -252,25 +266,32 @@ class MockGodotServer:
             self.server_thread = threading.Thread(target=self._server_loop, daemon=True)
             self.server_thread.start()
 
-            print(f"✓ 模拟Godot服务器启动于端口 {self.port}")
+            print(f"Mock Godot server started on port {self.port}")
             return True
 
         except Exception as e:
-            print(f"✗ 启动模拟服务器失败: {e}")
+            print(f"Failed to start mock Godot server: {e}")
             return False
 
     def stop(self):
         """停止服务器"""
         self.running = False
         if self.server_socket:
-            self.server_socket.close()
+            try:
+                self.server_socket.close()
+            except OSError:
+                pass
+            self.server_socket = None
+        if self.server_thread and self.server_thread.is_alive():
+            self.server_thread.join(timeout=1.0)
+        self.server_thread = None
 
     def _server_loop(self):
         """服务器循环"""
         while self.running:
             try:
                 client, addr = self.server_socket.accept()
-                print(f"✓ 客户端连接: {addr}")
+                print(f"Client connected: {addr}")
 
                 # 启动客户端处理线程
                 thread = threading.Thread(
@@ -334,9 +355,12 @@ class MockGodotServer:
 
                         time.sleep(0.1)  # 10Hz 更新率
         except Exception as e:
-            print(f"客户端处理错误: {e}")
+            print(f"Client handler error: {e}")
         finally:
-            client.close()
+            try:
+                client.close()
+            except OSError:
+                pass
 
 
 # 使用示例

@@ -1,3 +1,5 @@
+import logging
+logger = logging.getLogger(__name__)
 import socket
 import struct
 import json
@@ -14,19 +16,19 @@ class MockGodotServer:
         self.server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_sock.bind((self.host, self.port))
         self.server_sock.listen(1)
-        print(f"🎭 Mock Server listening on {self.host}:{self.port}")
+        logger.info(f"🎭 Mock Server listening on {self.host}:{self.port}")
 
     def start(self):
         while self.running:
             try:
                 self.server_sock.settimeout(1.0)
                 client, addr = self.server_sock.accept()
-                print(f"🎭 Client connected: {addr}")
+                logger.info(f"🎭 Client connected: {addr}")
                 self._handle_client(client)
             except socket.timeout:
                 continue
             except Exception as e:
-                # print(f"Server error: {e}")
+                # logger.info(f"Server error: {e}")
                 pass
 
     def _handle_client(self, client):
@@ -42,7 +44,7 @@ class MockGodotServer:
                 data = self._recv_all(client, length)
 
                 cmd = json.loads(data.decode("utf-8"))
-                # print(f"🎭 Received: {cmd}")
+                # logger.info(f"🎭 Received: {cmd}")
 
                 # Mock Response
                 # obs = {"vector": [qpos, qvel...], "reward": 0.0, "done": False}
@@ -53,10 +55,10 @@ class MockGodotServer:
                 client.sendall(response_len + response_json)
 
             except Exception as e:
-                print(f"🎭 Client Handler Error: {e}")
+                logger.error(f"🎭 Client Handler Error: {e}")
                 break
         client.close()
-        print("🎭 Client disconnected")
+        logger.info("🎭 Client disconnected")
 
     def _recv_all(self, sock, n):
         data = b""

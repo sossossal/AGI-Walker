@@ -8,12 +8,17 @@ CLI工具已内置在AGI-Walker中,无需额外安装。
 
 ### 基本用法
 
+# CLI 支持两套入口，等效执行
 ```bash
-# Windows
+# 通用 Skills 命令
 python -m agi_walker.cli skills <command>
+
+# 直接调用 workflows 子命令（等价于 skills workflows）
+python -m agi_walker.cli workflows <subcommand>
 
 # 或使用快捷脚本
 agi_walker.bat skills <command>
+agi_walker.bat workflows <subcommand>
 ```
 
 ---
@@ -166,6 +171,17 @@ python -m agi_walker.cli skills validate -v
 ```
 
 ---
+
+### 6. Workflows 快速通道
+
+```bash
+python -m agi_walker workflows list
+python -m agi_walker workflows run simulation_ready_robot
+python -m agi_walker workflows validate robot_creation_pipeline
+```
+
+该 alias 直接映射到 `skills workflows`，所以之前的 workflow 子命令所有选项行为一模一样。
+
 
 ## 使用场景
 

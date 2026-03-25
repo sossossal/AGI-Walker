@@ -9,6 +9,9 @@ from typing import Dict, List, Optional, Tuple, Union
 from pathlib import Path
 from dataclasses import dataclass
 from collections import deque
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -54,7 +57,7 @@ class ONNXInferenceEngine:
         if model_path and Path(model_path).exists():
             self.load_model(model_path)
 
-    def _init_onnx_runtime(self):
+    def _init_onnx_runtime(self) -> None:
         """初始化ONNX Runtime"""
         try:
             import onnxruntime as ort
@@ -63,26 +66,26 @@ class ONNXInferenceEngine:
 
             # 检测可用Providers
             available_providers = ort.get_available_providers()
-            print(f"📦 ONNX Runtime版本: {ort.__version__}")
-            print(f"可用Providers: {available_providers}")
+            logger.info(f"📦 ONNX Runtime版本: {ort.__version__}")
+            logger.info(f"可用Providers: {available_providers}")
 
         except ImportError:
-            print("⚠️ ONNX Runtime未安装")
-            print("请运行: pip install onnxruntime")
+            logger.info(" ONNX Runtime未安装")
+            logger.info("请运行: pip install onnxruntime")
             self._ort = None
 
-    def load_model(self, model_path: str):
+    def load_model(self, model_path: str) -> bool:
         """加载ONNX模型"""
         if self._ort is None:
-            print("❌ ONNX Runtime不可用")
+            logger.info(" ONNX Runtime不可用")
             return False
 
         path = Path(model_path)
         if not path.exists():
-            print(f"❌ 模型文件不存在: {model_path}")
+            logger.info(f" 模型文件不存在: {model_path}")
             return False
 
-        print(f"加载模型: {model_path}")
+        logger.info(f"加载模型: {model_path}")
 
         # 配置Session选项
         sess_options = self._ort.SessionOptions()
@@ -117,14 +120,14 @@ class ONNXInferenceEngine:
             for inp in self.session.get_inputs():
                 self.input_shapes[inp.name] = inp.shape
 
-            print("✅ 模型加载成功")
-            print(f"输入: {self.input_names}")
-            print(f"输出: {self.output_names}")
+            logger.info("✅ 模型加载成功")
+            logger.info(f"输入: {self.input_names}")
+            logger.info(f"输出: {self.output_names}")
 
             return True
 
         except Exception as e:
-            print(f"❌ 模型加载失败: {e}")
+            logger.info(f" 模型加载失败: {e}")
             return False
 
     def _get_providers(self) -> List[str]:
@@ -160,7 +163,7 @@ class ONNXInferenceEngine:
         if not providers:
             providers = ["CPUExecutionProvider"]
 
-        print(f"使用Providers: {providers}")
+        logger.info(f"使用Providers: {providers}")
         return providers
 
     def predict(
@@ -215,12 +218,12 @@ class ONNXInferenceEngine:
 
         return np.concatenate(results, axis=0)
 
-    def warmup(self, num_runs: int = 10):
+    def warmup(self, num_runs: int = 10) -> None:
         """模型预热"""
         if self.session is None:
             return
 
-        print(f"模型预热 ({num_runs}次)...")
+        logger.info(f"模型预热 ({num_runs}次)...")
 
         # 创建dummy输入
         dummy_inputs = {}
@@ -237,7 +240,7 @@ class ONNXInferenceEngine:
         self.total_inferences = 0
         self.total_time = 0.0
 
-        print("✅ 预热完成")
+        logger.info("✅ 预热完成")
 
     def get_latency_stats(self) -> dict:
         """获取延迟统计"""
@@ -288,8 +291,8 @@ class ONNXInferenceEngine:
 class DummyONNXEngine:
     """虚拟ONNX引擎（当ONNX Runtime不可用时使用）"""
 
-    def __init__(self, *args, **kwargs):
-        print("⚠️ 使用虚拟ONNX引擎")
+    def __init__(self, *args, **kwargs) -> None:
+        logger.info(" 使用虚拟ONNX引擎")
         self.total_inferences = 0
 
     def load_model(self, model_path: str) -> bool:
@@ -333,20 +336,20 @@ def create_onnx_engine(
 if __name__ == "__main__":
     import json
 
-    print("ONNX推理引擎测试\n")
+    logger.info("ONNX推理引擎测试\n")
 
     # 创建引擎
     engine = create_onnx_engine(use_gpu=False)
 
-    print("\n=== 模型信息 ===")
-    print(json.dumps(engine.get_model_info(), indent=2))
+    logger.info("\n=== 模型信息 ===")
+    logger.info(json.dumps(engine.get_model_info(), indent=2))
 
     # 如果有现有ONNX模型，测试推理
     project_root = Path(__file__).resolve().parent.parent
     reflex_model = project_root / "hive-reflex" / "reflex_net.onnx"
 
     if reflex_model.exists():
-        print("\n=== 测试ReflexNet模型 ===")
+        logger.info("\n=== 测试ReflexNet模型 ===")
 
         if engine.load_model(str(reflex_model)):
             # 预热
@@ -360,15 +363,15 @@ if __name__ == "__main__":
             for _ in range(100):
                 output = engine.predict({"input": dummy_input, "h_in": h0, "c_in": c0})
 
-            print("\n延迟统计:")
-            print(json.dumps(engine.get_latency_stats(), indent=2))
+            logger.info("\n延迟统计:")
+            logger.info(json.dumps(engine.get_latency_stats(), indent=2))
     else:
-        print("\n⚠️ ReflexNet ONNX模型不存在")
-        print("请运行: cd hive-reflex && python reflex_net.py")
+        logger.info("\n ReflexNet ONNX模型不存在")
+        logger.info("请运行: cd hive-reflex && python reflex_net.py")
 
         # 测试虚拟推理
         if isinstance(engine, DummyONNXEngine):
-            print("\n使用虚拟引擎测试...")
+            logger.info("\n使用虚拟引擎测试...")
             dummy_input = np.random.randn(1, 12).astype(np.float32)
             output = engine.predict(dummy_input)
-            print(f"输出形状: {output.shape}")
+            logger.info(f"输出形状: {output.shape}")

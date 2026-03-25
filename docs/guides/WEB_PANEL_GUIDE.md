@@ -1,99 +1,90 @@
 # Web 控制面板指南
 
-AGI-Walker 提供了一个基于 Web 的可视化工控制面板，用于管理训练任务、监控系统状态以及实时控制 Godot 仿真环境。
+AGI-Walker 提供了一个基于 Web 的控制面板，用于管理任务、查看页面资源，并调试 Web-Godot 集成相关功能。
 
-## 🚀 启动面板
+## 启动面板
 
 在项目根目录下运行：
 ```bash
 python web_panel/server.py
 ```
-然后访问: [http://localhost:8000](http://localhost:8000)
+也可以使用模块方式：
 
----
+```bash
+python -m web_panel.server
+```
 
+启动后访问 [http://localhost:8000](http://localhost:8000)。
 
----
+说明：
 
-## 🤖 机器人创建 (Robot Creation)
+- `web_panel/` 内已经包含 FastAPI 服务、静态页面和 WebSocket 协议处理代码。
+- 直接启动服务不等于完整 Godot 联动已验证；Godot 侧仍需要额外环境与联调。
+- 如果在 Windows 终端中遇到编码问题，优先使用 UTF-8 终端。
 
-AGI-Walker 提供两种便捷方式来创建机器人，无需编写代码。
+## 当前可确认的内容
 
-### 1. 🛠️ Interactive Builder (推荐)
-适合快速验证预设构型。
-1. 在 **Godot 仿真控制** 面板中找到 **Interactive Modeling** 区域。
-2. 选择 **Type** (e.g., Quadruped, Hexapod)。
-3. 选择 **Scenario** (e.g., Performance, Low Cost)。
-4. 点击 **🏗️ 生成配置**。系统将自动生成 JSON 并填充到下方文本框。
-5. 点击 **📤 加载** 即可将模型发送到 Godot 场景中。
+- Web 服务入口存在：`web_panel/server.py`
+- 协议处理模块存在：`web_panel/ws_protocol.py`
+- 静态页面资源存在：`web_panel/static/`
+- 部分页面和接口面向 Web-Godot 联调
 
-### 2. 💬 Agent Command (高级)
-通过自然语言进行定制，例如：
-- `create quadruped` (标准四足)
-- `create hexapod` (六足)
-- `create biped` (双足)
+## 当前接口结构
 
-点击 **🚀 发送** 后，系统会自动解析并生成配置。
+当前仓库里的 Godot 集成分为两种模式，这一点需要明确：
 
-## 🎮 Godot 仿真控制 (NEW!)
+### 1. Legacy Controller 模式
 
-控制面板主页现已集成 Godot 仿真控制功能，您可以直接在浏览器中与仿真器交互。
+这条链路面向“连接 Godot、加载机器人、启动/停止仿真、更新参数”。
 
-### 1. 连接仿真器
-- 在 **Godot 仿真控制** 卡片中，输入 Godot 所在的 IP 和 端口 (默认 `127.0.0.1:9999`)。
-- 点击 **🔗 连接** 按钮。
-- 连接成功后，状态将变为 **✅ 已连接**，且控制按钮将启用。
+对应接口：
+- `POST /api/godot/connect`
+- `POST /api/godot/disconnect`
+- `GET /api/godot/status`
+- `POST /api/godot/load-robot`
+- `POST /api/godot/start`
+- `POST /api/godot/stop`
+- `POST /api/godot/update-params`
 
-### 2. 仿真控制
-- **▶️ 启动/停止/重置**: 控制仿真生命周期。
-- **⏱️ 实时参数调整**:
-  - **Motor Power**: 调整电机输出功率倍率。
-  - **Joint Stiffness**: 调整关节刚度 (P gain)。
-  - **Joint Damping**: 调整关节阻尼 (D gain)。
-  - *注：滑条调节具有200ms节流保护，防止网络拥塞。*
+WebSocket 协议中的这些命令也属于这一类：
+- `simulation.start`
+- `simulation.stop`
+- `config.load_robot`
+- `params.update`
+- `ping`
 
+### 2. Session Bridge 模式
 
-### 3. 数据监控
-- **数值卡片**:
-  - **位置 X**: 机器人当前的 X 轴位移 (m)。
-  - **速度 X**: 机器人当前的 X 轴速度 (m/s)。
-  - **电池电量**: 剩余电量百分比 (%)。
-  - **运行时间**: 仿真持续时间 (s)。
-- **原始数据流**: 滚动显示来自 Godot 的原始 JSON 数据包 (用于调试)。
+这条链路面向“按会话启动 Godot 进程、通过 TCP 读取遥测/发送动作”，更接近 RL 或调试桥。
 
-### 4. 数据监控
-- 右侧的 **实时数据流** 窗口会显示来自 Godot 的传感器数据（如位置、速度、电量等）。
+对应接口：
+- `POST /api/godot/{session_id}/launch`
+- `POST /api/godot/{session_id}/stop`
+- `GET /api/godot/{session_id}/status`
+- `POST /api/godot/{session_id}/control`
+- `WS /ws/{session_id}`
 
----
+当前 `godot_project/scripts/tcp_server.gd` 可确认支持的 TCP 命令是：
+- `reset`
+- `step`
+- `get_schema`
 
-## 📋 任务管理
+这意味着 Session Bridge 目前不能直接替代 Legacy Controller。两套接口现在是并存关系，不应混为一套“已完全统一”的方案。
 
-### 创建任务
-1. 点击 **➕ 创建新任务**。
-2. 输入任务名称（如 `stair_climbing_test_01`）。
-3. 任务将进入 `pending` 状态，随后转为 `running`。
+## 调试建议
 
-### 监控任务
-- 任务列表会自动刷新。
-- 您可以看到任务的运行状态、创建时间和实时日志（需点击详情）。
+1. 先确认基础服务可以启动并监听 `8000` 端口。
+2. 再访问首页和静态页面，确认静态资源加载正常。
+3. 最后再接入 Godot 仿真端，逐步调试 WebSocket 与控制接口。
 
----
-
-## 🛠️ 机器人设计
-点击 **🛠️ 设计新机器人** 跳转到设计向导页面：
-1. 选择机器人类型 (Biped/Quadruped)。
-2. 设置身高、体重等核心参数。
-3. 点击生成的机器人将自动同步到 Godot 场景中。
-
----
-
-## 🔌 API 参考
+## API 参考
 
 ### Godot 接口
 - `POST /api/godot/connect`: 连接仿真器
 - `POST /api/godot/start`: 启动仿真
 - `POST /api/godot/stop`: 停止仿真
 - `POST /api/godot/update-params`: 更新物理参数
+- `GET /api/godot/capabilities`: 查看当前支持的 Godot 接入模式
 
 ### 任务接口
 - `GET /api/tasks`: 获取任务列表

@@ -2,6 +2,9 @@
 Tests for Offline RL functionality.
 """
 
+import logging
+from typing import Any, Optional, Dict, List, Tuple
+logger = logging.getLogger(__name__)
 import pytest
 
 # 延迟导入，防止收集阶段崩溃
@@ -9,7 +12,7 @@ def get_offline_rl():
     from python_api.learning.offline_rl import ExpertDataCollector, OfflineRLTrainer
     return ExpertDataCollector, OfflineRLTrainer
 
-def test_offline_rl_imports():
+def test_offline_rl_imports() -> None:
     """Test that offline_rl module can be imported (or skipped if deps missing)."""
     try:
         ExpertDataCollector, _ = get_offline_rl()
@@ -18,7 +21,7 @@ def test_offline_rl_imports():
         pytest.skip("Offline RL dependencies are not available")
 
 
-def test_d3rlpy_installed():
+def test_d3rlpy_installed() -> None:
     """Test that d3rlpy is installed."""
     try:
         import d3rlpy
@@ -27,7 +30,7 @@ def test_d3rlpy_installed():
         pytest.skip("d3rlpy not installed")
 
 
-def test_data_collector_creation():
+def test_data_collector_creation() -> None:
     """Test ExpertDataCollector instantiation."""
     try:
         import gymnasium as gym

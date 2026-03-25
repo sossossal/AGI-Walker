@@ -60,6 +60,8 @@ test_session.json
 
 # 生成产物
 exports/
+.output/
+models/*.json
 robot_forward_1m_demo.png
 offline_data/
 

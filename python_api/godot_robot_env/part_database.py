@@ -26,7 +26,7 @@ class PartsDatabase:
         self.parts_cache: Dict[str, Dict] = {}
 
         if not self.root_path.exists():
-            print(f"⚠️  Warning: Parts library not found at {self.root_path}")
+            print(f"Warning: Parts library not found at {self.root_path}")
         else:
             self._load_all_parts()
 
@@ -46,9 +46,9 @@ class PartsDatabase:
                     if part_id:
                         self.parts_cache[part_id] = data
             except Exception as e:
-                print(f"⚠️  Failed to load {json_file}: {e}")
+                print(f"Failed to load {json_file}: {e}")
 
-        print(f"✅ Loaded {len(self.parts_cache)} parts from database")
+        print(f"Loaded {len(self.parts_cache)} parts from database")
 
     def get_part(self, part_id: str) -> Optional[Dict]:
         """
@@ -169,7 +169,7 @@ class PartsDatabase:
             part_data = self.get_part(part_id)
 
             if not part_data:
-                print(f"⚠️  Warning: Part {part_id} not found")
+                print(f"Warning: Part {part_id} not found")
                 continue
 
             part_config = {

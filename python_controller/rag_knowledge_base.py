@@ -9,6 +9,10 @@ from typing import List, Optional, Tuple
 from dataclasses import dataclass
 from pathlib import Path
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class KnowledgeEntry:
@@ -175,20 +179,20 @@ class PhysicsKnowledgeBase:
         # 加载或创建索引
         self._load_or_create_index()
 
-    def _load_or_create_index(self):
+    def _load_or_create_index(self) -> None:
         """加载或创建索引"""
         index_file = self.index_path / "index.pkl"
 
         if index_file.exists():
-            print(f"📚 加载知识库索引: {index_file}")
+            logger.info(f"📚 加载知识库索引: {index_file}")
             with open(index_file, "rb") as f:
                 self.entries = pickle.load(f)
         else:
-            print("📚 创建知识库索引...")
+            logger.info("📚 创建知识库索引...")
             self._create_index()
             self._save_index()
 
-    def _create_index(self):
+    def _create_index(self) -> None:
         """创建索引"""
         # 加载内置知识
         for item in self.BUILTIN_KNOWLEDGE:
@@ -205,31 +209,31 @@ class PhysicsKnowledgeBase:
         if self.use_embeddings:
             self._compute_embeddings()
 
-        print(f"✅ 知识库创建完成，共 {len(self.entries)} 条")
+        logger.info(f"✅ 知识库创建完成，共 {len(self.entries)} 条")
 
-    def _compute_embeddings(self):
+    def _compute_embeddings(self) -> List:
         """计算嵌入向量"""
         try:
             from sentence_transformers import SentenceTransformer
 
-            print("正在加载嵌入模型...")
+            logger.info("正在加载嵌入模型...")
             # 使用小型多语言模型
             self.embedder = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
 
-            print("正在计算嵌入向量...")
+            logger.info("正在计算嵌入向量...")
             texts = [f"{e.title}: {e.content}" for e in self.entries]
             embeddings = self.embedder.encode(texts, show_progress_bar=True)
 
             for i, entry in enumerate(self.entries):
                 entry.embedding = embeddings[i].tolist()
 
-            print("✅ 嵌入向量计算完成")
+            logger.info("✅ 嵌入向量计算完成")
 
         except ImportError:
-            print("⚠️ sentence-transformers未安装，使用关键词匹配")
+            logger.info("⚠️ sentence-transformers未安装，使用关键词匹配")
             self.use_embeddings = False
 
-    def _save_index(self):
+    def _save_index(self) -> None:
         """保存索引"""
         self.index_path.mkdir(parents=True, exist_ok=True)
         index_file = self.index_path / "index.pkl"
@@ -237,7 +241,7 @@ class PhysicsKnowledgeBase:
         with open(index_file, "wb") as f:
             pickle.dump(self.entries, f)
 
-        print(f"💾 索引已保存: {index_file}")
+        logger.info(f"💾 索引已保存: {index_file}")
 
     def retrieve(
         self, query: str, top_k: int = 3, category: Optional[str] = None
@@ -396,7 +400,7 @@ class PhysicsKnowledgeBase:
 
         return " ".join(queries)
 
-    def add_knowledge(self, entry: dict):
+    def add_knowledge(self, entry: dict) -> None:
         """添加新知识条目"""
         new_entry = KnowledgeEntry(
             id=entry.get("id", f"custom_{len(self.entries)}"),
@@ -431,7 +435,7 @@ class PhysicsKnowledgeBase:
 
 # 测试代码
 if __name__ == "__main__":
-    print("RAG物理知识库测试\n")
+    logger.info("RAG物理知识库测试\n")
 
     # 动态获取项目根目录
     project_root = Path(__file__).resolve().parent.parent
@@ -443,17 +447,17 @@ if __name__ == "__main__":
     )
 
     # 测试检索
-    print("\n=== 测试检索 ===")
+    logger.info("\n=== 测试检索 ===")
     queries = ["机器人倾斜怎么办", "如何保持平衡", "PID参数调节", "步态规划"]
 
     for query in queries:
-        print(f"\n查询: {query}")
+        logger.info(f"\n查询: {query}")
         results = kb.retrieve(query, top_k=2)
         for entry, score in results:
-            print(f"  - [{score:.2f}] {entry.title}")
+            logger.info(f"  - [{score:.2f}] {entry.title}")
 
     # 测试Prompt增强
-    print("\n=== 测试Prompt增强 ===")
+    logger.info("\n=== 测试Prompt增强 ===")
     sensor_data = {
         "sensors": {
             "imu": {"orient": [15.0, -8.0, 0.0]},
@@ -464,9 +468,9 @@ if __name__ == "__main__":
 
     base_prompt = "请分析当前机器人状态并提供控制建议"
     enhanced = kb.augment_prompt(base_prompt, sensor_data)
-    print(enhanced[:500] + "...")
+    logger.info(enhanced[:500] + "...")
 
     # 统计
-    print("\n=== 统计信息 ===")
+    logger.info("\n=== 统计信息 ===")
     stats = kb.get_stats()
-    print(json.dumps(stats, indent=2, ensure_ascii=False))
+    logger.info(json.dumps(stats, indent=2, ensure_ascii=False))

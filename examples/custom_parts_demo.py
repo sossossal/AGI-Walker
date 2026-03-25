@@ -17,7 +17,7 @@ def build_custom_quadruped():
     )
 
     print("=" * 60)
-    print("🛠️ 模块化机器人构建器 (Modular Robot Builder)")
+    print("模块化机器人构建器 (Modular Robot Builder)")
     print("=" * 60)
 
     # 1. 选择零件
@@ -99,7 +99,7 @@ def build_custom_quadruped():
     )
 
     print("\n" + "-" * 60)
-    print("📋 构建报告 (Build Report)")
+    print("构建报告 (Build Report)")
     print("-" * 60)
     print(f"机器人名称: {robot_config.name}")
     print(f"预估总重: {robot_config.total_mass:.2f} kg (含电池与电机)")
@@ -119,9 +119,14 @@ def build_custom_quadruped():
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(robot_config.to_dict(), f, indent=2, ensure_ascii=False)
 
-    print(f"\n✅ 机器人配置已生成: {output_path}")
+    print(f"\n机器人配置已生成: {output_path}")
     print("现在可以将此配置加载到仿真环境中进行测试了！")
 
 
 if __name__ == "__main__":
-    build_custom_quadruped()
+    try:
+        build_custom_quadruped()
+    except Exception as e:
+        print(f"错误: {e}")
+        import traceback
+        traceback.print_exc()

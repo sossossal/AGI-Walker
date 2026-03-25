@@ -14,6 +14,8 @@ Scenario:
 9. Disconnect
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import sys
 import os
 import time
@@ -28,32 +30,32 @@ from python_api.comm.godot_client import GodotSimulationClient, MockGodotServer
 
 
 def verify_integration():
-    print("=== Godot Integration DoD Verification ===")
+    logger.info("=== Godot Integration DoD Verification ===")
 
     # 1. Start Mock Server
-    print("[1] Starting Mock Godot Server...")
+    logger.info("[1] Starting Mock Godot Server...")
     server = MockGodotServer(port=9998)  # Use different port to avoid conflict
     try:
         if not server.start():
-            print("FAIL: Could not start mock server")
+            logger.info("FAIL: Could not start mock server")
             return False
     except Exception as e:
-        print(f"FAIL: Server start exception: {e}")
+        logger.info(f"FAIL: Server start exception: {e}")
         return False
 
     time.sleep(1)  # Wait for server
 
     # 2. Initialize Client
-    print("[2] Initializing Client...")
+    logger.info("[2] Initializing Client...")
     client = GodotSimulationClient(port=9998)
 
     # 3. Connect
-    print("[3] Connecting to Server...")
+    logger.info("[3] Connecting to Server...")
     if not client.connect():
-        print("FAIL: Could not connect to server")
+        logger.info("FAIL: Could not connect to server")
         server.stop()
         return False
-    print("PASS: Connected")
+    logger.info("PASS: Connected")
 
     # Data reception queue
     data_queue = queue.Queue()
@@ -67,28 +69,28 @@ def verify_integration():
 
     try:
         # 4. Load Robot
-        print("[4] Loading Robot Config...")
+        logger.info("[4] Loading Robot Config...")
         parts = [{"id": "motor_1", "type": "motor"}]
         connections = []
         if client.load_robot_config(parts, connections):
-            print("PASS: load_robot command sent")
+            logger.info("PASS: load_robot command sent")
         else:
-            print("FAIL: load_robot command failed")
+            logger.error("FAIL: load_robot command failed")
             success = False
 
         time.sleep(0.5)
 
         # 5. Start Simulation
-        print("[5] Starting Simulation...")
+        logger.info("[5] Starting Simulation...")
         robot_config = {"parts": parts, "connections": connections}
         if client.start_simulation(robot_config):
-            print("PASS: start_sim command sent")
+            logger.info("PASS: start_sim command sent")
         else:
-            print("FAIL: start_sim command failed")
+            logger.error("FAIL: start_sim command failed")
             success = False
 
         # 6. Verify Data Reception (wait up to 2s)
-        print("[6] Verifying Data stream...")
+        logger.info("[6] Verifying Data stream...")
         try:
             # We expect multiple frames
             frames_received = 0
@@ -98,46 +100,46 @@ def verify_integration():
                     frames_received += 1
 
             if frames_received > 0:
-                print(f"PASS: Received {frames_received}+ data frames")
+                logger.info(f"PASS: Received {frames_received}+ data frames")
             else:
-                print("FAIL: No simulation_data received")
+                logger.info("FAIL: No simulation_data received")
                 success = False
         except queue.Empty:
-            print("FAIL: Data reception timeout")
+            logger.info("FAIL: Data reception timeout")
             success = False
 
         # 7. Update Parameters
-        print("[7] Updating Parameters...")
+        logger.info("[7] Updating Parameters...")
         if client.update_parameters({"motor_power": 1.0}):
-            print("PASS: update_params command sent")
+            logger.info("PASS: update_params command sent")
         else:
-            print("FAIL: update_params command failed")
+            logger.error("FAIL: update_params command failed")
             success = False
 
         time.sleep(0.5)
 
         # 8. Stop Simulation
-        print("[8] Stopping Simulation...")
+        logger.info("[8] Stopping Simulation...")
         if client.stop_simulation():
-            print("PASS: stop_sim command sent")
+            logger.info("PASS: stop_sim command sent")
         else:
-            print("FAIL: stop_sim command failed")
+            logger.error("FAIL: stop_sim command failed")
             success = False
 
     except Exception as e:
-        print(f"FAIL: Exception during verification: {e}")
+        logger.info(f"FAIL: Exception during verification: {e}")
         success = False
     finally:
         # 9. Disconnect
-        print("[9] Disconnecting...")
+        logger.info("[9] Disconnecting...")
         client.disconnect()
         server.stop()
 
-    print("\n=== Verification Result ===")
+    logger.info("\n=== Verification Result ===")
     if success:
-        print("✅ ALL CHECKS PASSED")
+        logger.info("✅ ALL CHECKS PASSED")
     else:
-        print("❌ VERIFICATION FAILED")
+        logger.info("❌ VERIFICATION FAILED")
 
     return success
 

@@ -5,6 +5,8 @@ AGI-Walker CLI - Skills管理命令行工具
 提供完整的Skills系统命令行接口。
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import sys
 import argparse
 from pathlib import Path
@@ -17,6 +19,7 @@ from agi_walker.skills_loader import (
     search_skills,
     get_skill_doc,
 )
+from agi_walker.workflow_orchestrator import get_workflow_orchestrator
 
 
 def cmd_list(args):
@@ -35,7 +38,7 @@ def cmd_list(args):
 
     if args.verbose:
         for skill in skills:
-            print(f"{skill.display_name}")
+            print(f"{skill.name}")
             print(f"  名称: {skill.name}")
             print(f"  分类: {skill.category}")
             print(f"  描述: {skill.description[:100]}...")
@@ -53,11 +56,11 @@ def cmd_list(args):
             by_category[cat].append(skill)
 
         for category, cat_skills in sorted(by_category.items()):
-            print(f"【{category}】")
+            print(f"[{category}]")
             for skill in cat_skills:
-                print(f"  {skill.display_name}")
+                print(f"  {skill.name}")
                 print(f"    {skill.description[:80]}...")
-            print()
+            print("")  # Empty line separator
 
 
 def cmd_info(args):
@@ -67,11 +70,13 @@ def cmd_info(args):
     try:
         skill = loader.get_skill(args.name)
     except KeyError:
+        skill = None
+    if skill is None:
         print(f"错误: Skill '{args.name}' 不存在")
         print("\n使用 'agi_walker skills list' 查看所有可用skills")
         return 1
 
-    print(f"\n{skill.display_name}")
+    print(f"\n{skill.name}")
     print("=" * 60)
     print(f"名称: {skill.name}")
     print(f"分类: {skill.category}")
@@ -122,7 +127,7 @@ def cmd_search(args):
     print(f"\n搜索结果 ({len(results)} 个):\n")
 
     for skill in results:
-        print(f"{skill.display_name}")
+        print(f"{skill.name}")
         print(f"  {skill.description[:100]}...")
         print()
 
@@ -149,22 +154,177 @@ def cmd_validate(args):
     for skill in loader.get_skills_list():
         # 检查依赖
         missing_deps = loader.validate_skill_dependencies(skill.name)
+        has_missing = any(missing_deps.get(dep_type) for dep_type in missing_deps)
 
-        if missing_deps:
+        if has_missing:
             all_valid = False
-            print(f"✗ {skill.name}:")
+            print(f"[FAIL] {skill.name}:")
             for dep_type, deps in missing_deps.items():
-                print(f"    缺失 {dep_type}: {', '.join(deps)}")
+                if deps:
+                    print(f"    缺失 {dep_type}: {', '.join(deps)}")
         else:
             if args.verbose:
-                print(f"✓ {skill.name}")
+                print(f"[OK] {skill.name}")
 
     print()
     if all_valid:
-        print("✓ 所有skills配置有效")
+        print("[OK] 所有skills配置有效")
         return 0
     else:
-        print("✗ 发现配置问题")
+        print("[FAIL] 发现配置问题")
+        return 1
+
+
+def cmd_workflows_list(args):
+    """列出所有工作流"""
+    orchestrator = get_workflow_orchestrator()
+    workflows = orchestrator.list_workflows()
+
+    if not workflows:
+        print("未找到任何工作流")
+        return
+
+    print(f"\n可用工作流 ({len(workflows)} 个):\n")
+
+    for name in workflows:
+        workflow = orchestrator.get_workflow(name)
+        print(f"{name}")
+        print(f"  {workflow.get('description', '无描述')}")
+        steps = workflow.get('steps', [])
+        print(f"  步骤数: {len(steps)}")
+        print()
+
+
+def cmd_workflows_run(args):
+    """执行工作流"""
+    orchestrator = get_workflow_orchestrator()
+
+    # 解析参数
+    parameters = {}
+    if args.params:
+        for param in args.params:
+            if "=" not in param:
+                print(f"错误: 参数格式无效 '{param}'，应为 key=value")
+                return 1
+            key, value = param.split("=", 1)
+            # 简单类型转换
+            if value.lower() in ("true", "false"):
+                value = value.lower() == "true"
+            elif value.isdigit():
+                value = int(value)
+            elif value.replace(".", "").isdigit():
+                value = float(value)
+            parameters[key] = value
+
+    # 确定使用mock还是real executors
+    use_mock = getattr(args, 'mock', False)
+    use_real = not use_mock  # 反向逻辑：如果--mock标志被设置，use_real=False
+    
+    print(f"执行工作流: {args.name}")
+    print(f"执行器模式: {'mock' if use_mock else 'real'}")
+    if parameters:
+        print(f"参数: {parameters}")
+    print()
+
+    result = orchestrator.execute_workflow(args.name, parameters, use_real=use_real)
+
+    # 显示结果
+    print(f"\n执行结果: {result.status.value}")
+    if result.duration:
+        print(f"总耗时: {result.duration:.2f}s")
+    print(f"成功率: {result.success_rate:.1f}%")
+    
+    # 显示步骤详情
+    if result.steps:
+        print(f"\n步骤执行详情 ({len(result.steps)} 步):\n")
+        for i, step in enumerate(result.steps, 1):
+            status_label = {
+                "completed": "[OK]",
+                "failed": "[FAIL]",
+                "running": "[RUNNING]",
+                "pending": "[PENDING]",
+                "skipped": "[SKIPPED]",
+            }.get(step.status.value, "[?]")
+
+            print(f"  {i}. {status_label} {step.name}")
+            print(f"     Skill: {step.skill_executor}.{step.action}")
+            if step.duration:
+                print(f"     耗时: {step.duration:.2f}s")
+            if step.error:
+                print(f"     错误: {step.error}")
+            if step.output:
+                print(f"     输出键: {', '.join(step.output.keys())}")
+
+    # 显示输出
+    final_outputs = {
+        step.name: step.output for step in result.steps if step.output
+    }
+    if final_outputs:
+        print("\n最终输出:")
+        for key, value in final_outputs.items():
+            if isinstance(value, (dict, list)):
+                print(f"  {key}: {type(value).__name__} ({len(value)} 项)")
+            else:
+                print(f"  {key}: {value}")
+
+    return 0 if result.status.value == "completed" else 1
+
+    if result.error_message:
+        print(f"错误: {result.error_message}")
+        return 1
+
+    # 显示步骤详情
+    print("\n步骤详情:")
+    for i, step in enumerate(result.steps, 1):
+        status_label = {
+            "completed": "OK",
+            "failed": "FAIL",
+            "running": "RUNNING",
+            "pending": "PENDING",
+            "skipped": "SKIPPED",
+        }.get(step.status.value, "UNKNOWN")
+
+        print(f"  {i}. [{status_label}] {step.name}")
+        print(f"     Skill: {step.skill_executor}.{step.action}")
+        if step.duration:
+            print(f"     耗时: {step.duration:.2f}s")
+        if step.error:
+            print(f"     错误: {step.error}")
+        if step.output:
+            print(f"     输出键: {', '.join(step.output.keys())}")
+
+    # 显示输出
+    final_outputs = {
+        step.name: step.output for step in result.steps if step.output
+    }
+    if final_outputs:
+        print("\n最终输出:")
+        for key, value in final_outputs.items():
+            if isinstance(value, (dict, list)):
+                print(f"  {key}: {type(value).__name__} ({len(value)} 项)")
+            else:
+                print(f"  {key}: {value}")
+
+    return 0 if result.status.value == "completed" else 1
+
+
+def cmd_workflows_validate(args):
+    """验证工作流定义"""
+    orchestrator = get_workflow_orchestrator()
+
+    workflow = orchestrator.get_workflow(args.name)
+    if not workflow:
+        print(f"错误: 工作流 '{args.name}' 不存在")
+        return 1
+
+    is_valid, message = orchestrator.validate_workflow(args.name)
+
+    if is_valid:
+        print(f"[OK] 工作流 '{args.name}' 验证通过")
+        return 0
+    else:
+        print(f"[FAIL] 工作流 '{args.name}' 验证失败:")
+        print(f"  - {message}")
         return 1
 
 
@@ -181,6 +341,10 @@ def main():
   agi_walker skills info robot-modeling -d  查看完整文档
   agi_walker skills search 优化             搜索skills
   agi_walker skills validate                验证配置
+
+  agi_walker skills workflows list          列出所有工作流
+  agi_walker skills workflows run robot_creation_pipeline  执行完整流水线
+  agi_walker skills workflows validate robot_creation_pipeline  验证工作流定义
         """,
     )
 
@@ -211,6 +375,23 @@ def main():
         "-v", "--verbose", action="store_true", help="显示所有验证结果"
     )
 
+    # workflows 子命令组
+    workflows_parser = subparsers.add_parser("workflows", help="工作流管理")
+    workflows_subparsers = workflows_parser.add_subparsers(dest="workflows_command", help="工作流子命令")
+
+    # workflows list
+    workflows_subparsers.add_parser("list", help="列出所有工作流")
+
+    # workflows run
+    run_parser = workflows_subparsers.add_parser("run", help="执行工作流")
+    run_parser.add_argument("name", help="工作流名称")
+    run_parser.add_argument("--params", nargs="*", help="工作流参数 (key=value)")
+    run_parser.add_argument("--mock", action="store_true", help="使用mock executors而不是真实的skill调用")
+
+    # workflows validate
+    val_wf_parser = workflows_subparsers.add_parser("validate", help="验证工作流定义")
+    val_wf_parser.add_argument("name", help="工作流名称")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -225,6 +406,20 @@ def main():
         "categories": cmd_categories,
         "validate": cmd_validate,
     }
+
+    # 处理 workflows 子命令
+    if args.command == "workflows":
+        if not args.workflows_command:
+            workflows_parser.print_help()
+            return 0
+
+        workflow_commands = {
+            "list": cmd_workflows_list,
+            "run": cmd_workflows_run,
+            "validate": cmd_workflows_validate,
+        }
+
+        return workflow_commands[args.workflows_command](args) or 0
 
     return commands[args.command](args) or 0
 

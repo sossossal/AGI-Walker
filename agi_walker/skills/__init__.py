@@ -4,6 +4,8 @@ AGI-Walker Skills 模块
 提供模块化的技能系统。
 """
 
+import logging
+logger = logging.getLogger(__name__)
 from agi_walker.skills_loader import (
     SkillMetadata,
     SkillsLoader,

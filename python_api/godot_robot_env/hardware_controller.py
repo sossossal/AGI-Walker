@@ -3,14 +3,17 @@ AGI-Walker 硬件控制器接口
 用于与 IMC-22 Reflex 控制器通信
 """
 
-import can
 import struct
 import time
 from typing import Dict, List, Optional
 import logging
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+try:
+    import can
+except ImportError:
+    can = None
 
 
 class IMC22Controller:
@@ -32,6 +35,9 @@ class IMC22Controller:
             bustype: 总线类型 (Linux: 'socketcan', Windows: 'pcan')
             bitrate: 波特率 (默认 1 Mbps)
         """
+        if can is None:
+            raise ImportError("python-can library is required for hardware_controller. "
+                            "Install it with: pip install python-can")
         try:
             self.bus = can.interface.Bus(
                 channel=channel, bustype=bustype, bitrate=bitrate

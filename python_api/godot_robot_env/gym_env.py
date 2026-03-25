@@ -61,7 +61,6 @@ class GodotRobotEnv(gym.Env):
         self.port = port
         self.timeout = timeout
         self.socket = None
-        self.socket = None
         self.connected = False
         self.buffer = b""  # 接收缓冲区，用于处理粘包
 
@@ -159,11 +158,18 @@ class GodotRobotEnv(gym.Env):
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.settimeout(self.timeout)
             self.socket.connect((self.host, self.port))
+            self.socket.settimeout(None)
             self.connected = True
-            print(f"✅ Connected to Godot simulator at {self.host}:{self.port}")
+            print(f"Connected to Godot simulator at {self.host}:{self.port}")
             return True
         except Exception as e:
-            print(f"❌ Failed to connect to Godot: {e}")
+            print(f"Failed to connect to Godot: {e}")
+            if self.socket:
+                try:
+                    self.socket.close()
+                except OSError:
+                    pass
+                self.socket = None
             self.connected = False
             return False
 
@@ -171,11 +177,16 @@ class GodotRobotEnv(gym.Env):
         """断开连接"""
         if self.socket:
             try:
+                try:
+                    self.socket.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
                 self.socket.close()
-            except Exception:
+            except OSError:
                 pass
             self.socket = None
             self.connected = False
+            self.buffer = b""
 
     def _randomize_dynamics(self):
         """生成新的随机动力学参数"""
@@ -323,7 +334,7 @@ class GodotRobotEnv(gym.Env):
             length_prefix = len(data).to_bytes(4, byteorder="little")
             self.socket.sendall(length_prefix + data)
         except Exception as e:
-            print(f"❌ Failed to send command: {e}")
+            print(f"Failed to send command: {e}")
             self.connected = False
             raise
 

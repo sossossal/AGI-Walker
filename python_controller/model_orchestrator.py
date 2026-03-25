@@ -11,6 +11,10 @@ from enum import Enum
 from ai_model import BaseAIModel, create_ai_model
 from medium_model import MediumModel
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ModelTier(Enum):
     """模型层级"""
@@ -48,7 +52,7 @@ class ModelOrchestrator:
     - 策略同步
     """
 
-    def __init__(self, config: Optional[ModelConfig] = None):
+    def __init__(self, config: Optional[ModelConfig] = None) -> None:
         self.config = config or ModelConfig()
 
         # 模型实例（延迟加载）
@@ -76,7 +80,7 @@ class ModelOrchestrator:
     def small_model(self) -> BaseAIModel:
         """获取小模型（按需加载）"""
         if self._small_model is None:
-            print("正在加载小模型...")
+            logger.info("正在加载小模型...")
             self._small_model = create_ai_model(
                 engine="ollama", model_name=self.config.small_model
             )
@@ -86,7 +90,7 @@ class ModelOrchestrator:
     def medium_model(self) -> MediumModel:
         """获取中模型（按需加载）"""
         if self._medium_model is None:
-            print("正在加载中模型...")
+            logger.info("正在加载中模型...")
             self._medium_model = MediumModel(model_name=self.config.medium_model)
         return self._medium_model
 
@@ -95,13 +99,13 @@ class ModelOrchestrator:
         """获取大模型（按需加载，可能为None）"""
         if self._large_model is None:
             try:
-                print("正在加载大模型...")
+                logger.info("正在加载大模型...")
                 self._large_model = create_ai_model(
                     engine="ollama", model_name=self.config.large_model
                 )
             except Exception as e:
-                print(f"⚠️ 大模型加载失败: {e}")
-                print("大模型功能将被禁用")
+                logger.info(f"⚠️ 大模型加载失败: {e}")
+                logger.info("大模型功能将被禁用")
                 return None
         return self._large_model
 
@@ -127,7 +131,7 @@ class ModelOrchestrator:
         elif context == "optimization":
             return self._process_optimization(sensor_data)
         else:
-            print(f"⚠️ 未知上下文: {context}，使用实时处理")
+            logger.info(f"⚠️ 未知上下文: {context}，使用实时处理")
             return self._process_realtime(sensor_data)
 
     def _process_realtime(self, sensor_data: dict) -> dict:
@@ -151,7 +155,7 @@ class ModelOrchestrator:
             return result
 
         except Exception as e:
-            print(f"❌ 小模型处理失败: {e}")
+            logger.info(f"❌ 小模型处理失败: {e}")
             self.fallback_count += 1
             return self._get_fallback_action()
 
@@ -182,7 +186,7 @@ class ModelOrchestrator:
             return result
 
         except Exception as e:
-            print(f"❌ 中模型处理失败: {e}")
+            logger.info(f"❌ 中模型处理失败: {e}")
             return {"error": str(e), "skip": True}
 
     def _process_optimization(self, sensor_data: dict) -> dict:
@@ -228,7 +232,7 @@ class ModelOrchestrator:
             return result
 
         except Exception as e:
-            print(f"❌ 大模型处理失败: {e}")
+            logger.info(f"❌ 大模型处理失败: {e}")
             return {"error": str(e), "skip": True}
 
     # =================== 辅助方法 ===================
@@ -251,15 +255,15 @@ class ModelOrchestrator:
 
         return False
 
-    def _schedule_adjustment(self, sensor_data: dict):
+    def _schedule_adjustment(self, sensor_data: dict) -> None:
         """调度环境调整（异步）"""
         # 简单实现：直接调用
         # 完整实现应使用线程池或异步队列
         self._process_adjustment(sensor_data)
 
-    def _schedule_optimization(self, sensor_data: dict, adjustment_result: dict):
+    def _schedule_optimization(self, sensor_data: dict, adjustment_result: dict) -> None:
         """调度离线优化（异步）"""
-        print("📤 调度大模型优化...")
+        logger.info("📤 调度大模型优化...")
         # 完整实现应使用后台线程
         self._process_optimization(sensor_data)
 
@@ -273,7 +277,7 @@ class ModelOrchestrator:
 
     # =================== 日志管理 ===================
 
-    def add_log(self, log_entry: dict):
+    def add_log(self, log_entry: dict) -> None:
         """添加日志"""
         self.medium_model.add_log(log_entry)
 
@@ -298,7 +302,7 @@ class ModelOrchestrator:
             ),
         }
 
-    def reset_stats(self):
+    def reset_stats(self) -> List:
         """重置统计"""
         self.tier_usage = {tier: 0 for tier in ModelTier}
         self.total_requests = 0
@@ -331,7 +335,7 @@ def create_orchestrator(
 if __name__ == "__main__":
     import json
 
-    print("模型编排器测试\n")
+    logger.info("模型编排器测试\n")
 
     # 创建编排器
     orchestrator = create_orchestrator(
@@ -351,16 +355,16 @@ if __name__ == "__main__":
     }
 
     # 测试实时处理
-    print("1. 测试实时处理（小模型）...")
+    logger.info("1. 测试实时处理（小模型）...")
     result = orchestrator.process(dummy_sensor, context="realtime")
-    print(f"结果: {json.dumps(result, indent=2, ensure_ascii=False)}")
+    logger.info(f"结果: {json.dumps(result, indent=2, ensure_ascii=False)}")
 
     # 测试环境调整
-    print("\n2. 测试环境调整（中模型）...")
+    logger.info("\n2. 测试环境调整（中模型）...")
     result = orchestrator.process(dummy_sensor, context="adjustment")
-    print(f"结果: {json.dumps(result, indent=2, ensure_ascii=False)}")
+    logger.info(f"结果: {json.dumps(result, indent=2, ensure_ascii=False)}")
 
     # 统计
-    print("\n3. 统计信息:")
+    logger.info("\n3. 统计信息:")
     stats = orchestrator.get_stats()
-    print(json.dumps(stats, indent=2, ensure_ascii=False, default=str))
+    logger.info(json.dumps(stats, indent=2, ensure_ascii=False, default=str))

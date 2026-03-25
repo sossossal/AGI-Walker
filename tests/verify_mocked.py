@@ -3,6 +3,9 @@ Mock验证脚本
 用于在没有安装完整依赖（如Stable-Baselines3）的环境中验证进化循环逻辑
 """
 
+import logging
+from typing import Any, Optional, Dict, List, Tuple
+logger = logging.getLogger(__name__)
 import sys
 import unittest
 from unittest.mock import MagicMock
@@ -10,7 +13,7 @@ from pathlib import Path
 import asyncio
 
 
-def setup_mocks():
+def setup_mocks() -> None:
     """设置全局 Mocks，防止污染正常导入"""
     mock_sb3 = MagicMock()
     mock_sb3.__version__ = "2.0.0"
@@ -49,7 +52,7 @@ def setup_mocks():
 
 
 async def run_verification():
-    print("🚀 开始Mock验证进化循环...")
+    logger.info("🚀 开始Mock验证进化循环...")
     
     # 动态获取项目路径
     root_dir = Path(__file__).resolve().parent.parent
@@ -62,7 +65,7 @@ async def run_verification():
     try:
         from python_controller.evolution_manager import EvolutionManager, EvolutionConfig
     except ImportError as e:
-        print(f"导入失败: {e}")
+        logger.info(f"导入失败: {e}")
         return False
 
     # 配置
@@ -78,21 +81,21 @@ async def run_verification():
 
     try:
         # 运行循环
-        print("\n--- 运行 Stage 1: RL Training ---")
+        logger.info("\n--- 运行 Stage 1: RL Training ---")
         await manager.stage_rl_training()
-        print("✅ RL Training 通过")
+        logger.info("✅ RL Training 通过")
 
-        print("\n--- 运行 Stage 2: Data Generation ---")
+        logger.info("\n--- 运行 Stage 2: Data Generation ---")
         model_path = str(manager.models_dir / "rl" / "ppo_final.zip")
         await manager.stage_data_generation(model_path)
-        print("✅ Data Generation 通过")
+        logger.info("✅ Data Generation 通过")
 
-        print("\n--- 运行 Stage 3: Data Processing ---")
+        logger.info("\n--- 运行 Stage 3: Data Processing ---")
         raw_data_path = manager.data_dir / "raw_trajectories.json"
         await manager.stage_data_processing(str(raw_data_path))
-        print("✅ Data Processing 通过")
+        logger.info("✅ Data Processing 通过")
 
-        print("\n--- 运行 Stage 4: PEFT Finetuning ---")
+        logger.info("\n--- 运行 Stage 4: PEFT Finetuning ---")
         clean_data_path = manager.data_dir / "train_data.json"
 
         with unittest.mock.patch(
@@ -101,12 +104,12 @@ async def run_verification():
             mock_train.return_value = {"loss": 0.1}
             await manager.stage_model_finetuning(str(clean_data_path))
 
-        print("✅ PEFT Finetuning 通过")
-        print("\n🎉 逻辑验证全部通过！")
+        logger.info("✅ PEFT Finetuning 通过")
+        logger.info("\n🎉 逻辑验证全部通过！")
         return True
 
     except Exception as e:
-        print(f"\n❌ 验证失败: {e}")
+        logger.info(f"\n❌ 验证失败: {e}")
         return False
 
 

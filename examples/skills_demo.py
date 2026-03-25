@@ -141,14 +141,14 @@ def demo_batch_generation():
 
         output_path = f"configs/variants/biped_leg{int(leg_length*100)}.json"
         robot.save(output_path)
-        print(f"  ✓ {robot.name}: 腿长 {leg_length}m")
+        print(f"  {robot.name}: 腿长 {leg_length}m")
 
 
 def main():
     """运行所有演示"""
-    print("\n" + "🤖" * 30)
+    print("\n" + "=" * 30)
     print("AGI-Walker Skills 系统完整演示")
-    print("🤖" * 30 + "\n")
+    print("=" * 30 + "\n")
 
     # 运行所有演示
     demo_skills_loader()
@@ -173,4 +173,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"错误: {e}")
+        import traceback
+        traceback.print_exc()

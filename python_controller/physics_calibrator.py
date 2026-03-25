@@ -13,6 +13,10 @@ import xml.etree.ElementTree as ET
 from sim2real_gap import PhysicsParams, Sim2RealGapEstimator
 from sim2real_analyzer import GapReport
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class JointParams:
@@ -36,7 +40,7 @@ class BodyParams:
     inertia: List[float] = None  # [ixx, iyy, izz]
     friction: float = 0.8
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.inertia is None:
             self.inertia = [0.01, 0.01, 0.01]
 
@@ -143,12 +147,12 @@ class PhysicsCalibrator:
             }
         )
 
-        print(
+        logger.info(
             f"🔧 Sim2Real校准: 摩擦系数->{updates.get('friction_coefficient', 'N/A'):.3f}, 建议转矩缩放->{updates.get('suggested_torque_scale', 'N/A'):.3f}"
         )
         return updates
 
-    def calibrate_online(self, observation: dict, target: Optional[dict] = None):
+    def calibrate_online(self, observation: dict, target: Optional[dict] = None) -> None:
         """
         在线校准
 
@@ -169,7 +173,7 @@ class PhysicsCalibrator:
 
         self.calibration_count += 1
 
-    def _adjust_from_observation(self, observation: dict):
+    def _adjust_from_observation(self, observation: dict) -> None:
         """基于观测调整参数"""
         sensors = observation.get("sensors", {})
         imu = sensors.get("imu", {})
@@ -189,7 +193,7 @@ class PhysicsCalibrator:
                 + 0.1 * self.base_params.damping_ratio
             )
 
-    def _record_history(self):
+    def _record_history(self) -> None:
         """记录参数历史"""
         self.param_history.append(
             {"timestamp": time.time(), "params": self.current_params.to_dict()}
@@ -198,7 +202,7 @@ class PhysicsCalibrator:
         if len(self.param_history) > self.max_history:
             self.param_history.pop(0)
 
-    def rollback(self, steps: int = 1):
+    def rollback(self, steps: int = 1) -> None:
         """回滚参数"""
         if steps > len(self.param_history):
             steps = len(self.param_history)
@@ -206,9 +210,9 @@ class PhysicsCalibrator:
         if steps > 0:
             target = self.param_history[-(steps + 1)]
             self.current_params = PhysicsParams.from_dict(target["params"])
-            print(f"回滚{steps}步到 {target['timestamp']}")
+            logger.info(f"回滚{steps}步到 {target['timestamp']}")
 
-    def set_gap_estimator(self, estimator: Sim2RealGapEstimator):
+    def set_gap_estimator(self, estimator: Sim2RealGapEstimator) -> None:
         """设置Gap估计器"""
         self.gap_estimator = estimator
 
@@ -322,7 +326,7 @@ class PhysicsCalibrator:
         ET.indent(tree, space="  ")
         tree.write(path, encoding="unicode", xml_declaration=True)
 
-        print(f"✅ MuJoCo配置已导出: {path}")
+        logger.info(f"✅ MuJoCo配置已导出: {path}")
         return str(path)
 
     def export_to_bullet(self, filename: str = "robot_physics.json") -> dict:
@@ -366,7 +370,7 @@ class PhysicsCalibrator:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
 
-        print(f"✅ Bullet配置已导出: {path}")
+        logger.info(f"✅ Bullet配置已导出: {path}")
         return config
 
     def export_to_godot(self, filename: str = "robot_physics.tres") -> dict:
@@ -407,7 +411,7 @@ class PhysicsCalibrator:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
 
-        print(f"✅ Godot配置已导出: {path}")
+        logger.info(f"✅ Godot配置已导出: {path}")
         return config
 
     def get_stats(self) -> dict:
@@ -423,7 +427,7 @@ class PhysicsCalibrator:
 
 # 测试代码
 if __name__ == "__main__":
-    print("物理参数校准器测试\n")
+    logger.info("物理参数校准器测试\n")
 
     # 创建校准器
     calibrator = PhysicsCalibrator()
@@ -438,17 +442,17 @@ if __name__ == "__main__":
     }
 
     # 在线校准
-    print("=== 在线校准 ===")
+    logger.info("=== 在线校准 ===")
     for i in range(5):
         calibrator.calibrate_online(observation)
-    print(f"校准次数: {calibrator.calibration_count}")
+    logger.info(f"校准次数: {calibrator.calibration_count}")
 
     # 导出配置
-    print("\n=== 导出配置 ===")
+    logger.info("\n=== 导出配置 ===")
     calibrator.export_to_mujoco()
     calibrator.export_to_bullet()
     calibrator.export_to_godot()
 
     # 统计
-    print("\n=== 统计信息 ===")
-    print(json.dumps(calibrator.get_stats(), indent=2))
+    logger.info("\n=== 统计信息 ===")
+    logger.info(json.dumps(calibrator.get_stats(), indent=2))

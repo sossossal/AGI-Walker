@@ -5,6 +5,9 @@
 支持同时优化质量分布和PID增益。
 """
 
+from typing import Any, Dict, Tuple, List, Optional
+import logging
+logger = logging.getLogger(__name__)
 import argparse
 import json
 from pathlib import Path
@@ -19,7 +22,7 @@ from agi_walker.skills.parameter_optimizer import (
 )
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="批量优化机器人参数")
     parser.add_argument("--config", required=True, help="机器人配置文件路径")
     parser.add_argument(
@@ -39,16 +42,16 @@ def main():
     optimize_items = args.optimize.split(",")
     results = {"original_config": args.config, "optimizations": {}}
 
-    print("=" * 60)
-    print("批量参数优化")
-    print("=" * 60)
-    print(f"输入配置: {args.config}")
-    print(f"优化项目: {', '.join(optimize_items)}")
-    print()
+    logger.info("=" * 60)
+    logger.info("批量参数优化")
+    logger.info("=" * 60)
+    logger.info(f"输入配置: {args.config}")
+    logger.info(f"优化项目: {', '.join(optimize_items)}")
+    logger.info()
 
     # 质量分布优化
     if "mass" in optimize_items:
-        print("--- 质量分布优化 ---")
+        logger.info("--- 质量分布优化 ---")
         mass_result = optimize_mass_distribution(
             config,
             target_com_height=args.com_height,
@@ -57,9 +60,9 @@ def main():
         )
 
         if mass_result.success:
-            print("✓ 优化成功")
-            print(f"  COM 误差: {mass_result.com_error:.6f} m")
-            print(f"  迭代次数: {mass_result.iterations}")
+            logger.info("优化成功")
+            logger.info(f"  COM 误差: {mass_result.com_error:.6f} m")
+            logger.info(f"  迭代次数: {mass_result.iterations}")
 
             # 更新配置
             for part in config["parts"]:
@@ -72,12 +75,12 @@ def main():
                 "iterations": mass_result.iterations,
             }
         else:
-            print("✗ 优化失败")
-        print()
+            logger.error("优化失败")
+        logger.info()
 
     # PID调优
     if "pid" in optimize_items:
-        print("--- PID 增益调优 ---")
+        logger.info("--- PID 增益调优 ---")
 
         # 提取所有关节
         joints = []
@@ -102,10 +105,10 @@ def main():
                 }
 
             results["optimizations"]["pid"] = {"joints_optimized": len(pid_results)}
-            print(f"\n✓ 优化了 {len(pid_results)} 个关节")
+            logger.info(f"\n✓ 优化了 {len(pid_results)} 个关节")
         else:
-            print("未找到可调优关节")
-        print()
+            logger.info("未找到可调优关节")
+        logger.info()
 
     # 保存结果
     output_path = Path(args.output)
@@ -114,16 +117,16 @@ def main():
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
 
-    print("=" * 60)
-    print(f"✓ 优化完成,结果已保存到: {args.output}")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info(f"✓ 优化完成,结果已保存到: {args.output}")
+    logger.info("=" * 60)
 
     # 保存优化报告
     report_path = output_path.parent / f"{output_path.stem}_report.json"
     with open(report_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
-    print(f"优化报告: {report_path}")
+    logger.info(f"优化报告: {report_path}")
 
 
 if __name__ == "__main__":

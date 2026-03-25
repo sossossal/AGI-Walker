@@ -1,0 +1,14 @@
+{
+  "name": "biped_basic_robot",
+  "template": "biped_basic",
+  "created": true,
+  "parts": [
+    "torso",
+    "legs"
+  ],
+  "joints": [
+    "hip",
+    "knee",
+    "ankle"
+  ]
+}

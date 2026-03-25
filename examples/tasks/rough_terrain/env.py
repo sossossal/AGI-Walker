@@ -1,9 +1,9 @@
 """
-任务: 崎岖地形 (Rough Terrain)
+:  (Rough Terrain)
 
-目标: 在随机生成的崎岖地形上行走 10 米
-难度: ⭐⭐⭐⭐ (困难)
-机器人: 四足
+:  10 
+:  ()
+: 
 """
 
 import sys
@@ -17,31 +17,30 @@ import gymnasium as gym
 import numpy as np
 from typing import Dict, Tuple
 
-
 class RoughTerrainEnv(gym.Env):
     """
-    崎岖地形环境
+    
 
-    特点:
-        - 程序化地形生成 (Perlin Noise)
-        - 动态难度调整
-        - 多种地形类型 (石头、坑洼、斜坡)
+    :
+        -  (Perlin Noise)
+        - 
+        -  ()
 
-    观测空间:
-        - 关节位置/速度 (16D)
-        - 躯干姿态/速度 (7D)
-        - 局部高程图 (25D: 5x5 grid)
-        - 目标距离 (1D)
+    :
+        - / (16D)
+        - / (7D)
+        -  (25D: 5x5 grid)
+        -  (1D)
 
-    动作空间:
-        - 关节目标位置 (8D)
+    :
+        -  (8D)
 
-    奖励函数:
-        - 前进奖励: +1.0 per meter
-        - 稳定性: -0.2 * |roll| - 0.2 * |pitch|
-        - 能耗: -0.01 * sum(torque^2)
-        - 摔倒惩罚: -10.0
-        - 地形适应奖励: +0.5 (根据地形复杂度)
+    :
+        - : +1.0 per meter
+        - : -0.2 * |roll| - 0.2 * |pitch|
+        - : -0.01 * sum(torque^2)
+        - : -10.0
+        - : +0.5 ()
     """
 
     metadata = {"render_modes": ["human", "rgb_array"]}
@@ -56,20 +55,20 @@ class RoughTerrainEnv(gym.Env):
             low=-1.0, high=1.0, shape=(8,), dtype=np.float32
         )
 
-        # 地形参数
+        # 
         self.difficulty = difficulty
-        self.terrain_length = 10.0  # 10 米
+        self.terrain_length = 10.0  # 10 
         self.terrain_width = 2.0
-        self.terrain_resolution = 0.1  # 10cm 分辨率
+        self.terrain_resolution = 0.1  # 10cm 
 
-        # 难度配置
+        # 
         self.difficulty_config = {
             "easy": {"roughness": 0.05, "obstacle_density": 0.1},
             "medium": {"roughness": 0.10, "obstacle_density": 0.3},
             "hard": {"roughness": 0.20, "obstacle_density": 0.5},
         }
 
-        # 状态
+        # 
         self.robot_pos = np.zeros(3)
         self.robot_vel = np.zeros(3)
         self.joint_pos = np.zeros(8)
@@ -81,10 +80,10 @@ class RoughTerrainEnv(gym.Env):
     def reset(self, seed=None, options=None) -> Tuple[np.ndarray, Dict]:
         super().reset(seed=seed)
 
-        # 生成地形
+        # 
         self._generate_terrain()
 
-        # 重置机器人
+        # 
         self.robot_pos = np.array([0.0, 0.0, 0.5])
         self.robot_vel = np.zeros(3)
         self.joint_pos = np.zeros(8)
@@ -96,18 +95,18 @@ class RoughTerrainEnv(gym.Env):
         return obs, info
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict]:
-        # 应用动作
+        # 
         self.joint_pos += action * 0.1
-        self.robot_pos[0] += 0.02  # 简化: 假设前进
+        self.robot_pos[0] += 0.02  # : 
 
-        # 获取当前位置的地形高度
+        # 
         terrain_height = self._get_terrain_height(self.robot_pos[0], self.robot_pos[1])
-        self.robot_pos[2] = terrain_height + 0.5  # 保持在地面上方
+        self.robot_pos[2] = terrain_height + 0.5  # 
 
-        # 计算奖励
+        # 
         reward = self._compute_reward(action)
 
-        # 检查终止
+        # 
         terminated = self._check_terminated()
         truncated = self.robot_pos[0] >= self.terrain_length
 
@@ -120,21 +119,21 @@ class RoughTerrainEnv(gym.Env):
         return obs, reward, terminated, truncated, info
 
     def _generate_terrain(self):
-        """生成程序化地形"""
+        """"""
         config = self.difficulty_config[self.difficulty]
 
-        # 简化版: 使用随机高度图
+        # : 
         grid_size = int(self.terrain_length / self.terrain_resolution)
         self.terrain_map = np.random.randn(grid_size, grid_size) * config["roughness"]
 
-        # 添加障碍物
+        # 
         if np.random.rand() < config["obstacle_density"]:
             obstacle_x = np.random.randint(0, grid_size)
             obstacle_y = np.random.randint(0, grid_size)
-            self.terrain_map[obstacle_x, obstacle_y] += 0.3  # 石头
+            self.terrain_map[obstacle_x, obstacle_y] += 0.3  # 
 
     def _get_terrain_height(self, x: float, y: float) -> float:
-        """获取指定位置的地形高度"""
+        """"""
         grid_x = int(x / self.terrain_resolution)
         grid_y = int((y + self.terrain_width / 2) / self.terrain_resolution)
 
@@ -146,7 +145,7 @@ class RoughTerrainEnv(gym.Env):
         return 0.0
 
     def _get_local_heightmap(self) -> np.ndarray:
-        """获取局部高程图 (5x5)"""
+        """ (5x5)"""
         heightmap = np.zeros((5, 5))
         for i in range(5):
             for j in range(5):
@@ -156,7 +155,7 @@ class RoughTerrainEnv(gym.Env):
         return heightmap.flatten()
 
     def _get_local_roughness(self) -> float:
-        """计算局部地形粗糙度"""
+        """"""
         heightmap = self._get_local_heightmap().reshape(5, 5)
         return np.std(heightmap)
 
@@ -168,8 +167,8 @@ class RoughTerrainEnv(gym.Env):
                 self.robot_pos,  # 3D
                 self.robot_vel,  # 3D
                 self._get_local_heightmap(),  # 25D
-                [self.robot_pos[0] / self.terrain_length],  # 1D (进度)
-                [0.0],  # 1D (填充)
+                [self.robot_pos[0] / self.terrain_length],  # 1D ()
+                [0.0],  # 1D ()
             ]
         )
         return obs.astype(np.float32)
@@ -178,7 +177,7 @@ class RoughTerrainEnv(gym.Env):
         forward_reward = 0.1
         stability_reward = 0.1
         energy_cost = -0.01 * np.sum(action**2)
-        terrain_bonus = 0.5 * self._get_local_roughness()  # 奖励适应复杂地形
+        terrain_bonus = 0.5 * self._get_local_roughness()  # 
 
         return forward_reward + stability_reward + energy_cost + terrain_bonus
 
@@ -187,14 +186,13 @@ class RoughTerrainEnv(gym.Env):
             return True
         return False
 
-
 if __name__ == "__main__":
     gym.register(id="RoughTerrain-v0", entry_point="__main__:RoughTerrainEnv")
 
     env = RoughTerrainEnv(difficulty="medium")
     obs, info = env.reset()
 
-    print("🏃 崎岖地形任务 Demo")
+    print("Rough terrain task demo")
     for episode in range(5):
         obs, info = env.reset()
         total_reward = 0

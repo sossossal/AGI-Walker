@@ -9,6 +9,10 @@ import time
 from typing import Dict, Optional, Callable
 from dataclasses import dataclass
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class AsyncClientConfig:
@@ -33,7 +37,7 @@ class AsyncGodotClient:
     - 协程安全
     """
 
-    def __init__(self, config: Optional[AsyncClientConfig] = None):
+    def __init__(self, config: Optional[AsyncClientConfig] = None) -> None:
         self.config = config or AsyncClientConfig()
 
         # 连接状态
@@ -72,7 +76,7 @@ class AsyncGodotClient:
             self.connected = True
             self.running = True
 
-            print(f"✅ 异步连接到Godot仿真器 {self.config.host}:{self.config.port}")
+            logger.info(f"✅ 异步连接到Godot仿真器 {self.config.host}:{self.config.port}")
 
             if self.on_connect:
                 await self._call_callback(self.on_connect)
@@ -80,16 +84,16 @@ class AsyncGodotClient:
             return True
 
         except asyncio.TimeoutError:
-            print(f"❌ 连接超时: {self.config.host}:{self.config.port}")
+            logger.info(f"❌ 连接超时: {self.config.host}:{self.config.port}")
             return False
         except ConnectionRefusedError:
-            print("❌ 连接被拒绝，请确保Godot仿真器正在运行")
+            logger.info("❌ 连接被拒绝，请确保Godot仿真器正在运行")
             return False
         except Exception as e:
-            print(f"❌ 连接错误: {e}")
+            logger.info(f"❌ 连接错误: {e}")
             return False
 
-    async def disconnect(self):
+    async def disconnect(self) -> None:
         """断开连接"""
         self.running = False
         self.connected = False
@@ -107,12 +111,12 @@ class AsyncGodotClient:
         if self.on_disconnect:
             await self._call_callback(self.on_disconnect)
 
-        print("🔌 异步连接已断开")
+        logger.info("🔌 异步连接已断开")
 
     async def reconnect(self) -> bool:
         """重连"""
         for attempt in range(self.config.max_reconnect_attempts):
-            print(f"🔄 重连尝试 {attempt + 1}/{self.config.max_reconnect_attempts}")
+            logger.info(f"🔄 重连尝试 {attempt + 1}/{self.config.max_reconnect_attempts}")
 
             await self.disconnect()
             await asyncio.sleep(self.config.reconnect_delay)
@@ -121,17 +125,17 @@ class AsyncGodotClient:
                 self.reconnect_count += 1
                 return True
 
-        print("❌ 重连失败")
+        logger.info("❌ 重连失败")
         return False
 
-    async def receive_loop(self):
+    async def receive_loop(self) -> None:
         """接收循环"""
         while self.running and self.reader:
             try:
                 data = await self.reader.read(self.config.read_buffer_size)
 
                 if not data:
-                    print("⚠️ 服务器关闭连接")
+                    logger.info("⚠️ 服务器关闭连接")
                     self.connected = False
                     break
 
@@ -163,12 +167,12 @@ class AsyncGodotClient:
                             await self._call_callback(self.on_sensor_data, sensor_data)
 
                     except json.JSONDecodeError as e:
-                        print(f"⚠️ JSON解析错误: {e}")
+                        logger.info(f"⚠️ JSON解析错误: {e}")
 
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                print(f"❌ 接收错误: {e}")
+                logger.info(f"❌ 接收错误: {e}")
                 self.connected = False
                 break
 
@@ -215,11 +219,11 @@ class AsyncGodotClient:
             return True
 
         except Exception as e:
-            print(f"❌ 发送错误: {e}")
+            logger.info(f"❌ 发送错误: {e}")
             self.connected = False
             return False
 
-    async def _call_callback(self, callback: Callable, *args):
+    async def _call_callback(self, callback: Callable, *args) -> None:
         """安全调用回调"""
         try:
             if asyncio.iscoroutinefunction(callback):
@@ -227,7 +231,7 @@ class AsyncGodotClient:
             else:
                 callback(*args)
         except Exception as e:
-            print(f"⚠️ 回调错误: {e}")
+            logger.info(f"⚠️ 回调错误: {e}")
 
     def get_stats(self) -> dict:
         """获取统计信息"""
@@ -248,12 +252,12 @@ class AsyncControllerBase:
     提供多协程运行框架
     """
 
-    def __init__(self, client: Optional[AsyncGodotClient] = None):
+    def __init__(self, client: Optional[AsyncGodotClient] = None) -> None:
         self.client = client or AsyncGodotClient()
         self.running = False
         self.tasks: list = []
 
-    async def start(self):
+    async def start(self) -> None:
         """启动控制器"""
         if not await self.client.connect():
             return False
@@ -261,7 +265,7 @@ class AsyncControllerBase:
         self.running = True
         return True
 
-    async def stop(self):
+    async def stop(self) -> None:
         """停止控制器"""
         self.running = False
 
@@ -271,7 +275,7 @@ class AsyncControllerBase:
 
         await self.client.disconnect()
 
-    async def run(self, duration: float = 120.0):
+    async def run(self, duration: float = 120.0) -> None:
         """运行控制循环"""
         if not await self.start():
             return
@@ -292,16 +296,16 @@ class AsyncControllerBase:
         finally:
             await self.stop()
 
-    async def _receive_loop(self):
+    async def _receive_loop(self) -> None:
         """接收协程"""
         await self.client.receive_loop()
 
-    async def _control_loop(self):
+    async def _control_loop(self) -> None:
         """控制协程（子类实现）"""
         while self.running:
             await asyncio.sleep(0.033)  # 30Hz
 
-    async def _monitor_loop(self):
+    async def _monitor_loop(self) -> None:
         """监控协程"""
         while self.running:
             self.client.get_stats()
@@ -310,20 +314,20 @@ class AsyncControllerBase:
 
 
 # 测试代码
-async def test_async_client():
+async def test_async_client() -> None:
     """测试异步客户端"""
-    print("异步TCP客户端测试\n")
+    logger.info("异步TCP客户端测试\n")
 
     client = AsyncGodotClient()
 
-    print("尝试连接到Godot...")
+    logger.info("尝试连接到Godot...")
     connected = await client.connect()
 
     if not connected:
-        print("\n⚠️ 无法连接到Godot，请确保仿真器正在运行")
+        logger.info("\n⚠️ 无法连接到Godot，请确保仿真器正在运行")
         return
 
-    print("\n开始接收数据...")
+    logger.info("\n开始接收数据...")
 
     # 启动接收任务
     receive_task = asyncio.create_task(client.receive_loop())
@@ -339,7 +343,7 @@ async def test_async_client():
                     .get("orient", [0, 0, 0])
                 )
                 height = sensor_data.get("torso_height", 0)
-                print(
+                logger.info(
                     f"[{i}] Roll: {orient[0]:.1f}° Pitch: {orient[1]:.1f}° Height: {height:.2f}m"
                 )
 
@@ -351,13 +355,13 @@ async def test_async_client():
             await asyncio.sleep(0.1)
 
     except KeyboardInterrupt:
-        print("\n用户中断")
+        logger.info("\n用户中断")
     finally:
         receive_task.cancel()
         await client.disconnect()
 
-    print("\n统计:")
-    print(json.dumps(client.get_stats(), indent=2))
+    logger.info("\n统计:")
+    logger.info(json.dumps(client.get_stats(), indent=2))
 
 
 if __name__ == "__main__":

@@ -3,6 +3,8 @@
 依次运行各个模块的自测功能，验证系统完整性
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import subprocess
 import sys
 import time
@@ -59,16 +61,16 @@ MODULES_TO_TEST = [
 
 
 def run_test(module):
-    print(f"\n{'='*60}")
-    print(f"🧪 Testing: {module['name']}")
-    print(f"   Desc: {module['desc']}")
-    print(f"{'='*60}")
+    logger.info(f"\n{'='*60}")
+    logger.info(f"🧪 Testing: {module['name']}")
+    logger.info(f"   Desc: {module['desc']}")
+    logger.info(f"{'='*60}")
 
     # 获取项目根目录 (假设脚本在 tests/ 目录下)
     root_dir = Path(__file__).parent.parent.absolute()
     file_path = root_dir / module["path"]
     if not file_path.exists():
-        print(f"❌ File not found: {file_path}")
+        logger.info(f"❌ File not found: {file_path}")
         return False, "File Missing"
 
     start_time = time.time()
@@ -93,35 +95,35 @@ def run_test(module):
         duration = time.time() - start_time
 
         # 打印输出 (截断过长的输出)
-        print("--- Output ---")
+        logger.info("--- Output ---")
         lines = result.stdout.splitlines()
         # 打印前10行和后5行
         if len(lines) > 20:
-            print("\n".join(lines[:10]))
-            print(f"\n... (skipped {len(lines)-15} lines) ...\n")
-            print("\n".join(lines[-5:]))
+            logger.info("\n".join(lines[:10]))
+            logger.warning(f"\n... (skipped {len(lines)-15} lines) ...\n")
+            logger.info("\n".join(lines[-5:]))
         else:
-            print(result.stdout)
+            logger.info(result.stdout)
 
         if result.stderr:
-            print("--- Stderr ---")
-            print(result.stderr)
+            logger.info("--- Stderr ---")
+            logger.info(result.stderr)
 
         if result.returncode == 0:
-            print(f"✅ PASS ({duration:.2f}s)")
+            logger.info(f"✅ PASS ({duration:.2f}s)")
             return True, f"Pass ({duration:.2f}s)"
         else:
-            print(f"❌ FAIL (Exit Code: {result.returncode})")
+            logger.info(f"❌ FAIL (Exit Code: {result.returncode})")
             return False, f"Fail (Code {result.returncode})"
 
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        logger.error(f"❌ ERROR: {e}")
         return False, str(e)
 
 
 def main():
-    print("🚀 AGI-Walker 全面功能自检启动")
-    print(f"Time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("🚀 AGI-Walker 全面功能自检启动")
+    logger.info(f"Time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     results = []
 
@@ -129,22 +131,22 @@ def main():
         success, msg = run_test(module)
         results.append({"name": module["name"], "success": success, "msg": msg})
 
-    print("\n" + "=" * 60)
-    print("📊 测试结果汇总")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("📊 测试结果汇总")
+    logger.info("=" * 60)
 
     all_passed = True
     for res in results:
         icon = "✅" if res["success"] else "❌"
-        print(f"{icon} {res['name']:<30} | {res['msg']}")
+        logger.info(f"{icon} {res['name']:<30} | {res['msg']}")
         if not res["success"]:
             all_passed = False
 
-    print("-" * 60)
+    logger.info("-" * 60)
     if all_passed:
-        print("🎉 所有模块功能验证通过！系统符合预期。")
+        logger.info("🎉 所有模块功能验证通过！系统符合预期。")
     else:
-        print("⚠️ 部分模块存在问题，请检查日志。")
+        logger.info("⚠️ 部分模块存在问题，请检查日志。")
 
 
 if __name__ == "__main__":

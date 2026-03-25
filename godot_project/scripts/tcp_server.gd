@@ -10,6 +10,10 @@ var connection: StreamPeerTCP = null
 var robot_node: Node3D = null
 
 func _ready():
+	for arg in OS.get_cmdline_args():
+		if arg.begins_with("--tcp-port="):
+			PORT = arg.trim_prefix("--tcp-port=").to_int()
+
 	var err = server.listen(PORT)
 	if err == OK:
 		print("✅ [TCP] RL Server listening on port %d" % PORT)
@@ -105,20 +109,26 @@ func _process_command(cmd):
 		response = _get_observation()
 		
 	elif cmd.type == "step":
-		# Apply Action
 		var action = cmd.get("action", [])
-		# print("   Command: Step (Action size: %d)" % action.size())
-		
-		# Step simulation? 
-		# In Godot, physics runs in _physics_process.
-		# We can force a step or just wait. 
-		# For "Dreamer" style, we usually run simulation continuously and sample.
-		# Or we step physics server.
-		
 		response = _get_observation()
 		response["reward"] = 0.0 # Placeholder
 		response["done"] = false
 		
+	elif cmd.type == "get_schema":
+		if robot_node != null and robot_node.has_method("get_schema"):
+			response = robot_node.get_schema()
+		else:
+			# Fallback Dummy Schema
+			response = {
+				"sensors": {
+					"battery": {"type": "float32", "shape": [1]},
+					"vector": {"type": "float32", "shape": [24]}
+				},
+				"actuators": {
+					"action": {"type": "float32", "shape": [2], "range": [-10.0, 10.0]}
+				}
+			}
+			
 	_send_response(response)
 
 func _get_observation():

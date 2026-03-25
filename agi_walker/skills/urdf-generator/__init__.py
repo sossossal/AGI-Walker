@@ -4,7 +4,10 @@ URDF Generator Skill - AGI-Walker到URDF/SDF格式转换器
 支持转换到URDF、SDF和MJCF格式,用于Gazebo、MuJoCo、PyBullet等仿真器。
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import json
+import os
 import numpy as np
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
@@ -47,7 +50,7 @@ class URDFGenerator:
     将AGI-Walker JSON配置转换为URDF/SDF格式。
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.links: List[URDFLink] = []
         self.joints: List[URDFJoint] = []
         self.robot_name = "robot"
@@ -321,7 +324,7 @@ class URDFGenerator:
         with open(output_path, "wb") as f:
             f.write(xml_str)
 
-        print(f"✓ URDF已导出到: {output_file}")
+        logger.info(f"URDF exported to: {output_file}")
 
 
 # 便捷函数
@@ -348,7 +351,7 @@ def convert_to_urdf(
     generator.load_config(input_file)
 
     if generate_meshes:
-        print("网格生成功能尚未实现")
+        logger.info("网格生成功能尚未实现")
 
     generator.export_urdf(output_file)
 
@@ -365,9 +368,36 @@ def convert_to_sdf(input_file: str, output_file: str, world_file: bool = False) 
     urdf_temp = output_file.replace(".sdf", "_temp.urdf")
     convert_to_urdf(input_file, urdf_temp)
 
-    print("注意: SDF转换当前通过URDF中转")
-    print(f"临时URDF文件: {urdf_temp}")
-    print(f"请使用 gz sdf -p {urdf_temp} > {output_file} 完成转换")
+    logger.info("注意: SDF转换当前通过URDF中转")
+    
+    try:
+        # 尝试生成一个极简的 SDF 包装，以便文件能够物化
+        with open(urdf_temp, 'r', encoding='utf-8') as f:
+            urdf_content = f.read()
+            
+        # 简单的字符串包装 (实际生产中应使用更复杂的转换逻辑或 gz 工具)
+        sdf_content = f"""<?xml version="1.0" ?>
+<sdf version="1.6">
+  <model name="agi_walker_robot">
+    <!-- Generated from URDF -->
+    {urdf_content.split('?>')[-1].strip()}
+  </model>
+</sdf>"""
+        
+        # 写入最终的 SDF 文件
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(sdf_content)
+            
+        logger.info(f"SDF file materialized at: {output_file}")
+        
+        # 清理临时文件
+        if os.path.exists(urdf_temp):
+            os.remove(urdf_temp)
+            
+    except Exception as e:
+        logger.error(f"SDF materialization failed: {e}")
+        # 如果失败，至少确保临时 URDF 还在，或者抛出异常
+        raise
 
 
 def validate_urdf(urdf_file: str) -> bool:
@@ -384,18 +414,18 @@ def validate_urdf(urdf_file: str) -> bool:
         root = tree.getroot()
 
         if root.tag != "robot":
-            print("错误: 根元素不是 'robot'")
+            logger.info("错误: 根元素不是 'robot'")
             return False
 
         links = root.findall(".//link")
         joints = root.findall(".//joint")
 
-        print("✓ URDF验证通过")
-        print(f"  - Links: {len(links)}")
-        print(f"  - Joints: {len(joints)}")
+        logger.info("URDF validation passed")
+        logger.info(f"  - Links: {len(links)}")
+        logger.info(f"  - Joints: {len(joints)}")
 
         return True
 
     except Exception as e:
-        print(f"✗ URDF验证失败: {e}")
+        logger.info(f"URDF validation failed: {e}")
         return False

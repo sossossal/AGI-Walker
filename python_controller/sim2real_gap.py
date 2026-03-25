@@ -11,12 +11,16 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass
 import numpy as np
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # 延迟导入PyTorch（可能未安装）
 torch = None
 nn = None
 
 
-def _init_torch():
+def _init_torch() -> None:
     """延迟初始化PyTorch"""
     global torch, nn
     if torch is None:
@@ -28,7 +32,7 @@ def _init_torch():
             nn = _nn
             return True
         except ImportError:
-            print("⚠️ PyTorch未安装，Gap校正模型将不可用")
+            logger.info("⚠️ PyTorch未安装，Gap校正模型将不可用")
             return False
     return True
 
@@ -77,7 +81,7 @@ class GapCorrectionNet:
     输出: 参数修正量 (6维: 摩擦、阻尼、刚度、关节摩擦、重力、质量)
     """
 
-    def __init__(self, input_dim: int = 12, output_dim: int = 6):
+    def __init__(self, input_dim: int = 12, output_dim: int = 6) -> None:
         if not _init_torch():
             self.model = None
             return
@@ -161,13 +165,13 @@ class GapCorrectionNet:
 
         return loss.item()
 
-    def save(self, path: str):
+    def save(self, path: str) -> bool:
         """保存模型"""
         if self.model is None:
             return
         torch.save(self.model.state_dict(), path)
 
-    def load(self, path: str):
+    def load(self, path: str) -> bool:
         """加载模型"""
         if self.model is None:
             return
@@ -202,7 +206,7 @@ class Sim2RealGapEstimator:
 
         # 加载预训练模型
         if model_path and Path(model_path).exists():
-            print(f"加载Sim2Real模型: {model_path}")
+            logger.info(f"加载Sim2Real模型: {model_path}")
             self.gap_model.load(model_path)
 
         # 当前物理参数
@@ -221,7 +225,7 @@ class Sim2RealGapEstimator:
         self.corrections_applied = 0
         self.data_pairs_collected = 0
 
-    def collect_data_pair(self, sim_state: dict, real_state: Optional[dict] = None):
+    def collect_data_pair(self, sim_state: dict, real_state: Optional[dict] = None) -> None:
         """
         收集数据对
 
@@ -331,7 +335,7 @@ class Sim2RealGapEstimator:
 
         return new_params
 
-    def update_friction(self, measured_friction: float):
+    def update_friction(self, measured_friction: float) -> None:
         """直接更新摩擦系数"""
         self.current_params.friction_coefficient = max(0.1, min(1.5, measured_friction))
 
@@ -372,17 +376,17 @@ class Sim2RealGapEstimator:
     def train_from_buffer(self, epochs: int = 100) -> float:
         """从缓冲区训练模型"""
         if len(self.data_buffer) < 100:
-            print("数据不足，需要至少100个数据对")
+            logger.info("数据不足，需要至少100个数据对")
             return 0.0
 
         # 只使用有真实数据的样本
         valid_pairs = [p for p in self.data_buffer if p.real_state is not None]
 
         if len(valid_pairs) < 50:
-            print("有效数据对不足")
+            logger.info("有效数据对不足")
             return 0.0
 
-        print(f"开始训练，{len(valid_pairs)}个数据对，{epochs}轮")
+        logger.info(f"开始训练，{len(valid_pairs)}个数据对，{epochs}轮")
 
         total_loss = 0.0
         for epoch in range(epochs):
@@ -405,25 +409,25 @@ class Sim2RealGapEstimator:
             total_loss = epoch_loss / len(valid_pairs)
 
             if (epoch + 1) % 10 == 0:
-                print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss:.6f}")
+                logger.info(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss:.6f}")
 
         self.gap_model.trained = True
         return total_loss
 
-    def save_data(self, filename: str = "sim2real_data.pkl"):
+    def save_data(self, filename: str = "sim2real_data.pkl") -> bool:
         """保存收集的数据"""
         path = self.data_dir / filename
         with open(path, "wb") as f:
             pickle.dump(self.data_buffer, f)
-        print(f"保存{len(self.data_buffer)}条数据到: {path}")
+        logger.info(f"保存{len(self.data_buffer)}条数据到: {path}")
 
-    def load_data(self, filename: str = "sim2real_data.pkl"):
+    def load_data(self, filename: str = "sim2real_data.pkl") -> bool:
         """加载数据"""
         path = self.data_dir / filename
         if path.exists():
             with open(path, "rb") as f:
                 self.data_buffer = pickle.load(f)
-            print(f"加载{len(self.data_buffer)}条数据")
+            logger.info(f"加载{len(self.data_buffer)}条数据")
 
     def get_stats(self) -> dict:
         """获取统计信息"""
@@ -438,7 +442,7 @@ class Sim2RealGapEstimator:
 
 # 测试代码
 if __name__ == "__main__":
-    print("Sim2Real Gap估计器测试\n")
+    logger.info("Sim2Real Gap估计器测试\n")
 
     # 创建估计器
     estimator = Sim2RealGapEstimator()
@@ -468,17 +472,17 @@ if __name__ == "__main__":
     }
 
     # 测试Gap估计
-    print("=== 测试Gap估计 ===")
+    logger.info("=== 测试Gap估计 ===")
     gap = estimator.estimate_gap(sim_state, real_state)
-    print(f"状态RMSE: {gap['state_rmse']:.4f}")
+    logger.info(f"状态RMSE: {gap['state_rmse']:.4f}")
 
     # 收集数据
-    print("\n=== 收集数据 ===")
+    logger.info("\n=== 收集数据 ===")
     for i in range(100):
         estimator.collect_data_pair(sim_state, real_state)
-    print(f"已收集: {len(estimator.data_buffer)}条")
+    logger.info(f"已收集: {len(estimator.data_buffer)}条")
 
     # 统计
-    print("\n=== 统计信息 ===")
+    logger.info("\n=== 统计信息 ===")
     stats = estimator.get_stats()
-    print(json.dumps(stats, indent=2))
+    logger.info(json.dumps(stats, indent=2))

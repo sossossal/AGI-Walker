@@ -4,6 +4,10 @@
 """
 
 import time
+
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import asyncio
 from pathlib import Path
@@ -60,7 +64,7 @@ class EvolutionManager:
     5. 模型评估与部署
     """
 
-    def __init__(self, config: Optional[EvolutionConfig] = None):
+    def __init__(self, config: Optional[EvolutionConfig] = None) -> None:
         self.config = config or EvolutionConfig()
 
         # 目录设置
@@ -75,13 +79,13 @@ class EvolutionManager:
         self.current_stage = "INIT"
         self.history = []
 
-        print(f"✅ 进化管理器初始化: {self.config.iteration_name}")
+        logger.info(f"✅ 进化管理器初始化: {self.config.iteration_name}")
 
-    async def run_loop(self):
+    async def run_loop(self) -> None:
         """运行完整进化循环"""
-        print("=" * 50)
-        print(f"🚀 开始进化循环: {self.config.iteration_name}")
-        print("=" * 50)
+        logger.info("=" * 50)
+        logger.info(f"🚀 开始进化循环: {self.config.iteration_name}")
+        logger.info("=" * 50)
 
         start_time = time.time()
 
@@ -98,15 +102,15 @@ class EvolutionManager:
         final_model_path = await self.stage_model_finetuning(clean_data_path)
 
         total_time = time.time() - start_time
-        print(f"\n🎉 进化循环完成! 用时: {total_time:.1f}秒")
-        print(f"📍 最终模型: {final_model_path}")
+        logger.info(f"\n🎉 进化循环完成! 用时: {total_time:.1f}秒")
+        logger.info(f"📍 最终模型: {final_model_path}")
 
         return final_model_path
 
     async def stage_rl_training(self) -> str:
         """阶段1: RL训练"""
         self.current_stage = "RL_TRAINING"
-        print(f"\n[Stage 1/4] RL训练 ({self.config.rl_algorithm})")
+        logger.info(f"\n[Stage 1/4] RL训练 ({self.config.rl_algorithm})")
 
         # 配置RL
         rl_config = RLConfig(
@@ -142,13 +146,13 @@ class EvolutionManager:
     async def stage_data_generation(self, model_path: str) -> str:
         """阶段2: 数据生成"""
         self.current_stage = "DATA_GEN"
-        print(f"\n[Stage 2/4] 数据生成 ({self.config.n_trajectories} trajectories)")
+        logger.info(f"\n[Stage 2/4] 数据生成 ({self.config.n_trajectories} trajectories)")
 
         output_path = self.data_dir / "raw_trajectories.json"
 
         # 模拟数据生成过程
         # 这里应该加载RL模型并在环境中运行，收集数据
-        print("   正在运行策略收集数据...")
+        logger.info("   正在运行策略收集数据...")
         await asyncio.sleep(2)  # 模拟耗时
 
         # 生成模拟数据
@@ -181,7 +185,7 @@ class EvolutionManager:
         with open(output_path, "w") as f:
             json.dump(trajectories, f)
 
-        print(f"✅ 数据已保存: {output_path}")
+        logger.info(f"✅ 数据已保存: {output_path}")
         self.history.append(
             {"stage": "data_gen", "status": "success", "count": len(trajectories)}
         )
@@ -190,7 +194,7 @@ class EvolutionManager:
     async def stage_data_processing(self, input_path: str) -> str:
         """阶段3: 数据标记与清洗"""
         self.current_stage = "DATA_PROC"
-        print("\n[Stage 3/4] 数据处理")
+        logger.info("\n[Stage 3/4] 数据处理")
 
         # 1. 自动标记
         labeler = AutoLabeler()
@@ -224,7 +228,7 @@ class EvolutionManager:
     async def stage_model_finetuning(self, dataset_path: str) -> str:
         """阶段4: PEFT微调"""
         self.current_stage = "FINETUNING"
-        print(f"\n[Stage 4/4] PEFT微调 ({self.config.peft_method})")
+        logger.info(f"\n[Stage 4/4] PEFT微调 ({self.config.peft_method})")
 
         peft_config = PEFTConfig(
             method=PEFTMethod(self.config.peft_method),
@@ -240,7 +244,7 @@ class EvolutionManager:
         # dataset = trainer.prepare_dataset(dataset_path)
         # trainer.train(dataset)
 
-        print("   微调中...")
+        logger.info("   微调中...")
         await asyncio.sleep(2)  # 模拟
 
         # 模拟保存
@@ -249,7 +253,7 @@ class EvolutionManager:
         with open(final_path / "model_info.json", "w") as f:
             json.dump(trainer.get_stats(), f)
 
-        print(f"✅ 微调完成: {final_path}")
+        logger.info(f"✅ 微调完成: {final_path}")
         self.history.append({"stage": "finetuning", "status": "success"})
         return str(final_path)
 
@@ -266,8 +270,8 @@ class EvolutionManager:
 
 
 # 测试代码
-async def test_evolution():
-    print("进化循环管理器测试\n")
+async def test_evolution() -> None:
+    logger.info("进化循环管理器测试\n")
 
     config = EvolutionConfig(
         iteration_name="test_evo_v1",
@@ -279,8 +283,8 @@ async def test_evolution():
     manager = EvolutionManager(config)
     await manager.run_loop()
 
-    print("\n=== 报告 ===")
-    print(manager.get_report())
+    logger.info("\n=== 报告 ===")
+    logger.info(manager.get_report())
 
 
 if __name__ == "__main__":

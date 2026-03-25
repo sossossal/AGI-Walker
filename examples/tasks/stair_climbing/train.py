@@ -22,8 +22,8 @@ try:
     SB3_AVAILABLE = True
 except ImportError:
     SB3_AVAILABLE = False
-    print("⚠️ stable-baselines3 未安装")
-    print("安装: pip install stable-baselines3")
+    print("stable-baselines3 is not installed")
+    print("Install with: pip install stable-baselines3")
 
 
 class TrainingCallback(BaseCallback):
@@ -49,7 +49,7 @@ class TrainingCallback(BaseCallback):
         if self.n_calls % self.save_freq == 0:
             model_path = os.path.join(self.save_path, f"checkpoint_{self.n_calls}.zip")
             self.model.save(model_path)
-            print(f"💾 模型已保存: {model_path}")
+            print(f"Checkpoint saved: {model_path}")
 
         return True
 
@@ -64,10 +64,10 @@ def train_stair_climbing(total_timesteps=1000000, save_path="./models/stair_clim
     """
 
     if not SB3_AVAILABLE:
-        print("❌ 无法训练: stable-baselines3 未安装")
+        print("Cannot train: stable-baselines3 is not installed")
         return None
 
-    print("\n🚀 开始训练: 楼梯攀爬任务")
+    print("\nStarting stair-climbing training")
     print("=" * 60)
     print(f"总步数: {total_timesteps:,}")
     print(f"算法: PPO")
@@ -109,7 +109,7 @@ def train_stair_climbing(total_timesteps=1000000, save_path="./models/stair_clim
             total_timesteps=total_timesteps, callback=callback, progress_bar=True
         )
     except KeyboardInterrupt:
-        print("\n⚠️ 训练被中断")
+        print("\nTraining interrupted")
 
     # 保存最终模型
     final_path = os.path.join(save_path, "final_model.zip")
@@ -135,7 +135,7 @@ def train_stair_climbing(total_timesteps=1000000, save_path="./models/stair_clim
         json.dump(stats, f, indent=2)
 
     print("\n" + "=" * 60)
-    print("✅ 训练完成!")
+    print("Training completed")
     print(f"最终模型: {final_path}")
     print(f"平均奖励: {stats['avg_episode_reward']:.2f}")
     print(f"平均步数: {stats['avg_episode_length']:.0f}")
@@ -147,10 +147,10 @@ def train_stair_climbing(total_timesteps=1000000, save_path="./models/stair_clim
 def evaluate_model(model_path, num_episodes=10):
     """评估模型"""
     if not SB3_AVAILABLE:
-        print("❌ 无法评估: stable-baselines3 未安装")
+        print("Cannot evaluate: stable-baselines3 is not installed")
         return
 
-    print(f"\n📊 评估模型: {model_path}")
+    print(f"\nEvaluating model: {model_path}")
 
     from examples.tasks.stair_climbing.env import StairClimbingEnv
 

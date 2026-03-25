@@ -55,14 +55,20 @@ class GodotVisionClient:
                 self.socket.settimeout(self.timeout)
                 self.socket.connect((self.host, self.port))
                 self.connected = True
-                print(f"✓ Connected to Godot server at {self.host}:{self.port}")
+                print(f"Connected to Godot server at {self.host}:{self.port}")
                 return True
             except Exception as e:
                 print(f"Connection attempt {attempt + 1}/{retries} failed: {e}")
+                if self.socket:
+                    try:
+                        self.socket.close()
+                    except OSError:
+                        pass
+                    self.socket = None
                 if attempt < retries - 1:
                     time.sleep(2)
                 else:
-                    print(f"✗ Failed to connect after {retries} attempts")
+                    print(f"Failed to connect after {retries} attempts")
 
         return False
 
@@ -70,9 +76,14 @@ class GodotVisionClient:
         """断开连接"""
         if self.socket:
             try:
+                try:
+                    self.socket.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
                 self.socket.close()
-            except Exception:
+            except OSError:
                 pass
+            self.socket = None
             self.connected = False
             print("Disconnected from Godot server")
 
@@ -310,36 +321,36 @@ if __name__ == "__main__":
     # 尝试连接
     print("\n1. 连接测试...")
     if client.connect():
-        print("✓ 连接成功")
+        print("Connection successful")
 
         # Ping测试
         print("\n2. Ping测试...")
         if client.ping():
-            print("✓ Ping成功")
+            print("Ping successful")
 
         # 更新机器人状态
         print("\n3. 更新机器人状态...")
         if client.update_robot_state(
             position=[0, 0, 0], orientation=[0, 0, 0], joint_angles=[0] * 6
         ):
-            print("✓ 状态更新成功")
+            print("State updated successfully")
 
         # 捕获图像
         print("\n4. 捕获图像...")
         images = client.capture_images()
 
         if images:
-            print(f"✓ 捕获了 {len(images)} 张图像:")
+            print(f"Captured {len(images)} images:")
             for name, img in images.items():
                 print(f"  - {name}: {img.shape}")
         else:
-            print("✗ 未捕获到图像（可能Godot服务器未完全实现）")
+            print("No images captured (Godot server may not fully implement this yet)")
 
         # 断开连接
         client.disconnect()
 
     else:
-        print("✗ 连接失败")
+        print("Connection failed")
         print("\n提示:")
         print("  1. 确保Godot项目正在运行")
         print("  2. 确保TCP服务器已启动 (端口9999)")

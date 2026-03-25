@@ -4,6 +4,10 @@
 """
 
 import time
+
+import logging
+
+logger = logging.getLogger(__name__)
 import random
 import numpy as np
 from typing import Dict, List, Optional
@@ -43,7 +47,7 @@ class FaultInjector:
     支持多种故障类型的注入，用于测试系统鲁棒性
     """
 
-    def __init__(self, seed: Optional[int] = None):
+    def __init__(self, seed: Optional[int] = None) -> None:
         if seed is not None:
             random.seed(seed)
             np.random.seed(seed)
@@ -65,19 +69,19 @@ class FaultInjector:
         self.injections_count = 0
         self.data_modified_count = 0
 
-    def enable(self):
+    def enable(self) -> None:
         """启用故障注入"""
         self.enabled = True
         self.start_time = time.time()
-        print("⚠️ 故障注入已启用")
+        logger.info("⚠️ 故障注入已启用")
 
-    def disable(self):
+    def disable(self) -> None:
         """禁用故障注入"""
         self.enabled = False
         self.active_faults.clear()
-        print("✅ 故障注入已禁用")
+        logger.info("✅ 故障注入已禁用")
 
-    def add_fault(self, config: FaultConfig):
+    def add_fault(self, config: FaultConfig) -> None:
         """添加故障配置"""
         self.active_faults.append(config)
         self.fault_history.append(
@@ -88,7 +92,7 @@ class FaultInjector:
             }
         )
 
-    def remove_fault(self, fault_type: FaultType):
+    def remove_fault(self, fault_type: FaultType) -> None:
         """移除指定类型的故障"""
         self.active_faults = [
             f for f in self.active_faults if f.fault_type != fault_type
@@ -341,7 +345,7 @@ class FaultInjector:
             "delay_queue_size": len(self.delay_queue),
         }
 
-    def reset(self):
+    def reset(self) -> None:
         """重置状态"""
         self.active_faults.clear()
         self.fault_history.clear()
@@ -378,7 +382,7 @@ def create_robustness_test_suite() -> List[FaultConfig]:
 if __name__ == "__main__":
     import json
 
-    print("故障注入测试框架测试\n")
+    logger.info("故障注入测试框架测试\n")
 
     # 创建注入器
     injector = FaultInjector(seed=42)
@@ -399,28 +403,28 @@ if __name__ == "__main__":
         "torso_height": 1.45,
     }
 
-    print("=== 原始数据 ===")
-    print(f"IMU姿态: {sensor_data['sensors']['imu']['orient']}")
+    logger.info("=== 原始数据 ===")
+    logger.info(f"IMU姿态: {sensor_data['sensors']['imu']['orient']}")
 
     # 启用故障注入
     injector.enable()
 
     # 添加噪声故障
-    print("\n=== 测试传感器噪声 ===")
+    logger.info("\n=== 测试传感器噪声 ===")
     injector.add_fault(
         FaultConfig(fault_type=FaultType.SENSOR_NOISE, intensity=0.5, probability=1.0)
     )
 
     for i in range(3):
         injected = injector.inject(sensor_data, "sensor")
-        print(
+        logger.info(
             f"注入后姿态: {[f'{x:.2f}' for x in injected['sensors']['imu']['orient']]}"
         )
 
     # 清除并测试丢失
     injector.active_faults.clear()
 
-    print("\n=== 测试传感器丢失 ===")
+    logger.info("\n=== 测试传感器丢失 ===")
     injector.add_fault(
         FaultConfig(
             fault_type=FaultType.SENSOR_DROPOUT,
@@ -431,15 +435,15 @@ if __name__ == "__main__":
     )
 
     injected = injector.inject(sensor_data, "sensor")
-    print(f"hip_left角度: {injected['sensors']['joints']['hip_left']['angle']}")
-    print(
+    logger.info(f"hip_left角度: {injected['sensors']['joints']['hip_left']['angle']}")
+    logger.info(
         f"dropout标记: {injected['sensors']['joints']['hip_left'].get('_dropout', False)}"
     )
 
     # 测试扰动
     injector.active_faults.clear()
 
-    print("\n=== 测试突然扰动 ===")
+    logger.info("\n=== 测试突然扰动 ===")
     injector.add_fault(
         FaultConfig(
             fault_type=FaultType.SUDDEN_DISTURBANCE, intensity=1.0, probability=1.0
@@ -447,11 +451,11 @@ if __name__ == "__main__":
     )
 
     injected = injector.inject(sensor_data, "sensor")
-    print(f"扰动后姿态: {[f'{x:.2f}' for x in injected['sensors']['imu']['orient']]}")
+    logger.info(f"扰动后姿态: {[f'{x:.2f}' for x in injected['sensors']['imu']['orient']]}")
 
     # 统计
-    print("\n=== 统计信息 ===")
-    print(json.dumps(injector.get_stats(), indent=2))
+    logger.info("\n=== 统计信息 ===")
+    logger.info(json.dumps(injector.get_stats(), indent=2))
 
     # 禁用
     injector.disable()

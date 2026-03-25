@@ -4,10 +4,12 @@ Tests specific ValueError messages for invalid inputs.
 """
 
 import pytest
+from typing import Any, Optional, Dict, List, Tuple
 from pathlib import Path
 import tempfile
 import shutil
 import logging
+logger = logging.getLogger(__name__)
 from agi_walker.skills_loader import SkillsLoader
 
 
@@ -28,7 +30,7 @@ def create_skill_file(skills_dir, name, content):
     return md_file
 
 
-def test_validation_description_type(temp_skills_dir):
+def test_validation_description_type(temp_skills_dir) -> None:
     """Test description type validation (must be string)"""
     # Create a loader instance
     loader = SkillsLoader(str(temp_skills_dir))
@@ -49,7 +51,7 @@ description: ["not", "string"]
         loader.parse_skill_metadata(md_file)
 
 
-def test_validation_description_empty(temp_skills_dir):
+def test_validation_description_empty(temp_skills_dir) -> None:
     """Test description content validation (cannot be empty)"""
     loader = SkillsLoader(str(temp_skills_dir))
 
@@ -80,7 +82,7 @@ description: "   "
         loader.parse_skill_metadata(md_file2)
 
 
-def test_validation_requires_element_type(temp_skills_dir):
+def test_validation_requires_element_type(temp_skills_dir) -> None:
     """Test requires list element validation (must be strings)"""
     loader = SkillsLoader(str(temp_skills_dir))
 
@@ -102,7 +104,7 @@ metadata:
         loader.parse_skill_metadata(md_file)
 
 
-def test_validation_requires_is_list(temp_skills_dir):
+def test_validation_requires_is_list(temp_skills_dir) -> None:
     """Test requires field validation (must be list)"""
     loader = SkillsLoader(str(temp_skills_dir))
 

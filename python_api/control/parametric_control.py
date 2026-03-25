@@ -30,17 +30,22 @@ class ParametricRobotController:
         self.motors = {}
 
         # 当前物理参数
-        self.physics_params = {
-            "gravity": 9.81,  # 重力加速度
-            "motor_power_multiplier": 1.0,  # 电机功率倍数
-            "joint_stiffness": 1.0,  # 关节刚度倍数
-            "joint_damping": 0.5,  # 关节阻尼
-            "friction": 0.9,  # 摩擦系数
-            "mass_multiplier": 1.0,  # 质量倍数
-        }
+        self.physics_params = self.default_physics_params()
 
         # 控制模式
         self.control_mode = "parametric"  # 或 'direct'
+
+    @staticmethod
+    def default_physics_params() -> Dict[str, float]:
+        """Return the default physics parameter set."""
+        return {
+            "gravity": 9.81,
+            "motor_power_multiplier": 1.0,
+            "joint_stiffness": 1.0,
+            "joint_damping": 0.5,
+            "friction": 0.9,
+            "mass_multiplier": 1.0,
+        }
 
     def add_joint(self, joint_name: str, joint: CustomJoint):
         """添加关节"""
@@ -308,10 +313,10 @@ class InteractiveParameterTuner:
                 try:
                     value = float(cmd[2])
                     result = self.controller.set_physics_param(param_name, value)
-                    print("\n✓ 参数已更新")
+                    print("\nParameter updated")
                     print(f"  影响: {result['impact']}")
                 except ValueError as e:
-                    print(f"✗ 错误: {e}")
+                    print(f"Error: {e}")
 
             elif cmd[0] == "test":
                 print("\n运行测试...")
@@ -323,25 +328,15 @@ class InteractiveParameterTuner:
 
             elif cmd[0] == "reset":
                 # 重置到默认值
-                for param in self.controller.physics_params:
-                    if param == "gravity":
-                        self.controller.physics_params[param] = 9.81
-                    elif param in [
-                        "motor_power_multiplier",
-                        "joint_stiffness",
-                        "mass_multiplier",
-                    ]:
-                        self.controller.physics_params[param] = 1.0
-                    elif param == "joint_damping":
-                        self.controller.physics_params[param] = 0.5
-                    elif param == "friction":
-                        self.controller.physics_params[param] = 0.9
-                print("✓ 参数已重置")
+                self.controller.physics_params = (
+                    self.controller.default_physics_params()
+                )
+                print("Parameters reset to defaults")
 
             else:
                 print("未知命令")
 
 
 if __name__ == "__main__":
-    print("参数化机器人控制系统")
-    print("示例请运行: examples/parametric_control_demo.py")
+    print("Parametric robot control system")
+    print("Run example: examples/parametric_control_demo.py")

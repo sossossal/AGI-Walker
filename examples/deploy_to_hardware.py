@@ -12,8 +12,7 @@ from stable_baselines3 import PPO
 # 添加父目录到路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from godot_robot_env import GodotRobotEnv
-from godot_robot_env.hardware_controller import IMC22Controller, HardwareEnvironment
+from python_api.godot_robot_env import GodotRobotEnv
 
 
 def step1_train_in_simulation():
@@ -32,7 +31,7 @@ def step1_train_in_simulation():
 
     # 保存模型
     model.save("walker_policy")
-    print("✓ 模型已保存: walker_policy.zip")
+    print("Model saved: walker_policy.zip")
 
     return model
 
@@ -67,7 +66,7 @@ def step2_export_to_onnx(model):
 
     # 显示大小
     size_kb = os.path.getsize("walker_policy.onnx") / 1024
-    print(f"✓ ONNX 模型已导出: walker_policy.onnx ({size_kb:.2f} KB)")
+    print(f"ONNX model exported: walker_policy.onnx ({size_kb:.2f} KB)")
 
 
 def step3_quantize_model():
@@ -89,13 +88,13 @@ def step3_quantize_model():
         int8_size = os.path.getsize("walker_policy_int8.onnx") / 1024
         compression = (1 - int8_size / fp32_size) * 100
 
-        print(f"✓ 量化完成:")
+        print("Quantization completed:")
         print(f"  FP32: {fp32_size:.2f} KB")
         print(f"  INT8: {int8_size:.2f} KB")
         print(f"  压缩率: {compression:.1f}%")
 
     except ImportError:
-        print("⚠ 未安装 onnxruntime,跳过量化步骤")
+        print("onnxruntime not installed; skipping quantization")
         print("  安装命令: pip install onnxruntime")
 
 
@@ -106,6 +105,8 @@ def step4_test_on_hardware():
     print("=" * 60)
 
     try:
+        from python_api.godot_robot_env.hardware_controller import HardwareEnvironment
+
         # 创建硬件环境
         print("\n连接硬件中...")
         hw_env = HardwareEnvironment(num_joints=12, control_freq_hz=100)
@@ -127,10 +128,13 @@ def step4_test_on_hardware():
                 obs = hw_env.reset()
 
         hw_env.close()
-        print("✓ 硬件测试完成")
+        print("Hardware test completed")
 
+    except ImportError as e:
+        print(f"Hardware dependencies are missing: {e}")
+        print("  Install the CAN stack and hardware dependencies before running this step")
     except Exception as e:
-        print(f"⚠ 硬件测试失败: {e}")
+        print(f"Hardware test failed: {e}")
         print("  请检查:")
         print("  - CAN 适配器是否连接")
         print("  - IMC-22 节点是否上电")
@@ -162,7 +166,7 @@ def main():
             model = PPO.load("walker_policy")
             step2_export_to_onnx(model)
         else:
-            print("✗ 未找到 walker_policy.zip，请先训练模型")
+            print("walker_policy.zip not found; train a model first")
 
     elif choice == "3":
         step3_quantize_model()
@@ -178,11 +182,11 @@ def main():
         step4_test_on_hardware()
 
     else:
-        print("✗ 无效选择")
+        print("Invalid choice")
         return
 
     print("\n" + "=" * 60)
-    print("部署流程完成！")
+    print("Deployment flow completed")
     print("=" * 60)
     print("\n下一步:")
     print("  1. 使用 Hive-Reflex SDK 编译固件")

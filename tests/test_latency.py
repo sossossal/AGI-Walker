@@ -3,6 +3,9 @@
 测试Godot仿真器与Python控制端之间的通信性能
 """
 
+import logging
+from typing import Any, Optional, Dict, List, Tuple
+logger = logging.getLogger(__name__)
 import time
 import pytest
 
@@ -20,7 +23,7 @@ def check_client_available():
         pytest.skip("python_controller.tcp_client 不可用")
 
 
-def test_latency():
+def test_latency() -> None:
     """测试通信延迟"""
     check_client_available()
     
@@ -31,7 +34,7 @@ def test_latency():
     if not client.connect(timeout=0.1):
         pytest.skip("无法连接到仿真器 (Godot 未运行)")
 
-    print(f"\n🧪 开始延迟测试 (持续{duration}秒)...\n")
+    logger.info(f"\n🧪 开始延迟测试 (持续{duration}秒)...\n")
 
     latencies = []
     start_time = time.time()
@@ -68,4 +71,4 @@ if __name__ == "__main__":
     try:
         test_latency()
     except Exception as e:
-        print(f"测试失败: {e}")
+        logger.info(f"测试失败: {e}")

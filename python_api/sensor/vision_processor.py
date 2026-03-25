@@ -55,10 +55,10 @@ class VisionProcessor:
             import cv2
 
             self._cv2 = cv2
-            print("✅ OpenCV已加载")
+            print("OpenCV loaded")
         except ImportError:
-            print("⚠️ OpenCV未安装，视觉处理功能将受限")
-            print("请运行: pip install opencv-python")
+            print("OpenCV not installed; vision processing will be limited")
+            print("Run: pip install opencv-python")
 
     @property
     def cv2(self):
@@ -351,7 +351,7 @@ class DummyVisionProcessor:
     def __init__(self, config: Optional[VisionConfig] = None):
         self.config = config or VisionConfig()
         self.frames_processed = 0
-        print("⚠️ 使用虚拟视觉处理器（OpenCV不可用）")
+        print("Using dummy vision processor because OpenCV is unavailable")
 
     def process_frame(self, frame: np.ndarray) -> dict:
         """返回模拟处理结果"""

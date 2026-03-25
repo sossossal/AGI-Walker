@@ -5,6 +5,10 @@
 """
 
 import numpy as np
+
+import logging
+
+logger = logging.getLogger(__name__)
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -27,7 +31,7 @@ class ElevationMapBuilder:
     当机器人移动时，网格会"滚动"以保持机器人位于中心。
     """
 
-    def __init__(self, config: MapConfig = MapConfig()):
+    def __init__(self, config: MapConfig = MapConfig()) -> None:
         self.config = config
         self.map_data = np.full(
             (config.grid_size, config.grid_size), config.fill_value, dtype=np.float32
@@ -39,7 +43,7 @@ class ElevationMapBuilder:
         # 预计算网格偏移
         self.half_size = config.grid_size // 2
 
-    def update_odometry(self, robot_x: float, robot_y: float):
+    def update_odometry(self, robot_x: float, robot_y: float) -> None:
         """
         根据里程计移动地图（滚动网格）
 
@@ -94,7 +98,7 @@ class ElevationMapBuilder:
         self.center_pos[0] += shift_x * self.config.resolution
         self.center_pos[1] += shift_y * self.config.resolution
 
-    def add_point_cloud(self, points: np.ndarray):
+    def add_point_cloud(self, points: np.ndarray) -> None:
         """
         添加深度点云数据更新地图
 
@@ -180,11 +184,11 @@ class ElevationMapBuilder:
 
 # 测试代码
 if __name__ == "__main__":
-    print("构建地形图生成器测试...")
+    logger.info("构建地形图生成器测试...")
 
     # 1. 初始化
     builder = ElevationMapBuilder(MapConfig(grid_size=20, resolution=1.0))
-    print(f"网格大小: {builder.map_data.shape}")
+    logger.info(f"网格大小: {builder.map_data.shape}")
 
     # 2. 添加一些点 (模拟一个斜坡)
     points = []
@@ -195,19 +199,19 @@ if __name__ == "__main__":
     points = np.array(points)
 
     builder.add_point_cloud(points)
-    print("添加点云完成")
+    logger.info("添加点云完成")
 
     # 3. 分析
     stats = builder.analyze_terrain(radius=5.0)
-    print(f"地形分析: {stats}")
+    logger.info(f"地形分析: {stats}")
 
     # 4. 模拟移动 (向前走 2m)
-    print("机器人向前移动 2m...")
+    logger.info("机器人向前移动 2m...")
     builder.update_odometry(2.0, 0.0)
 
     # 验证中心是否平移 (原点 (0,0) 的数据应该移到了 (-2, 0) 的位置，即索引减小)
-    print(
+    logger.info(
         f"新的地图中心值: {builder.map_data[10, 10]}"
     )  # 应该是之前的 (2,0) 处的值 = 0.2
 
-    print("✅ 地形模块测试完成")
+    logger.info("✅ 地形模块测试完成")

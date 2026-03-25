@@ -4,6 +4,8 @@ Parameter Optimizer Skill - 机器人参数优化工具
 提供质量分布优化、PID调优、多目标优化等功能。
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import json
 import numpy as np
 from pathlib import Path
@@ -46,7 +48,7 @@ class MassOptimizationResult:
 class ParameterOptimizer:
     """参数优化器基类"""
 
-    def __init__(self, robot_config: Any):
+    def __init__(self, robot_config: Any) -> None:
         """初始化优化器
 
         Args:
@@ -190,7 +192,7 @@ class MassDistributionOptimizer(ParameterOptimizer):
             )
 
         # 定义目标函数
-        def objective(mass_vec):
+        def objective(mass_vec) -> None:
             masses = dict(zip(initial_masses.keys(), mass_vec))
             com = self._calculate_com(masses)
             error = (com[2] - target_com_height) ** 2
@@ -234,7 +236,7 @@ class MassDistributionOptimizer(ParameterOptimizer):
             )
 
         except Exception as e:
-            print(f"优化过程中出错: {e}")
+            logger.info(f"优化过程中出错: {e}")
             # 返回初始质量作为fallback
             initial_com = self._calculate_com(initial_masses)
             return MassOptimizationResult(
@@ -287,7 +289,7 @@ class PIDTuner(ParameterOptimizer):
         ki = 1.2 * ku / tu
         kd = 0.075 * ku * tu
 
-        print(f"[Ziegler-Nichols] {joint_name}: Kp={kp:.2f}, Ki={ki:.2f}, Kd={kd:.2f}")
+        logger.info(f"[Ziegler-Nichols] {joint_name}: Kp={kp:.2f}, Ki={ki:.2f}, Kd={kd:.2f}")
 
         return PIDGains(kp=kp, ki=ki, kd=kd)
 
@@ -308,7 +310,7 @@ class PIDTuner(ParameterOptimizer):
         """
 
         # 定义适应度函数 (需要仿真环境)
-        def fitness(gains):
+        def fitness(gains) -> None:
             kp, ki, kd = gains
             # TODO: 实际应运行仿真并计算误差积分
             # 这里使用简化的启发式评分
@@ -328,7 +330,7 @@ class PIDTuner(ParameterOptimizer):
         )
 
         kp, ki, kd = result.x
-        print(f"[Genetic] {joint_name}: Kp={kp:.2f}, Ki={ki:.2f}, Kd={kd:.2f}")
+        logger.info(f"[Genetic] {joint_name}: Kp={kp:.2f}, Ki={ki:.2f}, Kd={kd:.2f}")
 
         return PIDGains(kp=kp, ki=ki, kd=kd)
 
@@ -359,7 +361,7 @@ def optimize_mass_distribution(
         ...     target_com_height=0.25,
         ...     max_iterations=200
         ... )
-        >>> print(f"COM error: {result.com_error:.4f} m")
+        >>> logger.info(f"COM error: {result.com_error:.4f} m")
     """
     optimizer = MassDistributionOptimizer(robot_config)
     return optimizer.optimize(target_com_height, max_iterations, method)
@@ -387,7 +389,7 @@ def tune_pid_controller(
         ...     population_size=50,
         ...     generations=100
         ... )
-        >>> print(f"Kp={gains.kp:.2f}")
+        >>> logger.info(f"Kp={gains.kp:.2f}")
     """
     tuner = PIDTuner(robot_config)
     return tuner.tune(joint_name, method, **kwargs)
@@ -409,11 +411,11 @@ def batch_optimize_pid(
     tuner = PIDTuner(robot_config)
     results = {}
 
-    print(f"\n开始批量优化 {len(joint_names)} 个关节...\n")
+    logger.info(f"\n开始批量优化 {len(joint_names)} 个关节...\n")
 
     for joint in joint_names:
         gains = tuner.tune(joint, method)
         results[joint] = gains
 
-    print("\n✓ 批量优化完成")
+    logger.info("\nBatch optimization completed")
     return results

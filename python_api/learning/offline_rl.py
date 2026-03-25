@@ -3,6 +3,7 @@ AGI-Walker 离线强化学习模块
 使用 d3rlpy 实现 CQL (Conservative Q-Learning)
 """
 
+import logging
 import numpy as np
 import gymnasium as gym
 from typing import Dict
@@ -127,7 +128,7 @@ class OfflineRLTrainer:
             self.SAC = SAC
             self.MDPDataset = MDPDataset
         except ImportError:
-            print("错误: 未安装 d3rlpy")
+            logger.error("错误: 未安装 d3rlpy")
             print("请运行: pip install d3rlpy")
             raise
 

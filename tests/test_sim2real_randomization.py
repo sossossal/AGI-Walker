@@ -1,3 +1,6 @@
+import logging
+from typing import Any, Optional, Dict, List, Tuple
+logger = logging.getLogger(__name__)
 import pytest
 import time
 import threading
@@ -14,7 +17,7 @@ def mock_server():
     yield server
     server.stop()
 
-def test_domain_randomization(mock_server):
+def test_domain_randomization(mock_server) -> None:
     """测试 Gym Env 的领域随机化功能与通信"""
     config = RandomizerConfig(
         mass_range=(0.5, 2.0),

@@ -561,60 +561,24 @@
             等待启动...
         </div>
 
-        <!-- 传感器面板 -->
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
-            <div style="background:#1e293b; border:1px solid #374151; border-radius:10px; padding:12px; text-align:center;">
-                <div style="font-size:0.75em; color:#64748b; margin-bottom:4px;">躯干高度</div>
-                <div id="sensor-height" style="font-size:1.6em; font-weight:bold; color:#4ade80;">--</div>
-                <div style="font-size:0.7em; color:#475569;">m</div>
-            </div>
-            <div style="background:#1e293b; border:1px solid #374151; border-radius:10px; padding:12px; text-align:center;">
-                <div style="font-size:0.75em; color:#64748b; margin-bottom:4px;">俯仰角 Pitch</div>
-                <div id="sensor-pitch" style="font-size:1.6em; font-weight:bold; color:#38bdf8;">--</div>
-                <div style="font-size:0.7em; color:#475569;">deg</div>
-            </div>
-            <div style="background:#1e293b; border:1px solid #374151; border-radius:10px; padding:12px; text-align:center;">
-                <div style="font-size:0.75em; color:#64748b; margin-bottom:4px;">翻滚角 Roll</div>
-                <div id="sensor-roll" style="font-size:1.6em; font-weight:bold; color:#f472b6;">--</div>
-                <div style="font-size:0.7em; color:#475569;">deg</div>
+        <!-- =============== 动态 Sensor / Actuator ================= -->
+        <div id="dynamic-sensors-panel" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 16px;">
+            <div style="color:#64748b; font-size:0.85em; grid-column: 1 / -1; text-align:center; padding:20px; border: 1px dashed #334155; border-radius: 8px;">
+                在连接到引擎后将自动加载 Sensor Schema...
             </div>
         </div>
 
-        <!-- 电机控制 -->
         <div style="background:#1e293b; border:1px solid #374151; border-radius:10px; padding:14px; margin-bottom:12px;">
-            <div style="font-size:0.85em; color:#94a3b8; margin-bottom:10px;">⚙️ 电机手动控制</div>
-            <div style="display:flex; flex-direction:column; gap:10px;">
-                <div style="display:flex; align-items:center; gap:12px;">
-                    <label style="width:90px; font-size:0.85em; color:#94a3b8;">左髋速度:</label>
-                    <input type="range" id="motor-left" min="-5" max="5" step="0.1" value="0"
-                        oninput="document.getElementById('motor-left-val').textContent=this.value+' rad/s'; updateGodotMotor();"
-                        style="flex:1; accent-color:#4ade80;">
-                    <span id="motor-left-val" style="width:80px; font-size:0.85em; color:#4ade80; text-align:right;">0 rad/s</span>
-                </div>
-                <div style="display:flex; align-items:center; gap:12px;">
-                    <label style="width:90px; font-size:0.85em; color:#94a3b8;">右髋速度:</label>
-                    <input type="range" id="motor-right" min="-5" max="5" step="0.1" value="0"
-                        oninput="document.getElementById('motor-right-val').textContent=this.value+' rad/s'; updateGodotMotor();"
-                        style="flex:1; accent-color:#38bdf8;">
-                    <span id="motor-right-val" style="width:80px; font-size:0.85em; color:#38bdf8; text-align:right;">0 rad/s</span>
-                </div>
+            <div style="font-size:0.85em; color:#94a3b8; margin-bottom:10px;">⚙️ 动态执行器下发阵列 (Actuators)</div>
+            <div id="dynamic-motors-list" style="display:flex; flex-direction:column; gap:10px;">
+                <div style="color:#64748b; font-size:0.85em; text-align:center; padding:10px;">等待 Actuator Schema...</div>
             </div>
             <div style="display:flex; gap:8px; margin-top:10px;">
-                <button onclick="setMotorPreset(3, -3)"
-                    style="flex:1; background:#374151; padding:6px; font-size:0.8em; border-radius:6px; border:none; color:#e2e8f0; cursor:pointer;">
-                    ▶ 同步正转
+                <button onclick="setMotorPreset()" style="flex:1; background:#374151; padding:6px; font-size:0.8em; border-radius:6px; border:none; color:#e2e8f0; cursor:pointer;">
+                    ⏸ 强制清零 (停止)
                 </button>
-                <button onclick="setMotorPreset(-3, 3)"
-                    style="flex:1; background:#374151; padding:6px; font-size:0.8em; border-radius:6px; border:none; color:#e2e8f0; cursor:pointer;">
-                    ◀ 同步反转
-                </button>
-                <button onclick="setMotorPreset(0, 0)"
-                    style="flex:1; background:#374151; padding:6px; font-size:0.8em; border-radius:6px; border:none; color:#e2e8f0; cursor:pointer;">
-                    ⏸ 停止
-                </button>
-                <button onclick="toggleAutoWalk()"  id="autowalk-btn"
-                    style="flex:1; background:#6366f1; padding:6px; font-size:0.8em; border-radius:6px; border:none; color:#e2e8f0; cursor:pointer;">
-                    🚶 自动步行
+                <button onclick="toggleAutoWalk()" id="autowalk-btn" style="flex:1; background:#6366f1; padding:6px; font-size:0.8em; border-radius:6px; border:none; color:#e2e8f0; cursor:pointer;">
+                    🚶 自动发散波形
                 </button>
             </div>
         </div>
@@ -825,11 +789,12 @@
     <script>
         let ws;
         let tasks = [];
+        const defaultWebSocketSessionId = 'default';
 
         // 连接 WebSocket
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            const wsUrl = `${protocol}//${window.location.host}/ws/${defaultWebSocketSessionId}`;
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
@@ -1662,6 +1627,12 @@
         let _autoWalkPhase = 0;
         let _godotStatusTimer = null;
 
+        const godotSessionId = new URLSearchParams(window.location.search).get('session') || 'default';
+        if (godotSessionId !== 'default') {
+            document.title = `AGI-Walker (${godotSessionId})`;
+        }
+        console.info(`[Godot] index.html uses mixed modes: legacy REST control plus session bridge launch/control for session '${godotSessionId}'.`);
+
         async function launchGodot() {
             const scene = document.getElementById('godot-scene-select').value;
             const exe   = document.getElementById('godot-exe-input').value.trim();
@@ -1669,7 +1640,7 @@
             log.style.color = '#fbbf24';
             log.textContent = '⏳ 正在启动 Godot 引擎...';
             try {
-                const res = await fetch('/api/godot/launch', {
+                const res = await fetch(`/api/godot/${godotSessionId}/launch`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({scene, godot_exe: exe})
@@ -1696,7 +1667,7 @@
             log.style.color = '#fbbf24';
             log.textContent = '⏹ 正在停止...';
             try {
-                const res = await fetch('/api/godot/stop', {method: 'POST'});
+                const res = await fetch(`/api/godot/${godotSessionId}/stop`, {method: 'POST'});
                 const data = await res.json();
                 log.style.color = '#94a3b8';
                 log.textContent = `🛑 ${data.status}`;
@@ -1711,13 +1682,15 @@
         function _connectGodotWS() {
             if (_godotWs) return;
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            _godotWs = new WebSocket(`${protocol}//${window.location.host}/ws`);
+            _godotWs = new WebSocket(`${protocol}//${window.location.host}/ws/${godotSessionId}`);
             
             _godotWs.onopen = () => console.log("Godot WS Connected");
             _godotWs.onmessage = (event) => {
                 try {
                     const msg = JSON.parse(event.data);
-                    if (msg.type === "telemetry_update") {
+                    if (msg.type === "schema_update") {
+                        _buildDynamicPanels(msg.data);
+                    } else if (msg.type === "telemetry_update") {
                         _updateStatusUI(true, true);
                         _updateSensorDisplay(msg.data);
                     } else if (msg.type === "simulation_started") {
@@ -1760,35 +1733,105 @@
             }
         }
 
-        function _updateSensorDisplay(sensor) {
-            if (sensor.torso_height != null)
-                document.getElementById('sensor-height').textContent = parseFloat(sensor.torso_height).toFixed(3);
-            const orient = sensor?.sensors?.imu?.orient;
-            if (orient) {
-                document.getElementById('sensor-pitch').textContent = parseFloat(orient[1]).toFixed(1) + '°';
-                document.getElementById('sensor-roll').textContent  = parseFloat(orient[0]).toFixed(1) + '°';
+        let activeSensors = []; 
+        let activeActuators = [];
+
+        function _buildDynamicPanels(schema) {
+            const sensorsPanel = document.getElementById('dynamic-sensors-panel');
+            const motorsList = document.getElementById('dynamic-motors-list');
+            
+            if (schema.sensors) {
+                sensorsPanel.innerHTML = '';
+                activeSensors = [];
+                for (const [sName, sMeta] of Object.entries(schema.sensors)) {
+                    const isVector = sMeta.shape && sMeta.shape[0] > 1;
+                    const div = document.createElement('div');
+                    div.style.background = '#1e293b';
+                    div.style.border = '1px solid #374151';
+                    div.style.borderRadius = '10px';
+                    div.style.padding = '12px';
+                    div.style.textAlign = 'center';
+                    if (isVector) div.style.gridColumn = '1 / -1';
+                    
+                    div.innerHTML = `
+                        <div style="font-size:0.75em; color:#64748b; margin-bottom:4px;">${sName}</div>
+                        <div id="sensor-val-${sName}" style="font-size:${isVector ? '0.9em' : '1.6em'}; font-weight:bold; color:#4ade80; word-break:break-all;">--</div>
+                    `;
+                    sensorsPanel.appendChild(div);
+                    activeSensors.push({ name: sName, isVector });
+                }
+            }
+
+            if (schema.actuators) {
+                motorsList.innerHTML = '';
+                activeActuators = [];
+                for (const [aName, aMeta] of Object.entries(schema.actuators)) {
+                    const numActs = aMeta.shape ? aMeta.shape[0] : 1;
+                    const range = aMeta.range || [-10.0, 10.0];
+                    for (let i = 0; i < numActs; i++) {
+                        const actId = `motor-${aName}-${i}`;
+                        const lbl = numActs > 1 ? `${aName}[${i}]` : aName;
+                        activeActuators.push(actId);
+                        
+                        const div = document.createElement('div');
+                        div.style.display = 'flex';
+                        div.style.alignItems = 'center';
+                        div.style.gap = '12px';
+                        div.innerHTML = `
+                            <label style="width:120px; font-size:0.85em; color:#94a3b8; overflow:hidden; text-align:right;">${lbl}:</label>
+                            <input type="range" id="${actId}" min="${range[0]}" max="${range[1]}" step="0.1" value="0"
+                                oninput="document.getElementById('${actId}-val').textContent=parseFloat(this.value).toFixed(1); updateGodotMotor();"
+                                style="flex:1; accent-color:#4ade80;">
+                            <span id="${actId}-val" style="width:60px; font-size:0.85em; color:#4ade80; text-align:right;">0.0</span>
+                        `;
+                        motorsList.appendChild(div);
+                    }
+                }
+            }
+        }
+
+        function _updateSensorDisplay(sensorData) {
+            for (const s of activeSensors) {
+                const el = document.getElementById(`sensor-val-${s.name}`);
+                if (!el) continue;
+                let val = sensorData[s.name];
+                if (val !== undefined) {
+                    if (s.isVector && Array.isArray(val)) {
+                        el.textContent = "[" + val.map(v => parseFloat(v).toFixed(2)).join(", ") + "]";
+                    } else if (typeof val === 'number') {
+                        el.textContent = parseFloat(val).toFixed(3);
+                    } else {
+                        el.textContent = JSON.stringify(val);
+                    }
+                }
             }
         }
 
         async function updateGodotMotor() {
-            const left  = parseFloat(document.getElementById('motor-left').value);
-            const right = parseFloat(document.getElementById('motor-right').value);
+            let actionArray = [];
+            for (const actId of activeActuators) {
+                const el = document.getElementById(actId);
+                if (el) actionArray.push(parseFloat(el.value));
+            }
             try {
-                const res = await fetch('/api/godot/control', {
+                const res = await fetch(\`/api/godot/\${godotSessionId}/control\`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({hip_left: left, hip_right: right})
+                    body: JSON.stringify({action: actionArray})
                 });
                 const data = await res.json();
-                if (data.response?.sensors) _updateSensorDisplay(data.response);
+                if (data.response?.sensors) _updateSensorDisplay(data.response.sensors);
             } catch(e) {}
         }
 
-        function setMotorPreset(left, right) {
-            document.getElementById('motor-left').value  = left;
-            document.getElementById('motor-right').value = right;
-            document.getElementById('motor-left-val').textContent  = left  + ' rad/s';
-            document.getElementById('motor-right-val').textContent = right + ' rad/s';
+        function setMotorPreset() {
+            for (const actId of activeActuators) {
+                const el = document.getElementById(actId);
+                if (el) {
+                    el.value = 0;
+                    document.getElementById(\`\${actId}-val\`).textContent = '0.0';
+                }
+            }
             updateGodotMotor();
         }
 
@@ -1798,17 +1841,25 @@
                 clearInterval(_autoWalkTimer);
                 _autoWalkTimer = null;
                 btn.style.background = '#6366f1';
-                btn.textContent = '🚶 自动步行';
-                setMotorPreset(0, 0);
+                btn.textContent = '🚶 自动发散波形';
+                setMotorPreset();
             } else {
                 btn.style.background = '#ec4899';
-                btn.textContent = '⏸ 停止步行';
+                btn.textContent = '⏸ 停止波形';
                 _autoWalkPhase = 0;
                 _autoWalkTimer = setInterval(() => {
                     _autoWalkPhase += 0.15;
-                    const v = Math.sin(_autoWalkPhase) * 3.5;
-                    setMotorPreset(parseFloat(v.toFixed(1)), parseFloat(-v.toFixed(1)));
-                }, 80);  // ~12Hz 正弦步态驱动
+                    for (let i = 0; i < activeActuators.length; i++) {
+                        const el = document.getElementById(activeActuators[i]);
+                        if (el) {
+                            const rangeMeta = parseFloat(el.max) || 5.0;
+                            const val = Math.sin(_autoWalkPhase + i) * (rangeMeta * 0.5);
+                            el.value = val;
+                            document.getElementById(\`\${activeActuators[i]}-val\`).textContent = val.toFixed(1);
+                        }
+                    }
+                    updateGodotMotor();
+                }, 80);
             }
         }
     </script>

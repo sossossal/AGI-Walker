@@ -80,7 +80,7 @@ def main():
 
     # 保存模型
     model.save("balance_policy")
-    print("✓ 模型已保存: balance_policy.zip")
+    print("模型已保存: balance_policy.zip")
 
     # 步骤 5: 测试策略
     print("\n步骤 5: 测试训练好的策略")
@@ -107,10 +107,10 @@ def main():
 
     print("\n" + "=" * 60)
     print("完成！您已经:")
-    print("  ✓ 选择了硬件零件")
-    print("  ✓ 设计了机器人")
-    print("  ✓ 训练了控制策略")
-    print("  ✓ 测试了性能")
+    print("  选择了硬件零件")
+    print("  设计了机器人")
+    print("  训练了控制策略")
+    print("  测试了性能")
     print("\n下一步:")
     print("  - 尝试不同的环境设置（月球重力、冰面等）")
     print("  - 使用域随机化提高鲁棒性")
@@ -121,4 +121,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"错误: {e}")
+        import traceback
+        traceback.print_exc()

@@ -8,6 +8,10 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class RewardComponent(Enum):
     """奖励组件类型"""
@@ -60,7 +64,7 @@ class RewardDesigner:
     3. 奖励分解和可视化
     """
 
-    def __init__(self, config: Optional[RewardConfig] = None):
+    def __init__(self, config: Optional[RewardConfig] = None) -> None:
         self.config = config or RewardConfig()
 
         # 历史记录（用于平滑和统计）
@@ -215,20 +219,20 @@ class RewardDesigner:
         """检查是否跌倒"""
         return abs(roll) > 45 or abs(pitch) > 45 or height < 0.3
 
-    def reset(self):
+    def reset(self) -> None:
         """重置episode状态"""
         self.prev_action = None
         self.prev_velocity = 0.0
         self.episode_rewards.clear()
         self.component_history.clear()
 
-    def set_weight(self, component: str, weight: float):
+    def set_weight(self, component: str, weight: float) -> None:
         """设置组件权重"""
         if component in self.config.weights:
             self.config.weights[component] = weight
-            print(f"设置 {component} 权重为 {weight}")
+            logger.info(f"设置 {component} 权重为 {weight}")
         else:
-            print(f"⚠️ 未知组件: {component}")
+            logger.info(f"⚠️ 未知组件: {component}")
 
     def auto_tune(
         self, demonstrations: List[dict], target_metric: str = "survival_time"
@@ -240,16 +244,16 @@ class RewardDesigner:
             demonstrations: 演示轨迹列表
             target_metric: 目标指标
         """
-        print("🔧 开始自动调整权重...")
-        print(f"   演示数据: {len(demonstrations)}条")
-        print(f"   目标指标: {target_metric}")
+        logger.info("🔧 开始自动调整权重...")
+        logger.info(f"   演示数据: {len(demonstrations)}条")
+        logger.info(f"   目标指标: {target_metric}")
 
         # 分析演示数据
         success_demos = [d for d in demonstrations if d.get("success", False)]
         fail_demos = [d for d in demonstrations if not d.get("success", False)]
 
         if not success_demos:
-            print("⚠️ 没有成功演示，无法调整")
+            logger.info("⚠️ 没有成功演示，无法调整")
             return
 
         # 计算成功演示的平均特征
@@ -274,8 +278,8 @@ class RewardDesigner:
         for comp_name in self.config.weights:
             self.config.weights[comp_name] /= total_weight
 
-        print("✅ 权重调整完成")
-        print(f"   新权重: {self.config.weights}")
+        logger.info("✅ 权重调整完成")
+        logger.info(f"   新权重: {self.config.weights}")
 
     def _extract_features(self, demonstrations: List[dict]) -> dict:
         """从演示中提取特征"""
@@ -368,7 +372,7 @@ def create_reward_designer(preset: str = "balanced") -> RewardDesigner:
 if __name__ == "__main__":
     import json
 
-    print("奖励函数设计器测试\n")
+    logger.info("奖励函数设计器测试\n")
 
     # 创建设计器
     designer = create_reward_designer("balanced")
@@ -386,13 +390,13 @@ if __name__ == "__main__":
     info = {"forward_velocity": 0.3}
 
     # 计算奖励
-    print("=== 正常状态 ===")
+    logger.info("=== 正常状态 ===")
     reward, components = designer.compute_reward(obs, action, info)
-    print(f"总奖励: {reward:.3f}")
-    print(f"组件分解: {json.dumps(components, indent=2)}")
+    logger.info(f"总奖励: {reward:.3f}")
+    logger.info(f"组件分解: {json.dumps(components, indent=2)}")
 
     # 不稳定状态
-    print("\n=== 不稳定状态 ===")
+    logger.info("\n=== 不稳定状态 ===")
     unstable_obs = {
         "sensors": {
             "imu": {"orient": [25.0, -20.0, 0.0]},
@@ -402,10 +406,10 @@ if __name__ == "__main__":
     }
 
     reward, components = designer.compute_reward(unstable_obs, action, info)
-    print(f"总奖励: {reward:.3f}")
+    logger.info(f"总奖励: {reward:.3f}")
 
     # 跌倒状态
-    print("\n=== 跌倒状态 ===")
+    logger.info("\n=== 跌倒状态 ===")
     fall_obs = {
         "sensors": {
             "imu": {"orient": [50.0, -40.0, 0.0]},
@@ -415,9 +419,9 @@ if __name__ == "__main__":
     }
 
     reward, components = designer.compute_reward(fall_obs, action, info)
-    print(f"总奖励: {reward:.3f}")
-    print(f"包含跌倒惩罚: {components.get('fall_penalty', 0)}")
+    logger.info(f"总奖励: {reward:.3f}")
+    logger.info(f"包含跌倒惩罚: {components.get('fall_penalty', 0)}")
 
     # 统计
-    print("\n=== 统计信息 ===")
-    print(json.dumps(designer.get_stats(), indent=2))
+    logger.info("\n=== 统计信息 ===")
+    logger.info(json.dumps(designer.get_stats(), indent=2))

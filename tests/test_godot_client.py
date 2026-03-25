@@ -4,6 +4,9 @@
 验证TCP连接、命令发送和数据接收功能
 """
 
+import logging
+from typing import Any, Optional, Dict, List, Tuple
+logger = logging.getLogger(__name__)
 import unittest
 import time
 import threading
@@ -30,7 +33,7 @@ class TestGodotClient(unittest.TestCase):
         """关闭服务器"""
         cls.server.stop()
 
-    def test_connection(self):
+    def test_connection(self) -> None:
         """测试连接"""
         client = GodotSimulationClient(port=9998)
 
@@ -42,7 +45,7 @@ class TestGodotClient(unittest.TestCase):
         client.disconnect()
         self.assertFalse(client.is_connected())
 
-    def test_connection_timeout(self):
+    def test_connection_timeout(self) -> None:
         """测试连接超时"""
         # 连接到不存在的服务器
         client = GodotSimulationClient(port=9997)  # 错误端口
@@ -50,7 +53,7 @@ class TestGodotClient(unittest.TestCase):
         # 应该失败
         self.assertFalse(client.connect(timeout=1.0))
 
-    def test_send_commands(self):
+    def test_send_commands(self) -> None:
         """测试发送命令"""
         client = GodotSimulationClient(port=9998)
 
@@ -77,7 +80,7 @@ class TestGodotClient(unittest.TestCase):
         else:
             self.fail("无法连接到服务器")
 
-    def test_data_callback(self):
+    def test_data_callback(self) -> None:
         """测试数据回调"""
         client = GodotSimulationClient(port=9998)
 
@@ -110,5 +113,5 @@ class TestGodotClient(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print("=== Godot客户端单元测试 ===\n")
+    logger.info("=== Godot客户端单元测试 ===\n")
     unittest.main(verbosity=2)

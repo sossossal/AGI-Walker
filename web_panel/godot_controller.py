@@ -1,3 +1,5 @@
+import logging
+logger = logging.getLogger(__name__)
 from typing import Optional, Dict, Callable, Any
 import sys
 import os
@@ -11,19 +13,19 @@ from python_api.comm.godot_client import GodotSimulationClient
 class GodotController:
     _instance = None
     
-    def __new__(cls):
+    def __new__(cls) -> None:
         if cls._instance is None:
             cls._instance = super(GodotController, cls).__new__(cls)
             cls._instance.client = GodotSimulationClient()
             cls._instance.broadcast_callback = None
         return cls._instance
     
-    def set_broadcast_callback(self, callback: Callable[[Dict], Any]):
+    def set_broadcast_callback(self, callback: Callable[[Dict], Any]) -> None:
         """设置用于WebSocket广播的回调函数"""
         self.broadcast_callback = callback
         
         # 设置底层客户端的数据回调
-        def on_godot_data(data):
+        def on_godot_data(data) -> None:
             if self.broadcast_callback:
                 # 包装为统一的消息格式
                 msg = {
@@ -49,7 +51,7 @@ class GodotController:
              })
         return success
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         self.client.disconnect()
         if self.broadcast_callback:
              self.broadcast_callback({

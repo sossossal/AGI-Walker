@@ -106,9 +106,9 @@ def demo_batch_optimization():
 
 
 def main():
-    print("\n" + "⚙️" * 30)
+    print("\n" + "=" * 30)
     print("Parameter Optimizer Skill 演示")
-    print("⚙️" * 30 + "\n")
+    print("=" * 30 + "\n")
 
     try:
         demo_mass_optimization()
@@ -116,7 +116,7 @@ def main():
         demo_batch_optimization()
 
         print("\n" + "=" * 60)
-        print("✓ 所有演示完成！")
+        print("所有演示完成！")
         print("=" * 60)
 
     except Exception as e:

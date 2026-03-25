@@ -9,11 +9,15 @@ from tcp_client import GodotClient
 from pid_controller import BalanceController
 from typing import List, Tuple, Dict
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PIDTuner:
     """PID参数自动调优器"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.client = GodotClient()
         self.test_results = []
 
@@ -35,14 +39,14 @@ class PIDTuner:
             测试结果字典
         """
         if not self.client.connect():
-            print("❌ 无法连接到仿真器")
+            logger.info("❌ 无法连接到仿真器")
             return {}
 
-        print("\n🧪 测试配置:")
-        print(
+        logger.info("\n🧪 测试配置:")
+        logger.info(
             f"  Roll PID: Kp={roll_params[0]:.2f}, Ki={roll_params[1]:.2f}, Kd={roll_params[2]:.2f}"
         )
-        print(
+        logger.info(
             f"  Pitch PID: Kp={pitch_params[0]:.2f}, Ki={pitch_params[1]:.2f}, Kd={pitch_params[2]:.2f}"
         )
 
@@ -88,7 +92,7 @@ class PIDTuner:
 
                 # 检测摔倒
                 if deviation > 45:
-                    print(f"❌ 机器人摔倒! (t={time.time() - start_time:.2f}s)")
+                    logger.info(f"❌ 机器人摔倒! (t={time.time() - start_time:.2f}s)")
                     break
 
             last_time = current_time
@@ -110,11 +114,11 @@ class PIDTuner:
             "duration": time.time() - start_time,
         }
 
-        print("\n📊 测试结果:")
-        print(f"  平均偏差: {avg_deviation:.2f}°")
-        print(f"  最大偏差: {max_deviation:.2f}°")
-        print(f"  稳定时间: {stable_time:.1f}s / {duration:.1f}s")
-        print(f"  稳定性评分: {stability_score:.1f}/100")
+        logger.info("\n📊 测试结果:")
+        logger.info(f"  平均偏差: {avg_deviation:.2f}°")
+        logger.info(f"  最大偏差: {max_deviation:.2f}°")
+        logger.info(f"  稳定时间: {stable_time:.1f}s / {duration:.1f}s")
+        logger.info(f"  稳定性评分: {stability_score:.1f}/100")
 
         return result
 
@@ -134,11 +138,11 @@ class PIDTuner:
             kd_range: Kd值列表
             test_duration: 每次测试时长
         """
-        print("\n" + "=" * 60)
-        print("🔬 PID参数网格搜索")
-        print("=" * 60)
-        print(f"参数空间: Kp={kp_range}, Ki={ki_range}, Kd={kd_range}")
-        print(f"总组合数: {len(kp_range) * len(ki_range) * len(kd_range)}")
+        logger.info("\n" + "=" * 60)
+        logger.info("🔬 PID参数网格搜索")
+        logger.info("=" * 60)
+        logger.info(f"参数空间: Kp={kp_range}, Ki={ki_range}, Kd={kd_range}")
+        logger.info(f"总组合数: {len(kp_range) * len(ki_range) * len(kd_range)}")
 
         self.test_results = []
         test_count = 0
@@ -147,7 +151,7 @@ class PIDTuner:
             for ki in ki_range:
                 for kd in kd_range:
                     test_count += 1
-                    print(f"\n--- 测试 {test_count} ---")
+                    logger.info(f"\n--- 测试 {test_count} ---")
 
                     # 同时用于Roll和Pitch
                     result = self.test_pid_configuration(
@@ -176,15 +180,15 @@ class PIDTuner:
             step_sizes: 搜索步长
             iterations: 迭代次数
         """
-        print("\n" + "=" * 60)
-        print("🎯 PID参数自适应搜索")
-        print("=" * 60)
+        logger.info("\n" + "=" * 60)
+        logger.info("🎯 PID参数自适应搜索")
+        logger.info("=" * 60)
 
         best_params = initial_params
         best_score = 0.0
 
         for i in range(iterations):
-            print(f"\n=== 迭代 {i+1}/{iterations} ===")
+            logger.info(f"\n=== 迭代 {i+1}/{iterations} ===")
 
             # 测试当前参数
             result = self.test_pid_configuration(
@@ -195,7 +199,7 @@ class PIDTuner:
 
             if current_score > best_score:
                 best_score = current_score
-                print(f"✅ 发现更好的配置! 评分: {best_score:.1f}")
+                logger.info(f"✅ 发现更好的配置! 评分: {best_score:.1f}")
 
             # 尝试周围的参数
             neighbors = self._generate_neighbors(best_params, step_sizes)
@@ -206,15 +210,15 @@ class PIDTuner:
                 if result["stability_score"] > best_score:
                     best_params = neighbor
                     best_score = result["stability_score"]
-                    print(f"✨ 更新最佳参数: {best_params}, 评分: {best_score:.1f}")
+                    logger.info(f"✨ 更新最佳参数: {best_params}, 评分: {best_score:.1f}")
 
                 time.sleep(2)
 
-        print("\n🏆 最终最佳参数:")
-        print(
+        logger.info("\n🏆 最终最佳参数:")
+        logger.info(
             f"  Kp={best_params[0]:.2f}, Ki={best_params[1]:.2f}, Kd={best_params[2]:.2f}"
         )
-        print(f"  评分: {best_score:.1f}/100")
+        logger.info(f"  评分: {best_score:.1f}/100")
 
     def _generate_neighbors(self, params: Tuple, steps: Tuple) -> List[Tuple]:
         """生成邻近参数组合"""
@@ -235,7 +239,7 @@ class PIDTuner:
 
         return neighbors
 
-    def _print_best_results(self, top_n: int = 5):
+    def _print_best_results(self, top_n: int = 5) -> List:
         """打印最佳结果"""
         if not self.test_results:
             return
@@ -244,30 +248,30 @@ class PIDTuner:
             self.test_results, key=lambda x: x["stability_score"], reverse=True
         )
 
-        print("\n" + "=" * 60)
-        print(f"🏆 前{top_n}名配置")
-        print("=" * 60)
+        logger.info("\n" + "=" * 60)
+        logger.info(f"🏆 前{top_n}名配置")
+        logger.info("=" * 60)
 
         for i, result in enumerate(sorted_results[:top_n], 1):
             kp, ki, kd = result["roll_params"]
-            print(f"\n#{i} 评分: {result['stability_score']:.1f}/100")
-            print(f"   PID参数: Kp={kp:.2f}, Ki={ki:.2f}, Kd={kd:.2f}")
-            print(f"   平均偏差: {result['avg_deviation']:.2f}°")
-            print(f"   稳定时间: {result['stable_time']:.1f}s")
+            logger.info(f"\n#{i} 评分: {result['stability_score']:.1f}/100")
+            logger.info(f"   PID参数: Kp={kp:.2f}, Ki={ki:.2f}, Kd={kd:.2f}")
+            logger.info(f"   平均偏差: {result['avg_deviation']:.2f}°")
+            logger.info(f"   稳定时间: {result['stable_time']:.1f}s")
 
-    def save_results(self, filename: str = "pid_tuning_results.json"):
+    def save_results(self, filename: str = "pid_tuning_results.json") -> List:
         """保存调优结果"""
         with open(filename, "w") as f:
             json.dump(self.test_results, f, indent=2)
-        print(f"\n💾 结果已保存到: {filename}")
+        logger.info(f"\n💾 结果已保存到: {filename}")
 
 
 # 使用示例
 if __name__ == "__main__":
     tuner = PIDTuner()
 
-    print("PID参数调优工具")
-    print("=" * 60)
+    logger.info("PID参数调优工具")
+    logger.info("=" * 60)
 
     # 选择调优方法
     method = input("\n选择调优方法 [1: 网格搜索, 2: 自适应搜索]: ").strip()
@@ -289,4 +293,4 @@ if __name__ == "__main__":
     # 保存结果
     tuner.save_results()
 
-    print("\n✅ 调优完成")
+    logger.info("\n✅ 调优完成")

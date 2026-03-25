@@ -187,11 +187,11 @@ class InteractivePrecisionTuner:
         if choice == "1":
             self.part_type = "motor"
             self.adjuster = PrecisionPartAdjuster("motor")
-            print("\n✓ 已创建电机调节器")
+            print("\nMotor adjuster created")
         elif choice == "2":
             self.part_type = "joint"
             self.adjuster = PrecisionPartAdjuster("joint")
-            print("\n✓ 已创建关节调节器")
+            print("\nJoint adjuster created")
         else:
             print("无效选择")
             return
@@ -273,7 +273,7 @@ class InteractivePrecisionTuner:
                         result = self.adjuster.set_parameter(param_name, value)
 
                         if result["success"]:
-                            print("\n✓ 参数已更新")
+                            print("\nParameter updated")
                             print(f"  {param_name}: {result['display_value']}")
                             print(f"  精度: ±{result['precision']}")
                             print(f"  范围: {result['range']}")
@@ -284,14 +284,14 @@ class InteractivePrecisionTuner:
                                     print(f"    {key}: {val}")
 
                             if not result["is_valid"]:
-                                print("\n  ⚠️  警告:")
+                                print("\n  Warnings:")
                                 for warning in result["warnings"]:
                                     print(f"    {warning}")
                         else:
-                            print(f"\n✗ 错误: {result['error']}")
+                            print(f"\nError: {result['error']}")
 
                     except ValueError:
-                        print("✗ 错误: 值必须是数字")
+                        print("Error: value must be numeric")
 
                 elif cmd[0] == "range" and len(cmd) == 2:
                     param_name = cmd[1]
@@ -308,7 +308,7 @@ class InteractivePrecisionTuner:
                         print(f"  精度: 0.1 {unit}")
                         print(f"  可调节步数: {int((max_val - min_val) / 0.1)}")
                     else:
-                        print(f"✗ 未知参数: {param_name}")
+                        print(f"Unknown parameter: {param_name}")
 
                 elif cmd[0] == "sweep" and len(cmd) == 2:
                     param_name = cmd[1]
@@ -330,7 +330,7 @@ class InteractivePrecisionTuner:
 
                 elif cmd[0] == "reset":
                     self.adjuster.reset_to_default()
-                    print("✓ 已重置到默认值")
+                    print("Reset to defaults")
 
                 else:
                     print("未知命令，输入 'help' 查看帮助")

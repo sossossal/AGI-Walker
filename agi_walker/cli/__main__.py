@@ -5,6 +5,8 @@ AGI-Walker 主CLI入口
 统一的命令行接口。
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import sys
 import argparse
 from pathlib import Path
@@ -34,6 +36,8 @@ def main():
 
     # skills 模块
     subparsers.add_parser("skills", help="Skills系统管理", add_help=False)
+    # workflows alias to help users get there faster
+    subparsers.add_parser("workflows", help="Alias for `skills workflows`", add_help=False)
 
     args, remaining = parser.parse_known_args()
 
@@ -42,6 +46,12 @@ def main():
         from agi_walker.cli.skills_cli import main as skills_main
 
         sys.argv = ["agi_walker skills"] + remaining
+        return skills_main()
+
+    if args.module == "workflows":
+        from agi_walker.cli.skills_cli import main as skills_main
+
+        sys.argv = ["agi_walker skills", "workflows"] + remaining
         return skills_main()
 
     if not args.module:

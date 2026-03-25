@@ -14,6 +14,10 @@ from dataclasses import dataclass
 from async_tcp_client import AsyncGodotClient
 from load_monitor import LoadMonitor, SimplePIDController
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class AsyncControllerConfig:
@@ -38,7 +42,7 @@ class AsyncController:
     - 推理进程池：并行AI推理
     """
 
-    def __init__(self, config: Optional[AsyncControllerConfig] = None):
+    def __init__(self, config: Optional[AsyncControllerConfig] = None) -> None:
         self.config = config or AsyncControllerConfig()
 
         # 客户端
@@ -80,15 +84,15 @@ class AsyncController:
         # 最新传感器数据
         self.latest_sensor_data: Optional[dict] = None
 
-    def _init_pools(self):
+    def _init_pools(self) -> List:
         """初始化进程池和线程池"""
         self.inference_pool = ProcessPoolExecutor(
             max_workers=self.config.inference_workers
         )
         self.io_pool = ThreadPoolExecutor(max_workers=4)
-        print(f"✅ 进程池初始化完成（{self.config.inference_workers}个推理进程）")
+        logger.info(f"✅ 进程池初始化完成（{self.config.inference_workers}个推理进程）")
 
-    def _init_onnx(self):
+    def _init_onnx(self) -> None:
         """初始化ONNX引擎"""
         if not self.config.enable_onnx:
             return
@@ -97,27 +101,27 @@ class AsyncController:
             from onnx_inference import create_onnx_engine
 
             self.onnx_engine = create_onnx_engine(use_gpu=False)
-            print("✅ ONNX引擎初始化完成")
+            logger.info("✅ ONNX引擎初始化完成")
         except Exception as e:
-            print(f"⚠️ ONNX引擎初始化失败: {e}")
+            logger.info(f"⚠️ ONNX引擎初始化失败: {e}")
 
-    async def run(self, duration: float = 120.0):
+    async def run(self, duration: float = 120.0) -> None:
         """
         运行异步控制循环
 
         Args:
             duration: 运行时长（秒）
         """
-        print("=" * 50)
-        print("启动异步并行控制器")
-        print("=" * 50)
+        logger.info("=" * 50)
+        logger.info("启动异步并行控制器")
+        logger.info("=" * 50)
 
         self._init_pools()
         self._init_onnx()
 
         # 连接到Godot
         if not await self.client.connect():
-            print("❌ 无法连接到Godot仿真器")
+            logger.info("❌ 无法连接到Godot仿真器")
             return
 
         self.running = True
@@ -137,20 +141,20 @@ class AsyncController:
             await asyncio.sleep(duration)
 
         except asyncio.CancelledError:
-            print("\n⏹ 任务取消")
+            logger.info("\n⏹ 任务取消")
         except KeyboardInterrupt:
-            print("\n⏹ 用户中断")
+            logger.info("\n⏹ 用户中断")
         except Exception as e:
-            print(f"\n❌ 错误: {e}")
+            logger.info(f"\n❌ 错误: {e}")
             self.stats["errors"] += 1
         finally:
             await self._cleanup()
 
-    async def _sensor_loop(self):
+    async def _sensor_loop(self) -> None:
         """传感器接收协程"""
         await self.client.receive_loop()
 
-    async def _inference_loop(self):
+    async def _inference_loop(self) -> None:
         """推理协程"""
         loop = asyncio.get_event_loop()
         interval = 1.0 / self.config.target_hz
@@ -177,7 +181,7 @@ class AsyncController:
                         )
                         self.stats["inference_frames"] += 1
                     except Exception as e:
-                        print(f"⚠️ 推理错误: {e}")
+                        logger.info(f"⚠️ 推理错误: {e}")
                         action = self.load_monitor.get_control_action(sensor_data)
                         self.stats["pid_frames"] += 1
 
@@ -221,7 +225,7 @@ class AsyncController:
             "confidence": 0.8,
         }
 
-    async def _control_loop(self):
+    async def _control_loop(self) -> None:
         """控制输出协程"""
         while self.running:
             try:
@@ -248,9 +252,9 @@ class AsyncController:
             except asyncio.TimeoutError:
                 continue
             except Exception as e:
-                print(f"⚠️ 控制错误: {e}")
+                logger.info(f"⚠️ 控制错误: {e}")
 
-    async def _logging_loop(self):
+    async def _logging_loop(self) -> None:
         """日志协程"""
         log_buffer: List[dict] = []
 
@@ -270,21 +274,21 @@ class AsyncController:
                 await asyncio.sleep(0.1)
 
             except Exception as e:
-                print(f"⚠️ 日志错误: {e}")
+                logger.info(f"⚠️ 日志错误: {e}")
 
-    async def _write_logs(self, logs: List[dict]):
+    async def _write_logs(self, logs: List[dict]) -> List:
         """异步写入日志"""
         # 使用线程池执行IO操作
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(self.io_pool, self._write_logs_sync, logs)
 
-    def _write_logs_sync(self, logs: List[dict]):
+    def _write_logs_sync(self, logs: List[dict]) -> None:
         """同步写入日志"""
         # 简化：仅保存到内存
         # 实际应用可以写入文件或数据库
         pass
 
-    async def _monitor_loop(self):
+    async def _monitor_loop(self) -> None:
         """监控协程"""
         last_print = 0.0
 
@@ -306,7 +310,7 @@ class AsyncController:
                         .get("orient", [0, 0, 0])
                     )
                     height = self.latest_sensor_data.get("torso_height", 0)
-                    print(
+                    logger.info(
                         f"\r[{elapsed:6.1f}s] {mode_emoji} {mode:6s} | "
                         f"Roll: {orient[0]:+6.1f}° Pitch: {orient[1]:+6.1f}° | "
                         f"高度: {height:.2f}m | FPS: {fps:.0f}",
@@ -317,30 +321,30 @@ class AsyncController:
 
             await asyncio.sleep(0.1)
 
-    async def _cleanup(self):
+    async def _cleanup(self) -> None:
         """清理资源"""
         self.running = False
 
-        print("\n\n" + "=" * 50)
-        print("控制器统计")
-        print("=" * 50)
+        logger.info("\n\n" + "=" * 50)
+        logger.info("控制器统计")
+        logger.info("=" * 50)
 
         elapsed = time.time() - self.start_time
         fps = self.stats["total_frames"] / elapsed if elapsed > 0 else 0
 
-        print(f"运行时长: {elapsed:.1f}秒")
-        print(f"总帧数: {self.stats['total_frames']}")
-        print(f"平均FPS: {fps:.1f}")
-        print(f"推理帧: {self.stats['inference_frames']}")
-        print(f"PID帧: {self.stats['pid_frames']}")
-        print(f"错误数: {self.stats['errors']}")
+        logger.info(f"运行时长: {elapsed:.1f}秒")
+        logger.info(f"总帧数: {self.stats['total_frames']}")
+        logger.info(f"平均FPS: {fps:.1f}")
+        logger.info(f"推理帧: {self.stats['inference_frames']}")
+        logger.info(f"PID帧: {self.stats['pid_frames']}")
+        logger.info(f"错误数: {self.stats['errors']}")
 
         # 负载监控统计
         load_stats = self.load_monitor.get_stats()
-        print("\n负载监控:")
-        print(f"  EMA延迟: {load_stats['ema_latency_ms']:.1f}ms")
-        print(f"  超标率: {load_stats['over_threshold_rate']*100:.1f}%")
-        print(f"  模式切换: {load_stats['mode_switches']}次")
+        logger.info("\n负载监控:")
+        logger.info(f"  EMA延迟: {load_stats['ema_latency_ms']:.1f}ms")
+        logger.info(f"  超标率: {load_stats['over_threshold_rate']*100:.1f}%")
+        logger.info(f"  模式切换: {load_stats['mode_switches']}次")
 
         # 关闭资源
         await self.client.disconnect()
@@ -350,10 +354,10 @@ class AsyncController:
         if self.io_pool:
             self.io_pool.shutdown(wait=False)
 
-        print("\n资源已清理")
+        logger.info("\n资源已清理")
 
 
-def main():
+def main() -> None:
     """主函数"""
     parser = argparse.ArgumentParser(description="异步并行控制器")
 

@@ -10,6 +10,10 @@ from typing import Dict, List
 from collections import deque
 from ai_model import BaseAIModel
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class MediumModel(BaseAIModel):
     """
@@ -23,7 +27,7 @@ class MediumModel(BaseAIModel):
     响应时间目标：100-500ms
     """
 
-    def __init__(self, model_name: str = "mistral:7b"):
+    def __init__(self, model_name: str = "mistral:7b") -> None:
         try:
             import ollama
 
@@ -53,22 +57,22 @@ class MediumModel(BaseAIModel):
         # 验证模型
         self._verify_model()
 
-    def _verify_model(self):
+    def _verify_model(self) -> None:
         """验证模型是否可用"""
         try:
             models = self.ollama.list()
             available = [m["name"] for m in models.get("models", [])]
 
             if not any(self.model in m for m in available):
-                print(f"⚠️ 中模型 {self.model} 未找到")
-                print(f"可用模型: {available}")
-                print(f"\n请运行: ollama pull {self.model}")
+                logger.info(f"⚠️ 中模型 {self.model} 未找到")
+                logger.info(f"可用模型: {available}")
+                logger.info(f"\n请运行: ollama pull {self.model}")
                 raise ValueError(f"模型 {self.model} 不可用")
 
-            print(f"✅ 中模型 {self.model} 已加载")
+            logger.info(f"✅ 中模型 {self.model} 已加载")
 
         except Exception as e:
-            print(f"❌ 无法连接到Ollama服务: {e}")
+            logger.info(f"❌ 无法连接到Ollama服务: {e}")
             raise
 
     def _create_schema(self) -> Dict:
@@ -153,7 +157,7 @@ class MediumModel(BaseAIModel):
             return result
 
         except Exception as e:
-            print(f"❌ 中模型推理错误: {e}")
+            logger.info(f"❌ 中模型推理错误: {e}")
             self.errors += 1
             return self._default_action()
 
@@ -219,7 +223,7 @@ class MediumModel(BaseAIModel):
 
     # =================== 日志过滤功能 ===================
 
-    def add_log(self, log_entry: dict):
+    def add_log(self, log_entry: dict) -> None:
         """添加日志条目到缓冲区"""
         self.log_buffer.append(log_entry)
         self.logs_filtered += 1
@@ -298,7 +302,7 @@ class MediumModel(BaseAIModel):
 
         return adjustment
 
-    def _update_environment_state(self, sensor_data: dict):
+    def _update_environment_state(self, sensor_data: dict) -> None:
         """更新环境状态缓存"""
         orient = sensor_data["sensors"]["imu"]["orient"]
         height = sensor_data.get("torso_height", 0)
@@ -360,7 +364,7 @@ class MediumModel(BaseAIModel):
 
 # 测试代码
 if __name__ == "__main__":
-    print("中模型层测试\n")
+    logger.info("中模型层测试\n")
 
     # 创建中模型
     medium = MediumModel(model_name="mistral:7b")
@@ -378,12 +382,12 @@ if __name__ == "__main__":
     }
 
     # 测试环境感知调整
-    print("测试环境感知调整...")
+    logger.info("测试环境感知调整...")
     adjustment = medium.adjust_environment(dummy_sensor)
-    print(f"调整建议: {json.dumps(adjustment, indent=2, ensure_ascii=False)}")
+    logger.info(f"调整建议: {json.dumps(adjustment, indent=2, ensure_ascii=False)}")
 
     # 测试日志过滤
-    print("\n测试日志过滤...")
+    logger.info("\n测试日志过滤...")
     test_logs = [
         {"level": "INFO", "message": "正常运行"},
         {"level": "WARNING", "message": "轻微倾斜", "roll": 10},
@@ -392,12 +396,12 @@ if __name__ == "__main__":
     ]
 
     critical = medium.filter_logs(test_logs)
-    print(f"关键事件数量: {len(critical)}")
+    logger.info(f"关键事件数量: {len(critical)}")
 
     # 统计
     stats = medium.get_stats()
-    print("\n统计信息:")
-    print(f"  推理次数: {stats['total_predictions']}")
-    print(f"  平均耗时: {stats['avg_inference_time']*1000:.2f}ms")
-    print(f"  日志过滤: {stats['logs_filtered']}")
-    print(f"  上报事件: {stats['events_escalated']}")
+    logger.info("\n统计信息:")
+    logger.info(f"  推理次数: {stats['total_predictions']}")
+    logger.info(f"  平均耗时: {stats['avg_inference_time']*1000:.2f}ms")
+    logger.info(f"  日志过滤: {stats['logs_filtered']}")
+    logger.info(f"  上报事件: {stats['events_escalated']}")

@@ -2,6 +2,8 @@
 验证 Godot API 接口
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import socket
 import json
 import time
@@ -9,7 +11,7 @@ import sys
 
 
 def verify_api(host="127.0.0.1", port=9999):
-    print(f"Connecting to Godot at {host}:{port}...")
+    logger.info(f"Connecting to Godot at {host}:{port}...")
 
     try:
         # 创建 Socket
@@ -25,9 +27,9 @@ def verify_api(host="127.0.0.1", port=9999):
         data = sock.recv(1024)
         if data:
             response = json.loads(data.decode())
-            print(f"✅ Handshake Success: {response}")
+            logger.info(f"✅ Handshake Success: {response}")
         else:
-            print("❌ No response from Godot")
+            logger.info("❌ No response from Godot")
             return False
 
         # 测试 2: 发送 Motor Commands
@@ -37,30 +39,30 @@ def verify_api(host="127.0.0.1", port=9999):
             "timestamp": time.time(),
         }
         sock.sendall(json.dumps(motor_cmd).encode())
-        print("✅ Motor Command Sent")
+        logger.info("✅ Motor Command Sent")
 
         # 测试 3: 获取传感器数据
         data = sock.recv(4096)
         if data:
             sensors = json.loads(data.decode())
-            print(f"✅ Received Sensor Data: {sensors.keys()}")
+            logger.info(f"✅ Received Sensor Data: {sensors.keys()}")
             if "imu" in sensors.get("sensors", {}):
-                print(f"   IMU Orientation: {sensors['sensors']['imu']['orient']}")
+                logger.info(f"   IMU Orientation: {sensors['sensors']['imu']['orient']}")
         else:
-            print("❌ No sensor data received")
+            logger.info("❌ No sensor data received")
 
         sock.close()
-        print("\n🎉 Godot API Verification Finished Successfully!")
+        logger.info("\n🎉 Godot API Verification Finished Successfully!")
         return True
 
     except ConnectionRefusedError:
-        print("❌ Connection Refused: Ensure Godot is running and TCP server is started.")
+        logger.info("❌ Connection Refused: Ensure Godot is running and TCP server is started.")
         return False
     except socket.timeout:
-        print("❌ Connection Timeout")
+        logger.info("❌ Connection Timeout")
         return False
     except Exception as e:
-        print(f"❌ Unexpected Error: {e}")
+        logger.error(f"❌ Unexpected Error: {e}")
         return False
 
 

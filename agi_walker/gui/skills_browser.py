@@ -4,6 +4,8 @@ Skills 浏览面板 - AGI-Walker GUI
 提供可视化的Skills系统界面。
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import sys
 from pathlib import Path
 from typing import Optional
@@ -28,8 +30,8 @@ try:
     from PyQt6.QtCore import Qt, QSize
     from PyQt6.QtGui import QFont, QIcon
 except ImportError:
-    print("警告: PyQt6未安装,GUI功能不可用")
-    print("安装命令: pip install PyQt6")
+    logger.warning("PyQt6未安装,GUI功能不可用")
+    logger.info("安装命令: pip install PyQt6")
     sys.exit(1)
 
 # 添加项目路径

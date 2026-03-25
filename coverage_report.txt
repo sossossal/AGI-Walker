@@ -1,0 +1,233 @@
+
+[CI-SelfCheck] Project Root: D:\新建文件夹\AGI-Walker
+[CI-SelfCheck] Platform: win32
+[CI-SelfCheck] Dependency numpy: Found
+[CI-SelfCheck] Dependency gymnasium: Found
+[CI-SelfCheck] Dependency zenoh: Found
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.0.2, pluggy-1.6.0
+rootdir: D:\新建文件夹\AGI-Walker
+configfile: pytest.ini
+plugins: anyio-4.12.1, cov-7.0.0, mock-3.15.1
+collected 520 items / 2 skipped
+
+tests\test_agent_parser.py ..                                            [  0%]
+tests\test_ai_system.py ssss                                             [  1%]
+tests\test_architecture.py ...........ss.                                [  3%]
+tests\test_boundary_exceptions.py ........................               [  8%]
+tests\test_cli.py ....................                                   [ 12%]
+tests\test_comm_tcp_bridge.py FFFFFFFFFFFFFFFFFFFFFFFFFF                 [ 17%]
+tests\test_comm_tcp_bridge_simple.py .............................       [ 22%]
+tests\test_comm_zenoh.py .......................                         [ 27%]
+tests\test_control_extended.py ......................................... [ 35%]
+                                                                         [ 35%]
+tests\test_coverage_phase5.py ..s.................                       [ 39%]
+tests\test_custom_parts.py .....                                         [ 40%]
+tests\test_environment.py ...............                                [ 42%]
+tests\test_error_handling.py ...........................                 [ 48%]
+tests\test_extended.py ............                                      [ 50%]
+tests\test_godot_client.py ....                                          [ 51%]
+tests\test_gui_layer.py .........................                        [ 55%]
+tests\test_hardware_controller.py ssssssssss....                         [ 58%]
+tests\test_integration.py ....s.                                         [ 59%]
+tests\test_integration_workflows.py ..................................   [ 66%]
+tests\test_latency.py s                                                  [ 66%]
+tests\test_offline_rl.py ...                                             [ 67%]
+tests\test_parts_database.py .........                                   [ 68%]
+tests\test_performance_stability.py ...............                      [ 71%]
+tests\test_pid_balance.py s                                              [ 71%]
+tests\test_sim2real_randomization.py .                                   [ 72%]
+tests\test_skill_validation.py ....                                      [ 72%]
+tests\test_skills_algorithms.py ........................                 [ 77%]
+tests\test_skills_enhancements.py .......................                [ 81%]
+tests\test_skills_loader.py .............                                [ 84%]
+tests\test_skills_loader_enhanced.py ................................... [ 91%]
+.                                                                        [ 91%]
+tests\test_skills_real_code.py ..........................                [ 96%]
+tests\test_skills_system.py .............                                [ 98%]
+tests\test_suite.py sssss                                                [ 99%]
+tests\test_web_generation.py .                                           [100%]
+
+================================== FAILURES ===================================
+_______________ TestTcpZenohBridgeInit.test_init_default_config _______________
+tests\test_comm_tcp_bridge.py:75: in test_init_default_config
+    bridge = TcpZenohBridge()
+             ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+______________ TestTcpZenohBridgeInit.test_init_custom_host_port ______________
+tests\test_comm_tcp_bridge.py:92: in test_init_custom_host_port
+    bridge = TcpZenohBridge(tcp_host="192.168.1.100", tcp_port=8888)
+             ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+____________ TestTcpZenohBridgeInit.test_init_threads_not_started _____________
+tests\test_comm_tcp_bridge.py:106: in test_init_threads_not_started
+    bridge = TcpZenohBridge()
+             ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+_________________ TestTcpZenohBridgeInit.test_init_attributes _________________
+tests\test_comm_tcp_bridge.py:121: in test_init_attributes
+    bridge = TcpZenohBridge()
+             ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+________________ TestTcpServerManagement.test_start_tcp_server ________________
+tests\test_comm_tcp_bridge.py:148: in test_start_tcp_server
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+____________ TestTcpServerManagement.test_start_sets_running_flag _____________
+tests\test_comm_tcp_bridge.py:163: in test_start_sets_running_flag
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+____________ TestTcpServerManagement.test_stop_clears_running_flag ____________
+tests\test_comm_tcp_bridge.py:178: in test_stop_clears_running_flag
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+____________ TestConnectionHandling.test_accept_single_connection _____________
+tests\test_comm_tcp_bridge.py:203: in test_accept_single_connection
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+___________ TestConnectionHandling.test_connection_timeout_handling ___________
+tests\test_comm_tcp_bridge.py:219: in test_connection_timeout_handling
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+________________ TestConnectionHandling.test_connection_close _________________
+tests\test_comm_tcp_bridge.py:235: in test_connection_close
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+__________ TestConnectionHandling.test_reconnection_after_disconnect __________
+tests\test_comm_tcp_bridge.py:251: in test_reconnection_after_disconnect
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+_______________ TestMessageForwarding.test_tcp_to_zenoh_forward _______________
+tests\test_comm_tcp_bridge.py:278: in test_tcp_to_zenoh_forward
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+_______________ TestMessageForwarding.test_zenoh_to_tcp_forward _______________
+tests\test_comm_tcp_bridge.py:295: in test_zenoh_to_tcp_forward
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+____________ TestMessageForwarding.test_bidirectional_message_flow ____________
+tests\test_comm_tcp_bridge.py:311: in test_bidirectional_message_flow
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+______________ TestMessageForwarding.test_message_serialization _______________
+tests\test_comm_tcp_bridge.py:332: in test_message_serialization
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+__________________ TestErrorHandling.test_socket_bind_error ___________________
+tests\test_comm_tcp_bridge.py:358: in test_socket_bind_error
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+______________ TestErrorHandling.test_connection_error_recovery _______________
+tests\test_comm_tcp_bridge.py:376: in test_connection_error_recovery
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+_______________ TestErrorHandling.test_malformed_json_handling ________________
+tests\test_comm_tcp_bridge.py:394: in test_malformed_json_handling
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+_________________ TestErrorHandling.test_zenoh_publish_error __________________
+tests\test_comm_tcp_bridge.py:411: in test_zenoh_publish_error
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+_____________ TestThreadManagement.test_threads_created_on_start ______________
+tests\test_comm_tcp_bridge.py:433: in test_threads_created_on_start
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+____________ TestThreadManagement.test_threads_stopped_gracefully _____________
+tests\test_comm_tcp_bridge.py:449: in test_threads_stopped_gracefully
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+______________ TestThreadManagement.test_concurrent_connections _______________
+tests\test_comm_tcp_bridge.py:465: in test_concurrent_connections
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+__________________ TestThreadManagement.test_bridge_cleanup ___________________
+tests\test_comm_tcp_bridge.py:480: in test_bridge_cleanup
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+__________________ TestBridgeIntegration.test_full_lifecycle __________________
+tests\test_comm_tcp_bridge.py:505: in test_full_lifecycle
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+__________________ TestBridgeIntegration.test_restart_bridge __________________
+tests\test_comm_tcp_bridge.py:523: in test_restart_bridge
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+____________ TestBridgeIntegration.test_configuration_persistence _____________
+tests\test_comm_tcp_bridge.py:540: in test_configuration_persistence
+    with patch.object(TcpZenohBridge, "_accept_connections"):
+                      ^^^^^^^^^^^^^^
+E   NameError: name 'TcpZenohBridge' is not defined
+============================== warnings summary ===============================
+tests/test_offline_rl.py::test_d3rlpy_installed
+  C:\Users\荣耀\AppData\Local\Programs\Python\Python312\Lib\site-packages\torch\cuda\__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+    import pynvml  # type: ignore[import]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+______________ coverage: platform win32, python 3.12.10-final-0 _______________
+
+Name                                                Stmts   Miss  Cover
+-----------------------------------------------------------------------
+agi_walker\__init__.py                                  3      0   100%
+agi_walker\cli\__init__.py                              2      0   100%
+agi_walker\cli\__main__.py                             20      2    90%
+agi_walker\cli\skills_cli.py                          132     29    78%
+agi_walker\gui\__init__.py                              1      1     0%
+agi_walker\gui\skills_browser.py                      192    192     0%
+agi_walker\skills\__init__.py                           2      0   100%
+agi_walker\skills\parameter-optimizer\__init__.py     143     44    69%
+agi_walker\skills\robot-modeling\__init__.py           87     22    75%
+agi_walker\skills\urdf-generator\__init__.py          204     31    85%
+agi_walker\skills_loader.py                           132      0   100%
+-----------------------------------------------------------------------
+TOTAL                                                 918    321    65%
+=========================== short test summary info ===========================
+FAILED tests/test_comm_tcp_bridge.py::TestTcpZenohBridgeInit::test_init_default_config
+FAILED tests/test_comm_tcp_bridge.py::TestTcpZenohBridgeInit::test_init_custom_host_port
+FAILED tests/test_comm_tcp_bridge.py::TestTcpZenohBridgeInit::test_init_threads_not_started
+FAILED tests/test_comm_tcp_bridge.py::TestTcpZenohBridgeInit::test_init_attributes
+FAILED tests/test_comm_tcp_bridge.py::TestTcpServerManagement::test_start_tcp_server
+FAILED tests/test_comm_tcp_bridge.py::TestTcpServerManagement::test_start_sets_running_flag
+FAILED tests/test_comm_tcp_bridge.py::TestTcpServerManagement::test_stop_clears_running_flag
+FAILED tests/test_comm_tcp_bridge.py::TestConnectionHandling::test_accept_single_connection
+FAILED tests/test_comm_tcp_bridge.py::TestConnectionHandling::test_connection_timeout_handling
+FAILED tests/test_comm_tcp_bridge.py::TestConnectionHandling::test_connection_close
+FAILED tests/test_comm_tcp_bridge.py::TestConnectionHandling::test_reconnection_after_disconnect
+FAILED tests/test_comm_tcp_bridge.py::TestMessageForwarding::test_tcp_to_zenoh_forward
+FAILED tests/test_comm_tcp_bridge.py::TestMessageForwarding::test_zenoh_to_tcp_forward
+FAILED tests/test_comm_tcp_bridge.py::TestMessageForwarding::test_bidirectional_message_flow
+FAILED tests/test_comm_tcp_bridge.py::TestMessageForwarding::test_message_serialization
+FAILED tests/test_comm_tcp_bridge.py::TestErrorHandling::test_socket_bind_error
+FAILED tests/test_comm_tcp_bridge.py::TestErrorHandling::test_connection_error_recovery
+FAILED tests/test_comm_tcp_bridge.py::TestErrorHandling::test_malformed_json_handling
+FAILED tests/test_comm_tcp_bridge.py::TestErrorHandling::test_zenoh_publish_error
+FAILED tests/test_comm_tcp_bridge.py::TestThreadManagement::test_threads_created_on_start
+FAILED tests/test_comm_tcp_bridge.py::TestThreadManagement::test_threads_stopped_gracefully
+FAILED tests/test_comm_tcp_bridge.py::TestThreadManagement::test_concurrent_connections
+FAILED tests/test_comm_tcp_bridge.py::TestThreadManagement::test_bridge_cleanup
+FAILED tests/test_comm_tcp_bridge.py::TestBridgeIntegration::test_full_lifecycle
+FAILED tests/test_comm_tcp_bridge.py::TestBridgeIntegration::test_restart_bridge
+FAILED tests/test_comm_tcp_bridge.py::TestBridgeIntegration::test_configuration_persistence
+====== 26 failed, 469 passed, 27 skipped, 1 warning in 77.29s (0:01:17) =======

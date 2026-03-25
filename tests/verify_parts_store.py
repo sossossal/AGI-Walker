@@ -1,3 +1,6 @@
+import logging
+from typing import Any, Optional, Dict, List, Tuple
+logger = logging.getLogger(__name__)
 import requests
 import json
 import os
@@ -7,54 +10,54 @@ import sys
 BASE_URL = "http://localhost:8000"
 
 
-def test_fetch_market():
-    print("Testing GET /api/parts/market...")
+def test_fetch_market() -> None:
+    logger.info("Testing GET /api/parts/market...")
     try:
         res = requests.get(f"{BASE_URL}/api/parts/market")
         if res.status_code != 200:
-            print(f"❌ Failed: Status Code {res.status_code}")
+            logger.info(f"❌ Failed: Status Code {res.status_code}")
             return False
 
         data = res.json()
         if data.get("status") != "success":
-            print(f"❌ Failed: API status is {data.get('status')}")
+            logger.info(f"❌ Failed: API status is {data.get('status')}")
             return False
 
         parts = data.get("parts", [])
-        print(f"✅ Market fetched successfully. Found {len(parts)} parts.")
+        logger.info(f"✅ Market fetched successfully. Found {len(parts)} parts.")
         for p in parts:
-            print(f"   - {p['name']} (${p['price']})")
+            logger.info(f"   - {p['name']} (${p['price']})")
 
         return True
     except Exception as e:
-        print(f"❌ Exception: {e}")
+        logger.info(f"❌ Exception: {e}")
         return False
 
 
-def test_import_part():
-    print("\nTesting POST /api/parts/import...")
+def test_import_part() -> None:
+    logger.info("\nTesting POST /api/parts/import...")
     payload = {"part_id": "MT-C01", "category": "motors"}
     try:
         res = requests.post(f"{BASE_URL}/api/parts/import", json=payload)
         if res.status_code != 200:
-            print(f"❌ Failed: Status Code {res.status_code}")
-            print(res.text)
+            logger.info(f"❌ Failed: Status Code {res.status_code}")
+            logger.info(res.text)
             return False
 
         data = res.json()
         if data.get("status") in ["success", "skipped"]:
-            print(f"✅ Import successful: {data.get('message')}")
+            logger.info(f"✅ Import successful: {data.get('message')}")
             return True
         else:
-            print(f"❌ Failed: API status is {data.get('status')}")
+            logger.info(f"❌ Failed: API status is {data.get('status')}")
             return False
     except Exception as e:
-        print(f"❌ Exception: {e}")
+        logger.info(f"❌ Exception: {e}")
         return False
 
 
 def verify_local_db():
-    print("\nVerifying local database update...")
+    logger.info("\nVerifying local database update...")
     db_path = os.path.join("parts_library", "complete_parts_database.json")
     try:
         with open(db_path, "r", encoding="utf-8") as f:
@@ -65,25 +68,25 @@ def verify_local_db():
         for m in motors:
             if m["id"] == "MT-C01":
                 found = True
-                print(f"✅ Found MT-C01 in local database: {m['name']}")
+                logger.info(f"✅ Found MT-C01 in local database: {m['name']}")
                 break
 
         if not found:
-            print("❌ MT-C01 not found in local database!")
+            logger.info("❌ MT-C01 not found in local database!")
             return False
         return True
 
     except Exception as e:
-        print(f"❌ Exception reading DB: {e}")
+        logger.info(f"❌ Exception reading DB: {e}")
         return False
 
 
 if __name__ == "__main__":
-    print("🚀 Starting Parts Store Verification")
+    logger.info("🚀 Starting Parts Store Verification")
 
     if test_fetch_market() and test_import_part() and verify_local_db():
-        print("\n✨ All tests passed!")
+        logger.info("\n✨ All tests passed!")
         sys.exit(0)
     else:
-        print("\n💥 Some tests failed.")
+        logger.error("\n💥 Some tests failed.")
         sys.exit(1)

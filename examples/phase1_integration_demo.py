@@ -58,7 +58,7 @@ def demo_integrated_systems():
         energy_result = energy_mgr.simulate_step(dt, motor_activity)
 
         if not energy_result["success"]:
-            print(f"\n❌ 时间 {time:.1f}s: 电池电量耗尽！")
+            print(f"\n时间 {time:.1f}s: 电池电量耗尽！")
             break
 
         # 2. 热管理步骤
@@ -93,7 +93,7 @@ def demo_integrated_systems():
 
         # 响应安全警告
         if safety_result["action"] == "EMERGENCY_STOP":
-            print(f"\n🚨 时间 {time:.1f}s: 紧急停止！")
+            print(f"\n时间 {time:.1f}s: 紧急停止！")
             print(f"   原因: {safety_result['message']}")
             break
         elif safety_result["action"] == "REDUCE_SPEED":
@@ -150,10 +150,10 @@ def demo_emergency_scenario():
     thermal_mgr = ThermalManager(parts_config, ambient_temp=40.0)  # 高温环境
 
     print("\n配置:")
-    print("  ⚠️ 小容量电池 (50 Wh)")
-    print("  ⚠️ 高功率电机 (1.5x)")
-    print("  ⚠️ 无散热器")
-    print("  ⚠️ 高温环境 (40°C)")
+    print("  小容量电池 (50 Wh)")
+    print("  高功率电机 (1.5x)")
+    print("  无散热器")
+    print("  高温环境 (40°C)")
 
     print("\n预期:")
     print("  1. 电池快速耗尽")
@@ -178,11 +178,11 @@ def demo_emergency_scenario():
         safety_result = safety.comprehensive_safety_check(state)
 
         if not energy_result["success"]:
-            print(f"\n❌ {time:.1f}s: 电池耗尽")
+            print(f"\n{time:.1f}s: 电池耗尽")
             break
 
         if thermal_result["max_temp"] > 85:
-            print(f"\n❌ {time:.1f}s: 电机过热 ({thermal_result['max_temp']:.1f}°C)")
+            print(f"\n{time:.1f}s: 电机过热 ({thermal_result['max_temp']:.1f}°C)")
             break
 
         if int(time) % 5 == 0 and time > 0:
@@ -300,17 +300,22 @@ def main():
     print("=" * 70)
 
     print("\n关键成果:")
-    print("  ✓ 能量管理系统可追踪电池状态和预测续航")
-    print("  ✓ 安全系统可检测危险并执行保护措施")
-    print("  ✓ 热管理系统可防止过热并自动节流")
-    print("  ✓ 三个系统协同工作，保护机器人安全运行")
+    print("  能量管理系统可追踪电池状态和预测续航")
+    print("  安全系统可检测危险并执行保护措施")
+    print("  热管理系统可防止过热并自动节流")
+    print("  三个系统协同工作，保护机器人安全运行")
 
     print("\n阶段1目标达成:")
-    print("  ✅ 能量管理系统")
-    print("  ✅ 安全系统增强")
-    print("  ✅ 热管理系统")
-    print("\n  系统完整度: 56% → 75% ✅")
+    print("  能量管理系统")
+    print("  安全系统增强")
+    print("  热管理系统")
+    print("\n  系统完整度: 56% → 75%")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"错误: {e}")
+        import traceback
+        traceback.print_exc()

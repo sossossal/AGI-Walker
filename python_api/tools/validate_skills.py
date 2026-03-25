@@ -6,6 +6,7 @@ AGI-Walker Skills 端到端验证与索引生成工具
 
 import os
 import sys
+import logging
 from pathlib import Path
 
 # 把项目根目录加入到 sys.path
@@ -13,6 +14,19 @@ project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from agi_walker.skills_loader import get_skills_loader, SkillMetadata
+
+# 配置日志
+logger = logging.getLogger(__name__)
+
+
+def setup_logging():
+    """配置日志"""
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(levelname)s: %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
 
 
 def generate_markdown_index(skills: list[SkillMetadata]) -> str:
@@ -37,11 +51,11 @@ def generate_markdown_index(skills: list[SkillMetadata]) -> str:
         for sk in sorted(categories[cat], key=lambda x: x.name):
             reqs = []
             if sk.requires.get("python_modules"):
-                reqs.append(f"📦 Py: {','.join(sk.requires['python_modules'])}")
+                reqs.append(f"Py: {','.join(sk.requires['python_modules'])}")
             if sk.requires.get("bins"):
-                reqs.append(f"⚙️ Bin: {','.join(sk.requires['bins'])}")
+                reqs.append(f"Bin: {','.join(sk.requires['bins'])}")
             if sk.requires.get("files"):
-                reqs.append(f"📄 File: {len(sk.requires['files'])} 项")
+                reqs.append(f"File: {len(sk.requires['files'])} items")
             
             req_str = "<br>".join(reqs) if reqs else "无特殊依赖"
             lines.append(f"| {sk.emoji} | **`{sk.name}`** | {sk.description} | {req_str} |")
@@ -51,33 +65,35 @@ def generate_markdown_index(skills: list[SkillMetadata]) -> str:
 
 
 def main():
+    setup_logging()
+    
     if sys.stdout.encoding.lower() != 'utf-8':
         try:
             sys.stdout.reconfigure(encoding='utf-8')
         except AttributeError:
             pass
             
-    print("===============================================")
-    print("🚀 AGI-Walker Skills 端到端质量验证工具")
-    print("===============================================")
+    logger.info("="*60)
+    logger.info("AGI-Walker Skills validation tool")
+    logger.info("="*60)
     
     loader = get_skills_loader()
     skills = loader.get_skills_list()
     
     if not skills:
-        print("❌ 未扫描到任何 Skills，流程中止！")
+        logger.error("No Skills found, process halted!")
         sys.exit(1)
         
-    print(f"✅ 共扫描到 {len(skills)} 个 Skills，正在逐一校验...")
+    logger.info(f"Found {len(skills)} skills, validating...")
     
     has_error = False
     
     for skill in skills:
-        print(f"\n🔍 校验 Skill: {skill.display_name}")
+        logger.info(f"Validating: {skill.display_name}")
         missing = loader.validate_skill_dependencies(skill.name)
         
         if "error" in missing:
-            print(f"  ❌ 严重内部错误: {missing['error'][0]}")
+            logger.error(f"Internal error: {missing['error'][0]}")
             has_error = True
             continue
             
@@ -85,26 +101,26 @@ def main():
         for dep_type, misses in missing.items():
             if misses:
                 is_clean = False
-                print(f"  ❌ 缺失 {dep_type}: {', '.join(misses)}")
+                logger.warning(f"Missing {dep_type}: {', '.join(misses)}")
                 has_error = True
                 
         if is_clean:
-            print("  🟢 依赖全部就绪")
+            logger.info(f"All dependencies ready")
             
-    print("\n===============================================")
+    logger.info("="*60)
     if has_error:
-        print("💥 验证失败！有部分 Skill 标称的依赖或物理文件不存在。由于这是门禁环节，请修复依赖项或下架该 Skill。")
+        logger.error("Validation failed! Some skills have missing dependencies.")
         sys.exit(1)
 
-    # 验证全部通过后，向物理文件吐出最新的索引手册
+    # After validation passes, write the latest index file
     docs_dir = project_root / "docs"
     docs_dir.mkdir(exist_ok=True)
     index_file = docs_dir / "SKILLS_INDEX.md"
     
     markdown_content = generate_markdown_index(skills)
     index_file.write_text(markdown_content, encoding="utf-8")
-    print(f"📝 自动索引生成成功: {index_file.relative_to(project_root)}")
-    print("✨ 所有步骤顺利完结！")
+    logger.info(f"Index generated: {index_file.relative_to(project_root)}")
+    logger.info("All steps completed successfully!")
 
 
 if __name__ == "__main__":

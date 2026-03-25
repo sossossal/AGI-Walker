@@ -4,6 +4,10 @@ Sim2Real 数据差异分析系统
 """
 
 import numpy as np
+
+import logging
+
+logger = logging.getLogger(__name__)
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
 import time
@@ -43,7 +47,7 @@ class Sim2RealAnalyzer:
     3. 生成参数校准建议
     """
 
-    def __init__(self, window_size: int = 100):
+    def __init__(self, window_size: int = 100) -> None:
         self.window_size = window_size
         self.history: List[PowerStats] = []
         self.command_history: List[Tuple[float, float]] = []  # (timestamp, value)
@@ -189,7 +193,7 @@ class Sim2RealAnalyzer:
 
         return lag_time
 
-    def generate_visualization(self, output_path: str = "gap_analysis.json"):
+    def generate_visualization(self, output_path: str = "gap_analysis.json") -> None:
         """生成详细分析文件供可视化"""
         data = {
             "summary": self.analyze_gap().__dict__,
@@ -197,15 +201,15 @@ class Sim2RealAnalyzer:
         }
         with open(output_path, "w") as f:
             json.dump(data, f, indent=2)
-        print(f"✅ 差异分析已保存: {output_path}")
+        logger.info(f"✅ 差异分析已保存: {output_path}")
 
 
 # 测试代码
 if __name__ == "__main__":
     analyzer = Sim2RealAnalyzer()
 
-    print("Sim2Real 差异分析测试")
-    print("模拟场景: 理论20W输出，实际18W反馈 (10%损耗)")
+    logger.info("Sim2Real 差异分析测试")
+    logger.info("模拟场景: 理论20W输出，实际18W反馈 (10%损耗)")
 
     # 模拟数据流
     # 模拟 1秒的数据，100Hz
@@ -236,12 +240,12 @@ if __name__ == "__main__":
         )
 
         if i % 20 == 0:
-            print(
+            logger.info(
                 f"Step {i}: Theory={stats.theoretical_power:.1f}W, Real={stats.real_power_mech:.1f}W, Loss={stats.power_loss:.1f}W"
             )
 
     report = analyzer.analyze_gap()
-    print("\n=== 分析报告 ===")
-    print(f"平均效率偏差: {report.avg_efficiency_gap*100:.1f}%")
-    print(f"建议转矩缩放: {report.torque_scale_factor:.3f}")
-    print(f"响应滞后: {report.avg_response_lag*1000:.1f}ms")
+    logger.info("\n=== 分析报告 ===")
+    logger.info(f"平均效率偏差: {report.avg_efficiency_gap*100:.1f}%")
+    logger.info(f"建议转矩缩放: {report.torque_scale_factor:.3f}")
+    logger.info(f"响应滞后: {report.avg_response_lag*1000:.1f}ms")

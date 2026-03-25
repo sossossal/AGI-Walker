@@ -1,8 +1,8 @@
 """
-任务: 编队行走 (Formation Walking)
-目标: 多个机器人保持队形行走
-难度: ⭐⭐⭐ (中等)
-机器人: 多四足
+:  (Formation Walking)
+: 
+:  ()
+: 
 """
 
 import sys
@@ -16,9 +16,8 @@ import gymnasium as gym
 import numpy as np
 from typing import Dict, Tuple
 
-
 class FormationWalkingEnv(gym.Env):
-    """编队行走环境"""
+    """"""
 
     def __init__(self, num_robots=3):
         super().__init__()
@@ -32,7 +31,7 @@ class FormationWalkingEnv(gym.Env):
         )
 
         self.robot_positions = np.zeros((num_robots, 3))
-        self.target_formation = np.array([[0, 0, 0], [1, 0, 0], [0.5, 1, 0]])  # 三角形
+        self.target_formation = np.array([[0, 0, 0], [1, 0, 0], [0.5, 1, 0]])  # 
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -57,13 +56,12 @@ class FormationWalkingEnv(gym.Env):
             np.float32
         )
 
-
 if __name__ == "__main__":
     gym.register(id="FormationWalking-v0", entry_point="__main__:FormationWalkingEnv")
     env = FormationWalkingEnv()
-    print("🚶 编队行走任务 Demo")
+    print("Formation walking task demo")
     obs, _ = env.reset()
     for _ in range(100):
         action = env.action_space.sample()
         obs, reward, _, _, _ = env.step(action)
-    print(f"✅ Demo 完成, 最终奖励={reward:.2f}")
+    print(f"Demo completed, final reward={reward:.2f}")

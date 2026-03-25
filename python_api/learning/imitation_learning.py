@@ -3,8 +3,15 @@
 包括行为克隆（BC）和生成对抗模仿学习（GAIL）
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import numpy as np
-import gymnasium as gym
+try:
+    import gymnasium as gym
+    GYM_AVAILABLE = True
+except ImportError:
+    logger.warning("gymnasium not available, install it: pip install gymnasium")
+    GYM_AVAILABLE = False
 from typing import Optional
 
 

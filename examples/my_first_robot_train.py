@@ -28,7 +28,7 @@ print("  动作维度: 6维 (6个关节的扭矩控制)")
 env = DummyVecEnv([lambda: gym.make("AGI-Walker/Walker2D-v0")])
 eval_env = DummyVecEnv([lambda: gym.make("AGI-Walker/Walker2D-v0")])
 
-print("  ✓ 环境创建成功！")
+print("  Environment created successfully")
 
 # ============ 第二步：创建模型 ============
 print("\n[步骤 2/5] 创建 PPO 强化学习模型...")
@@ -50,7 +50,7 @@ model = PPO(
     tensorboard_log="./my_robot_logs/",
 )
 
-print("  ✓ 模型创建成功！")
+print("  Model created successfully")
 print(f"  策略参数总数: {sum(p.numel() for p in model.policy.parameters()):,}")
 
 # ============ 第三步：设置回调 ============
@@ -72,7 +72,7 @@ eval_callback = EvalCallback(
     render=False,
 )
 
-print("  ✓ 回调设置完成！")
+print("  Callbacks configured")
 print("    - 每 10,000 步保存检查点")
 print("    - 每 5,000 步评估一次")
 
@@ -85,7 +85,7 @@ print(f"    预计时间: 10-15分钟 (取决于硬件)")
 print(f"    日志目录: ./my_robot_logs/")
 print(f"    模型保存: ./my_robot_models/")
 print("-" * 70)
-print("\n  💡 提示:")
+print("\n  Tips:")
 print("    - 训练过程中可以按 Ctrl+C 暂停")
 print("    - 在另一个终端运行 'tensorboard --logdir=./my_robot_logs/' 实时查看训练曲线")
 print(f"    - 然后访问 http://localhost:6006\n")
@@ -100,7 +100,7 @@ try:
     )
 
     print("\n" + "=" * 70)
-    print("  ✓ 训练完成！")
+    print("  Training completed")
     print("=" * 70)
 
 except KeyboardInterrupt:
@@ -110,7 +110,7 @@ except KeyboardInterrupt:
 # ============ 第五步：保存和测试 ============
 print("\n[步骤 5/5] 保存最终模型...")
 model.save("my_robot_models/my_robot_final")
-print("  ✓ 模型已保存: my_robot_models/my_robot_final.zip")
+print("  Model saved: my_robot_models/my_robot_final.zip")
 
 # 快速测试
 print("\n正在进行快速测试...")
@@ -135,7 +135,7 @@ print(f"    - 累计奖励: {total_reward:.2f}")
 
 # ============ 完成总结 ============
 print("\n" + "=" * 70)
-print("  🎉 恭喜！你已经成功训练了第一个机器人！")
+print("  你已经完成第一个机器人训练示例")
 print("=" * 70)
 
 print("\n下一步:")

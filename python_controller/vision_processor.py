@@ -7,6 +7,9 @@
 import numpy as np
 import time
 from typing import List, Union
+import logging
+
+logger = logging.getLogger(__name__)
 
 # 尝试导入 transformers，如果不存在则使用 Mock
 try:
@@ -17,7 +20,7 @@ try:
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
-    print("⚠️ Transformers/Torch not found. Using MockVisionEncoder.")
+    logger.info(" Transformers/Torch not found. Using MockVisionEncoder.")
 
 
 class VisionEncoder:
@@ -29,7 +32,7 @@ class VisionEncoder:
     2. 将图像编码为嵌入向量 (Embedding)
     """
 
-    def __init__(self, model_name: str = "google/siglip-so400m-patch14-384"):
+    def __init__(self, model_name: str = "google/siglip-so400m-patch14-384") -> None:
         self.model_name = model_name
         self.device = "cpu"  # Default to CPU
         self.model = None
@@ -39,10 +42,10 @@ class VisionEncoder:
         if not self.is_mock:
             self._load_model()
 
-    def _load_model(self):
+    def _load_model(self) -> None:
         """加载模型 (Lazy Loading)"""
         try:
-            print(f"⏳ Loading Vision Model: {self.model_name}...")
+            logger.info(f" Loading Vision Model: {self.model_name}...")
             # 这里我们使用 SigLIP 或 CLIP
             # 注意：实际下载可能很大，这里代码主要演示加载逻辑
             # 为了避免第一次运行卡死，这里加了 try-except
@@ -54,11 +57,11 @@ class VisionEncoder:
                 self.model = self.model.to(self.device)
 
             self.model.eval()
-            print(f"✅ Vision Model Loaded on {self.device}")
+            logger.info(f"✅ Vision Model Loaded on {self.device}")
 
         except Exception as e:
-            print(f"❌ Failed to load model: {e}")
-            print("⚠️ Falling back to Mock Mode")
+            logger.info(f" Failed to load model: {e}")
+            logger.info(" Falling back to Mock Mode")
             self.is_mock = True
 
     def encode_image(self, image_input: Union[np.ndarray, "Image.Image"]) -> np.ndarray:
@@ -120,11 +123,11 @@ class VisionEncoder:
 
 # 测试代码
 if __name__ == "__main__":
-    print("视觉处理器测试...")
+    logger.info("视觉处理器测试...")
 
     # 初始化 (大概率会由 Transformers 未安装或网络问题进入 Mock 模式，这是预期的)
     encoder = VisionEncoder()
-    print(f"模式: {'MOCK' if encoder.is_mock else 'REAL'}")
+    logger.info(f"模式: {'MOCK' if encoder.is_mock else 'REAL'}")
 
     # 创建假图像
     fake_img = np.random.randint(0, 255, (224, 224, 3), dtype=np.uint8)
@@ -134,12 +137,12 @@ if __name__ == "__main__":
     emb = encoder.encode_image(fake_img)
     duration = time.time() - start
 
-    print(f"编码维度: {emb.shape}")
-    print(f"耗时: {duration*1000:.1f}ms")
+    logger.info(f"编码维度: {emb.shape}")
+    logger.info(f"耗时: {duration*1000:.1f}ms")
 
     # 模拟 VLA 场景
     cmd = "Walk forward"
-    print(f"指令: {cmd}")
+    logger.info(f"指令: {cmd}")
     # 这里我们只是演示，实际VLA需要将 text emb 和 img emb 融合
 
-    print("✅ 视觉模块测试完成")
+    logger.info("✅ 视觉模块测试完成")
