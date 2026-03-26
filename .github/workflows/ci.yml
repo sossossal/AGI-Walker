@@ -11,6 +11,8 @@ env:
   PYTHON_VERSION: "3.11"
   PYTHONUTF8: "1"
   PYTHONPATH: ${{ github.workspace }}
+  # ✅ 消除 Node.js 20 弃用警告，强制所有 JS Action 在 Node 24 下运行
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   # -----------------------------------------------------------------------------
