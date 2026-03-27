@@ -19,14 +19,14 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-      # Using official main branch commits that are natively node24 compliant
+      # Use verified latest main branch SHA which explicitly uses node24
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # main branch (Node 24 native)
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@0b93645e9911c302ade40e1b93daea3e612e111c # main branch (Node 24 native)
+        uses: actions/setup-python@28f2168f4d98ee0445e3c6321f6e6616c83dd5ec
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -54,10 +54,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@0b93645e9911c302ade40e1b93daea3e612e111c
+        uses: actions/setup-python@28f2168f4d98ee0445e3c6321f6e6616c83dd5ec
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -93,9 +93,9 @@ jobs:
           - 6379:6379
     steps:
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
       - name: Set up Python
-        uses: actions/setup-python@0b93645e9911c302ade40e1b93daea3e612e111c
+        uses: actions/setup-python@28f2168f4d98ee0445e3c6321f6e6616c83dd5ec
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -105,6 +105,7 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-mock stable-baselines3 gymnasium
 
+      # 运行带有 integration 标记的测试
       - name: Run Integration Tests
         run: pytest tests/ -m integration -v --tb=short
         env:
@@ -119,7 +120,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
 
       - name: Version Check
         run: |

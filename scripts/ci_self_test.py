@@ -25,14 +25,29 @@ def self_test():
             if "ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION" in env:
                 issues.append("Found redundant ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION")
                 
-            # Check for SHA locking (Industrial Standard for underlying fix)
-            # actions/checkout@SHA
-            # actions/setup-python@SHA
+    # SHA locking validation
+    verified_shas = [
+        "0c366fd6a839edf440554fa01a7085ccba70ac98", # checkout main (node24)
+        "28f2168f4d98ee0445e3c6321f6e6616c83dd5ec"  # setup-python main (node24)
+    ]
+    
+    for wf_file in workflows_dir.glob("*.yml"):
+        with open(wf_file, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+            issues = []
+            # Check for legacy tags
             if "@v" in content:
-                # We check if generic tags like @v4 or @v5 are still present
-                tags = re.findall(r"actions/.*@(v\d+)", content)
-                if tags:
-                    issues.append(f"Using insecure tags {tags} instead of verified Commit SHA")
+                issues.append("Found legacy @v tags")
+            
+            # Check if using unverified SHAs
+            found_shas = re.findall(r"@([a-f0-9]{40})", content)
+            for sha in found_shas:
+                if sha not in verified_shas:
+                    issues.append(f"Unverified SHA found: {sha}")
+            
+            if not found_shas:
+                issues.append("No SHAs found (all actions must use verified SHAs)")
 
             if issues:
                 print(f"❌ {wf_file.name}: {', '.join(issues)}")
