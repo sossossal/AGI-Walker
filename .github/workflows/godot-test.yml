@@ -14,7 +14,7 @@ jobs:
             image: barichello/godot-ci:4.2.1
         steps:
             - name: Checkout Code
-              uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # main branch (Node 24 native)
+              uses: actions/checkout@v4
 
             - name: Run Tests
               run: |

@@ -19,14 +19,11 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-      # Use verified latest main branch SHA which explicitly uses node24
       - name: Checkout Code
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
-        with:
-          persist-credentials: false
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@28f2168f4d98ee0445e3c6321f6e6616c83dd5ec
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -54,10 +51,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+        uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@28f2168f4d98ee0445e3c6321f6e6616c83dd5ec
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -93,9 +90,9 @@ jobs:
           - 6379:6379
     steps:
       - name: Checkout Code
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+        uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@28f2168f4d98ee0445e3c6321f6e6616c83dd5ec
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -120,7 +117,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+        uses: actions/checkout@v4
 
       - name: Version Check
         run: |
