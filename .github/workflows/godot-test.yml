@@ -6,10 +6,6 @@ on:
     pull_request:
         branches: ["main"]
 
-env:
-  # ✅ 专业静默：消除弃用警告
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
-
 jobs:
     test:
         name: Run Godot Tests
@@ -18,7 +14,7 @@ jobs:
             image: barichello/godot-ci:4.2.1
         steps:
             - name: Checkout
-              uses: actions/checkout@v4.2.2
+              uses: actions/checkout@v5
 
             - name: Run Tests
               run: |
