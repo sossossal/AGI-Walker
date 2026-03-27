@@ -6,11 +6,6 @@ on:
     pull_request:
         branches: ["main"]
 
-env:
-  # ✅ 2026年标准：强制开启 Node 24 运行时并静默所有降级警告
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
-
 jobs:
     test:
         name: Run Godot Tests
@@ -19,7 +14,7 @@ jobs:
             image: barichello/godot-ci:4.2.1
         steps:
             - name: Checkout Code
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
 
             - name: Run Tests
               run: |
