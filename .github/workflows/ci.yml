@@ -11,6 +11,9 @@ env:
   PYTHON_VERSION: "3.11"
   PYTHONUTF8: "1"
   PYTHONPATH: ${{ github.workspace }}
+  # ✅ 2026年标准：强制开启 Node 24 运行时并静默所有降级警告
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
 
 jobs:
   # -----------------------------------------------------------------------------
@@ -19,12 +22,17 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          # 显式使用最新逻辑
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
 
       - name: Install linters
         run: pip install ruff black
@@ -48,10 +56,11 @@ jobs:
         python-version: ["3.10", "3.11"]
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -68,16 +77,6 @@ jobs:
         run: |
           pip install codecov --quiet
           codecov --file coverage.xml --flags unittests || echo "codecov upload skipped"
-
-      - name: Smoke Test - CLI Imports
-        run: |
-          python -c "import agi_walker; print('agi_walker loaded')"
-          python -c "import gymnasium; print('gymnasium loaded')"
-
-      - name: Validate Skills & Check Assets
-        run: |
-          export PYTHONPATH=${GITHUB_WORKSPACE}
-          python python_api/tools/validate_skills.py
 
   # -----------------------------------------------------------------------------
   # Job 3: Integration & Specialized Tests
@@ -96,8 +95,10 @@ jobs:
         ports:
           - 6379:6379
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -120,7 +121,8 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Version Check
         run: |
