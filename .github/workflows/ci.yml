@@ -19,13 +19,14 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
+      # Using official main branch commits that are natively node24 compliant
       - name: Checkout Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # main branch (Node 24 native)
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@0b93645e9911c302ade40e1b93daea3e612e111c # main branch (Node 24 native)
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -53,10 +54,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@0b93645e9911c302ade40e1b93daea3e612e111c
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -92,10 +93,9 @@ jobs:
           - 6379:6379
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v5
-
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@0b93645e9911c302ade40e1b93daea3e612e111c
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -119,7 +119,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Version Check
         run: |
