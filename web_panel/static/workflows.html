@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGI-Walker Workflow 控制台</title>
+    <script type="module" src="https://unpkg.com/urdf-viewer/dist/urdf-viewer-element.min.js"></script>
+    <style>
+        :root { --bg:#f4f7fb; --card:#ffffff; --text:#0f172a; --muted:#64748b; --line:#dbe4ee; --primary:#0f766e; --blue:#1d4ed8; --ok:#15803d; --warn:#b45309; --bad:#b91c1c; }
+        * { box-sizing:border-box; }
+        body { margin:0; font-family:"Segoe UI","Microsoft YaHei",sans-serif; background:linear-gradient(180deg,#fbfdff,#edf3f8); color:var(--text); padding:24px; }
+        a { color:var(--blue); text-decoration:none; }
+        a:hover { text-decoration:underline; }
+        .page { max-width:1440px; margin:0 auto; }
+        .hero,.panel,.stat { background:rgba(255,255,255,.94); border:1px solid var(--line); border-radius:20px; box-shadow:0 18px 40px rgba(15,23,42,.07); }
+        .hero { padding:24px 28px; display:flex; justify-content:space-between; gap:18px; align-items:center; margin-bottom:20px; background:linear-gradient(135deg,rgba(15,118,110,.96),rgba(29,78,216,.92)); color:#f8fafc; }
+        .hero h1 { margin:0 0 8px; font-size:2rem; }
+        .hero p { margin:0; max-width:780px; color:rgba(248,250,252,.92); line-height:1.6; }
+        .hero-actions { display:flex; gap:10px; flex-wrap:wrap; }
+        .hero-actions a { padding:10px 14px; border-radius:999px; font-weight:600; }
+        .ghost { color:#fff; border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.08); }
+        .solid { color:var(--primary); background:#fff; }
+        .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:20px; }
+        .stat { padding:16px 18px; }
+        .stat .label { color:var(--muted); font-size:.84rem; }
+        .stat .value { font-size:1.7rem; font-weight:700; margin-top:4px; }
+        .banner { display:none; margin-bottom:18px; padding:12px 14px; border-radius:14px; font-size:.92rem; }
+        .banner.info { background:rgba(29,78,216,.08); color:var(--blue); border:1px solid rgba(29,78,216,.16); }
+        .banner.success { background:rgba(21,128,61,.08); color:var(--ok); border:1px solid rgba(21,128,61,.16); }
+        .banner.error { background:rgba(185,28,28,.08); color:var(--bad); border:1px solid rgba(185,28,28,.16); }
+        .layout { display:grid; grid-template-columns:minmax(360px,430px) minmax(0,1fr); gap:20px; }
+        .stack { display:grid; gap:20px; }
+        .panel { padding:20px; }
+        .header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px; }
+        .header h2 { margin:0; font-size:1.15rem; }
+        .sub { color:var(--muted); font-size:.9rem; line-height:1.5; margin-top:5px; }
+        .list,.artifacts,.steps { display:grid; gap:10px; }
+        .item,.artifact,.step { border:1px solid var(--line); background:#fbfdff; border-radius:14px; padding:12px 13px; }
+        .item.active { border-color:rgba(15,118,110,.5); background:rgba(15,118,110,.08); }
+        .row { display:flex; justify-content:space-between; gap:12px; align-items:center; }
+        .title { font-weight:700; margin-bottom:4px; }
+        .meta,.hint { color:var(--muted); font-size:.86rem; line-height:1.45; }
+        .btn,.btn-alt,.btn-xs { border:none; cursor:pointer; font-weight:600; transition:transform .15s ease; }
+        .btn:hover,.btn-alt:hover,.btn-xs:hover { transform:translateY(-1px); }
+        .btn { background:linear-gradient(135deg,var(--primary),var(--blue)); color:#fff; padding:11px 16px; border-radius:12px; }
+        .btn-alt { background:#e8eef6; color:var(--text); padding:11px 16px; border-radius:12px; }
+        .btn-xs { background:#e2e8f0; color:var(--text); padding:7px 11px; border-radius:999px; }
+        .form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+        .field { display:grid; gap:5px; }
+        .field.full { grid-column:1 / -1; }
+        label { color:var(--muted); font-size:.84rem; font-weight:600; }
+        input,select,textarea { width:100%; border:1px solid var(--line); border-radius:12px; padding:11px 12px; font:inherit; color:var(--text); background:#fff; }
+        textarea { min-height:150px; resize:vertical; font-family:Consolas,monospace; }
+        .actions,.badges { display:flex; gap:10px; flex-wrap:wrap; }
+        .checkbox-row { display:flex; align-items:center; gap:8px; color:var(--text); font-size:.92rem; font-weight:500; }
+        .checkbox-row input[type="checkbox"] { width:auto; margin:0; padding:0; }
+        .pill { display:inline-flex; align-items:center; border-radius:999px; padding:5px 10px; font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+        .status-completed,.status-success { background:rgba(21,128,61,.12); color:var(--ok); }
+        .status-skipped { background:rgba(245,158,11,.14); color:var(--warn); }
+        .status-failed,.status-error { background:rgba(185,28,28,.12); color:var(--bad); }
+        .status-running { background:rgba(29,78,216,.12); color:var(--blue); }
+        .status-pending { background:rgba(100,116,139,.12); color:#475569; }
+        .summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:14px 0; }
+        .mini { border:1px solid var(--line); border-radius:14px; padding:12px; background:#f8fbfe; }
+        .mini .label { color:var(--muted); font-size:.78rem; }
+        .mini .value { font-size:1.1rem; font-weight:700; margin-top:5px; }
+        .empty { border:1px dashed var(--line); border-radius:14px; padding:20px; text-align:center; color:var(--muted); background:rgba(255,255,255,.7); }
+        pre { margin:0; padding:14px; border-radius:14px; background:#0f172a; color:#e2e8f0; overflow:auto; font-size:.83rem; line-height:1.5; }
+        @media (max-width:1100px) { .layout { grid-template-columns:1fr; } .hero { flex-direction:column; align-items:flex-start; } }
+        @media (max-width:700px) { body { padding:16px; } .hero,.panel { padding:18px; } .form { grid-template-columns:1fr; } .row,.header { flex-direction:column; align-items:flex-start; } }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <section class="hero">
+            <div>
+                <h1>Workflow 控制台</h1>
+                <p>直接连接 `/api/workflows`，选择执行策略和输出目录，筛选当前运行与历史归档 runs，并查看产物、诊断和 workflow log。</p>
+            </div>
+            <div class="hero-actions">
+                <a class="ghost" href="/static/index.html">返回主控制台</a>
+                <a class="solid" href="/docs">查看文档</a>
+            </div>
+        </section>
+
+        <section class="stats">
+            <div class="stat"><div class="label">Workflows</div><div id="stat-workflows" class="value">0</div></div>
+            <div class="stat"><div class="label">Runs</div><div id="stat-runs" class="value">0</div></div>
+            <div class="stat"><div class="label">Legacy Logs</div><div id="stat-logs" class="value">0</div></div>
+            <div class="stat"><div class="label">当前选择</div><div id="stat-selected" class="value" style="font-size:1.05rem;">未选择</div></div>
+        </section>
+
+        <div id="banner" class="banner info"></div>
+
+        <section class="layout">
+            <div class="stack">
+                <div class="panel">
+                    <div class="header">
+                        <div><h2>Workflow 列表</h2><div class="sub">先选择 workflow，再用下面的配置直接执行。</div></div>
+                        <button class="btn-xs" onclick="loadCatalog()">刷新</button>
+                    </div>
+                    <div id="workflow-list" class="list"></div>
+                </div>
+
+                <div class="panel">
+                    <div class="header">
+                        <div><h2>执行配置</h2><div class="sub">推荐默认 `force`，并使用自动生成的隔离输出目录。</div></div>
+                        <span id="selected-pill" class="pill status-pending">未选择</span>
+                    </div>
+                    <div class="form">
+                        <div class="field">
+                            <label for="mode">执行模式</label>
+                            <select id="mode"><option value="real">real executors</option><option value="mock">mock executors</option></select>
+                        </div>
+                        <div class="field">
+                            <label for="strategy">执行策略</label>
+                            <select id="strategy"><option value="force">force</option><option value="resume">resume</option></select>
+                        </div>
+                        <div class="field">
+                            <label for="timeout-seconds">超时秒数</label>
+                            <input id="timeout-seconds" type="number" min="0.1" step="0.1" placeholder="留空表示不限制">
+                        </div>
+                        <div class="field full">
+                            <label for="output-root">输出根目录</label>
+                            <input id="output-root" type="text" placeholder="留空时自动写入 test_env/web_workflow_runs/<workflow>/<run-id>">
+                            <div class="hint">设置后，workflow 内的相对输出路径会重写到这个目录下。</div>
+                        </div>
+                        <div class="field">
+                            <label for="godot-transport-mode">Godot 下发模式</label>
+                            <select id="godot-transport-mode">
+                                <option value="session_bridge" selected>session_bridge (推荐)</option>
+                                <option value="legacy_controller">legacy_controller (兼容)</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="godot-session-id">Godot Session</label>
+                            <input id="godot-session-id" type="text" value="default" placeholder="default">
+                        </div>
+                        <div class="field full">
+                            <label>Godot 自动联动</label>
+                            <label class="checkbox-row"><input id="godot-auto-sync" type="checkbox">workflow 完成后自动选择机器人配置产物并送往 Godot</label>
+                        </div>
+                        <div class="field full">
+                            <label for="parameters">附加参数 JSON</label>
+                            <textarea id="parameters">{
+  "template": "biped_basic"
+}</textarea>
+                        </div>
+                    </div>
+                    <div class="actions" style="margin-top:12px;">
+                        <button id="run-btn" class="btn" onclick="runSelected()">执行当前 Workflow</button>
+                        <button class="btn-alt" onclick="loadRuns()">刷新 Runs</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="header">
+                        <div><h2>Workflow 定义</h2><div class="sub">确认当前 workflow 的描述和步骤名称。</div></div>
+                    </div>
+                    <div id="workflow-detail" class="empty">请选择一个 workflow。</div>
+                </div>
+            </div>
+
+            <div class="stack">
+                <div class="panel">
+                    <div class="header">
+                        <div><h2>最近 Runs</h2><div class="sub">支持查看当前进程 runs、归档历史和故障摘要。</div></div>
+                        <button class="btn-xs" onclick="loadRuns()">刷新</button>
+                    </div>
+                    <div class="form" style="margin-bottom:12px;">
+                        <div class="field">
+                            <label for="run-scope">数据范围</label>
+                            <select id="run-scope" onchange="applyRunFilters()">
+                                <option value="all" selected>all</option>
+                                <option value="active">active</option>
+                                <option value="archive">archive</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="run-workflow-filter">Workflow</label>
+                            <select id="run-workflow-filter" onchange="applyRunFilters()">
+                                <option value="">全部 workflows</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="run-status-filter">状态</label>
+                            <select id="run-status-filter" onchange="applyRunFilters()">
+                                <option value="">全部状态</option>
+                                <option value="pending">pending</option>
+                                <option value="running">running</option>
+                                <option value="completed">completed</option>
+                                <option value="failed">failed</option>
+                                <option value="cancelled">cancelled</option>
+                                <option value="timed_out">timed_out</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="run-mode-filter">模式</label>
+                            <select id="run-mode-filter" onchange="applyRunFilters()">
+                                <option value="">全部模式</option>
+                                <option value="real">real</option>
+                                <option value="mock">mock</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="run-date-from">起始日期</label>
+                            <input id="run-date-from" type="date" onchange="applyRunFilters()">
+                        </div>
+                        <div class="field">
+                            <label for="run-date-to">结束日期</label>
+                            <input id="run-date-to" type="date" onchange="applyRunFilters()">
+                        </div>
+                        <div class="field">
+                            <label for="run-limit">每页条数</label>
+                            <input id="run-limit" type="number" min="1" max="100" value="20" onchange="applyRunFilters()">
+                        </div>
+                        <div class="field">
+                            <label>失败优先</label>
+                            <label class="checkbox-row"><input id="run-only-failures" type="checkbox" onchange="applyRunFilters()">只看失败 / 超时 / 取消</label>
+                        </div>
+                        <div class="field full">
+                            <label for="run-text-filter">文本检索</label>
+                            <input id="run-text-filter" type="text" placeholder="run_id / diagnostic / error / live log" onkeydown="if (event.key === 'Enter') applyRunFilters()">
+                        </div>
+                    </div>
+                    <div class="actions" style="margin-bottom:12px;">
+                        <button class="btn-xs" onclick="applyRunFilters()">应用筛选</button>
+                        <button class="btn-xs" onclick="resetRunFilters()">重置筛选</button>
+                    </div>
+                    <div id="run-filter-summary" class="hint" style="margin-bottom:12px;">正在显示全部 active + archive runs。</div>
+                    <div class="actions" style="justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div id="run-pagination-summary" class="hint">第 1 / 1 页 · 当前 0 条 / 总计 0 条</div>
+                        <div class="actions">
+                            <button id="run-prev-page" class="btn-xs" onclick="changeRunPage(-1)">上一页</button>
+                            <button id="run-next-page" class="btn-xs" onclick="changeRunPage(1)">下一页</button>
+                        </div>
+                    </div>
+                    <div id="run-list" class="list"></div>
+                </div>
+
+                <div class="panel">
+                    <div class="header">
+                        <div><h2>Run 详情</h2><div class="sub">包括成功率、产物、日志下载和完整 JSON。</div></div>
+                    </div>
+                    <div id="run-detail" class="empty">执行一个 workflow，或从上方选择最近 run。</div>
+                </div>
+
+                <div class="panel">
+                    <div class="header">
+                        <div><h2>Legacy Logs</h2><div class="sub">兼容旧 `.output/workflow_log_*.json` 入口。</div></div>
+                        <button class="btn-xs" onclick="loadLogs()">刷新</button>
+                    </div>
+                    <div id="log-list" class="list"></div>
+                    <div style="margin-top:14px;"><pre id="log-detail">选择一个 legacy log 查看内容。</pre></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const state = {
+            workflows: [],
+            details: new Map(),
+            runs: [],
+            selectedWorkflow: null,
+            selectedRunId: null,
+            runEventSource: null,
+            runEventSourceRunId: null,
+            runPage: 1,
+            runPageSize: 20,
+            runTotalCount: 0,
+            runTotalPages: 1,
+            runHasNextPage: false,
+            runHasPreviousPage: false,
+            archiveRetentionPolicy: null,
+            godotAutoSyncRunIds: new Set(),
+            godotSessionStatusByRun: new Map(),
+            godotSessionStatusLoading: new Set(),
+        };
+
+        function isTerminalStatus(status) {
+            return ['completed', 'failed', 'cancelled', 'timed_out'].includes(status);
+        }
+
+        function shouldAutoSyncToGodot() {
+            return document.getElementById('godot-auto-sync')?.checked === true;
+        }
+
+        function upsertRun(run) {
+            const index = state.runs.findIndex((item) => item.run_id === run.run_id);
+            if (index >= 0) {
+                state.runs[index] = run;
+            } else {
+                state.runs.unshift(run);
+            }
+        }
+
+        function closeRunEventSource() {
+            if (state.runEventSource) {
+                state.runEventSource.close();
+            }
+            state.runEventSource = null;
+            state.runEventSourceRunId = null;
+        }
+
+        async function fetchJson(url, options = {}) {
+            const res = await fetch(url, options);
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error(data?.detail || data?.message || `HTTP ${res.status}`);
+            return data;
+        }
+
+        function escapeHtml(value) {
+            return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+        }
+
+        function showBanner(message, tone = 'info') {
+            const el = document.getElementById('banner');
+            el.className = `banner ${tone}`;
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function getGodotSessionCacheKey(run) {
+            const delivery = run?.godot_delivery;
+            if (!delivery?.transport_status_url) return null;
+            return `${run.run_id}:${delivery.transport_status_url}:${delivery.timestamp || 'no-timestamp'}`;
+        }
+
+        function getCachedGodotSessionStatus(run) {
+            const entry = state.godotSessionStatusByRun.get(run.run_id);
+            const cacheKey = getGodotSessionCacheKey(run);
+            if (!entry || !cacheKey || entry.cacheKey !== cacheKey) {
+                return null;
+            }
+            return entry;
+        }
+
+        async function refreshGodotSessionStatus(runId, force = false) {
+            const run = state.runs.find((item) => item.run_id === runId);
+            const delivery = run?.godot_delivery;
+            if (!run || !delivery?.transport_status_url) return;
+
+            const cacheKey = getGodotSessionCacheKey(run);
+            const cached = getCachedGodotSessionStatus(run);
+            if (!force && cached) return;
+            if (state.godotSessionStatusLoading.has(runId)) return;
+
+            state.godotSessionStatusLoading.add(runId);
+            if (state.selectedRunId === runId) renderRunDetail(run);
+            try {
+                const data = await fetchJson(delivery.transport_status_url);
+                state.godotSessionStatusByRun.set(runId, {
+                    cacheKey,
+                    data,
+                    error: null,
+                    fetchedAt: new Date().toISOString(),
+                });
+            } catch (error) {
+                state.godotSessionStatusByRun.set(runId, {
+                    cacheKey,
+                    data: null,
+                    error: error.message,
+                    fetchedAt: new Date().toISOString(),
+                });
+            } finally {
+                state.godotSessionStatusLoading.delete(runId);
+                const selected = state.runs.find((item) => item.run_id === runId);
+                if (selected && state.selectedRunId === runId) {
+                    renderRunDetail(selected);
+                }
+            }
+        }
+
+        function renderGodotSessionStatusPanel(run, godotDelivery) {
+            if (!godotDelivery?.transport_status_url) {
+                return '<div class="empty" style="margin-top:10px;">当前交付记录没有可查询的会话状态入口。</div>';
+            }
+
+            const cached = getCachedGodotSessionStatus(run);
+            if (!cached) {
+                return '<div class="empty" style="margin-top:10px;">正在拉取 Godot session 最新状态...</div>';
+            }
+
+            if (cached.error) {
+                return `<div class="empty" style="margin-top:10px; color:var(--bad);">会话状态读取失败: ${escapeHtml(cached.error)}</div>`;
+            }
+
+            const data = cached.data || {};
+            const engineRunning = data.engine_running ?? data.client_running ?? godotDelivery.engine_running ?? '-';
+            const tcpConnected = data.tcp_connected ?? data.connected ?? godotDelivery.connected ?? '-';
+            const pid = data.pid ?? '-';
+            const schemaKeys = data.schema
+                ? Object.keys(data.schema)
+                : (godotDelivery.schema_keys || []);
+            const lastSensorKeys = data.last_sensor ? Object.keys(data.last_sensor) : [];
+            return `
+                <div class="summary" style="margin-top:10px;">
+                    <div class="mini"><div class="label">Engine</div><div class="value">${escapeHtml(String(engineRunning))}</div></div>
+                    <div class="mini"><div class="label">TCP / Connected</div><div class="value">${escapeHtml(String(tcpConnected))}</div></div>
+                    <div class="mini"><div class="label">PID</div><div class="value">${escapeHtml(String(pid))}</div></div>
+                    <div class="mini"><div class="label">Schema Keys</div><div class="value" style="font-size:.92rem;">${escapeHtml(schemaKeys.length ? schemaKeys.join(', ') : '无')}</div></div>
+                </div>
+                <div class="meta" style="margin-top:8px;">最近拉取: ${escapeHtml(cached.fetchedAt || '未知')} · 最后传感器键: ${escapeHtml(lastSensorKeys.length ? lastSensorKeys.join(', ') : '无')}</div>
+            `;
+        }
+
+        async function retryGodotDelivery(runId) {
+            const run = state.runs.find((item) => item.run_id === runId);
+            const delivery = run?.godot_delivery;
+            if (!run || !delivery) {
+                showBanner('当前 run 没有可重试的 Godot 交付记录。', 'error');
+                return;
+            }
+            if (delivery.auto_selected) {
+                await syncRunToGodot(runId);
+                return;
+            }
+            await syncRunToGodot(runId, delivery.artifact_index, delivery.artifact_name || '当前产物');
+        }
+
+        function updateStats() {
+            document.getElementById('stat-workflows').textContent = state.workflows.length;
+            document.getElementById('stat-runs').textContent = state.runs.length;
+            document.getElementById('stat-selected').textContent = state.selectedWorkflow || '未选择';
+            document.getElementById('selected-pill').textContent = state.selectedWorkflow || '未选择';
+            document.getElementById('selected-pill').className = `pill ${state.selectedWorkflow ? 'status-running' : 'status-pending'}`;
+        }
+
+        function renderRunWorkflowFilter() {
+            const el = document.getElementById('run-workflow-filter');
+            if (!el) return;
+            const current = el.value || '';
+            const options = ['<option value="">全部 workflows</option>'].concat(
+                state.workflows.map((workflow) => `<option value="${escapeHtml(workflow.name)}">${escapeHtml(workflow.name)}</option>`)
+            );
+            el.innerHTML = options.join('');
+            if ([...el.options].some((option) => option.value === current)) {
+                el.value = current;
+            }
+        }
+
+        function getRunFilters() {
+            return {
+                scope: document.getElementById('run-scope')?.value || 'all',
+                workflowName: document.getElementById('run-workflow-filter')?.value || '',
+                status: document.getElementById('run-status-filter')?.value || '',
+                mode: document.getElementById('run-mode-filter')?.value || '',
+                text: document.getElementById('run-text-filter')?.value.trim() || '',
+                dateFrom: document.getElementById('run-date-from')?.value || '',
+                dateTo: document.getElementById('run-date-to')?.value || '',
+                onlyFailures: Boolean(document.getElementById('run-only-failures')?.checked),
+                pageSize: document.getElementById('run-limit')?.value || '20',
+            };
+        }
+
+        function buildRunQueryString() {
+            const filters = getRunFilters();
+            const params = new URLSearchParams();
+            params.set('scope', filters.scope || 'all');
+            params.set('page', String(state.runPage || 1));
+            params.set('page_size', filters.pageSize || '20');
+            if (filters.workflowName) params.set('workflow_name', filters.workflowName);
+            if (filters.status) params.set('status', filters.status);
+            if (filters.mode) params.set('mode', filters.mode);
+            if (filters.text) params.set('text', filters.text);
+            if (filters.dateFrom) params.set('date_from', filters.dateFrom);
+            if (filters.dateTo) params.set('date_to', filters.dateTo);
+            if (filters.onlyFailures) params.set('only_failures', 'true');
+            return params.toString();
+        }
+
+        function renderRunFilterSummary(data) {
+            const el = document.getElementById('run-filter-summary');
+            if (!el) return;
+            const filters = data?.filters || {};
+            const policy = data?.archive_retention_policy || state.archiveRetentionPolicy;
+            const activeFilters = [];
+            if (filters.workflow_name) activeFilters.push(`workflow=${filters.workflow_name}`);
+            if (filters.status) activeFilters.push(`status=${filters.status}`);
+            if (filters.mode) activeFilters.push(`mode=${filters.mode}`);
+            if (filters.text) activeFilters.push(`text=${filters.text}`);
+            if (filters.date_from || filters.date_to) activeFilters.push(`date=${filters.date_from || '*'}..${filters.date_to || '*'}`);
+            if (filters.only_failures) activeFilters.push('only_failures=true');
+            const retentionSummary = policy
+                ? `保留策略=${policy.max_runs || 'all'} 条 / ${policy.max_age_days || 'all'} 天`
+                : '保留策略未知';
+            el.textContent = `显示 ${data?.count || 0} 条 runs · scope=${data?.scope || 'all'} · ${activeFilters.length ? activeFilters.join(' · ') : '未启用附加筛选'} · ${retentionSummary}`;
+        }
+
+        function syncRunPagination(data) {
+            state.runPage = data?.page || 1;
+            state.runPageSize = data?.page_size || Number(document.getElementById('run-limit')?.value || 20);
+            state.runTotalCount = data?.total_count || 0;
+            state.runTotalPages = data?.total_pages || 1;
+            state.runHasNextPage = Boolean(data?.has_next_page);
+            state.runHasPreviousPage = Boolean(data?.has_previous_page);
+            state.archiveRetentionPolicy = data?.archive_retention_policy || state.archiveRetentionPolicy;
+
+            const pageSizeInput = document.getElementById('run-limit');
+            if (pageSizeInput) {
+                pageSizeInput.value = String(state.runPageSize);
+            }
+        }
+
+        function renderRunPagination() {
+            const summary = document.getElementById('run-pagination-summary');
+            const prevButton = document.getElementById('run-prev-page');
+            const nextButton = document.getElementById('run-next-page');
+            if (summary) {
+                summary.textContent = `第 ${state.runPage} / ${state.runTotalPages} 页 · 当前 ${state.runs.length} 条 / 总计 ${state.runTotalCount} 条`;
+            }
+            if (prevButton) {
+                prevButton.disabled = !state.runHasPreviousPage;
+            }
+            if (nextButton) {
+                nextButton.disabled = !state.runHasNextPage;
+            }
+        }
+
+        function applyRunFilters() {
+            state.runPage = 1;
+            loadRuns();
+        }
+
+        function changeRunPage(delta) {
+            const nextPage = Math.max(1, (state.runPage || 1) + delta);
+            if (nextPage === state.runPage) return;
+            state.runPage = nextPage;
+            loadRuns();
+        }
+
+        function resetRunFilters() {
+            document.getElementById('run-scope').value = 'all';
+            document.getElementById('run-workflow-filter').value = '';
+            document.getElementById('run-status-filter').value = '';
+            document.getElementById('run-mode-filter').value = '';
+            document.getElementById('run-text-filter').value = '';
+            document.getElementById('run-date-from').value = '';
+            document.getElementById('run-date-to').value = '';
+            document.getElementById('run-limit').value = '20';
+            document.getElementById('run-only-failures').checked = false;
+            state.runPage = 1;
+            loadRuns();
+        }
+
+        function renderWorkflowList() {
+            const el = document.getElementById('workflow-list');
+            if (!state.workflows.length) { el.innerHTML = '<div class="empty">没有可用 workflow。</div>'; return; }
+            el.innerHTML = state.workflows.map((wf) => `
+                <div class="item ${wf.name === state.selectedWorkflow ? 'active' : ''}">
+                    <div class="row">
+                        <div><div class="title">${escapeHtml(wf.name)}</div><div class="meta">${escapeHtml(wf.description || '无描述')}</div></div>
+                        <button class="btn-xs" onclick="selectWorkflow('${wf.name}')">选择</button>
+                    </div>
+                    <div class="meta" style="margin-top:8px;">步骤数: ${wf.steps_count} · ${escapeHtml((wf.step_names || []).join(', ') || '无')}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderWorkflowDetail(detail) {
+            const el = document.getElementById('workflow-detail');
+            if (!detail) { el.innerHTML = '请选择一个 workflow。'; el.className = 'empty'; return; }
+            const steps = (detail.steps || []).map((step, index) => `
+                <div class="step">
+                    <div class="title">#${index + 1} ${escapeHtml(step.name || 'unnamed')}</div>
+                    <div class="meta">${escapeHtml(step.skill_executor || 'unknown executor')} · ${escapeHtml(step.action || 'unknown action')}</div>
+                </div>
+            `).join('');
+            el.className = '';
+            el.innerHTML = `<div class="title" style="font-size:1.08rem;">${escapeHtml(detail.name)}</div><div class="sub" style="margin:8px 0 14px;">${escapeHtml(detail.description || '无描述')}</div><div class="steps">${steps || '<div class="empty">该 workflow 没有步骤。</div>'}</div>`;
+        }
+
+        function renderRuns() {
+            const el = document.getElementById('run-list');
+            if (!state.runs.length) { el.innerHTML = '<div class="empty">当前筛选条件下没有 workflow runs。</div>'; return; }
+            el.innerHTML = state.runs.map((run) => `
+                <div class="item ${run.run_id === state.selectedRunId ? 'active' : ''}">
+                    <div class="row">
+                        <div>
+                            <div class="title">${escapeHtml(run.workflow_name)}</div>
+                            <div class="meta">${escapeHtml(run.run_source || 'active')} · ${escapeHtml(run.mode)} · ${escapeHtml(run.execution_strategy)} · ${escapeHtml(run.run_id.slice(0, 8))}</div>
+                        </div>
+                        <span class="pill status-${escapeHtml(run.status)}">${escapeHtml(run.status)}</span>
+                    </div>
+                    <div class="meta" style="margin-top:8px;">成功率 ${Number(run.success_rate || 0).toFixed(1)}% · 完成 ${run.completed_steps} / 跳过 ${run.skipped_steps} / 失败 ${run.failed_steps}</div>
+                    ${run.diagnostic_summary ? `<div class="meta" style="margin-top:6px; color:var(--bad);">诊断: ${escapeHtml(run.diagnostic_summary)}</div>` : ''}
+                    ${run.current_step_name ? `<div class="meta" style="margin-top:6px;">当前步骤 ${run.current_step_index || '?'} / ${run.total_steps || '?'}: ${escapeHtml(run.current_step_name)}</div>` : ''}
+                    <div class="meta" style="margin-top:6px;">最近时间 ${escapeHtml(run.finished_at || run.started_at || run.created_at || '未知')}</div>
+                    <div class="actions" style="margin-top:10px;"><button class="btn-xs" onclick="viewRun('${run.run_id}')">查看详情</button></div>
+                </div>
+            `).join('');
+        }
+
+        function renderRunDetail(run) {
+            const el = document.getElementById('run-detail');
+            if (!run) { el.innerHTML = '执行一个 workflow，或从上方选择最近 run。'; el.className = 'empty'; return; }
+            const stepsSnapshot = (run.steps_snapshot || []).length ? run.steps_snapshot.map((step, index) => `
+                <div class="step">
+                    <div class="row">
+                        <div>
+                            <div class="title">#${index + 1} ${escapeHtml(step.name || 'unnamed')}</div>
+                            <div class="meta">${escapeHtml(step.executor || 'unknown executor')} · ${escapeHtml(step.action || 'unknown action')}</div>
+                        </div>
+                        <span class="pill status-${escapeHtml(step.status || 'pending')}">${escapeHtml(step.status || 'pending')}</span>
+                    </div>
+                    <div class="meta" style="margin-top:8px;">输出: ${escapeHtml(step.output_file || '尚无输出')} ${step.error ? `· 错误: ${escapeHtml(step.error)}` : ''}</div>
+                </div>
+            `).join('') : '<div class="empty">等待步级进度...</div>';
+            const liveLogTail = (run.live_log_tail || []).length
+                ? `<pre>${escapeHtml(run.live_log_tail.join('\n'))}</pre>`
+                : '<div class="empty">等待实时日志...</div>';
+            const godotDelivery = run.godot_delivery;
+            if (godotDelivery?.transport_status_url && !getCachedGodotSessionStatus(run) && !state.godotSessionStatusLoading.has(run.run_id)) {
+                refreshGodotSessionStatus(run.run_id).catch(() => {});
+            }
+            const godotSessionPanel = renderGodotSessionStatusPanel(run, godotDelivery);
+            const godotDeliveryPanel = godotDelivery
+                ? `
+                    <div class="step" style="margin-bottom:14px; border-color:#bfdbfe; background:#f8fbff;">
+                        <div class="row">
+                            <div>
+                                <div class="title">最近一次 Godot 交付</div>
+                                <div class="meta">${escapeHtml(godotDelivery.transport_mode || 'unknown')} · session ${escapeHtml(godotDelivery.session_id || 'default')} · ${escapeHtml(godotDelivery.timestamp || '未知时间')}</div>
+                            </div>
+                            <span class="pill status-${escapeHtml(godotDelivery.status || 'pending')}">${escapeHtml(godotDelivery.status || 'pending')}</span>
+                        </div>
+                        <div class="meta" style="margin-top:8px;">产物: ${escapeHtml(godotDelivery.artifact_name || '未知')} (${escapeHtml(godotDelivery.artifact_type || 'unknown')})</div>
+                        <div class="meta" style="margin-top:8px;">目标: ${escapeHtml(godotDelivery.delivery_target || `${godotDelivery.transport_mode || 'unknown'} / ${godotDelivery.session_id || 'default'}`)}</div>
+                        <div class="meta" style="margin-top:8px;">连接状态: engine=${escapeHtml(String(godotDelivery.engine_running))} · tcp=${escapeHtml(String(godotDelivery.connected))} · schema=${escapeHtml(String(godotDelivery.schema_available))}</div>
+                        <div class="meta" style="margin-top:8px;">状态接口: ${godotDelivery.transport_status_url ? `<a href="${godotDelivery.transport_status_url}" target="_blank" rel="noopener noreferrer">${escapeHtml(godotDelivery.transport_status_url)}</a>` : '无'}</div>
+                        ${godotDelivery.failure_stage ? `<div class="meta" style="margin-top:8px; color:var(--bad);">失败阶段: ${escapeHtml(godotDelivery.failure_stage)} · ${escapeHtml(godotDelivery.retry_hint || '请检查日志后重试')}</div>` : ''}
+                        <div class="meta" style="margin-top:8px;">说明: ${escapeHtml(godotDelivery.message || '无')}</div>
+                        <div class="actions" style="margin-top:10px;">
+                            <button class="btn-xs" onclick="refreshGodotSessionStatus('${run.run_id}', true)">刷新会话状态</button>
+                            <button class="btn-xs" onclick="retryGodotDelivery('${run.run_id}')">重试本次交付</button>
+                            <button class="btn-xs" onclick="syncRunToGodot('${run.run_id}')">重试推荐同步</button>
+                        </div>
+                        ${godotSessionPanel}
+                    </div>
+                `
+                : '<div class="empty" style="margin-bottom:14px;">尚未把该 run 的机器人配置送往 Godot。</div>';
+            const artifacts = (run.artifacts || []).length ? run.artifacts.map((artifact) => `
+                <div class="artifact">
+                    <div class="row">
+                        <div><div class="title">${escapeHtml(artifact.name)}</div><div class="meta">${escapeHtml(artifact.step_name)} · ${artifact.size_bytes} bytes</div></div>
+                        <div style="display: flex; gap: 8px;">
+                            ${artifact.preview_mode === 'web_urdf' ? `<button class="btn-xs" style="background: #10b981; color: white; border: none; cursor: pointer;" onclick="previewUrdf('${artifact.preview_url || artifact.download_url}')">👁 3D 预览</button>` : ''}
+                            ${artifact.godot_load_supported ? `<button class="btn-xs" style="background: #0ea5e9; color: white; border: none; cursor: pointer;" onclick="sendArtifactToGodot('${run.run_id}', ${artifact.artifact_index}, '${artifact.name}')">🚀 送往 Godot</button>` : ''}
+                            <a class="btn-xs" href="${artifact.download_url}" target="_blank" rel="noopener noreferrer">下载</a>
+                        </div>
+                    </div>
+                    <div class="meta" style="margin-top:8px;">${escapeHtml(artifact.path)} · ${escapeHtml(artifact.artifact_type || 'file')}</div>
+                </div>
+            `).join('') : '<div class="empty">该 run 没有可下载产物。</div>';
+            const timeoutLabel = run.timeout_seconds ? `${run.timeout_seconds}s` : '无';
+            const statusMessage = run.status_detail || run.message || '无';
+            const currentStepMessage = run.current_step_name
+                ? `当前步骤 ${run.current_step_index || '?'} / ${run.total_steps || '?'}: ${run.current_step_name}`
+                : '当前没有活动步骤';
+            const diagnosticsPanel = (run.diagnostic_summary || (run.step_errors || []).length || run.worker_traceback)
+                ? `
+                    <div class="title" style="margin-bottom:10px;">故障诊断</div>
+                    <div class="step" style="margin-bottom:14px; border-color:#fecaca; background:#fff7f7;">
+                        <div class="meta" style="margin-bottom:8px;">摘要: ${escapeHtml(run.diagnostic_summary || '无')}</div>
+                        <div class="meta" style="margin-bottom:8px;">失败步骤: ${escapeHtml(run.failed_step_name || '无')} ${run.failed_step_error ? `· ${escapeHtml(run.failed_step_error)}` : ''}</div>
+                        <div class="meta" style="margin-bottom:8px;">Worker 错误: ${escapeHtml(run.worker_error_message || '无')}</div>
+                        ${(run.step_errors || []).length ? `<pre>${escapeHtml(JSON.stringify(run.step_errors, null, 2))}</pre>` : ''}
+                        ${run.worker_traceback ? `<div class="title" style="margin:12px 0 8px;">Worker Traceback</div><pre>${escapeHtml(run.worker_traceback)}</pre>` : ''}
+                    </div>
+                `
+                : '';
+            const cancelAction = !isTerminalStatus(run.status)
+                ? `<button class="btn-alt" onclick="cancelRun('${run.run_id}')">取消当前 Run</button>`
+                : '';
+            el.className = '';
+            el.innerHTML = `
+                <div class="row">
+                    <div><div class="title" style="font-size:1.08rem;">${escapeHtml(run.workflow_name)}</div><div class="meta">${escapeHtml(run.run_source || 'active')} · ${escapeHtml(run.mode)} · ${escapeHtml(run.execution_strategy)} · ${escapeHtml(run.run_id)}</div></div>
+                    <span class="pill status-${escapeHtml(run.status)}">${escapeHtml(run.status)}</span>
+                </div>
+                <div class="summary">
+                    <div class="mini"><div class="label">成功率</div><div class="value">${Number(run.success_rate || 0).toFixed(1)}%</div></div>
+                    <div class="mini"><div class="label">步骤统计</div><div class="value">${run.completed_steps}/${run.skipped_steps}/${run.failed_steps}</div></div>
+                    <div class="mini"><div class="label">来源</div><div class="value">${escapeHtml(run.run_source || 'active')}</div></div>
+                    <div class="mini"><div class="label">模式</div><div class="value">${escapeHtml(run.mode)}</div></div>
+                    <div class="mini"><div class="label">超时</div><div class="value">${escapeHtml(timeoutLabel)}</div></div>
+                    <div class="mini"><div class="label">输出根目录</div><div class="value" style="font-size:.92rem; line-height:1.35;">${escapeHtml(run.output_root)}</div></div>
+                </div>
+                <div class="meta" style="margin-bottom:12px;">状态说明: ${escapeHtml(statusMessage)}</div>
+                <div class="meta" style="margin-bottom:12px;">进度: ${escapeHtml(currentStepMessage)} · 最近更新 ${escapeHtml(run.progress_updated_at || '尚无')}</div>
+                ${diagnosticsPanel}
+                <div class="title" style="margin-bottom:10px;">Godot 交付</div>
+                ${godotDeliveryPanel}
+                <div class="actions" style="margin:0 0 14px;">
+                    <button class="btn-alt" onclick="syncRunToGodot('${run.run_id}')">使用推荐产物送往 Godot</button>
+                </div>
+                <div class="title" style="margin-bottom:10px;">步骤快照</div>
+                <div class="steps" style="margin-bottom:14px;">${stepsSnapshot}</div>
+                <div class="title" style="margin-bottom:10px;">实时日志</div>
+                <div class="meta" style="margin-bottom:10px;">日志行数 ${run.live_log_line_count || 0} · 最近更新 ${escapeHtml(run.live_log_updated_at || '尚无')}</div>
+                <div style="margin-bottom:10px;">${liveLogTail}</div>
+                <div class="title" style="margin-bottom:10px;">产物</div>
+                <div class="artifacts">${artifacts}</div>
+                <div class="actions" style="margin:14px 0;">${run.live_log_download_url ? `<a class="btn-alt" href="${run.live_log_download_url}" target="_blank" rel="noopener noreferrer">查看完整实时日志</a>` : ''}${run.log_download_url ? `<a class="btn" href="${run.log_download_url}" target="_blank" rel="noopener noreferrer">下载 Workflow Log</a>` : ''}${cancelAction}</div>
+                <div class="title" style="margin-bottom:10px;">完整 Run JSON</div>
+                <pre>${escapeHtml(JSON.stringify(run, null, 2))}</pre>
+                
+                <div id="urdf-preview-container" style="display:none; margin-top: 20px;">
+                    <div class="title" style="margin-bottom: 10px;">🌐 Web 3D URDF 预览</div>
+                    <div style="border:1px solid var(--line); border-radius:10px; overflow:hidden;">
+                        <urdf-viewer id="web-viewer-urdf" up="-Z" display-shadow tabindex="0"
+                            style="width:100%; height:400px; background:#e2e8f0; display:block; outline:none;"
+                            urdf=""></urdf-viewer>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function selectWorkflow(name) {
+            state.selectedWorkflow = name;
+            updateStats();
+            renderWorkflowList();
+            if (state.details.has(name)) { renderWorkflowDetail(state.details.get(name)); return; }
+            try {
+                const data = await fetchJson(`/api/workflows/${name}`);
+                state.details.set(name, data.workflow);
+                renderWorkflowDetail(data.workflow);
+            } catch (error) {
+                showBanner(`加载 workflow 详情失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadCatalog() {
+            try {
+                state.workflows = await fetchJson('/api/workflows/');
+                renderRunWorkflowFilter();
+                updateStats();
+                renderWorkflowList();
+                if (!state.selectedWorkflow && state.workflows.length) await selectWorkflow(state.workflows[0].name);
+            } catch (error) {
+                showBanner(`加载 workflows 失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadRuns() {
+            try {
+                const data = await fetchJson(`/api/workflows/runs?${buildRunQueryString()}`);
+                state.runs = data.runs || [];
+                syncRunPagination(data);
+                renderRunFilterSummary(data);
+                updateStats();
+                renderRunPagination();
+                renderRuns();
+                if (state.selectedRunId) {
+                    const selected = state.runs.find((run) => run.run_id === state.selectedRunId);
+                    if (selected) {
+                        renderRunDetail(selected);
+                        if (isTerminalStatus(selected.status)) {
+                            closeRunEventSource();
+                        }
+                    }
+                }
+            } catch (error) {
+                showBanner(`加载 runs 失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function viewRun(runId) {
+            try {
+                const data = await fetchJson(`/api/workflows/runs/${runId}`);
+                state.selectedRunId = runId;
+                upsertRun(data.run);
+                renderRuns();
+                renderRunDetail(data.run);
+                subscribeToRunEvents(runId);
+            } catch (error) {
+                showBanner(`加载 run 详情失败: ${error.message}`, 'error');
+            }
+        }
+
+        function subscribeToRunEvents(runId) {
+            if (!window.EventSource) return;
+            const selected = state.runs.find((run) => run.run_id === runId);
+            if (selected && isTerminalStatus(selected.status)) {
+                closeRunEventSource();
+                return;
+            }
+            if (state.runEventSource && state.runEventSourceRunId === runId) return;
+
+            closeRunEventSource();
+            const source = new EventSource(`/api/workflows/runs/${runId}/events`);
+            state.runEventSource = source;
+            state.runEventSourceRunId = runId;
+
+            source.addEventListener('workflow_run_event', (event) => {
+                try {
+                    const payload = JSON.parse(event.data);
+                    const run = payload.run;
+                    upsertRun(run);
+                    if (state.selectedRunId === run.run_id) {
+                        renderRuns();
+                        renderRunDetail(run);
+                    } else {
+                        renderRuns();
+                    }
+
+                    if (payload.event_type === 'run_terminal') {
+                        showBanner(`Workflow 已结束: ${run.workflow_name} · ${run.status}`, run.status === 'completed' ? 'success' : 'error');
+                        if (run.status === 'completed' && shouldAutoSyncToGodot() && !state.godotAutoSyncRunIds.has(run.run_id)) {
+                            state.godotAutoSyncRunIds.add(run.run_id);
+                            syncRunToGodot(run.run_id).catch(() => {});
+                        }
+                        closeRunEventSource();
+                    }
+                } catch (error) {
+                    // Ignore malformed transient events and rely on polling fallback.
+                }
+            });
+
+            source.onerror = () => {
+                if (state.runEventSource === source) {
+                    closeRunEventSource();
+                }
+            };
+        }
+
+        async function refreshSelectedRun() {
+            if (!state.selectedRunId) return;
+            const selected = state.runs.find((run) => run.run_id === state.selectedRunId);
+            if (state.runEventSource && state.runEventSourceRunId === state.selectedRunId) {
+                if (selected && isTerminalStatus(selected.status)) {
+                    closeRunEventSource();
+                }
+                return;
+            }
+            if (selected && isTerminalStatus(selected.status)) return;
+            try {
+                const data = await fetchJson(`/api/workflows/runs/${state.selectedRunId}`);
+                upsertRun(data.run);
+                renderRuns();
+                renderRunDetail(data.run);
+                if (
+                    data.run.status === 'completed' &&
+                    shouldAutoSyncToGodot() &&
+                    !data.run.godot_delivery &&
+                    !state.godotAutoSyncRunIds.has(data.run.run_id)
+                ) {
+                    state.godotAutoSyncRunIds.add(data.run.run_id);
+                    syncRunToGodot(data.run.run_id).catch(() => {});
+                }
+                subscribeToRunEvents(state.selectedRunId);
+            } catch (error) {
+                // Avoid spamming the banner during background polling.
+            }
+        }
+
+        async function cancelRun(runId) {
+            try {
+                const data = await fetchJson(`/api/workflows/runs/${runId}/cancel`, {
+                    method: 'POST',
+                });
+                showBanner(data.message || '已发送取消请求。', 'info');
+                await loadRuns();
+                await viewRun(runId);
+            } catch (error) {
+                showBanner(`取消 workflow 失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadLogs() {
+            const el = document.getElementById('log-list');
+            try {
+                const logs = await fetchJson('/api/workflows/logs');
+                document.getElementById('stat-logs').textContent = logs.length;
+                if (!logs.length) { el.innerHTML = '<div class="empty">根目录 `.output` 中没有 legacy logs。</div>'; return; }
+                el.innerHTML = logs.map((log) => `<div class="item"><div class="row"><div class="title">${escapeHtml(log)}</div><button class="btn-xs" onclick="viewLog('${log}')">查看</button></div></div>`).join('');
+            } catch (error) {
+                el.innerHTML = `<div class="empty">加载 legacy logs 失败: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        async function viewLog(filename) {
+            try {
+                const data = await fetchJson(`/api/workflows/logs/${filename}`);
+                document.getElementById('log-detail').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('log-detail').textContent = `加载失败: ${error.message}`;
+            }
+        }
+
+        async function runSelected() {
+            if (!state.selectedWorkflow) { showBanner('请先选择一个 workflow。', 'error'); return; }
+            let parameters = {};
+            const text = document.getElementById('parameters').value.trim();
+            if (text) {
+                try { parameters = JSON.parse(text); }
+                catch (error) { showBanner(`参数 JSON 解析失败: ${error.message}`, 'error'); return; }
+            }
+            const payload = {
+                use_real: document.getElementById('mode').value === 'real',
+                execution_strategy: document.getElementById('strategy').value,
+                parameters,
+            };
+            const outputRoot = document.getElementById('output-root').value.trim();
+            if (outputRoot) payload.output_root = outputRoot;
+            const timeoutSeconds = document.getElementById('timeout-seconds').value.trim();
+            if (timeoutSeconds) payload.timeout_seconds = parseFloat(timeoutSeconds);
+
+            const btn = document.getElementById('run-btn');
+            btn.disabled = true;
+            btn.textContent = '执行中...';
+            showBanner(`正在执行 ${state.selectedWorkflow}...`, 'info');
+            try {
+                const data = await fetchJson(`/api/workflows/${state.selectedWorkflow}/run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                showBanner(`后台运行已启动: ${data.run.workflow_name} · ${data.run.status} · run_id=${data.run.run_id.slice(0, 8)}`, 'success');
+                state.runPage = 1;
+                await loadRuns();
+                await viewRun(data.run.run_id);
+            } catch (error) {
+                showBanner(`执行 workflow 失败: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '执行当前 Workflow';
+            }
+        }
+
+        async function boot() {
+            await loadCatalog();
+            await loadRuns();
+            await loadLogs();
+            renderRunDetail(null);
+        }
+
+        async function previewUrdf(url) {
+            const container = document.getElementById('urdf-preview-container');
+            const viewer = document.getElementById('web-viewer-urdf');
+            if (container && viewer) {
+                container.style.display = 'block';
+                viewer.setAttribute('urdf', url);
+                container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                showBanner('加载模型预览中...', 'info');
+            }
+        }
+
+        function getGodotTargetOptions() {
+            return {
+                transport_mode: document.getElementById('godot-transport-mode')?.value || 'session_bridge',
+                session_id: document.getElementById('godot-session-id')?.value?.trim() || 'default',
+            };
+        }
+
+        async function syncRunToGodot(runId, artifactIndex = null, artifactName = null, autoSelected = false) {
+            try {
+                const payload = getGodotTargetOptions();
+                const route = artifactIndex === null
+                    ? `/api/workflows/runs/${runId}/godot-sync`
+                    : `/api/workflows/runs/${runId}/artifacts/${artifactIndex}/godot-load`;
+                const label = artifactName || '推荐机器人配置产物';
+                showBanner(`正在通过 ${payload.transport_mode} 发送 ${label}...`, 'info');
+                const postReq = await fetch(route, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const postRes = await postReq.json();
+                if (!postReq.ok) {
+                    throw new Error(postRes.detail || postRes.message || `HTTP ${postReq.status}`);
+                }
+
+                const target = postRes.transport?.session_id || payload.session_id;
+                const transportMode = postRes.transport?.transport_mode || payload.transport_mode;
+                showBanner(`✅ 已送往 Godot (${transportMode} / ${target})`, 'success');
+                state.godotAutoSyncRunIds.delete(runId);
+                await viewRun(runId);
+            } catch (err) {
+                state.godotAutoSyncRunIds.delete(runId);
+                showBanner(`请求异常: ${err.message}`, 'error');
+            }
+        }
+
+        async function sendArtifactToGodot(runId, artifactIndex, name) {
+            await syncRunToGodot(runId, artifactIndex, name, false);
+        }
+
+        boot();
+        window.setInterval(refreshSelectedRun, 5000);
+        window.setInterval(loadRuns, 10000);
+        window.setInterval(loadLogs, 15000);
+    </script>
+</body>
+</html>

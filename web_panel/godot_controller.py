@@ -1,5 +1,6 @@
 import logging
 logger = logging.getLogger(__name__)
+import inspect
 from typing import Optional, Dict, Callable, Any
 import sys
 import os
@@ -9,6 +10,8 @@ import asyncio
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from python_api.comm.godot_client import GodotSimulationClient
+from web_panel.core_api import DEFAULT_GODOT_SESSION_ID
+from web_panel.ws_protocol import MessageType, WsMessage
 
 class GodotController:
     _instance = None
@@ -16,78 +19,184 @@ class GodotController:
     def __new__(cls) -> None:
         if cls._instance is None:
             cls._instance = super(GodotController, cls).__new__(cls)
-            cls._instance.client = GodotSimulationClient()
+            cls._instance.clients: Dict[str, GodotSimulationClient] = {}
+            cls._instance.cached_configs: Dict[str, dict] = {}
+            cls._instance.legacy_session_id = DEFAULT_GODOT_SESSION_ID
             cls._instance.broadcast_callback = None
+            cls._instance.broadcast_callback_accepts_session = False
         return cls._instance
-    
-    def set_broadcast_callback(self, callback: Callable[[Dict], Any]) -> None:
+
+    def _callback_accepts_session(self, callback: Callable[..., Any]) -> bool:
+        try:
+            signature = inspect.signature(callback)
+        except (TypeError, ValueError):
+            return False
+
+        for parameter in signature.parameters.values():
+            if parameter.kind == inspect.Parameter.VAR_POSITIONAL:
+                return True
+
+        positional = [
+            parameter
+            for parameter in signature.parameters.values()
+            if parameter.kind in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
+        ]
+        return len(positional) >= 2
+
+    def _resolve_session_id(self, session_id: Optional[str] = None) -> str:
+        return session_id or DEFAULT_GODOT_SESSION_ID
+
+    def get_client(self, session_id: Optional[str] = None) -> GodotSimulationClient:
+        target = self._resolve_session_id(session_id)
+        if target not in self.clients:
+            self.clients[target] = GodotSimulationClient()
+            
+            # 捕获循环变量绑定
+            def make_on_data(sid: str):
+                def on_data(data: Any):
+                    if self.broadcast_callback:
+                        msg = WsMessage(
+                            type=MessageType.TELEMETRY_UPDATE.value,
+                            payload={"data": data},
+                            status="push",
+                        ).to_dict()
+                        self._broadcast(msg, session_id=sid)
+                return on_data
+                
+            self.clients[target].set_data_callback(make_on_data(target))
+        return self.clients[target]
+
+    @property
+    def client(self) -> GodotSimulationClient:
+        return self.get_client(self.legacy_session_id)
+
+    @property
+    def cached_robot_config(self) -> Dict[str, Any]:
+        return self.cached_configs.get(self.legacy_session_id, {})
+
+    @cached_robot_config.setter
+    def cached_robot_config(self, value: Dict[str, Any]) -> None:
+        self.cached_configs[self.legacy_session_id] = value
+
+    def release_session(self, session_id: str) -> None:
+        if session_id in self.clients:
+            try:
+                self.clients[session_id].disconnect()
+            except Exception:
+                pass
+            del self.clients[session_id]
+        if session_id in self.cached_configs:
+            del self.cached_configs[session_id]
+
+    def _broadcast(self, message: Dict[str, Any], session_id: Optional[str] = None) -> None:
+        if not self.broadcast_callback:
+            return
+
+        target_session_id = self._resolve_session_id(session_id)
+        if self.broadcast_callback_accepts_session:
+            self.broadcast_callback(target_session_id, message)
+        else:
+            self.broadcast_callback(message)
+
+    def set_broadcast_callback(self, callback: Callable[..., Any]) -> None:
         """设置用于WebSocket广播的回调函数"""
         self.broadcast_callback = callback
-        
-        # 设置底层客户端的数据回调
-        def on_godot_data(data) -> None:
-            if self.broadcast_callback:
-                # 包装为统一的消息格式
-                msg = {
-                    "type": "godot_data",
-                    "data": data
-                }
-                # 注意：这里可能是在子线程调用的，需要确保callback能处理线程安全
-                # 或者由server.py端处理 event loop
-                self.broadcast_callback(msg)
-                
-        self.client.set_data_callback(on_godot_data)
+        self.broadcast_callback_accepts_session = self._callback_accepts_session(callback)
 
-    def connect(self, host: str, port: int) -> bool:
-        self.client.host = host
-        self.client.port = port
-        success = self.client.connect()
-        if success and self.broadcast_callback:
-             self.broadcast_callback({
-                 "type": "godot_connection", 
-                 "status": "connected",
-                 "host": host,
-                 "port": port
-             })
+    def connect(
+        self,
+        host: str,
+        port: int,
+        session_id: Optional[str] = None,
+    ) -> bool:
+        target_session_id = self._resolve_session_id(session_id)
+        client = self.get_client(target_session_id)
+        client.host = host
+        client.port = port
+        success = client.connect()
+        if success:
+             self._broadcast(
+                 WsMessage(
+                     type=MessageType.CONNECTION_STATUS.value,
+                     payload={
+                         "connected": True,
+                         "details": {
+                             "mode": "legacy_controller",
+                             "host": host,
+                             "port": port,
+                         },
+                     },
+                     status="push",
+                 ).to_dict(),
+                 session_id=target_session_id,
+             )
         return success
 
-    def disconnect(self) -> None:
-        self.client.disconnect()
-        if self.broadcast_callback:
-             self.broadcast_callback({
-                 "type": "godot_connection", 
-                 "status": "disconnected"
-             })
+    def disconnect(self, session_id: Optional[str] = None) -> None:
+        target_session_id = self._resolve_session_id(session_id)
+        client = self.get_client(target_session_id)
+        client.disconnect()
+        self._broadcast(
+             WsMessage(
+                 type=MessageType.CONNECTION_STATUS.value,
+                 payload={
+                     "connected": False,
+                     "details": {"mode": "legacy_controller"},
+                 },
+                 status="push",
+             ).to_dict(),
+             session_id=target_session_id,
+         )
+        self.release_session(target_session_id)
 
-    def is_connected(self) -> bool:
-        return self.client.is_connected()
+    def is_connected(self, session_id: Optional[str] = None) -> bool:
+        target_session_id = self._resolve_session_id(session_id)
+        if target_session_id not in self.clients:
+            return False
+        return self.clients[target_session_id].is_connected()
 
     
-    def start_simulation(self, physics_config: Optional[Dict] = None) -> bool:
-        # Harmonized logic: use cached robot config if available
-        # This supports the stateless API call form /api/godot/start which only sends physics
-        
-        # Determine robot config to use
-        # In a real scenario, Godot might already have the robot loaded and just needs 'start_sim'
-        # But our protocol expects 'robot' in start_sim command data sometimes.
-        # Let's send what we have.
-        robot_config = getattr(self, 'cached_robot_config', {})
-        
-        return self.client.start_simulation(robot_config)
+    def start_simulation(
+        self,
+        physics_config: Optional[Dict] = None,
+        session_id: Optional[str] = None,
+    ) -> bool:
+        target_session_id = self._resolve_session_id(session_id)
+        client = self.get_client(target_session_id)
+        robot_config = self.cached_configs.get(target_session_id, {})
+        if not robot_config and target_session_id == self.legacy_session_id:
+            robot_config = self.cached_robot_config
 
-    def stop_simulation(self) -> bool:
-        return self.client.stop_simulation()
+        return client.start_simulation(
+            robot_config,
+            physics_config=physics_config,
+        )
 
-    def load_robot(self, parts: list, connections: list) -> bool:
+    def stop_simulation(self, session_id: Optional[str] = None) -> bool:
+        target_session_id = self._resolve_session_id(session_id)
+        return self.get_client(target_session_id).stop_simulation()
+
+    def load_robot(
+        self,
+        parts: list,
+        connections: list,
+        session_id: Optional[str] = None,
+    ) -> bool:
+        target_session_id = self._resolve_session_id(session_id)
+        client = self.get_client(target_session_id)
         # Cache the config for later start_simulation calls
-        self.cached_robot_config = {
+        self.cached_configs[target_session_id] = {
             'parts': parts,
             'connections': connections
         }
-        return self.client.load_robot_config(parts, connections)
+        return client.load_robot_config(parts, connections)
 
-    def update_params(self, params: Dict) -> bool:
-        return self.client.update_parameters(params)
+    def update_params(self, params: Dict, session_id: Optional[str] = None) -> bool:
+        target_session_id = self._resolve_session_id(session_id)
+        return self.get_client(target_session_id).update_parameters(params)
 
 # 全局单例
 godot_controller = GodotController()

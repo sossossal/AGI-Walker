@@ -40,6 +40,7 @@ from web_panel.parts_sim2real_api import (
 )
 from web_panel.agent_api import (
     build_router as build_agent_router,
+    get_godot_agent_status,
 )
 from web_panel.websocket_api import (
     broadcast_all as broadcast_all_service,
@@ -49,12 +50,32 @@ from web_panel.websocket_api import (
 from web_panel.core_api import (
     build_router as build_core_router,
 )
+from web_panel.nightly_status import (
+    NightlyStatusProvider,
+    get_nightly_regression_dashboard,
+    get_nightly_regression_status,
+)
+from web_panel.workflows_api import (
+    build_router as build_workflows_router,
+)
+from web_panel.auth_api import (
+    build_router as build_auth_router,
+)
 
 # Godot integration currently has two transport modes:
 # 1. Legacy controller mode: command-oriented connect/load/start/stop/update flow.
 # 2. Session bridge mode: launch/process management + TCP telemetry/control for RL-style loops.
 
+from web_panel.logging_config import setup_logging
+from prometheus_fastapi_instrumentator import Instrumentator
+
+# Initialize structured logging
+setup_logging()
+
 app = FastAPI(title="AGI-Walker Control Panel", version="1.0.0")
+
+# Initialize Prometheus metrics
+Instrumentator().instrument(app).expose(app)
 
 # Mount Static Files
 app.mount("/static", StaticFiles(directory="web_panel/static"), name="static")
@@ -91,43 +112,67 @@ async def broadcast_session(session_id: str, message: Dict[str, Any]):
 
 
 from web_panel.godot_controller import godot_controller
+app.state.godot_controller = godot_controller
 
-def godot_broadcast_adaptor(message: Dict[str, Any]):
+def godot_broadcast_adaptor(*args: Any):
     """将同步回调转换为异步广播"""
     try:
+        session_id = None
+        if len(args) == 1:
+            message = args[0]
+        elif len(args) == 2:
+            session_id, message = args
+        else:
+            raise ValueError(f"Unsupported broadcast adaptor arguments: {len(args)}")
+
         loop = getattr(app.state, "server_loop", None)
         if loop is None:
             return
-        asyncio.run_coroutine_threadsafe(broadcast_all(message), loop)
+        if session_id:
+            asyncio.run_coroutine_threadsafe(
+                broadcast_session(session_id, message),
+                loop,
+            )
+        else:
+            asyncio.run_coroutine_threadsafe(broadcast_all(message), loop)
     except Exception as e:
         logger.info(f"广播适配器错误: {e}")
 
 # --- Zenoh Monitor ---
 distributed_monitor = DistributedMonitor()
+app.state.nightly_status_provider = NightlyStatusProvider.from_env()
 app.include_router(
     build_core_router(
         os.path.dirname(__file__),
         tasks_db,
         active_connections,
         distributed_monitor,
+        lambda: get_godot_agent_status(app),
+        lambda: get_nightly_regression_status(app),
+        lambda limit=5: get_nightly_regression_dashboard(app, limit),
     )
 )
 app.include_router(build_tasks_router(tasks_db, broadcast_all))
 app.include_router(build_services_router())
 app.include_router(build_agent_router(app))
 app.include_router(build_parts_sim2real_router())
+app.include_router(build_auth_router())
+app.include_router(build_workflows_router())
 
 
 # ===========================================================================
 # Godot 引擎远程控制桥接层 (Godot Bridge)
 # ===========================================================================
 _session_manager = GodotSessionManager()
+app.state.godot_session_manager = _session_manager
 app.include_router(build_godot_legacy_router(godot_controller))
 app.include_router(build_godot_session_router(_session_manager, broadcast_session))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Industrial persistence now managed via Alembic migrations
+    
     app.state.server_loop = asyncio.get_running_loop()
     godot_controller.set_broadcast_callback(godot_broadcast_adaptor)
     app.state.telemetry_task = asyncio.create_task(

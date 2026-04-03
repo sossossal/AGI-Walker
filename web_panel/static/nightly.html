@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGI-Walker Nightly 运维页</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            color: #0f172a;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container {
+            max-width: 1320px;
+            margin: 0 auto;
+        }
+        .hero, .card {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+        }
+        .hero {
+            padding: 24px 28px;
+            margin-bottom: 20px;
+        }
+        .hero h1 {
+            margin: 0 0 10px;
+            color: #1d4ed8;
+            font-size: 2rem;
+        }
+        .hero p {
+            margin: 0;
+            color: #475569;
+            line-height: 1.6;
+        }
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+        .button {
+            display: inline-block;
+            text-decoration: none;
+            background: #1d4ed8;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .button.secondary {
+            background: #0f766e;
+        }
+        .button.light {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .card {
+            padding: 20px;
+        }
+        .card h2 {
+            margin: 0 0 14px;
+            color: #1d4ed8;
+            font-size: 1.1rem;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .metric:last-child {
+            border-bottom: none;
+        }
+        .metric-label {
+            color: #475569;
+        }
+        .metric-value {
+            font-weight: 700;
+            text-align: right;
+        }
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+        .status-healthy { background: #dcfce7; color: #166534; }
+        .status-running { background: #dbeafe; color: #1d4ed8; }
+        .status-degraded, .status-error { background: #fee2e2; color: #b91c1c; }
+        .status-empty, .status-not_configured, .status-stale { background: #fef3c7; color: #92400e; }
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 20px;
+        }
+        .run-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 14px;
+            background: #f8fafc;
+        }
+        .run-item:last-child {
+            margin-bottom: 0;
+        }
+        .run-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .run-title {
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .run-meta {
+            color: #64748b;
+            font-size: 0.92rem;
+        }
+        .jobs {
+            display: grid;
+            gap: 10px;
+        }
+        .job-row {
+            border-radius: 12px;
+            padding: 12px;
+            background: white;
+            border: 1px solid #e2e8f0;
+        }
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+        .job-name {
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .job-meta {
+            color: #475569;
+            font-size: 0.86rem;
+            line-height: 1.5;
+        }
+        .mono {
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.83rem;
+            background: #eff6ff;
+            border-radius: 8px;
+            padding: 8px 10px;
+            color: #1e3a8a;
+            margin-top: 8px;
+            overflow-x: auto;
+        }
+        .empty {
+            padding: 18px;
+            border-radius: 14px;
+            background: #f8fafc;
+            color: #475569;
+            line-height: 1.7;
+        }
+        a.inline-link {
+            color: #1d4ed8;
+            text-decoration: none;
+        }
+        @media (max-width: 960px) {
+            .panel-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="hero">
+            <h1>🛡️ Nightly 运维页</h1>
+            <p>查看最近的 nightly / manual 专项回归，直接定位 `smoke`、`distributed-smoke`、`godot-headless-smoke` 的状态、artifact 和本地复现命令。</p>
+            <div class="hero-actions">
+                <a class="button" href="/static/index.html">返回主控制台</a>
+                <a class="button secondary" href="/docs/index.html">API 文档</a>
+                <button class="button light" onclick="loadNightlyDashboard()">刷新状态</button>
+            </div>
+        </section>
+
+        <section class="dashboard">
+        <div class="card">
+            <h2>专项回归总览</h2>
+            <div class="metric">
+                <span class="metric-label">当前状态</span>
+                <span class="metric-value"><span id="status-chip" class="status-chip status-not_configured">未配置</span></span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">GitHub Repo</span>
+                <span class="metric-value" id="repo-value">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">最近专项运行</span>
+                <span class="metric-value" id="latest-run-value">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">最近刷新时间</span>
+                <span class="metric-value" id="fetched-at-value">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Artifact 统计</span>
+                <span class="metric-value" id="artifact-paths-value">0 paths / 0 jobs</span>
+            </div>
+        </div>
+            <div class="card">
+                <h2>Job 摘要</h2>
+                <div class="metric"><span class="metric-label">通过</span><span class="metric-value" id="passed-jobs-value">0</span></div>
+                <div class="metric"><span class="metric-label">失败</span><span class="metric-value" id="failed-jobs-value">0</span></div>
+                <div class="metric"><span class="metric-label">运行中</span><span class="metric-value" id="running-jobs-value">0</span></div>
+                <div class="metric"><span class="metric-label">缺失 / 跳过</span><span class="metric-value" id="missing-jobs-value">0 / 0</span></div>
+            </div>
+            <div class="card">
+                <h2>配置提示</h2>
+                <div class="metric"><span class="metric-label">Workflow 文件</span><span class="metric-value" id="workflow-file-value">-</span></div>
+                <div class="metric"><span class="metric-label">Tracked Jobs</span><span class="metric-value" id="tracked-jobs-value">-</span></div>
+                <div class="metric"><span class="metric-label">启用方式</span><span class="metric-value">`AGI_WALKER_GITHUB_REPO`</span></div>
+                <div class="metric"><span class="metric-label">缓存</span><span class="metric-value">`AGI_WALKER_NIGHTLY_STATUS_CACHE_SECONDS`</span></div>
+            </div>
+        </section>
+
+        <section class="panel-grid">
+            <div class="card">
+                <h2>最近专项运行</h2>
+                <div id="runs-container" class="empty">加载中...</div>
+            </div>
+            <div class="card">
+                <h2>Job 参考</h2>
+                <div id="catalog-container" class="empty">加载中...</div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatDate(value) {
+            if (!value) return '-';
+            try {
+                return new Date(value).toLocaleString('zh-CN', { hour12: false });
+            } catch (e) {
+                return value;
+            }
+        }
+
+        function formatStatusLabel(status) {
+            const mapping = {
+                healthy: '正常',
+                running: '运行中',
+                degraded: '异常',
+                empty: '暂无记录',
+                not_configured: '未配置',
+                stale: '缓存结果',
+                error: '读取失败',
+            };
+            return mapping[status] || status || 'unknown';
+        }
+
+        function jobConclusion(job) {
+            if (job.present === false) return 'missing';
+            return job.conclusion || job.status || 'unknown';
+        }
+
+        function formatArtifactPaths(paths) {
+            if (!Array.isArray(paths) || paths.length === 0) {
+                return '';
+            }
+            return paths.map((item) => `<div class="job-meta">Artifacts: ${escapeHtml(item)}</div>`).join('');
+        }
+
+        function formatArtifactCount(job) {
+            const count = Array.isArray(job.artifact_paths) ? job.artifact_paths.length : 0;
+            if (!count) {
+                return '';
+            }
+            return `<div class="job-meta">Pairings: ${count} artifact${count > 1 ? 's' : ''}</div>`;
+        }
+
+        function renderSummary(data) {
+            const summary = data.summary || {};
+            const latestRun = data.latest_run || {};
+            const status = data.status || 'not_configured';
+
+            const chip = document.getElementById('status-chip');
+            chip.className = `status-chip status-${status}`;
+            chip.textContent = formatStatusLabel(status);
+
+            document.getElementById('repo-value').textContent = data.repo || '-';
+            document.getElementById('latest-run-value').textContent = latestRun.run_number
+                ? `#${latestRun.run_number} · ${latestRun.event || '-'} · ${latestRun.conclusion || latestRun.status || '-'}`
+                : (data.message || '-');
+            document.getElementById('fetched-at-value').textContent = formatDate(data.fetched_at);
+            document.getElementById('passed-jobs-value').textContent = summary.passed_jobs || 0;
+            document.getElementById('failed-jobs-value').textContent = summary.failed_jobs || 0;
+            document.getElementById('running-jobs-value').textContent = summary.running_jobs || 0;
+            document.getElementById('missing-jobs-value').textContent = `${summary.missing_jobs || 0} / ${summary.skipped_jobs || 0}`;
+            document.getElementById('workflow-file-value').textContent = data.workflow_file || '-';
+            document.getElementById('tracked-jobs-value').textContent = (data.tracked_jobs || []).join(', ') || '-';
+            const artifactPaths = summary.artifact_paths_total || 0;
+            const jobsWithArtifacts = summary.jobs_with_artifacts || 0;
+            document.getElementById('artifact-paths-value').textContent = `${artifactPaths} 路径 / ${jobsWithArtifacts} job`;
+        }
+
+        function renderRuns(data) {
+            const container = document.getElementById('runs-container');
+            const runs = data.recent_runs || [];
+            if (!runs.length) {
+                container.className = 'empty';
+                container.innerHTML = data.status === 'not_configured'
+                    ? '未配置 GitHub Actions 来源。设置 <code>AGI_WALKER_GITHUB_REPO</code> 后，这里会显示最近的 nightly / manual 专项回归。'
+                    : '当前还没有可展示的专项运行记录。';
+                return;
+            }
+
+            container.className = '';
+            container.innerHTML = runs.map((run) => {
+                const jobsHtml = Object.values(run.jobs || {}).map((job) => `
+                        <div class="job-row">
+                            <div class="job-header">
+                                <div class="job-name">${escapeHtml(job.label || job.name)}</div>
+                                <div class="job-meta">${escapeHtml(jobConclusion(job))}</div>
+                            </div>
+                            <div class="job-meta">Artifact: ${escapeHtml(job.artifact_name || '-')}</div>
+                            ${formatArtifactPaths(job.artifact_paths)}
+                            ${formatArtifactCount(job)}
+                            <div class="job-meta">Owner: ${escapeHtml(job.owner_area || '-')}</div>
+                            <div class="job-meta">Started: ${escapeHtml(formatDate(job.started_at))}</div>
+                            <div class="job-meta">Completed: ${escapeHtml(formatDate(job.completed_at))}</div>
+                            ${job.html_url ? `<div class="job-meta"><a class="inline-link" href="${escapeHtml(job.html_url)}" target="_blank" rel="noreferrer">打开 GitHub Job</a></div>` : ''}
+                            ${job.local_repro_command ? `<div class="mono">${escapeHtml(job.local_repro_command)}</div>` : ''}
+                        </div>
+                `).join('');
+
+                return `
+                    <div class="run-item">
+                        <div class="run-header">
+                            <div>
+                                <div class="run-title">Run #${escapeHtml(run.run_number || run.id || '-')}</div>
+                                <div class="run-meta">${escapeHtml(run.event || '-')} · ${escapeHtml(run.conclusion || run.workflow_status || '-')} · ${escapeHtml(formatDate(run.run_started_at || run.created_at))}</div>
+                            </div>
+                            <div class="run-meta">${run.html_url ? `<a class="inline-link" href="${escapeHtml(run.html_url)}" target="_blank" rel="noreferrer">打开 Run</a>` : ''}</div>
+                        </div>
+                        <div class="jobs">${jobsHtml}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderCatalog(data) {
+            const container = document.getElementById('catalog-container');
+            const catalog = data.job_catalog || {};
+            const entries = Object.values(catalog);
+            if (!entries.length) {
+                container.className = 'empty';
+                container.textContent = '暂无 job 参考信息。';
+                return;
+            }
+
+            container.className = '';
+            container.innerHTML = entries.map((entry) => `
+                <div class="job-row" style="margin-bottom: 12px;">
+                    <div class="job-header">
+                        <div class="job-name">${escapeHtml(entry.label || entry.name)}</div>
+                        <div class="job-meta">${escapeHtml(entry.owner_area || '-')}</div>
+                    </div>
+                    <div class="job-meta">Artifact: ${escapeHtml(entry.artifact_name || '-')}</div>
+                    ${formatArtifactPaths(entry.artifact_paths)}
+                    ${formatArtifactCount(entry)}
+                    <div class="job-meta">Path: ${escapeHtml(entry.artifact_path || '-')}</div>
+                    ${entry.local_repro_command ? `<div class="mono">${escapeHtml(entry.local_repro_command)}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function loadNightlyDashboard() {
+            try {
+                const response = await fetch('/api/nightly/regressions?limit=6');
+                const data = await response.json();
+                renderSummary(data);
+                renderRuns(data);
+                renderCatalog(data);
+            } catch (error) {
+                const message = `加载 nightly 运维数据失败: ${error.message}`;
+                document.getElementById('runs-container').className = 'empty';
+                document.getElementById('runs-container').textContent = message;
+                document.getElementById('catalog-container').className = 'empty';
+                document.getElementById('catalog-container').textContent = message;
+            }
+        }
+
+        loadNightlyDashboard();
+    </script>
+</body>
+</html>

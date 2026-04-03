@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
 from fastapi import APIRouter
 from fastapi import WebSocket
@@ -18,21 +18,35 @@ def root_response(server_dir: str) -> FileResponse:
 def system_status(
     tasks_db: Dict[str, Dict[str, Any]],
     active_connections: Dict[str, List[WebSocket]],
+    distributed_monitor=None,
+    godot_agent_status_provider: Callable[[], Dict[str, Any]] | None = None,
+    nightly_status_provider: Callable[[], Dict[str, Any]] | None = None,
 ) -> Dict[str, Any]:
-    return {
+    status = {
         "status": "running",
         "tasks_count": len(tasks_db),
         "active_connections": len(active_connections),
         "timestamp": datetime.now().isoformat(),
     }
+    if distributed_monitor is not None:
+        status["distributed_monitor"] = distributed_monitor.capabilities()
+    if godot_agent_status_provider is not None:
+        status["godot_agent"] = godot_agent_status_provider()
+    if nightly_status_provider is not None:
+        status["nightly_regressions"] = nightly_status_provider()
+    return status
 
 
 def godot_capabilities() -> Dict[str, Any]:
     return {
         "default_session_id": DEFAULT_GODOT_SESSION_ID,
+        "preferred_mode": "session_bridge",
         "modes": {
             "legacy_controller": {
-                "description": "Direct controller client for connect/load/start/stop/update flows.",
+                "description": (
+                    "Compatibility transport for direct connect/load/start/stop/update flows. "
+                    "Commands may be scoped to a websocket session via the session_id query parameter."
+                ),
                 "routes": [
                     "/api/godot/connect",
                     "/api/godot/disconnect",
@@ -49,9 +63,17 @@ def godot_capabilities() -> Dict[str, Any]:
                     "params.update",
                     "ping",
                 ],
+                "push_messages": [
+                    "telemetry.update",
+                    "simulation.status",
+                    "simulation.error",
+                    "connection.status",
+                ],
+                "session_query_param": "session_id",
+                "status": "compatibility_only",
             },
             "session_bridge": {
-                "description": "Session-isolated Godot process + TCP bridge for telemetry/control loops.",
+                "description": "Preferred official transport: session-isolated Godot process + TCP bridge for telemetry/control loops.",
                 "routes": [
                     "/api/godot/{session_id}/launch",
                     "/api/godot/{session_id}/stop",
@@ -63,18 +85,38 @@ def godot_capabilities() -> Dict[str, Any]:
                     "reset",
                     "step",
                     "get_schema",
+                    "load_robot",
                 ],
+                "status": "preferred",
+            },
+            "workflow_bridge": {
+                "description": "Official workflow-to-Godot bridge. Recommended to target session_bridge unless legacy compatibility is required.",
+                "routes": [
+                    "/api/workflows/runs/{run_id}/artifacts/{artifact_index}/godot-load",
+                    "/api/workflows/runs/{run_id}/godot-sync",
+                ],
+                "transport_modes": [
+                    "session_bridge",
+                    "legacy_controller",
+                ],
+                "preferred_transport_mode": "session_bridge",
             },
         },
         "note": (
-            "The session bridge does not yet replace the legacy controller flow. "
-            "The two modes currently serve different transport semantics."
+            "Legacy controller remains available for compatibility, but session_bridge is now the preferred path. "
+            "Workflow artifacts can be forwarded into either transport via the workflow bridge route, "
+            "and /api/workflows/runs/{run_id}/godot-sync provides the recommended auto-selection flow. "
+            "Frontend clients should treat canonical websocket pushes as telemetry.update, "
+            "simulation.status, simulation.error, and connection.status."
         ),
     }
 
 
 def distributed_status(distributed_monitor) -> Dict[str, Any]:
-    return {"actors": distributed_monitor.snapshot()}
+    return {
+        "actors": distributed_monitor.snapshot(),
+        "monitor": distributed_monitor.capabilities(),
+    }
 
 
 def build_router(
@@ -82,6 +124,9 @@ def build_router(
     tasks_db: Dict[str, Dict[str, Any]],
     active_connections: Dict[str, List[WebSocket]],
     distributed_monitor,
+    godot_agent_status_provider: Callable[[], Dict[str, Any]] | None = None,
+    nightly_status_provider: Callable[[], Dict[str, Any]] | None = None,
+    nightly_dashboard_provider: Callable[[int], Dict[str, Any]] | None = None,
 ) -> APIRouter:
     router = APIRouter()
 
@@ -93,12 +138,30 @@ def build_router(
     @router.get("/api/system/status")
     async def get_system_status():
         """获取系统状态"""
-        return system_status(tasks_db, active_connections)
+        return system_status(
+            tasks_db,
+            active_connections,
+            distributed_monitor,
+            godot_agent_status_provider,
+            nightly_status_provider,
+        )
 
     @router.get("/api/godot/capabilities")
     async def get_godot_capabilities():
         """Describe the currently supported Godot integration modes."""
         return godot_capabilities()
+
+    @router.get("/api/nightly/regressions")
+    async def get_nightly_regressions(limit: int = 5):
+        """Get recent nightly specialized regression runs for the ops view."""
+        if nightly_dashboard_provider is None:
+            return {
+                "status": "not_configured",
+                "message": "Nightly regression provider unavailable.",
+                "recent_runs": [],
+                "job_catalog": {},
+            }
+        return nightly_dashboard_provider(limit)
 
     @router.get("/api/distributed/status")
     async def get_distributed_status():

@@ -23,6 +23,7 @@ class WebGodotClient {
     this.pendingRequests = new Map();
     this.eventCallbacks = {
       telemetry: [],
+      schema: [],
       status: [],
       error: [],
       connected: [],
@@ -120,6 +121,10 @@ class WebGodotClient {
 
       // 处理推送消息
       switch (type) {
+        case 'schema.update':
+          this._triggerCallbacks('schema', payload?.data);
+          break;
+
         case 'telemetry.update':
           this._triggerCallbacks('telemetry', payload?.data);
           break;
@@ -263,6 +268,13 @@ class WebGodotClient {
   onTelemetry(callback) {
     if (typeof callback === 'function') {
       this.eventCallbacks.telemetry.push(callback);
+    }
+    return this;
+  }
+
+  onSchema(callback) {
+    if (typeof callback === 'function') {
+      this.eventCallbacks.schema.push(callback);
     }
     return this;
   }

@@ -54,24 +54,31 @@ async def handle_websocket(
     def start_sim_callback(physics_config):
         if not godot_controller.is_connected():
             raise RuntimeError("Godot is not connected")
-        return godot_controller.start_simulation(physics_config)
+        return godot_controller.start_simulation(
+            physics_config,
+            session_id=session_id,
+        )
 
     def stop_sim_callback():
         if not godot_controller.is_connected():
             raise RuntimeError("Godot is not connected")
-        return godot_controller.stop_simulation()
+        return godot_controller.stop_simulation(session_id=session_id)
 
     def load_robot_callback(robot_config):
         if not godot_controller.is_connected():
             raise RuntimeError("Godot is not connected")
         parts = robot_config.get("parts", [])
         connections = robot_config.get("connections", [])
-        return godot_controller.load_robot(parts, connections)
+        return godot_controller.load_robot(
+            parts,
+            connections,
+            session_id=session_id,
+        )
 
     def update_params_callback(params):
         if not godot_controller.is_connected():
             raise RuntimeError("Godot is not connected")
-        return godot_controller.update_params(params)
+        return godot_controller.update_params(params, session_id=session_id)
 
     protocol_handler.on_start_simulation = start_sim_callback
     protocol_handler.on_stop_simulation = stop_sim_callback
@@ -108,6 +115,11 @@ async def handle_websocket(
     except WebSocketDisconnect:
         if websocket in active_connections.get(session_id, []):
             active_connections[session_id].remove(websocket)
+        if (
+            not active_connections.get(session_id)
+            and hasattr(godot_controller, "release_session")
+        ):
+            godot_controller.release_session(session_id)
         disconnect_msg = protocol_handler.push_connection_status(
             connected=False,
             details={"reason": "client_disconnected"},

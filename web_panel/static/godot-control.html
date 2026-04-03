@@ -520,7 +520,7 @@
     <script>
         // 全局客户端实例
         let webGodotClient = null;
-        const GODOT_CONTROL_SESSION_ID = 'web_control_1';
+        const GODOT_CONTROL_SESSION_ID = new URLSearchParams(window.location.search).get('session') || 'web_control_1';
         let godotCapabilities = null;
         let statsData = {
             telemetryUpdates: 0,
@@ -534,6 +534,9 @@
         // 初始化
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('[UI] 初始化 Web-Godot 控制面板');
+            if (GODOT_CONTROL_SESSION_ID !== 'web_control_1') {
+                document.title = `AGI-Walker Web-Godot 实时控制 (${GODOT_CONTROL_SESSION_ID})`;
+            }
             await loadCapabilities();
         });
 
@@ -545,8 +548,12 @@
                 }
 
                 godotCapabilities = await response.json();
-                addLog('[模式] 当前页面使用 Legacy Controller WebSocket 协议', 'info');
-                addLog('[模式] Session Bridge 已可用于进程启动和遥测控制，但尚未替代当前页面命令集', 'info');
+                addLog(`[模式] 当前页面会话: ${GODOT_CONTROL_SESSION_ID}`, 'info');
+                addLog('[模式] 当前页面使用 canonical WebSocket 命令协议', 'info');
+                addLog(
+                    `[模式] Push 消息统一为 ${godotCapabilities.modes.legacy_controller.push_messages.join(', ')}`,
+                    'info',
+                );
             } catch (error) {
                 addLog(`[警告] 无法读取 Godot capabilities: ${error.message}`, 'warning');
             }
@@ -794,10 +801,12 @@
             const info = `
 Web-Godot 协议 v1.0 信息:
 - 消息格式: JSON
-- 当前页面模式: Legacy Controller over WebSocket
+- 当前页面模式: Canonical WebSocket command channel
+- 会话: ${GODOT_CONTROL_SESSION_ID}
 - 命令: simulation.start/stop, config.load_robot, params.update, ping
 - 推送: telemetry.update, simulation.status, simulation.error, connection.status
 - ID 匹配用于请求-响应关联
+- 仅支持 canonical 消息名
 - Session Bridge: 独立会话接口，用于 launch/status/control 和 TCP 遥测桥
 - 自动重连: 启用 (最多5次尝试)
             `;

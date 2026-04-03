@@ -1,14 +1,19 @@
-import glob
 import json
 import logging
 import os
-import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pydantic
 from fastapi import APIRouter
 from fastapi import FastAPI
+
+from agi_walker.integrations.godot_agent import (
+    GodotAgentBackend,
+    LegacyGodotAgentAdapter,
+    ModernGodotAgentAdapter,
+    create_godot_agent_backend,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +37,21 @@ class GodotSkillApplyRequest(pydantic.BaseModel):
     skill_id: str
 
 
+class GodotTemplateFetchRequest(pydantic.BaseModel):
+    template_id: str
+
+
+class GodotAgentPlanRequest(pydantic.BaseModel):
+    command: str
+    context: Optional[Dict[str, Any]] = None
+    godot_project_path: Optional[str] = None
+
+
+class GodotAgentLaunchRequest(pydantic.BaseModel):
+    godot_project_path: Optional[str] = None
+    scene_path: Optional[str] = None
+
+
 def parse_command(req: CommandRequest) -> Dict[str, Any]:
     from web_panel.command_parser import CommandParser
 
@@ -47,88 +67,108 @@ def parse_command(req: CommandRequest) -> Dict[str, Any]:
 def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
+def get_godot_agent_backend(app: FastAPI) -> GodotAgentBackend:
+    if not hasattr(app.state, "godot_agent_backend"):
+        app.state.godot_agent_backend = create_godot_agent_backend()
+    return app.state.godot_agent_backend
 
-def _skills_dir() -> Path:
-    return _repo_root() / "godot_studio_agent" / "agent_system" / "godot_skills"
 
+def get_godot_agent_status(app: FastAPI) -> Dict[str, Any]:
+    configured_backend = os.getenv("AGI_WALKER_GODOT_AGENT_BACKEND", "legacy").strip().lower()
+    configured_agent_dir = os.getenv("AGI_WALKER_GODOT_AGENT_DIR")
+    backend = get_godot_agent_backend(app)
 
-def get_godot_agent_router(app: FastAPI):
-    agent_dir = str(_repo_root() / "godot_studio_agent")
-    if agent_dir not in sys.path:
-        sys.path.insert(0, agent_dir)
+    backend_mode = configured_backend
+    resource_mode = "skills"
+    if isinstance(backend, ModernGodotAgentAdapter):
+        backend_mode = "godot-agent"
+        resource_mode = "templates"
+    elif isinstance(backend, LegacyGodotAgentAdapter):
+        backend_mode = "legacy"
 
-    if not hasattr(app.state, "godot_agent_router"):
-        from agent_system.router import GodotStudioRouter
+    router_attr_exists = hasattr(backend, "router")
+    router = getattr(backend, "router", None)
+    backend_ready = (not router_attr_exists) or (router is not None)
+    roles = backend.get_roles_info() if backend_ready else []
+    templates_result = backend.list_templates() if backend_ready else {"templates": []}
+    templates = templates_result.get("templates", []) if isinstance(templates_result, dict) else []
 
-        app.state.godot_agent_router = GodotStudioRouter()
-    return app.state.godot_agent_router
-
+    resolved_agent_dir = str(getattr(backend, "agent_dir", configured_agent_dir or ""))
+    resolved_project_path = getattr(backend, "default_project_path", None)
+    resolved_history_file = getattr(backend, "history_file", None)
+    return {
+        "backend_mode": backend_mode,
+        "configured_backend": configured_backend,
+        "backend_class": type(backend).__name__,
+        "agent_dir": resolved_agent_dir,
+        "project_path": str(resolved_project_path) if resolved_project_path else None,
+        "history_file": str(resolved_history_file) if resolved_history_file else None,
+        "router_ready": backend_ready,
+        "status": "ready" if backend_ready else "degraded",
+        "resource_mode": resource_mode,
+        "roles_count": len(roles),
+        "templates_count": len(templates),
+    }
 
 def execute_godot_agent_command(
     app: FastAPI, req: GodotAgentCommandRequest, timestamp: str
 ) -> Dict[str, Any]:
-    try:
-        router = get_godot_agent_router(app)
-        if req.godot_project_path:
-            router.godot_cli.project_path = req.godot_project_path
-        result = router.execute(req.command, req.context)
+    backend = get_godot_agent_backend(app)
+    result = backend.execute_command(req.command, req.context, project_path=req.godot_project_path)
+    if isinstance(result, dict):
         result["timestamp"] = timestamp
-        return result
-    except Exception as exc:
-        logger.info("Agent Execute Error: %s", exc)
-        return {"status": "error", "message": str(exc), "data": {"code": ""}}
-
+    return result
 
 def execute_godot_agent_pipeline(
     app: FastAPI, req: GodotAgentPipelineRequest
 ) -> Dict[str, Any]:
-    try:
-        router = get_godot_agent_router(app)
-        results = router.execute_pipeline(req.commands)
-        return {
-            "success": all(result.get("success") for result in results),
-            "steps": len(results),
-            "results": results,
-        }
-    except Exception as exc:
-        return {"success": False, "message": str(exc)}
-
+    backend = get_godot_agent_backend(app)
+    results = backend.execute_pipeline(req.commands, req.context)
+    if isinstance(results, dict) and results.get("status") == "error":
+        return {"success": False, "message": results.get("message")}
+    return {
+        "success": all(res.get("success") for res in results),
+        "steps": len(results),
+        "results": results,
+    }
 
 def get_godot_agent_roles(app: FastAPI) -> Dict[str, Any]:
-    try:
-        return {"roles": get_godot_agent_router(app).get_roles_info()}
-    except Exception as exc:
-        return {"status": "error", "message": str(exc)}
+    return {"roles": get_godot_agent_backend(app).get_roles_info()}
 
+def list_godot_skills(app: FastAPI) -> Dict[str, Any]:
+    return get_godot_agent_backend(app).list_skills()
 
-def list_godot_skills() -> Dict[str, Any]:
-    try:
-        skills = []
-        for skill_file in glob.glob(str(_skills_dir() / "*.json")):
-            with open(skill_file, "r", encoding="utf-8") as handle:
-                data = json.load(handle)
-            skills.append(
-                {
-                    "id": data.get("id"),
-                    "name": data.get("name"),
-                    "description": data.get("description"),
-                }
-            )
-        return {"status": "success", "skills": skills}
-    except Exception as exc:
-        return {"status": "error", "message": str(exc)}
+def apply_godot_skill(app: FastAPI, req: GodotSkillApplyRequest) -> Dict[str, Any]:
+    return get_godot_agent_backend(app).apply_skill(req.skill_id)
 
+def list_godot_templates(app: FastAPI) -> Dict[str, Any]:
+    return get_godot_agent_backend(app).list_templates()
 
-def apply_godot_skill(req: GodotSkillApplyRequest) -> Dict[str, Any]:
-    try:
-        skill_file = _skills_dir() / f"{req.skill_id}.json"
-        if not skill_file.exists():
-            return {"status": "error", "message": "Skill not found"}
-        with open(skill_file, "r", encoding="utf-8") as handle:
-            data = json.load(handle)
-        return {"status": "success", "data": data}
-    except Exception as exc:
-        return {"status": "error", "message": str(exc)}
+def get_godot_template(app: FastAPI, template_id: str) -> Dict[str, Any]:
+    return get_godot_agent_backend(app).get_template(template_id)
+
+def plan_godot_agent_command(
+    app: FastAPI, req: GodotAgentPlanRequest
+) -> Dict[str, Any]:
+    return get_godot_agent_backend(app).plan_command(
+        req.command,
+        req.context,
+        project_path=req.godot_project_path,
+    )
+
+def get_godot_agent_history(app: FastAPI, limit: int = 20) -> Dict[str, Any]:
+    return get_godot_agent_backend(app).get_history(limit=limit)
+
+def doctor_godot_agent(app: FastAPI, godot_project_path: Optional[str] = None) -> Dict[str, Any]:
+    return get_godot_agent_backend(app).doctor(project_path=godot_project_path)
+
+def launch_godot_agent_editor(
+    app: FastAPI, req: GodotAgentLaunchRequest
+) -> Dict[str, Any]:
+    return get_godot_agent_backend(app).launch_editor(
+        project_path=req.godot_project_path,
+        scene_path=req.scene_path,
+    )
 
 
 def build_router(app: FastAPI) -> APIRouter:
@@ -159,11 +199,41 @@ def build_router(app: FastAPI) -> APIRouter:
     @router.get("/api/godot_skills/list")
     async def list_godot_skills_route():
         """获取所有可用的 Godot 技能"""
-        return list_godot_skills()
+        return list_godot_skills(app)
 
     @router.post("/api/godot_skills/apply")
     async def apply_godot_skill_route(req: GodotSkillApplyRequest):
         """获取完整单个神盾局技能配置"""
-        return apply_godot_skill(req)
+        return apply_godot_skill(app, req)
+
+    @router.get("/api/godot-agent/templates")
+    async def list_godot_templates_route():
+        """列出当前 backend 暴露的模板资源"""
+        return list_godot_templates(app)
+
+    @router.get("/api/godot-agent/templates/{template_id:path}")
+    async def get_godot_template_route(template_id: str):
+        """获取单个模板详情"""
+        return get_godot_template(app, template_id)
+
+    @router.post("/api/godot-agent/plan")
+    async def plan_godot_agent_route(req: GodotAgentPlanRequest):
+        """生成 Godot Agent 任务计划"""
+        return plan_godot_agent_command(app, req)
+
+    @router.get("/api/godot-agent/history")
+    async def get_godot_agent_history_route(limit: int = 20):
+        """获取 Godot Agent 最近任务历史"""
+        return get_godot_agent_history(app, limit=limit)
+
+    @router.get("/api/godot-agent/doctor")
+    async def doctor_godot_agent_route(godot_project_path: Optional[str] = None):
+        """运行 Godot Agent 环境自检"""
+        return doctor_godot_agent(app, godot_project_path=godot_project_path)
+
+    @router.post("/api/godot-agent/launch")
+    async def launch_godot_agent_route(req: GodotAgentLaunchRequest):
+        """请求 Godot Agent 启动编辑器"""
+        return launch_godot_agent_editor(app, req)
 
     return router

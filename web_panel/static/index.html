@@ -282,6 +282,30 @@
                     <span>系统状态</span>
                     <span class="stat-value">正常</span>
                 </div>
+                <div class="stat">
+                    <span>Godot Agent Backend</span>
+                    <span class="stat-value" id="godot-agent-backend" style="font-size: 0.95em;">loading...</span>
+                </div>
+                <div class="stat">
+                    <span>资源模式</span>
+                    <span class="stat-value" id="godot-agent-resource-mode" style="font-size: 0.95em;">-</span>
+                </div>
+                <div class="stat">
+                    <span>Roles / Templates</span>
+                    <span class="stat-value" id="godot-agent-counts" style="font-size: 0.95em;">0 / 0</span>
+                </div>
+                <div class="stat">
+                    <span>Nightly 回归</span>
+                    <span class="stat-value" id="nightly-status" style="font-size: 0.95em;">未配置</span>
+                </div>
+                <div class="stat">
+                    <span>最近专项运行</span>
+                    <span class="stat-value" id="nightly-run" style="font-size: 0.82em;">-</span>
+                </div>
+                <div class="stat">
+                    <span>Smoke / Distributed / Godot</span>
+                    <span class="stat-value" id="nightly-jobs" style="font-size: 0.82em;">-</span>
+                </div>
             </div>
 
             <div class="card">
@@ -289,6 +313,14 @@
                 <button onclick="window.location.href='/docs/index.html'"
                     style="width: 100%; margin-bottom: 10px; background: #3b82f6;">
                     📚 API 文档
+                </button>
+                <button onclick="window.location.href='/static/workflows.html'"
+                    style="width: 100%; margin-bottom: 10px; background: #0f766e;">
+                    🚀 官方 Workflow 控制台
+                </button>
+                <button onclick="window.location.href='/static/nightly.html'"
+                    style="width: 100%; margin-bottom: 10px; background: #1d4ed8;">
+                    🛡️ Nightly 运维页
                 </button>
                 <button onclick="window.location.href='/static/distributed.html'"
                     style="width: 100%; margin-bottom: 10px; background: #8b5cf6;">
@@ -588,9 +620,15 @@
     <div class="card" style="margin-bottom: 30px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h2>🤖 Skills 机器人建造工作流</h2>
-            <button onclick="loadSkillsList()" style="background: #6366f1;">
-                🔄 刷新 Skills
-            </button>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <a href="/static/workflows.html"
+                    style="display:inline-flex; align-items:center; justify-content:center; background:#0f766e; color:white; padding:12px 20px; border-radius:8px; text-decoration:none; font-size:1em; font-weight:500;">
+                    🧭 Workflow 控制台
+                </a>
+                <button onclick="loadSkillsList()" style="background: #6366f1;">
+                    🔄 刷新 Skills
+                </button>
+            </div>
         </div>
 
         <!-- Skills info cards -->
@@ -829,6 +867,86 @@
             renderTasks();
         }
 
+        async function refreshSystemStatus() {
+            try {
+                const response = await fetch('/api/system/status');
+                const data = await response.json();
+                document.getElementById('ws-connections').textContent = data.active_connections;
+
+                const godotAgent = data.godot_agent || {};
+                const backendLabel = godotAgent.router_ready
+                    ? `${godotAgent.backend_mode || 'unknown'} (${godotAgent.backend_class || 'n/a'})`
+                    : `${godotAgent.backend_mode || 'unknown'} / degraded`;
+                document.getElementById('godot-agent-backend').textContent = backendLabel;
+                document.getElementById('godot-agent-resource-mode').textContent = godotAgent.resource_mode || '-';
+                document.getElementById('godot-agent-counts').textContent = `${godotAgent.roles_count || 0} / ${godotAgent.templates_count || 0}`;
+
+                const nightly = data.nightly_regressions || {};
+                document.getElementById('nightly-status').textContent = formatNightlyStatus(nightly);
+                document.getElementById('nightly-run').textContent = formatNightlyRun(nightly);
+                document.getElementById('nightly-jobs').textContent = formatNightlyJobs(nightly);
+            } catch (e) { }
+        }
+
+        function formatNightlyStatus(nightly) {
+            const status = nightly.status || 'not_configured';
+            const summary = nightly.summary || {};
+            if (status === 'healthy') {
+                return `正常 · ${summary.passed_jobs || 0}/${summary.tracked_jobs || 0} 通过`;
+            }
+            if (status === 'running') {
+                return `运行中 · ${summary.running_jobs || 0} 个 job`;
+            }
+            if (status === 'degraded') {
+                return `异常 · ${summary.failed_jobs || 0} 失败`;
+            }
+            if (status === 'stale') {
+                return '缓存结果';
+            }
+            if (status === 'empty') {
+                return '暂无专项运行';
+            }
+            if (status === 'error') {
+                return '读取失败';
+            }
+            return '未配置';
+        }
+
+        function formatNightlyRun(nightly) {
+            const latestRun = nightly.latest_run;
+            if (!latestRun) {
+                return nightly.repo ? '尚无 schedule / dispatch 记录' : '设置 AGI_WALKER_GITHUB_REPO';
+            }
+            const runId = latestRun.run_number || latestRun.id || '-';
+            const conclusion = latestRun.conclusion || latestRun.status || 'unknown';
+            const startedAt = latestRun.run_started_at || latestRun.created_at;
+            const when = startedAt
+                ? new Date(startedAt).toLocaleString('zh-CN', { hour12: false })
+                : '-';
+            return `#${runId} · ${latestRun.event || 'unknown'} · ${conclusion} · ${when}`;
+        }
+
+        function formatNightlyJobs(nightly) {
+            if (nightly.status === 'not_configured') {
+                return '未启用';
+            }
+            if (nightly.status === 'empty') {
+                return '等待专项运行';
+            }
+            const jobs = nightly.jobs || {};
+            const trackedJobs = nightly.tracked_jobs || ['smoke', 'distributed-smoke', 'godot-headless-smoke'];
+            return trackedJobs.map((jobName) => {
+                const job = jobs[jobName] || {};
+                const label = jobName === 'distributed-smoke'
+                    ? 'dist'
+                    : (jobName === 'godot-headless-smoke' ? 'godot' : jobName);
+                if (job.present === false) {
+                    return `${label}: missing`;
+                }
+                return `${label}: ${job.conclusion || job.status || 'n/a'}`;
+            }).join(' · ');
+        }
+
         // 渲染任务列表
         function renderTasks() {
             const taskList = document.getElementById('task-list');
@@ -881,18 +999,22 @@
         // 初始化
         connectWebSocket();
         refreshTasks();
+        refreshSystemStatus();
 
         // 定期更新系统状态
         setInterval(async () => {
-            try {
-                const response = await fetch('/api/system/status');
-                const data = await response.json();
-                document.getElementById('ws-connections').textContent = data.active_connections;
-            } catch (e) { }
+            await refreshSystemStatus();
         }, 5000);
 
         // --- Godot Control Logic ---
         let isGodotConnected = false;
+
+        function legacyGodotApiUrl(path) {
+            const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+            const url = new URL(`/api/godot${normalizedPath}`, window.location.origin);
+            url.searchParams.set('session_id', godotSessionId);
+            return `${url.pathname}${url.search}`;
+        }
 
         async function toggleGodotConnection() {
             const btn = document.getElementById('godot-connect-btn');
@@ -903,7 +1025,7 @@
 
             try {
                 if (!isGodotConnected) {
-                    const res = await fetch('/api/godot/connect', {
+                    const res = await fetch(legacyGodotApiUrl('/connect'), {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ host, port })
@@ -922,7 +1044,7 @@
                         alert("连接失败: " + (data.error || "未知错误"));
                     }
                 } else {
-                    await fetch('/api/godot/disconnect', { method: 'POST' });
+                    await fetch(legacyGodotApiUrl('/disconnect'), { method: 'POST' });
                     isGodotConnected = false;
                     btn.textContent = "🔗 连接";
                     btn.style.background = "#10b981";
@@ -945,7 +1067,7 @@
                 return;
             }
             try {
-                await fetch(`/api/godot/${action}`, { method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json' } });
+                await fetch(legacyGodotApiUrl(`/${action}`), { method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json' } });
             } catch (e) { console.error(e); }
         }
 
@@ -965,10 +1087,10 @@
 
         async function updateParam(name, value) {
             try {
-                await fetch('/api/godot/update-params', {
+                await fetch(legacyGodotApiUrl('/update-params'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // Day 4 已改为 UpdateParamsRequest 格式
+                    // The legacy params endpoint expects UpdateParamsRequest.
                     body: JSON.stringify({ params: { [name]: parseFloat(value) } })
                 });
             } catch (e) { console.error(e); }
@@ -987,7 +1109,7 @@
                     alert("JSON 必须包含 parts 和 connections 字段");
                     return;
                 }
-                const res = await fetch('/api/godot/load-robot', {
+                const res = await fetch(legacyGodotApiUrl('/load-robot'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(config)
@@ -1034,7 +1156,7 @@
                     const robotJsonArea = document.getElementById('robot-json');
                     if (robotJsonArea) robotJsonArea.value = JSON.stringify(data.config, null, 2);
 
-                    // Day 7: 在 agent-response 展示 JSON 预览 + 确认按鈕
+                    // Show a preview and require confirmation before sending to Godot.
                     const resp = document.getElementById('agent-response');
                     if (resp) {
                         resp.style.display = 'block';
@@ -1069,7 +1191,7 @@
 
             const { parts = [], connections = [] } = agentPendingConfig;
             try {
-                const res = await fetch('/api/godot/load-robot', {
+                const res = await fetch(legacyGodotApiUrl('/load-robot'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ parts, connections })
@@ -1093,10 +1215,8 @@
             const type = document.getElementById('builder-type').value;
             const scenario = document.getElementById('builder-scenario').value;
 
-            // Construct the command that would generate this
-            // We reuse the /api/generate_robot backend if available, OR we can map to agent command
-            // Ideally we call /api/generate_robot directly if it exists, or simulate an agent command
-            // server.py has /api/generate_robot
+            // Generate a starter config, then normalize it through the agent parser
+            // so the JSON editor stays in the same shape as the rest of the page.
 
             try {
                 // Show loading
@@ -1114,20 +1234,7 @@
                 const data = await res.json();
 
                 if (data.status === 'success') {
-                    // The backend returns file paths, but we need the JSON content to populate the box.
-                    // We can either fetch the file or just use the agent command API which returns logic?
-                    // Actually /api/generate_robot runs the python script and saves files.
-                    // Let's use the Agent Parser instead as it returns the JSON config directly!
-                    // Construct command: "create {type} for {scenario}"
-                    // Wait, command parser supports "create quadruped", "create hexapod".
-                    // Does it support scenarios? Let's check command_parser.py but for now simple commands work.
-
-                    // Fallback: If generate_robot returns success, we can try to fetch the generated config file?
-                    // OR better: Just map to Agent Command for now as it's purely in-memory/JSON based for Web.
-
                     const cmd = `create ${type}`;
-                    // To handle scenario, we might need to enhance parser, but let's stick to basic builder.
-                    // Actually, let's use the command parser API directly.
 
                     const cmdRes = await fetch('/api/agent/parse-command', {
                         method: 'POST',
@@ -1156,9 +1263,10 @@
         const originalHandleMsg = handleWebSocketMessage;
         handleWebSocketMessage = function (message) {
             originalHandleMsg(message); // 保留原有逻辑
+            const payload = message.payload || {};
 
-            if (message.type === 'godot_data') {
-                const data = message.data;
+            if (message.type === 'telemetry.update') {
+                const data = payload.data || {};
                 const stream = document.getElementById('godot-stream');
 
                 // 更新数值卡片
@@ -1184,14 +1292,12 @@
                 const line = JSON.stringify(data);
                 stream.textContent = line + "\n" + stream.textContent.slice(0, 200);
             }
-            if (message.type === 'godot_connection') {
-                // 同步后端广播的连接状态
-                updateGodotUI(message.status === 'connected');
+            if (message.type === 'connection.status') {
+                updateGodotUI(Boolean(payload.connected));
             }
-            if (message.type === 'godot_error') {
-                // 显示 Godot 错误提示
+            if (message.type === 'simulation.error') {
                 const stream = document.getElementById('godot-stream');
-                const errMsg = `[ERROR] ${message.message || 'Godot error'}`;
+                const errMsg = `[ERROR] ${payload.error || 'Godot error'}`;
                 stream.textContent = errMsg + '\n' + stream.textContent.slice(0, 200);
                 stream.style.color = '#ef4444';
                 setTimeout(() => stream.style.color = '#333', 4000);
@@ -1631,7 +1737,11 @@
         if (godotSessionId !== 'default') {
             document.title = `AGI-Walker (${godotSessionId})`;
         }
-        console.info(`[Godot] index.html uses mixed modes: legacy REST control plus session bridge launch/control for session '${godotSessionId}'.`);
+        console.info(
+            `[Godot] index.html uses a hybrid transport for session '${godotSessionId}': ` +
+            'session-scoped legacy control plus session bridge launch/control, ' +
+            'with canonical websocket pushes.'
+        );
 
         async function launchGodot() {
             const scene = document.getElementById('godot-scene-select').value;
@@ -1688,21 +1798,24 @@
             _godotWs.onmessage = (event) => {
                 try {
                     const msg = JSON.parse(event.data);
-                    if (msg.type === "schema_update") {
-                        _buildDynamicPanels(msg.data);
-                    } else if (msg.type === "telemetry_update") {
+                    if (msg.type === "schema.update") {
+                        _buildDynamicPanels(msg.payload?.data || {});
+                    } else if (msg.type === "telemetry.update") {
                         _updateStatusUI(true, true);
-                        _updateSensorDisplay(msg.data);
-                    } else if (msg.type === "simulation_started") {
-                        _updateStatusUI(true, true);
-                        document.getElementById('godot-launch-log').textContent = `✅ 引擎回传: 仿真已启动 (PID=${msg.data?.pid || ''})`;
-                        document.getElementById('godot-launch-log').style.color = '#4ade80';
-                    } else if (msg.type === "simulation_stopped") {
-                        _updateStatusUI(false, false);
-                    } else if (msg.type === "simulation_error") {
+                        _updateSensorDisplay(msg.payload?.data || {});
+                    } else if (msg.type === "simulation.status") {
+                        const simStatus = msg.payload?.status;
+                        if (simStatus === "engine_started" || simStatus === "running") {
+                            _updateStatusUI(true, true);
+                            document.getElementById('godot-launch-log').textContent = `✅ 引擎回传: 仿真已启动 (PID=${msg.payload?.details?.pid || ''})`;
+                            document.getElementById('godot-launch-log').style.color = '#4ade80';
+                        } else if (simStatus === "engine_stopped" || simStatus === "stopped") {
+                            _updateStatusUI(false, false);
+                        }
+                    } else if (msg.type === "simulation.error") {
                         const log = document.getElementById('godot-launch-log');
                         log.style.color = '#f87171';
-                        log.textContent = `❌ ${msg.message}`;
+                        log.textContent = `❌ ${msg.payload?.error || 'Simulation error'}`;
                         _updateStatusUI(true, false);
                     }
                 } catch(e) {}

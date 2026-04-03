@@ -310,13 +310,6 @@ class WebSocketProtocolHandler:
         )
 
 
-# Global protocol handler instance
-_protocol_handler: Optional[WebSocketProtocolHandler] = None
-
-
 def get_protocol_handler() -> WebSocketProtocolHandler:
-    """Get or create global protocol handler"""
-    global _protocol_handler
-    if _protocol_handler is None:
-        _protocol_handler = WebSocketProtocolHandler()
-    return _protocol_handler
+    """Return a fresh protocol handler for one websocket/session scope."""
+    return WebSocketProtocolHandler()
