@@ -5,21 +5,22 @@
 支持同时优化质量分布和PID增益。
 """
 
-from typing import Any, Dict, Tuple, List, Optional
-import logging
-logger = logging.getLogger(__name__)
 import argparse
 import json
-from pathlib import Path
+import logging
 import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from agi_walker.skills.parameter_optimizer import (
+from agi_walker.skills.parameter_optimizer import (  # noqa: E402
     optimize_mass_distribution,
     batch_optimize_pid,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def main() -> None:

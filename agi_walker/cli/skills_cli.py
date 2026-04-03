@@ -5,21 +5,22 @@ AGI-Walker CLI - Skills管理命令行工具
 提供完整的Skills系统命令行接口。
 """
 
-import logging
-logger = logging.getLogger(__name__)
-import sys
 import argparse
+import logging
+import sys
 from pathlib import Path
 
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agi_walker.skills_loader import (
+from agi_walker.skills_loader import (  # noqa: E402
     get_skills_loader,
     search_skills,
     get_skill_doc,
 )
-from agi_walker.workflow_orchestrator import get_workflow_orchestrator
+from agi_walker.workflow_orchestrator import get_workflow_orchestrator  # noqa: E402
+
+logger = logging.getLogger(__name__)
 
 
 def cmd_list(args):
@@ -190,7 +191,7 @@ def cmd_workflows_list(args):
         workflow = orchestrator.get_workflow(name)
         print(f"{name}")
         print(f"  {workflow.get('description', '无描述')}")
-        steps = workflow.get('steps', [])
+        steps = workflow.get("steps", [])
         print(f"  步骤数: {len(steps)}")
         print()
 
@@ -216,12 +217,24 @@ def cmd_workflows_run(args):
                 value = float(value)
             parameters[key] = value
 
+    if getattr(args, "force", False):
+        parameters["execution_strategy"] = "force"
+    elif getattr(args, "resume", False):
+        parameters["execution_strategy"] = "resume"
+
+    if getattr(args, "output_root", None):
+        parameters["output_root"] = args.output_root
+
     # 确定使用mock还是real executors
-    use_mock = getattr(args, 'mock', False)
+    use_mock = getattr(args, "mock", False)
     use_real = not use_mock  # 反向逻辑：如果--mock标志被设置，use_real=False
-    
+    execution_strategy = parameters.get("execution_strategy", "resume")
+
     print(f"执行工作流: {args.name}")
     print(f"执行器模式: {'mock' if use_mock else 'real'}")
+    print(f"执行策略: {execution_strategy}")
+    if "output_root" in parameters:
+        print(f"输出根目录: {parameters['output_root']}")
     if parameters:
         print(f"参数: {parameters}")
     print()
@@ -233,7 +246,14 @@ def cmd_workflows_run(args):
     if result.duration:
         print(f"总耗时: {result.duration:.2f}s")
     print(f"成功率: {result.success_rate:.1f}%")
-    
+    if result.steps:
+        print(
+            f"步骤统计: 完成 {result.completed_steps}, "
+            f"跳过 {result.skipped_steps}, 失败 {result.failed_steps}"
+        )
+    if result.error_message:
+        print(f"错误: {result.error_message}")
+
     # 显示步骤详情
     if result.steps:
         print(f"\n步骤执行详情 ({len(result.steps)} 步):\n")
@@ -256,47 +276,7 @@ def cmd_workflows_run(args):
                 print(f"     输出键: {', '.join(step.output.keys())}")
 
     # 显示输出
-    final_outputs = {
-        step.name: step.output for step in result.steps if step.output
-    }
-    if final_outputs:
-        print("\n最终输出:")
-        for key, value in final_outputs.items():
-            if isinstance(value, (dict, list)):
-                print(f"  {key}: {type(value).__name__} ({len(value)} 项)")
-            else:
-                print(f"  {key}: {value}")
-
-    return 0 if result.status.value == "completed" else 1
-
-    if result.error_message:
-        print(f"错误: {result.error_message}")
-        return 1
-
-    # 显示步骤详情
-    print("\n步骤详情:")
-    for i, step in enumerate(result.steps, 1):
-        status_label = {
-            "completed": "OK",
-            "failed": "FAIL",
-            "running": "RUNNING",
-            "pending": "PENDING",
-            "skipped": "SKIPPED",
-        }.get(step.status.value, "UNKNOWN")
-
-        print(f"  {i}. [{status_label}] {step.name}")
-        print(f"     Skill: {step.skill_executor}.{step.action}")
-        if step.duration:
-            print(f"     耗时: {step.duration:.2f}s")
-        if step.error:
-            print(f"     错误: {step.error}")
-        if step.output:
-            print(f"     输出键: {', '.join(step.output.keys())}")
-
-    # 显示输出
-    final_outputs = {
-        step.name: step.output for step in result.steps if step.output
-    }
+    final_outputs = {step.name: step.output for step in result.steps if step.output}
     if final_outputs:
         print("\n最终输出:")
         for key, value in final_outputs.items():
@@ -344,6 +324,7 @@ def main():
 
   agi_walker skills workflows list          列出所有工作流
   agi_walker skills workflows run robot_creation_pipeline  执行完整流水线
+  agi_walker skills workflows run robot_creation_pipeline --force --output-root test_env/run1
   agi_walker skills workflows validate robot_creation_pipeline  验证工作流定义
         """,
     )
@@ -377,7 +358,9 @@ def main():
 
     # workflows 子命令组
     workflows_parser = subparsers.add_parser("workflows", help="工作流管理")
-    workflows_subparsers = workflows_parser.add_subparsers(dest="workflows_command", help="工作流子命令")
+    workflows_subparsers = workflows_parser.add_subparsers(
+        dest="workflows_command", help="工作流子命令"
+    )
 
     # workflows list
     workflows_subparsers.add_parser("list", help="列出所有工作流")
@@ -386,7 +369,17 @@ def main():
     run_parser = workflows_subparsers.add_parser("run", help="执行工作流")
     run_parser.add_argument("name", help="工作流名称")
     run_parser.add_argument("--params", nargs="*", help="工作流参数 (key=value)")
-    run_parser.add_argument("--mock", action="store_true", help="使用mock executors而不是真实的skill调用")
+    run_parser.add_argument(
+        "--mock", action="store_true", help="使用mock executors而不是真实的skill调用"
+    )
+    strategy_group = run_parser.add_mutually_exclusive_group()
+    strategy_group.add_argument(
+        "--force", action="store_true", help="强制重跑所有步骤，即使产物已存在"
+    )
+    strategy_group.add_argument(
+        "--resume", action="store_true", help="遇到已存在的产物时跳过对应步骤"
+    )
+    run_parser.add_argument("--output-root", help="将相对输出路径重定向到指定目录下")
 
     # workflows validate
     val_wf_parser = workflows_subparsers.add_parser("validate", help="验证工作流定义")

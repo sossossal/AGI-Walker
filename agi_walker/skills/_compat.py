@@ -3,12 +3,13 @@ Compatibility helpers for importing skill implementations from kebab-case paths.
 """
 
 import logging
-logger = logging.getLogger(__name__)
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+import sys
 from types import ModuleType
 from typing import Dict
-import sys
+
+logger = logging.getLogger(__name__)
 
 
 _MODULE_CACHE: Dict[str, ModuleType] = {}

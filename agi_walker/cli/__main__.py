@@ -5,11 +5,12 @@ AGI-Walker 主CLI入口
 统一的命令行接口。
 """
 
-import logging
-logger = logging.getLogger(__name__)
-import sys
 import argparse
+import logging
+import sys
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -22,11 +23,11 @@ def main():
         epilog="""
 可用命令:
   skills    Skills系统管理
+  doctor    运行环境自检
   
 示例:
   agi_walker skills list
-  agi_walker skills info robot-modeling
-  agi_walker skills search 优化
+  agi_walker doctor
         """,
     )
 
@@ -37,9 +38,20 @@ def main():
     # skills 模块
     subparsers.add_parser("skills", help="Skills系统管理", add_help=False)
     # workflows alias to help users get there faster
-    subparsers.add_parser("workflows", help="Alias for `skills workflows`", add_help=False)
+    subparsers.add_parser(
+        "workflows", help="Alias for `skills workflows`", add_help=False
+    )
+    # doctor 模块
+    subparsers.add_parser("doctor", help="运行环境自检")
 
     args, remaining = parser.parse_known_args()
+
+    if args.module == "doctor":
+        from agi_walker.utils.doctor import run_diagnostics, print_report
+
+        results = run_diagnostics()
+        print_report(results)
+        return 0
 
     if args.module == "skills":
         # 调用skills CLI

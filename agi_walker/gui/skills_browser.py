@@ -4,11 +4,12 @@ Skills 浏览面板 - AGI-Walker GUI
 提供可视化的Skills系统界面。
 """
 
-import logging
-logger = logging.getLogger(__name__)
 import sys
+import logging
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 try:
     from PyQt6.QtWidgets import (
@@ -37,7 +38,7 @@ except ImportError:
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agi_walker.skills_loader import get_skills_loader, SkillMetadata
+from agi_walker.skills_loader import get_skills_loader, SkillMetadata  # noqa: E402
 
 
 class SkillsPanel(QWidget):

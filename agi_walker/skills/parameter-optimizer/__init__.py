@@ -5,13 +5,15 @@ Parameter Optimizer Skill - 机器人参数优化工具
 """
 
 import logging
-logger = logging.getLogger(__name__)
 import json
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 from scipy.optimize import minimize, differential_evolution
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -289,7 +291,9 @@ class PIDTuner(ParameterOptimizer):
         ki = 1.2 * ku / tu
         kd = 0.075 * ku * tu
 
-        logger.info(f"[Ziegler-Nichols] {joint_name}: Kp={kp:.2f}, Ki={ki:.2f}, Kd={kd:.2f}")
+        logger.info(
+            f"[Ziegler-Nichols] {joint_name}: Kp={kp:.2f}, Ki={ki:.2f}, Kd={kd:.2f}"
+        )
 
         return PIDGains(kp=kp, ki=ki, kd=kd)
 

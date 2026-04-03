@@ -5,16 +5,20 @@
 将多个AGI-Walker配置批量转换为URDF/SDF格式。
 """
 
-from typing import Any, Dict, Tuple, List, Optional
-import logging
-logger = logging.getLogger(__name__)
 import argparse
+import logging
 import sys
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from agi_walker.skills.urdf_generator import convert_to_urdf, validate_urdf
+from agi_walker.skills.urdf_generator import (
+    convert_to_urdf,
+    validate_urdf,
+)  # noqa: E402
+
+logger = logging.getLogger(__name__)
 
 
 def main() -> None:

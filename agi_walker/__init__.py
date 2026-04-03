@@ -3,7 +3,7 @@ AGI-Walker - Parametric Robot Design and AI Training Platform
 """
 
 import logging
-logger = logging.getLogger(__name__)
+
 from .skills_loader import (
     SkillMetadata,
     SkillsLoader,
@@ -12,9 +12,16 @@ from .skills_loader import (
     search_skills,
     get_skill_doc,
 )
-from .skills.robot_modeling import RobotBuilder, RobotConfig, load_template, list_templates
+from .skills.robot_modeling import (
+    RobotBuilder,
+    RobotConfig,
+    load_template,
+    list_templates,
+)
 from .skills.parameter_optimizer import optimize_mass_distribution, tune_pid_controller
 from .skills.urdf_generator import convert_to_urdf, convert_to_sdf, validate_urdf
+
+logger = logging.getLogger(__name__)
 
 __version__ = "3.0.0"
 __all__ = [

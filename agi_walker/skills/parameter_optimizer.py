@@ -3,8 +3,9 @@ Compatibility wrapper for the parameter-optimizer skill.
 """
 
 import logging
-logger = logging.getLogger(__name__)
 from agi_walker.skills._compat import load_skill_module
+
+logger = logging.getLogger(__name__)
 
 
 _module = load_skill_module(__name__, "parameter-optimizer")

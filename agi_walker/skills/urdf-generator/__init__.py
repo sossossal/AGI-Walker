@@ -5,18 +5,20 @@ URDF Generator Skill - AGI-Walker到URDF/SDF格式转换器
 """
 
 import logging
-logger = logging.getLogger(__name__)
 import json
 import os
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 try:
     from lxml import etree
 except ImportError:
     import xml.etree.ElementTree as etree
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -42,6 +44,7 @@ class URDFJoint:
     origin: Tuple[float, float, float] = (0, 0, 0)
     axis: Tuple[float, float, float] = (1, 0, 0)
     limits: Optional[Dict[str, float]] = None
+    dynamics: Optional[Dict[str, float]] = None
 
 
 class URDFGenerator:
@@ -97,35 +100,40 @@ class URDFGenerator:
             self.joints.insert(0, base_joint)
 
     def _part_to_link(self, part: Dict) -> URDFLink:
-        """将部件转换为URDF link"""
+        """将部件转换为URDF link，包含精确的物理参数映射"""
         part_id = part["id"]
         params = part["params"]
         part_type = part["type"]
 
-        mass = params.get("mass", 1.0)
+        mass = float(params.get("mass", 1.0))
 
-        # 简化惯性张量 (使用盒子模型)
-        height = params.get("height", 0.3)
-        width = params.get("width", 0.2)
-        depth = params.get("depth", 0.2)
+        # 获取几何尺寸
+        height = float(params.get("height", params.get("length", 0.3)))
+        width = float(params.get("width", 0.2))
+        depth = float(params.get("depth", 0.2))
+        radius = float(params.get("radius", 0.04))
 
-        ixx = (1.0 / 12.0) * mass * (width**2 + depth**2)
-        iyy = (1.0 / 12.0) * mass * (height**2 + depth**2)
-        izz = (1.0 / 12.0) * mass * (height**2 + width**2)
+        # 计算惯性张量 (Inertia Tensor)
+        ixx, iyy, izz = 0.0, 0.0, 0.0
 
-        inertia = np.array([[ixx, 0, 0], [0, iyy, 0], [0, 0, izz]])
-
-        # 几何形状
         if part_type == "torso":
             geometry = {"type": "box", "size": [width, depth, height]}
-        elif part_type in ["thigh", "shin", "leg"]:  # 'leg' kept for compatibility
-            length = params.get(
-                "length", params.get("thigh_length", 0.3) + params.get("shin_length", 0)
-            )
-            radius = 0.04
-            geometry = {"type": "cylinder", "radius": radius, "length": length}
+            # Box inertia: Ixx = 1/12 * m * (w^2 + h^2)
+            ixx = (1.0 / 12.0) * mass * (depth**2 + height**2)
+            iyy = (1.0 / 12.0) * mass * (width**2 + height**2)
+            izz = (1.0 / 12.0) * mass * (width**2 + depth**2)
+
+        elif part_type in ["thigh", "shin", "leg"]:
+            geometry = {"type": "cylinder", "radius": radius, "length": height}
+            # Cylinder inertia (axis Z): Izz = 1/2 * m * r^2, Ixx = Iyy = 1/12 * m * (3*r^2 + h^2)
+            ixx = (1.0 / 12.0) * mass * (3 * radius**2 + height**2)
+            iyy = (1.0 / 12.0) * mass * (3 * radius**2 + height**2)
+            izz = (0.5) * mass * (radius**2)
         else:
             geometry = {"type": "box", "size": [0.1, 0.1, 0.1]}
+            ixx = iyy = izz = (1.0 / 12.0) * mass * (0.1**2 + 0.1**2)
+
+        inertia = np.array([[ixx, 0, 0], [0, iyy, 0], [0, 0, izz]])
 
         return URDFLink(
             name=part_id,
@@ -141,6 +149,12 @@ class URDFGenerator:
         child_id = conn["to"]
         joint_type = conn.get("joint_type", "fixed")
         joint_name = conn.get("name", f"{parent_id}_to_{child_id}")
+
+        # 提取动态参数
+        dynamics = {
+            "damping": float(conn.get("damping", 0.1)),
+            "friction": float(conn.get("friction", 0.01)),
+        }
 
         # 查找部件获取尺寸信息
         parent_part = next(p for p in self.config["parts"] if p["id"] == parent_id)
@@ -199,6 +213,7 @@ class URDFGenerator:
             origin=tuple(origin),
             axis=axis,
             limits=limits,
+            dynamics=dynamics,
         )
 
     def generate_urdf_xml(self) -> etree.Element:
@@ -294,6 +309,12 @@ class URDFGenerator:
             limit.set("effort", str(joint.limits["effort"]))
             limit.set("velocity", str(joint.limits["velocity"]))
 
+        # 动态参数 (Damping/Friction)
+        if joint.dynamics:
+            dyn = etree.SubElement(joint_elem, "dynamics")
+            dyn.set("damping", str(joint.dynamics["damping"]))
+            dyn.set("friction", str(joint.dynamics["friction"]))
+
         return joint_elem
 
     def export_urdf(self, output_file: str) -> None:
@@ -369,12 +390,12 @@ def convert_to_sdf(input_file: str, output_file: str, world_file: bool = False) 
     convert_to_urdf(input_file, urdf_temp)
 
     logger.info("注意: SDF转换当前通过URDF中转")
-    
+
     try:
         # 尝试生成一个极简的 SDF 包装，以便文件能够物化
-        with open(urdf_temp, 'r', encoding='utf-8') as f:
+        with open(urdf_temp, "r", encoding="utf-8") as f:
             urdf_content = f.read()
-            
+
         # 简单的字符串包装 (实际生产中应使用更复杂的转换逻辑或 gz 工具)
         sdf_content = f"""<?xml version="1.0" ?>
 <sdf version="1.6">
@@ -383,17 +404,17 @@ def convert_to_sdf(input_file: str, output_file: str, world_file: bool = False) 
     {urdf_content.split('?>')[-1].strip()}
   </model>
 </sdf>"""
-        
+
         # 写入最终的 SDF 文件
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             f.write(sdf_content)
-            
+
         logger.info(f"SDF file materialized at: {output_file}")
-        
+
         # 清理临时文件
         if os.path.exists(urdf_temp):
             os.remove(urdf_temp)
-            
+
     except Exception as e:
         logger.error(f"SDF materialization failed: {e}")
         # 如果失败，至少确保临时 URDF 还在，或者抛出异常

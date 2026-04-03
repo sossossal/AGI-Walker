@@ -5,7 +5,7 @@ AGI-Walker Skills 模块
 """
 
 import logging
-logger = logging.getLogger(__name__)
+
 from agi_walker.skills_loader import (
     SkillMetadata,
     SkillsLoader,
@@ -14,6 +14,8 @@ from agi_walker.skills_loader import (
     search_skills,
     get_skill_doc,
 )
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "SkillMetadata",

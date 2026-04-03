@@ -297,7 +297,7 @@ class SkillsLoader:
             for bin_name in skill.requires["bins"]:
                 if not shutil.which(bin_name):
                     missing["bins"].append(bin_name)
-                    
+
         # 检查物理文件
         if "files" in skill.requires:
             project_root = Path(__file__).parent.parent
