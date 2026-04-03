@@ -6,11 +6,17 @@ on:
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *'
 
 env:
   PYTHON_VERSION: "3.11"
   PYTHONUTF8: "1"
   PYTHONPATH: ${{ github.workspace }}
+  AGI_WALKER_WEB_RUNS_PAGE_SIZE: "20"
+  AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE: "100"
+  AGI_WALKER_WEB_ARCHIVE_MAX_RUNS: "200"
+  AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS: "30"
 
 jobs:
   # -----------------------------------------------------------------------------
@@ -41,10 +47,121 @@ jobs:
         run: black --check --diff agi_walker/ python_api/ python_controller/ examples/
 
   # -----------------------------------------------------------------------------
-  # Job 2: Unit Tests (Multi-OS)
+  # Job 2: Minimal Smoke Tests
+  # -----------------------------------------------------------------------------
+  smoke:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install smoke-test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install scipy fastapi uvicorn
+
+      - name: Run Smoke Tests
+        run: python tests/run_smoke_tests.py --output-root test_env/smoke_ci
+
+      - name: Upload Smoke Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-artifacts
+          path: test_env/smoke_ci
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # -----------------------------------------------------------------------------
+  # Job 2b: Distributed Smoke (manual trigger only)
+  # -----------------------------------------------------------------------------
+  distributed-smoke:
+    needs: smoke
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install distributed-smoke dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install fastapi uvicorn
+
+      - name: Run Distributed Smoke Test
+        run: python tests/run_distributed_smoke.py --build
+
+      - name: Upload Distributed Smoke Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: distributed-smoke-artifacts
+          path: test_env/distributed_smoke
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # -----------------------------------------------------------------------------
+  # Job 2c: Real Godot Headless Smoke (manual trigger only)
+  # -----------------------------------------------------------------------------
+  godot-headless-smoke:
+    needs: smoke
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: windows-latest
+    env:
+      AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE: "1"
+      AGI_WALKER_GODOT_HEADLESS_ARTIFACT_DIR: "test_env/godot_headless_smoke"
+      AGI_WALKER_GODOT_HEADLESS_SCENE: "demo_generated_biped.tscn"
+      AGI_WALKER_GODOT_HEADLESS_CONNECT_TIMEOUT_SECONDS: "20"
+      AGI_WALKER_GODOT_HEADLESS_SCHEMA_TIMEOUT_SECONDS: "12"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install headless-smoke dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio fastapi uvicorn
+
+      - name: Run Real Godot Headless Smoke
+        run: python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
+
+      - name: Upload Headless Smoke Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-headless-smoke-artifacts
+          path: test_env/godot_headless_smoke
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # -----------------------------------------------------------------------------
+  # Job 3: Unit Tests (Multi-OS)
   # -----------------------------------------------------------------------------
   test:
-    needs: quality
+    if: github.event_name != 'schedule'
+    needs: smoke
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -76,9 +193,10 @@ jobs:
           codecov --file coverage.xml --flags unittests || echo "codecov upload skipped"
 
   # -----------------------------------------------------------------------------
-  # Job 3: Integration & Specialized Tests
+  # Job 4: Integration & Specialized Tests
   # -----------------------------------------------------------------------------
   integration:
+    if: github.event_name != 'schedule'
     needs: test
     runs-on: ubuntu-latest
     services:
@@ -112,11 +230,11 @@ jobs:
           REDIS_URL: redis://localhost:6379
 
   # -----------------------------------------------------------------------------
-  # Job 4: Release Readiness
+  # Job 5: Release Readiness
   # -----------------------------------------------------------------------------
   release-check:
     needs: [test, integration]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code

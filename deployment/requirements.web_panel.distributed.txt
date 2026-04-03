@@ -1,0 +1,2 @@
+-r requirements.web_panel.txt
+eclipse-zenoh>=1.0.0

@@ -7,6 +7,34 @@
 
 ---
 
+## [1.0.0] - 2026-04-02 (V1 Integration Closure)
+
+### 🎯 V1 功能闭环正式发布
+
+本版本标志着 AGI-Walker V1 计划的全面达成，实现了从机器人建模到仿真验证的端到端自动化。
+
+### 🚀 核心改进
+
+#### ✨ Workflow 系统闭环 (V1 核心)
+- **Real Executor 集成**: 官方 Workflow (`robot_creation_pipeline`) 现在默认调用真实 Skills API。
+- **参数覆盖机制**: 支持通过 CLI 或 Web API 在运行时覆盖 Workflow 步骤参数。
+- **状态持久化**: 引入 `.output/web_workflow_archive/` 归档机制。
+
+#### 🌐 Web 控制台产品化
+- **Web Workflow Console**: 提供专用的运行管理界面，支持 SSE 实时日志流。
+- **Godot 一键同步**: 新增 `/api/workflows/runs/{run_id}/godot-sync` 入口，自动化模型交付。
+- **Nightly 运维看板**: 新增专用运维页，集成 GitHub Actions 专项回归状态展示。
+
+#### 🤖 Godot 官方链路收口
+- **Session Bridge 提升**: 确立为官方默认仿真路径，废弃旧版兼容性入口。
+- **Headless 烟雾测试**: 建立全生命周期自动化验证，支持 CI/CD 集成。
+
+#### 🛠️ 仓库质量与运维
+- **Smoke Test 升级**: 同时覆盖 CLI、Workflow、Web 与 Godot 现代后端。
+- **环境隔离**: 默认隔离所有运行产物至 `test_env/`。
+
+---
+
 ## [2.0.0] - 2026-03-24 (Code Standardization & Quality)
 
 ### 🎯 代码规范化完成版

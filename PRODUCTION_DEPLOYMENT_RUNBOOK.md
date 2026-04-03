@@ -75,6 +75,32 @@ echo "=== 验证配置文件 ==="
 helm template agi-walker ./helm/agi-walker -f ./helm/values-prod.yaml | kubectl apply -f - --dry-run=client
 ```
 
+### Web Workflow 控制台配置检查
+
+如果生产环境会暴露 Web workflow 控制台，建议在预部署阶段把分页与归档策略显式写入配置，而不是完全依赖代码默认值。
+
+推荐显式配置的环境变量：
+
+```bash
+export AGI_WALKER_WEB_RUNS_PAGE_SIZE=20
+export AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE=100
+export AGI_WALKER_WEB_ARCHIVE_MAX_RUNS=200
+export AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS=30
+```
+
+也可以直接以仓库中的模板为基线：
+
+- `deployment/web_panel.env.example`
+
+说明：
+
+- `AGI_WALKER_WEB_RUNS_PAGE_SIZE`: 默认每页条数
+- `AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE`: 允许的最大每页条数
+- `AGI_WALKER_WEB_ARCHIVE_MAX_RUNS`: 本地归档最多保留多少条 run
+- `AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS`: 本地归档最多保留多少天
+
+如果生产环境的磁盘预算更紧，优先调低 `AGI_WALKER_WEB_ARCHIVE_MAX_RUNS` 和 `AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS`。
+
 ### 监控和告警检查
 
 ```bash
@@ -87,6 +113,228 @@ curl -s http://grafana.monitoring.svc.cluster.local:3000/api/dashboards/home | g
 # 3. 告警规则验证
 kubectl get PrometheusRule -n monitoring | grep agi-walker
 ```
+
+---
+
+## 🧪 Nightly 专项回归与排障
+
+当前 GitHub Actions 已将两条高价值专项链路纳入 nightly 定时回归，并保留手动触发入口：
+
+- `distributed-smoke`
+- `godot-headless-smoke`
+
+触发方式：
+
+- `workflow_dispatch`
+- nightly schedule（UTC `02:00`）
+
+说明：
+
+- nightly 不会运行完整 unit/integration 矩阵。
+- nightly 只保留 `quality`、`smoke`、`distributed-smoke`、`godot-headless-smoke`，用于持续验证最小可信主线和最脆弱的系统级链路。
+
+### CI 产物清单
+
+GitHub Actions 当前会上传以下 artifact，默认保留 `7` 天：
+
+- `smoke-artifacts`
+  - 来源 job: `smoke`
+  - 主要内容: `test_env/smoke_ci/`
+- `distributed-smoke-artifacts`
+  - 来源 job: `distributed-smoke`
+  - 主要内容: `test_env/distributed_smoke/`
+- `godot-headless-smoke-artifacts`
+  - 来源 job: `godot-headless-smoke`
+  - 主要内容: `test_env/`
+
+### 值班责任矩阵
+
+nightly 失败后，先按 job 分类，而不是先按猜测的模块分类：
+
+| 失败 job | 一级责任面 | 默认处理优先级 | 说明 |
+|----------|------------|----------------|------|
+| `smoke` | Core / Workflow | 高 | 影响最小可信主线，优先处理 |
+| `distributed-smoke` | Distributed Runtime | 中-高 | 影响分布式训练与监控链路 |
+| `godot-headless-smoke` | Web / Godot Integration | 中-高 | 影响真实 Godot 回归信号 |
+
+如果一次失败同时涉及多个 job，先按以下顺序处理：
+
+1. `smoke`
+2. `godot-headless-smoke`
+3. `distributed-smoke`
+
+### 响应时限 (SLA)
+
+- `smoke` 失败：下一个工作时段开始后 `4` 小时内完成首次分诊
+- `distributed-smoke` 失败：下一个工作时段开始后 `1` 个工作日内完成首次分诊
+- `godot-headless-smoke` 失败：下一个工作时段开始后 `1` 个工作日内完成首次分诊
+
+升级条件：
+
+- 同一个 nightly job 连续失败 `2` 次
+- 在 `main` 发布窗口前 `24` 小时内仍未恢复
+- 同一问题已经影响 `workflow_dispatch` 手工回归
+
+满足任一条件时，应直接升级到发布负责人或相关模块 owner，而不是继续停留在“待观察”状态。
+
+### 建单与通知流程
+
+nightly 失败后，建议按下面顺序操作：
+
+1. 在 GitHub Actions 中打开失败 run
+2. 下载对应 artifact
+3. 使用仓库模板创建 issue：
+   - `.github/ISSUE_TEMPLATE/nightly_regression.md`
+4. issue 标题保持：
+   - `[NIGHTLY] <job-name> <date>`
+5. 在 issue 中至少填写：
+   - failing job
+   - run link
+   - failure first seen
+   - observed failure
+   - artifacts checked
+   - local reproduction
+   - suspected owner
+   - next action
+
+如果团队已经有固定通知渠道，建议在建单后同步：
+
+- `#nightly-regressions`
+- `#deployment`
+- 或发布负责人值班群
+
+如果没有固定渠道，至少要保证 issue 被指派到对应责任面，而不是仅创建未分配记录。
+
+### 快速定位顺序
+
+1. 先看失败的是哪一个 job  
+   - `smoke`
+   - `distributed-smoke`
+   - `godot-headless-smoke`
+
+2. 下载对应 artifact  
+   - 先看 `test_env/...` 下的 workflow 输出、日志和中间产物
+
+3. 再决定本地复现命令  
+   - 不要一上来就跑全量 pytest
+   - 先复现失败的专项链路
+
+### 本地复现命令
+
+最小 smoke：
+
+```bash
+python tests/run_smoke_tests.py --output-root test_env/smoke_runs/manual_nightly_repro
+```
+
+分布式 smoke：
+
+```bash
+python tests/run_distributed_smoke.py --build
+```
+
+真实 Godot headless smoke：
+
+Windows PowerShell:
+
+```powershell
+$env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
+$env:AGI_WALKER_GODOT_HEADLESS_ARTIFACT_DIR='test_env/godot_headless_smoke'
+python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
+```
+
+### 常见失败与排查入口
+
+#### 1. `smoke` 失败
+
+优先检查：
+
+- `smoke-artifacts`
+- `test_env/smoke_ci/`
+- Workflow 输出目录下的 `.output/` 和 `exports/`
+
+常见原因：
+
+- CLI/workflow 参数回归
+- Web 导入链路回归
+- external `godot-agent` preflight 失败
+
+#### 2. `distributed-smoke` 失败
+
+优先检查：
+
+- `distributed-smoke-artifacts`
+- `test_env/distributed_smoke/`
+- Compose 服务日志
+
+建议的本地排查顺序：
+
+```bash
+python tests/run_distributed_smoke.py --build
+```
+
+重点观察：
+
+- `web-panel-distributed` 是否启动
+- `/api/system/status` 中 `distributed_monitor.monitor_active`
+- `/api/distributed/status` 中是否出现预期 actor
+- actor 是否因 TTL 过快清理而过早消失
+
+如需调整 actor 保留时间，可显式设置：
+
+```bash
+export AGI_WALKER_DISTRIBUTED_ACTOR_TTL_SECONDS=30
+```
+
+Windows PowerShell:
+
+```powershell
+$env:AGI_WALKER_DISTRIBUTED_ACTOR_TTL_SECONDS='30'
+```
+
+### 近期实操验证
+
+- `python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv`（设置 `AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE=1` 与 `AGI_WALKER_GODOT_HEADLESS_SCENE=run_rl_server.tscn`）：headless lifecycle 在 runner 场景下通过，`headless_smoke_report.json` 记录 success。
+- `docker compose -f docker-compose.prod.yml up --build`：在本地运行时 Web API/worker/Celery/Redis/PostgreSQL/Prometheus 启动成功，Grafana 由于 host 3000 端口被占用未能绑定；下一次执行前请释放该端口或改写映射。
+- 注意：Windows 会把 2970-3069 端口范围列入 `netsh interface ipv4 show excludedportrange protocol=tcp`，因此即便 3000 未被应用显式占用也无法绑定；当前只能在非 3000/9090 端口上验证 Grafana/Prometheus，除非系统管理员调整排除区间。
+- `python tests/run_distributed_smoke.py --build`：在授予 Docker 配置文件权限后构建并启动通过，分布式监控状态显示 `monitor_active=true`、actor `actor_docker_1` 处于 active，summary `PASS`。
+
+#### 3. `godot-headless-smoke` 失败
+
+优先检查：
+
+- `godot-headless-smoke-artifacts`
+- `test_env/godot_headless_smoke/headless_smoke_report.json`
+- `tests/test_godot_headless_smoke.py`
+- 本机/runner 上 Godot 可执行文件是否可用
+- `%APPDATA%\Godot\app_userdata\AGI-Walker Simulation\logs\`
+
+建议的本地排查顺序：
+
+```powershell
+$env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
+$env:AGI_WALKER_GODOT_HEADLESS_ARTIFACT_DIR='test_env/godot_headless_smoke'
+python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
+```
+
+重点观察：
+
+- `headless_smoke_report.json` 里的 `failure_stage`
+ - Godot 是否以当前配置的 scene 启动，默认应为 `--scene demo_generated_biped.tscn`
+- TCP 端口是否实际监听
+- 是否误用了 Windows GUI build + `stdout/stderr=PIPE`
+- Godot AppData 日志里是否出现脚本加载错误或场景初始化错误
+
+### 升级判据
+
+只有当以下 4 项同时稳定时，才建议把 nightly 的结果继续上升到更严格的发布门槛：
+
+- `quality` 稳定通过
+- `smoke` 稳定通过
+- `distributed-smoke` 连续通过
+- `godot-headless-smoke` 连续通过
+
+在此之前，不建议让 nightly 直接阻断所有日常开发分支。
 
 ---
 
@@ -213,6 +461,17 @@ spec:
         image: <registry>/agi-walker:latest
         ports:
         - containerPort: 8000
+        env:
+        - name: PYTHONUTF8
+          value: "1"
+        - name: AGI_WALKER_WEB_RUNS_PAGE_SIZE
+          value: "20"
+        - name: AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE
+          value: "100"
+        - name: AGI_WALKER_WEB_ARCHIVE_MAX_RUNS
+          value: "200"
+        - name: AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS
+          value: "30"
         resources:
           requests:
             memory: "512Mi"

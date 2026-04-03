@@ -146,6 +146,22 @@ python -m pip install -q -r requirements-dev.txt
 echo ✓ 环境初始化完成
 exit /b 0
 
+REM 配置 Web workflow 环境变量文件
+:configure_web_panel_env
+set "AGI_WALKER_WEB_ENV_FILE="
+if exist "deployment\web_panel.env" (
+    set "AGI_WALKER_WEB_ENV_FILE=deployment\web_panel.env"
+) else if exist "deployment\web_panel.env.example" (
+    set "AGI_WALKER_WEB_ENV_FILE=deployment\web_panel.env.example"
+)
+
+if defined AGI_WALKER_WEB_ENV_FILE (
+    echo ✓ Web workflow 配置: !AGI_WALKER_WEB_ENV_FILE!
+) else (
+    echo ! 未找到 Web workflow 配置文件，使用代码默认值
+)
+exit /b 0
+
 REM 启动 Web 服务器
 :start_server
 call :init_env
@@ -160,6 +176,7 @@ echo.
 
 echo 激活虚拟环境...
 call test_env\Scripts\activate.bat
+call :configure_web_panel_env
 
 echo.
 echo 启动 FastAPI 服务器...
@@ -221,6 +238,7 @@ echo.
 
 echo 激活虚拟环境...
 call test_env\Scripts\activate.bat
+call :configure_web_panel_env
 
 echo.
 echo 启动 Web 服务器 (后台)...

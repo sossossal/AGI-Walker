@@ -1,0 +1,19 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY deployment/requirements.distributed_runtime.txt /app/deployment/requirements.distributed_runtime.txt
+
+RUN pip install --no-cache-dir -r /app/deployment/requirements.distributed_runtime.txt
+
+COPY . /app
+
+CMD ["python", "-u", "distributed/run_learner.py"]

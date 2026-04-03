@@ -1,6 +1,12 @@
 # AGI-Walker 项目实施与扩展优化最终报告
 **Project Final Report: Implementation & Scaling Optimization**
 
+> 历史文档说明（2026-03-30 更新）
+>
+> 本文档形成于 2026-01，聚焦的是当时某一阶段的实施与扩展优化工作。
+> 其中“已完成”“Production Ready”等表述属于该阶段总结，不应直接作为当前仓库总体状态的权威说明。
+> 当前状态请优先参考 [README.md](../../README.md) 和 [CURRENT_STATUS.md](../CURRENT_STATUS.md)。
+
 ---
 
 ## 📅 项目总结

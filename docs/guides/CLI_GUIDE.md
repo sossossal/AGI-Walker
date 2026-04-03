@@ -182,6 +182,80 @@ python -m agi_walker workflows validate robot_creation_pipeline
 
 该 alias 直接映射到 `skills workflows`，所以之前的 workflow 子命令所有选项行为一模一样。
 
+---
+
+### 7. Workflow 执行策略
+
+`workflows run` 现在支持显式指定执行策略，避免“已有产物时到底是重跑还是跳过”这种隐式行为。
+
+#### 默认行为: `resume`
+
+```bash
+python -m agi_walker.cli skills workflows run robot_creation_pipeline
+python -m agi_walker.cli workflows run robot_creation_pipeline --resume
+```
+
+- 遇到已经存在且非空的 `output_file` 时，步骤会标记为 `SKIPPED`
+- `SKIPPED` 现在算成功终态，所以不会再出现 “completed + 0.0% success” 这种误导性结果
+
+#### 强制重跑: `force`
+
+```bash
+python -m agi_walker.cli skills workflows run robot_creation_pipeline --force
+```
+
+- 忽略已有产物
+- 所有步骤都会重新执行
+- 适合回归测试和重新生成产物
+
+#### 隔离输出目录
+
+如果你不想污染仓库默认的 `.output/` 和 `exports/`，可以把相对输出路径重定向到新的根目录：
+
+```bash
+python -m agi_walker.cli skills workflows run robot_creation_pipeline ^
+  --force ^
+  --output-root test_env/workflow_runs/run_001
+```
+
+效果：
+
+- `.output/created_robot.json` 会写到 `test_env/workflow_runs/run_001/.output/created_robot.json`
+- `exports/robot.urdf` 会写到 `test_env/workflow_runs/run_001/exports/robot.urdf`
+- workflow log 也会进入该隔离目录下的 `.output/`
+
+---
+
+### 8. 最小 Smoke 验收
+
+推荐把下面这个脚本作为最小可信验收入口：
+
+```bash
+python tests/run_smoke_tests.py
+```
+
+这个脚本会检查：
+
+- Skills CLI 是否可列出内容
+- Skills 配置是否有效
+- mock workflow 是否可运行
+- real workflow 是否可运行
+- Web 面板导入和 `WsMessage(type="ping")` 兼容性是否正常
+- Godot Agent fake backend 的最小 Web/API 可用性
+- 如果存在 external `godot-agent` 目录，再追加 modern backend 的模板/计划/自检 smoke
+
+自定义 smoke 产物目录：
+
+```bash
+python tests/run_smoke_tests.py --output-root test_env/smoke_runs/manual
+```
+
+如果要显式指定 modern `godot-agent` 目录：
+
+```bash
+AGI_WALKER_SMOKE_GODOT_AGENT_DIR=/path/to/godot-agent python tests/run_smoke_tests.py
+```
+
 
 ## 使用场景
 
@@ -207,8 +281,8 @@ python -m agi_walker.cli skills list
 # 验证配置
 python -m agi_walker.cli skills validate -v
 
-# 查看分类统计
-python -m agi_walker.cli skills categories
+# 运行最小 smoke 验收
+python tests/run_smoke_tests.py
 ```
 
 ### 场景3: 浏览文档

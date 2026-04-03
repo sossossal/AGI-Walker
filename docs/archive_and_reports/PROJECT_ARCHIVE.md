@@ -1,5 +1,11 @@
 # AGI-Walker + Hive-Reflex 项目档案总览
 
+> 历史文档说明（2026-03-30 更新）
+>
+> 本文档主要用于整理 2026-01 阶段的项目档案与交付材料。
+> 其中关于“完成”“准备发布”等表述属于历史归档语境，不应直接作为当前项目状态的权威说明。
+> 当前状态请优先参考 [README.md](../../README.md) 和 [CURRENT_STATUS.md](../CURRENT_STATUS.md)。
+
 **项目名称**: AGI-Walker + Hive-Reflex  
 **版本**: v0.9.0-beta  
 **创建日期**: 2026-01-16  

@@ -138,6 +138,24 @@ init_environment() {
     print_success "依赖安装完成"
 }
 
+configure_web_panel_env() {
+    local env_file=""
+
+    if [ -f "deployment/web_panel.env" ]; then
+        env_file="deployment/web_panel.env"
+    elif [ -f "deployment/web_panel.env.example" ]; then
+        env_file="deployment/web_panel.env.example"
+    fi
+
+    if [ -n "$env_file" ]; then
+        export AGI_WALKER_WEB_ENV_FILE="$env_file"
+        print_success "Web workflow 配置: $AGI_WALKER_WEB_ENV_FILE"
+    else
+        unset AGI_WALKER_WEB_ENV_FILE
+        print_step "未找到 Web workflow 配置文件，使用代码默认值"
+    fi
+}
+
 # 启动 Web 服务器
 start_web_server() {
     print_header "启动 Web 服务器"
@@ -148,6 +166,7 @@ start_web_server() {
     elif [ -f "test_env/Scripts/activate" ]; then
         source test_env/Scripts/activate
     fi
+    configure_web_panel_env
     
     print_step "启动 FastAPI 服务器..."
     echo ""
@@ -192,6 +211,7 @@ start_complete() {
     elif [ -f "test_env/Scripts/activate" ]; then
         source test_env/Scripts/activate
     fi
+    configure_web_panel_env
     
     python -m uvicorn web_panel.server:app --host 0.0.0.0 --port 8000 > logs/server.log 2>&1 &
     SERVER_PID=$!
