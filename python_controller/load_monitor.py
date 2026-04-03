@@ -44,7 +44,9 @@ class LoadMonitor:
     4. 支持混合模式平滑过渡
     """
 
-    def __init__(self, pid_controller, config: Optional[LoadMonitorConfig] = None) -> None:
+    def __init__(
+        self, pid_controller, config: Optional[LoadMonitorConfig] = None
+    ) -> None:
         """
         初始化负载监控器
 

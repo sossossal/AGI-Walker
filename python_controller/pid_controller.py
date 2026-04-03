@@ -3,12 +3,11 @@ PID控制器 - Python实现
 用于参数调优和仿真测试
 """
 
-import time
-
 import logging
+import time
+from typing import Optional, Dict
 
 logger = logging.getLogger(__name__)
-from typing import Optional, Dict
 
 
 class PIDController:
@@ -124,12 +123,12 @@ class PIDController:
 
         return output
 
-    def set_limits(self, output_min: float, output_max: float) -> List:
+    def set_limits(self, output_min: float, output_max: float) -> None:
         """设置输出限制"""
         self.output_min = output_min
         self.output_max = output_max
 
-    def set_integral_limits(self, integral_min: float, integral_max: float) -> List:
+    def set_integral_limits(self, integral_min: float, integral_max: float) -> None:
         """设置积分限制"""
         self.integral_min = integral_min
         self.integral_max = integral_max
@@ -141,7 +140,7 @@ class PIDController:
         self.last_time = time.time()
         self.iteration_count = 0
 
-    def set_tunings(self, kp: float, ki: float, kd: float) -> List:
+    def set_tunings(self, kp: float, ki: float, kd: float) -> None:
         """动态调整PID参数"""
         self.kp = kp
         self.ki = ki
@@ -157,7 +156,7 @@ class PIDController:
             "error": self.last_error,
         }
 
-    def print_status(self) -> List:
+    def print_status(self) -> None:
         """打印PID状态"""
         terms = self.get_terms()
         logger.info(f"PID状态 [Kp={self.kp:.2f}, Ki={self.ki:.2f}, Kd={self.kd:.2f}]")

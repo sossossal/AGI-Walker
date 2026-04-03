@@ -3,16 +3,16 @@
 用于训练和测试系统鲁棒性
 """
 
-import time
-
 import logging
-
-logger = logging.getLogger(__name__)
-import random
-import numpy as np
-from typing import Dict, List, Optional
 from dataclasses import dataclass
 from enum import Enum
+import random
+import time
+from typing import Dict, List, Optional
+
+import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 class FaultType(Enum):
@@ -451,7 +451,9 @@ if __name__ == "__main__":
     )
 
     injected = injector.inject(sensor_data, "sensor")
-    logger.info(f"扰动后姿态: {[f'{x:.2f}' for x in injected['sensors']['imu']['orient']]}")
+    logger.info(
+        f"扰动后姿态: {[f'{x:.2f}' for x in injected['sensors']['imu']['orient']]}"
+    )
 
     # 统计
     logger.info("\n=== 统计信息 ===")

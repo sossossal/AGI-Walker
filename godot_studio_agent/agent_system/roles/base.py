@@ -3,6 +3,7 @@ BaseRole — 所有 Agent 角色的抽象基类
 """
 from abc import ABC, abstractmethod
 from typing import Dict, List, Any, Optional
+from ..models import Task, TaskStatus
 
 
 class BaseRole(ABC):
@@ -22,8 +23,8 @@ class BaseRole(ABC):
         pass
 
     @abstractmethod
-    def execute(self, command: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        """执行命令"""
+    def execute(self, task: Task) -> Task:
+        """执行任务步骤"""
         pass
 
     # ─── 公共结果构造 ───────────────────────────────────────────────────────

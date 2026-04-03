@@ -225,16 +225,20 @@ class GodotStudioRouter:
         self._record(prompt, best.role_name, best.confidence, result)
         return result
 
-    def execute_pipeline(self, commands: List[str]) -> List[Dict[str, Any]]:
+    def execute_pipeline(self, commands: List[str], context: Optional[Dict] = None) -> List[Dict[str, Any]]:
         """
         执行命令流水线（多步骤顺序执行，结果自动传递为上下文）
 
         Args:
             commands: 命令列表
+            context: 初始管线输入上下文字典
 
         Returns:
             每步结果列表
         """
+        if context:
+            self.session_context.update(context)
+            
         results = []
         for cmd in commands:
             result = self.execute(cmd)

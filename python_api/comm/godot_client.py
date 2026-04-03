@@ -61,10 +61,14 @@ class GodotSimulationClient:
             return True
 
         except socket.timeout:
-            print(f"Connection timed out: Godot server {self.host}:{self.port} did not respond")
+            print(
+                f"Connection timed out: Godot server {self.host}:{self.port} did not respond"
+            )
             return False
         except ConnectionRefusedError:
-            print(f"Connection refused: Godot server is not running or port {self.port} is unavailable")
+            print(
+                f"Connection refused: Godot server is not running or port {self.port} is unavailable"
+            )
             return False
         except Exception as e:
             print(f"Connection failed: {e}")
@@ -132,19 +136,28 @@ class GodotSimulationClient:
             self.disconnect()
             return False
 
-    def start_simulation(self, robot_config: Dict) -> bool:
+    def start_simulation(
+        self,
+        robot_config: Dict,
+        physics_config: Optional[Dict] = None,
+    ) -> bool:
         """
         启动仿真
 
         Args:
             robot_config: 机器人配置
+            physics_config: 物理参数覆盖
 
         Returns:
             是否启动成功
         """
+        physics = {"gravity": 9.81, "timestep": 0.01}
+        if physics_config:
+            physics.update(physics_config)
+
         return self.send_command(
             "start_sim",
-            {"robot": robot_config, "physics": {"gravity": 9.81, "timestep": 0.01}},
+            {"robot": robot_config, "physics": physics},
         )
 
     def stop_simulation(self) -> bool:

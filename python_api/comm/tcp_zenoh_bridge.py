@@ -64,7 +64,10 @@ class TcpZenohBridge:
 
         self.running = True
 
-        if self.tcp_server is None or getattr(self.tcp_server, "fileno", lambda: 0)() == -1:
+        if (
+            self.tcp_server is None
+            or getattr(self.tcp_server, "fileno", lambda: 0)() == -1
+        ):
             self.tcp_server = self._create_server_socket()
 
         self.tcp_server.bind((self.tcp_host, self.tcp_port))
@@ -183,7 +186,7 @@ class TcpZenohBridge:
 
 if __name__ == "__main__":
     setup_logging()
-    
+
     logger.info("=" * 60)
     logger.info("TCP-Zenoh bridge")
     logger.info("=" * 60)

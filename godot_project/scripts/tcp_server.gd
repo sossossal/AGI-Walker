@@ -8,9 +8,12 @@ var server = TCPServer.new()
 var PORT = 9000
 var connection: StreamPeerTCP = null
 var robot_node: Node3D = null
+var last_loaded_robot_config: Dictionary = {}
 
 func _ready():
-	for arg in OS.get_cmdline_args():
+	var cli_args = OS.get_cmdline_args()
+	var user_args = OS.get_cmdline_user_args()
+	for arg in cli_args + user_args:
 		if arg.begins_with("--tcp-port="):
 			PORT = arg.trim_prefix("--tcp-port=").to_int()
 
@@ -114,6 +117,23 @@ func _process_command(cmd):
 		response["reward"] = 0.0 # Placeholder
 		response["done"] = false
 		
+	elif cmd.type == "load_robot":
+		print("📦 [TCP] Loading Robot Config")
+		var robot_config = cmd.get("robot_config", {})
+		if robot_node == null:
+			robot_node = get_tree().root.find_child("*Robot*", true, false)
+			if not robot_node and get_tree().current_scene:
+				robot_node = get_tree().current_scene.find_child("*Robot*", true, false)
+
+		if robot_node != null and robot_node.has_method("load_from_dict"):
+			robot_node.load_from_dict(robot_config)
+			last_loaded_robot_config = robot_config.duplicate(true)
+			response = {"status": "success"}
+		else:
+			last_loaded_robot_config = robot_config.duplicate(true)
+			print("ℹ️ [TCP] No robot node available; storing config in fallback mode")
+			response = {"status": "success", "mode": "fallback"}
+			
 	elif cmd.type == "get_schema":
 		if robot_node != null and robot_node.has_method("get_schema"):
 			response = robot_node.get_schema()
@@ -126,6 +146,10 @@ func _process_command(cmd):
 				},
 				"actuators": {
 					"action": {"type": "float32", "shape": [2], "range": [-10.0, 10.0]}
+				},
+				"meta": {
+					"last_loaded_parts": last_loaded_robot_config.get("parts", []).size(),
+					"last_loaded_connections": last_loaded_robot_config.get("connections", []).size()
 				}
 			}
 			

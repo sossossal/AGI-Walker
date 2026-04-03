@@ -7,8 +7,8 @@ import time
 import json
 import argparse
 from pathlib import Path
-from typing import Optional, Callable
 from dataclasses import dataclass
+from typing import Callable, Optional
 import numpy as np
 import logging
 
@@ -340,7 +340,7 @@ class DummyEnv:
         self._step_count = 0
         return np.zeros(12, dtype=np.float32), {}
 
-    def step(self, action) -> Tuple:
+    def step(self, action) -> tuple:
         self._step_count += 1
         obs = np.random.randn(12).astype(np.float32) * 0.1
         reward = 1.0 - np.abs(obs[0])  # 简单奖励
@@ -375,6 +375,7 @@ def main() -> None:
     if args.use_godot:
         try:
             from python_api.godot_robot_env.gym_env import GodotRobotEnv
+
             env = GodotRobotEnv()
         except ImportError as e:
             logger.error(f"Godot environment not available: {e}")

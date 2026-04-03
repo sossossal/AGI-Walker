@@ -31,6 +31,7 @@ def main():
     
     # We want to subscribe to ALL actors
     key_obs_wildcard = f"{args.zenoh_prefix}/*/obs"
+    action_publishers = {}
     
     logger.info(f"Subscribing to: {key_obs_wildcard}")
     
@@ -44,7 +45,7 @@ def main():
             # Payload Handling (Compression Support)
             import zlib
             
-            raw_bytes = sample.payload.to_bytes() if hasattr(sample.payload, 'to_bytes') else sample.payload
+            raw_bytes = bytes(sample.payload)
             
             if len(raw_bytes) > 0:
                 header = raw_bytes[0] # First byte is header
@@ -72,9 +73,11 @@ def main():
             # 3. Publish Action
             key_act = f"{args.zenoh_prefix}/{actor_id}/act"
             action_payload = {"action": action}
+            if key_act not in action_publishers:
+                action_publishers[key_act] = session.declare_publisher(key_act)
             
             # logger.info(f"Sending Action to {actor_id}")
-            session.put(key_act, json.dumps(action_payload))
+            action_publishers[key_act].put(json.dumps(action_payload).encode('utf-8'))
             
         except Exception as e:
             logger.error(f"Error processing obs: {e}")

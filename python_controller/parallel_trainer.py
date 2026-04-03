@@ -4,13 +4,13 @@
 """
 
 import multiprocessing as mp
-
 import logging
+import time
+from typing import Any, Callable, Dict, List
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
-from typing import List, Dict, Any, Callable
-import numpy as np
-import time
 
 
 class ParallelTrainingManager:
@@ -33,7 +33,9 @@ class ParallelTrainingManager:
         logger.info("🚀 并行训练管理器初始化")
         logger.info(f"   - 工作进程数: {self.num_workers}")
 
-    def worker_process(self, worker_id: int, env_fn: Callable, policy_fn: Callable) -> List:
+    def worker_process(
+        self, worker_id: int, env_fn: Callable, policy_fn: Callable
+    ) -> List:
         """工作进程"""
         logger.info(f"Worker {worker_id} 启动")
 

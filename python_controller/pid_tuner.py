@@ -210,7 +210,9 @@ class PIDTuner:
                 if result["stability_score"] > best_score:
                     best_params = neighbor
                     best_score = result["stability_score"]
-                    logger.info(f"✨ 更新最佳参数: {best_params}, 评分: {best_score:.1f}")
+                    logger.info(
+                        f"✨ 更新最佳参数: {best_params}, 评分: {best_score:.1f}"
+                    )
 
                 time.sleep(2)
 

@@ -4,15 +4,19 @@
 """
 
 import logging
-logger = logging.getLogger(__name__)
+from typing import Optional
+
 import numpy as np
+
+logger = logging.getLogger(__name__)
+
 try:
     import gymnasium as gym
+
     GYM_AVAILABLE = True
 except ImportError:
     logger.warning("gymnasium not available, install it: pip install gymnasium")
     GYM_AVAILABLE = False
-from typing import Optional
 
 
 class ImitationLearner:

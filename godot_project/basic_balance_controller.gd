@@ -8,6 +8,7 @@ var time_passed: float = 0.0
 var rl_mode: bool = false
 var target_vel_left: float = 0.0
 var target_vel_right: float = 0.0
+var last_loaded_robot_config: Dictionary = {}
 
 func _ready():
 	if hip_left and hip_right:
@@ -58,3 +59,24 @@ func get_sensor_data() -> Dictionary:
 			}
 		}
 	}
+
+
+func get_schema() -> Dictionary:
+	return {
+		"sensors": {
+			"torso_height": {"type": "float32", "shape": [1]},
+			"imu_orient": {"type": "float32", "shape": [3]}
+		},
+		"actuators": {
+			"hip_velocity": {"type": "float32", "shape": [2], "range": [-10.0, 10.0]}
+		},
+		"meta": {
+			"last_loaded_parts": last_loaded_robot_config.get("parts", []).size(),
+			"last_loaded_connections": last_loaded_robot_config.get("connections", []).size()
+		}
+	}
+
+
+func load_from_dict(config: Dictionary) -> void:
+	last_loaded_robot_config = config.duplicate(true)
+	rl_mode = true

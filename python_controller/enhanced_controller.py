@@ -3,24 +3,25 @@
 集成三层模型架构、动态负载均衡和多模态输入的完整控制器
 """
 
-import time
 import argparse
 import logging
 from pathlib import Path
-
-logger = logging.getLogger(__name__)
+import time
+from typing import Any, Dict, List, Optional, Tuple
 
 # 导入核心模块 - 使用绝对导入
 from python_controller.tcp_client import GodotClient
-from python_controller.model_orchestrator import create_orchestrator
 from python_controller.load_monitor import LoadMonitor, SimplePIDController, ControlMode
+from python_controller.model_orchestrator import create_orchestrator
 from python_controller.rag_knowledge_base import PhysicsKnowledgeBase
-from typing import Any, List, Tuple, Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 # 导入视觉和融合模块
 try:
     from python_api.vision_processor import create_vision_processor
     from python_api.multimodal_fusion import create_multimodal_fusion
+
     VISION_AVAILABLE = True
 except ImportError:
     VISION_AVAILABLE = False
@@ -122,7 +123,7 @@ class EnhancedController:
 
         logger.info("\n✅ 增强控制器初始化完成")
         logger.info("=" * 50)
-    def _on_mode_change(self, old_mode: ControlMode, new_mode: ControlMode) -> None:
+
     def _on_mode_change(self, old_mode: ControlMode, new_mode: ControlMode):
         """控制模式切换回调"""
         logger.info(f"🔄 控制模式切换: {old_mode.value} -> {new_mode.value}")
@@ -146,8 +147,12 @@ class EnhancedController:
         logger.info("Starting enhanced controller")
         logger.info(f"   Target frequency: {target_hz}Hz")
         logger.info(f"   Duration: {duration}s")
-        logger.info(f"   Vision mode: {'enabled' if self.enable_vision else 'disabled'}")
-        logger.info(f"   RAG enhancer: {'enabled' if self.knowledge_base else 'disabled'}")
+        logger.info(
+            f"   Vision mode: {'enabled' if self.enable_vision else 'disabled'}"
+        )
+        logger.info(
+            f"   RAG enhancer: {'enabled' if self.knowledge_base else 'disabled'}"
+        )
 
         # 连接Godot
         if not self.client.connect():
@@ -260,7 +265,7 @@ class EnhancedController:
         result = self.orchestrator.process(sensor_data, context="realtime")
 
         return result
-    def _do_environment_adjustment(self, sensor_data: dict) -> None:
+
     def _do_environment_adjustment(self, sensor_data: dict):
         """执行环境感知调整"""
         try:
@@ -281,7 +286,7 @@ class EnhancedController:
 
         except Exception as e:
             logger.warning(f"Environment adjustment error: {e}")
-    def _add_log_entry(self, sensor_data: dict, action: dict) -> None:
+
     def _add_log_entry(self, sensor_data: dict, action: dict):
         """添加日志条目"""
         orient = sensor_data.get("sensors", {}).get("imu", {}).get("orient", [0, 0, 0])
@@ -307,7 +312,7 @@ class EnhancedController:
             log_entry["message"] = "高度过低"
 
         self.orchestrator.add_log(log_entry)
-    def _print_status(self, sensor_data: dict, ai_time: float, loop_times: list) -> List:
+
     def _print_status(self, sensor_data: dict, ai_time: float, loop_times: list):
         """打印状态信息"""
         orient = sensor_data.get("sensors", {}).get("imu", {}).get("orient", [0, 0, 0])
@@ -318,7 +323,9 @@ class EnhancedController:
         fps = 1.0 / avg_loop if avg_loop > 0 else 0
 
         mode = self.load_monitor.current_mode.value
-        mode_text = {"ai": "[AI]", "pid": "[PID]", "hybrid": "[HYBRID]"}.get(mode, "[?]")
+        mode_text = {"ai": "[AI]", "pid": "[PID]", "hybrid": "[HYBRID]"}.get(
+            mode, "[?]"
+        )
 
         logger.info(
             f"\r[{elapsed:6.1f}s] {mode_text} {mode:6s} | "
@@ -328,7 +335,7 @@ class EnhancedController:
             f"FPS: {fps:.0f}",
             end="",
         )
-    def _cleanup(self) -> None:
+
     def _cleanup(self):
         """清理资源"""
         self.is_running = False
@@ -368,7 +375,7 @@ class EnhancedController:
         self.client.close()
         logger.info("\n连接已关闭")
 
-def main() -> None:
+
 def main():
     """主函数"""
     parser = argparse.ArgumentParser(description="AGI-Walker增强控制器")

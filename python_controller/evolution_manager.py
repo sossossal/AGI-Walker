@@ -3,30 +3,32 @@
 串联RL训练、数据生成、自动标记和PEFT微调，实现自动化进化
 """
 
-import time
-
 import logging
-
-logger = logging.getLogger(__name__)
-import json
 import asyncio
-from pathlib import Path
-from typing import Optional
 from dataclasses import dataclass
-
+import json
+from pathlib import Path
 import sys
+import time
+from typing import Optional
 
 sys.path.append(str(Path(__file__).parent.parent))
 
+logger = logging.getLogger(__name__)
+
 # 导入各模块
 try:
-    from python_controller.rl_optimizer import RLOptimizer, RLConfig, DummyEnv
+    from python_controller.rl_optimizer import (
+        RLOptimizer,
+        RLConfig,
+        DummyEnv,
+    )  # noqa: E402
 except ImportError:
-    from rl_optimizer import RLOptimizer, RLConfig, DummyEnv
+    from rl_optimizer import RLOptimizer, RLConfig, DummyEnv  # noqa: E402
 
-from training.auto_labeler import AutoLabeler
-from training.dataset_cleaner import DatasetCleaner
-from training.peft_trainer import PEFTTrainer, PEFTConfig, PEFTMethod
+from training.auto_labeler import AutoLabeler  # noqa: E402
+from training.dataset_cleaner import DatasetCleaner  # noqa: E402
+from training.peft_trainer import PEFTTrainer, PEFTConfig, PEFTMethod  # noqa: E402
 
 
 @dataclass
@@ -146,7 +148,9 @@ class EvolutionManager:
     async def stage_data_generation(self, model_path: str) -> str:
         """阶段2: 数据生成"""
         self.current_stage = "DATA_GEN"
-        logger.info(f"\n[Stage 2/4] 数据生成 ({self.config.n_trajectories} trajectories)")
+        logger.info(
+            f"\n[Stage 2/4] 数据生成 ({self.config.n_trajectories} trajectories)"
+        )
 
         output_path = self.data_dir / "raw_trajectories.json"
 

@@ -4,15 +4,14 @@
 """
 
 import json
-
 import logging
-
-logger = logging.getLogger(__name__)
-import time
 import asyncio
-from typing import Dict, List, Optional
 from dataclasses import dataclass
 from enum import Enum
+import time
+from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class CloudPlatform(Enum):

@@ -41,7 +41,9 @@ class SafetyChecker:
                 angle = max(min_angle, min(max_angle, angle))
 
                 if angle != original_angle:
-                    logger.info(f"⚠️ {joint} 角度限位: {original_angle:.1f}° → {angle:.1f}°")
+                    logger.info(
+                        f"⚠️ {joint} 角度限位: {original_angle:.1f}° → {angle:.1f}°"
+                    )
 
             # 速度限制
             if joint in self.last_angles:
@@ -52,7 +54,9 @@ class SafetyChecker:
                     angle = self.last_angles[joint] + (
                         max_change if change > 0 else -max_change
                     )
-                    logger.info(f"⚠️ {joint} 速度限制: {change:.1f}° → {max_change:.1f}°")
+                    logger.info(
+                        f"⚠️ {joint} 速度限制: {change:.1f}° → {max_change:.1f}°"
+                    )
 
             safe_action["motors"][joint] = angle
             self.last_angles[joint] = angle
@@ -174,7 +178,9 @@ class AIController:
 
         return True
 
-    def _print_status(self, sensor_data: dict, ai_time: float, loop_time: float) -> List:
+    def _print_status(
+        self, sensor_data: dict, ai_time: float, loop_time: float
+    ) -> None:
         """打印状态信息"""
         orient = sensor_data["sensors"]["imu"]["orient"]
         elapsed = time.time() - self.start_time
@@ -202,7 +208,9 @@ class AIController:
 
         logger.info(f"运行时间: {elapsed:.1f}秒")
         logger.info(f"总循环数: {self.loop_count}")
-        logger.info(f"平均频率: {self.loop_count/elapsed:.1f}Hz" if elapsed > 0 else "N/A")
+        logger.info(
+            f"平均频率: {self.loop_count/elapsed:.1f}Hz" if elapsed > 0 else "N/A"
+        )
 
         if self.fall_time:
             logger.info(f"摔倒时间: {self.fall_time:.1f}秒")

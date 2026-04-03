@@ -152,7 +152,9 @@ class PhysicsCalibrator:
         )
         return updates
 
-    def calibrate_online(self, observation: dict, target: Optional[dict] = None) -> None:
+    def calibrate_online(
+        self, observation: dict, target: Optional[dict] = None
+    ) -> None:
         """
         在线校准
 

@@ -76,7 +76,9 @@ class AsyncGodotClient:
             self.connected = True
             self.running = True
 
-            logger.info(f"✅ 异步连接到Godot仿真器 {self.config.host}:{self.config.port}")
+            logger.info(
+                f"✅ 异步连接到Godot仿真器 {self.config.host}:{self.config.port}"
+            )
 
             if self.on_connect:
                 await self._call_callback(self.on_connect)
@@ -116,7 +118,9 @@ class AsyncGodotClient:
     async def reconnect(self) -> bool:
         """重连"""
         for attempt in range(self.config.max_reconnect_attempts):
-            logger.info(f"🔄 重连尝试 {attempt + 1}/{self.config.max_reconnect_attempts}")
+            logger.info(
+                f"🔄 重连尝试 {attempt + 1}/{self.config.max_reconnect_attempts}"
+            )
 
             await self.disconnect()
             await asyncio.sleep(self.config.reconnect_delay)

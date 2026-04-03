@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import socket
 import struct
 import time
@@ -83,18 +84,17 @@ def main():
     parser.add_argument("--godot-host", type=str, default="127.0.0.1", help="Hostname/IP of Godot instance")
     parser.add_argument("--godot-port", type=int, default=9000)
     parser.add_argument("--zenoh-prefix", type=str, default="ag")
+    parser.add_argument(
+        "--zenoh-router",
+        type=str,
+        default=os.environ.get("ZENOH_ROUTER"),
+        help="Zenoh Router endpoint (e.g. tcp/zenoh-router:7447)",
+    )
     args = parser.parse_args()
 
     # 1. Setup Zenoh
     logger.info("Initializing Zenoh...")
     conf = zenoh.Config()
-    
-    # If using Docker Compose (router at 'zenoh-router'), connect to it
-    # We check if environment variable exists or just try to connect if argument provided
-    parser.add_argument("--zenoh-router", type=str, default=None, help="Zenoh Router endpoint (e.g. tcp/zenoh-router:7447)")
-    
-    # Re-parse to get new arg
-    args, _ = parser.parse_known_args() 
 
     if args.zenoh_router:
         logger.info(f"Connecting to Zenoh Router at {args.zenoh_router}")
@@ -107,6 +107,7 @@ def main():
     
     key_obs = f"{args.zenoh_prefix}/{args.id}/obs"
     key_act = f"{args.zenoh_prefix}/{args.id}/act"
+    pub_obs = session.declare_publisher(key_obs)
     
     logger.info(f"Pub Obs: {key_obs}")
     logger.info(f"Sub Act: {key_act}")
@@ -124,7 +125,7 @@ def main():
     def on_action(sample):
         try:
             # Zenoh 1.0 payload is ZBytes
-            payload_bytes = sample.payload.to_bytes() if hasattr(sample.payload, 'to_bytes') else sample.payload
+            payload_bytes = bytes(sample.payload)
             payload = json.loads(payload_bytes.decode('utf-8'))
             print(f"✅ [Sidecar] Received Action -> Forwarding to Godot", flush=True)
             # Note: Godot expects {"type": "step", "action": [...]}
@@ -171,7 +172,7 @@ def main():
                 else:
                     final_payload = b'\x00' + payload_bytes
                 
-                session.put(key_obs, final_payload)
+                pub_obs.put(final_payload)
             
             # 3. Wait/Yield?
             # Godot is now waiting for next Step.

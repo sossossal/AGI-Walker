@@ -36,8 +36,10 @@ class IMC22Controller:
             bitrate: 波特率 (默认 1 Mbps)
         """
         if can is None:
-            raise ImportError("python-can library is required for hardware_controller. "
-                            "Install it with: pip install python-can")
+            raise ImportError(
+                "python-can library is required for hardware_controller. "
+                "Install it with: pip install python-can"
+            )
         try:
             self.bus = can.interface.Bus(
                 channel=channel, bustype=bustype, bitrate=bitrate

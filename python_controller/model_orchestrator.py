@@ -5,9 +5,10 @@
 """
 
 import time
-from typing import Optional, Callable
 from dataclasses import dataclass
 from enum import Enum
+from typing import Callable, Optional
+
 from ai_model import BaseAIModel, create_ai_model
 from medium_model import MediumModel
 
@@ -261,7 +262,9 @@ class ModelOrchestrator:
         # 完整实现应使用线程池或异步队列
         self._process_adjustment(sensor_data)
 
-    def _schedule_optimization(self, sensor_data: dict, adjustment_result: dict) -> None:
+    def _schedule_optimization(
+        self, sensor_data: dict, adjustment_result: dict
+    ) -> None:
         """调度离线优化（异步）"""
         logger.info("📤 调度大模型优化...")
         # 完整实现应使用后台线程
@@ -302,7 +305,7 @@ class ModelOrchestrator:
             ),
         }
 
-    def reset_stats(self) -> List:
+    def reset_stats(self) -> None:
         """重置统计"""
         self.tier_usage = {tier: 0 for tier in ModelTier}
         self.total_requests = 0

@@ -7,6 +7,5 @@ Utilities for validation, skill management, and analysis
 from . import validate_skills
 
 __all__ = [
-    'validate_skills',
+    "validate_skills",
 ]
-

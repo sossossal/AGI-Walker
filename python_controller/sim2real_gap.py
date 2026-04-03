@@ -225,7 +225,9 @@ class Sim2RealGapEstimator:
         self.corrections_applied = 0
         self.data_pairs_collected = 0
 
-    def collect_data_pair(self, sim_state: dict, real_state: Optional[dict] = None) -> None:
+    def collect_data_pair(
+        self, sim_state: dict, real_state: Optional[dict] = None
+    ) -> None:
         """
         收集数据对
 

@@ -3,13 +3,13 @@
 用于测试不同参数组合对机器人稳定性的影响
 """
 
-import time
-
 import logging
+import time
+from typing import Dict, List
+
+from tcp_client import GodotClient
 
 logger = logging.getLogger(__name__)
-from tcp_client import GodotClient
-from typing import Dict, List
 
 
 class PhysicsTuner:

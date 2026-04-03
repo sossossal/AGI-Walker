@@ -57,7 +57,9 @@ class RealtimeDashboard:
         if plt is not None:
             self.setup_plots()
         else:
-            logger.warning("matplotlib not available - dashboard visualization disabled")
+            logger.warning(
+                "matplotlib not available - dashboard visualization disabled"
+            )
 
     def setup_plots(self):
         """设置绘图"""
@@ -303,8 +305,9 @@ class SimpleTextDashboard:
 
 if __name__ == "__main__":
     import logging
+
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-    
+
     logger.info("实时监控仪表板加载完成")
     logger.info("模式:")
     logger.info("  1. 图形界面 (需要matplotlib)")
