@@ -1,9 +1,9 @@
 """
 :  (Object Grasping)
 
-: 
+:
 :  ()
-: 
+:
 """
 
 import sys
@@ -17,9 +17,10 @@ import gymnasium as gym
 import numpy as np
 from typing import Dict, Tuple, List
 
+
 class ObjectGraspingEnv(gym.Env):
     """
-    
+
 
     :
         - / (14D: 7 DoF )
@@ -51,15 +52,15 @@ class ObjectGraspingEnv(gym.Env):
             low=-1.0, high=1.0, shape=(8,), dtype=np.float32
         )
 
-        # 
+        #
         self.num_objects = num_objects
         self.table_height = 0.6
-        self.workspace_size = 0.5  # 50cm x 50cm 
+        self.workspace_size = 0.5  # 50cm x 50cm
 
-        # 
+        #
         self.object_types = ["cube", "sphere", "cylinder"]
 
-        # 
+        #
         self.joint_pos = np.zeros(7)
         self.joint_vel = np.zeros(7)
         self.ee_pos = np.zeros(3)  # End-effector position
@@ -75,13 +76,13 @@ class ObjectGraspingEnv(gym.Env):
     def reset(self, seed=None, options=None) -> Tuple[np.ndarray, Dict]:
         super().reset(seed=seed)
 
-        # 
+        #
         self.joint_pos = np.array([0, -0.5, 0, -1.5, 0, 1.0, 0])
         self.joint_vel = np.zeros(7)
         self.ee_pos = np.array([0.3, 0.0, 0.8])
         self.gripper_state = 0.0
 
-        # 
+        #
         self._spawn_object()
 
         obs = self._get_observation()
@@ -90,30 +91,30 @@ class ObjectGraspingEnv(gym.Env):
         return obs, info
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict]:
-        # 
+        #
         joint_action = action[:7]
         gripper_action = action[7]
 
-        # 
+        #
         self.joint_vel = joint_action * 0.1
         self.joint_pos += self.joint_vel * 0.01
 
         #  ( FK)
         self.ee_pos += joint_action[:3] * 0.01
 
-        # 
+        #
         self.gripper_state = np.clip(self.gripper_state + gripper_action * 0.1, 0, 1)
 
-        # 
+        #
         distance = np.linalg.norm(self.ee_pos - self.object_pos)
         if distance < 0.05 and self.gripper_state > 0.8:
             self.object_grasped = True
-            self.object_pos = self.ee_pos.copy()  # 
+            self.object_pos = self.ee_pos.copy()  #
 
-        # 
+        #
         reward = self._compute_reward(distance)
 
-        # 
+        #
         terminated = False
         truncated = self.object_grasped and self.object_pos[2] > self.table_height + 0.2
 
@@ -128,7 +129,7 @@ class ObjectGraspingEnv(gym.Env):
 
     def _spawn_object(self):
         """"""
-        # 
+        #
         self.object_pos = np.array(
             [
                 np.random.uniform(-self.workspace_size / 2, self.workspace_size / 2),
@@ -155,23 +156,24 @@ class ObjectGraspingEnv(gym.Env):
         return obs.astype(np.float32)
 
     def _compute_reward(self, distance: float) -> float:
-        # 
+        #
         approach_reward = -distance
 
-        # 
+        #
         grasp_reward = 10.0 if self.object_grasped else 0.0
 
-        # 
+        #
         lift_reward = (
             5.0
             if (self.object_grasped and self.object_pos[2] > self.table_height + 0.1)
             else 0.0
         )
 
-        # 
+        #
         energy_cost = -0.01 * np.sum(self.joint_vel**2)
 
         return approach_reward + grasp_reward + lift_reward + energy_cost
+
 
 if __name__ == "__main__":
     gym.register(id="ObjectGrasping-v0", entry_point="__main__:ObjectGraspingEnv")

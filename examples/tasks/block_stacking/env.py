@@ -2,7 +2,7 @@
 :  (Block Stacking)
 : 3
 :  ()
-: 
+:
 """
 
 import sys
@@ -15,6 +15,7 @@ sys.path.insert(
 import gymnasium as gym
 import numpy as np
 from typing import Dict, Tuple, List
+
 
 class BlockStackingEnv(gym.Env):
     """"""
@@ -32,10 +33,10 @@ class BlockStackingEnv(gym.Env):
         )
 
         self.num_blocks = num_blocks
-        self.block_size = 0.05  # 5cm 
+        self.block_size = 0.05  # 5cm
         self.table_height = 0.6
 
-        # 
+        #
         self.joint_pos = np.zeros(7)
         self.ee_pos = np.zeros(3)
         self.blocks: List[Dict] = []
@@ -49,7 +50,7 @@ class BlockStackingEnv(gym.Env):
         self.joint_pos = np.array([0, -0.5, 0, -1.5, 0, 1.0, 0])
         self.ee_pos = np.array([0.3, 0.0, 0.8])
 
-        # 
+        #
         self.blocks = []
         for i in range(self.num_blocks):
             pos = np.array(
@@ -69,11 +70,11 @@ class BlockStackingEnv(gym.Env):
         return obs, info
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict]:
-        # 
+        #
         self.joint_pos += action[:7] * 0.01
         self.ee_pos += action[:3] * 0.01
 
-        # 
+        #
         for block in self.blocks:
             if not block["stacked"]:
                 dist = np.linalg.norm(self.ee_pos - block["pos"])
@@ -81,13 +82,13 @@ class BlockStackingEnv(gym.Env):
                     block["grasped"] = True
                     block["pos"] = self.ee_pos.copy()
 
-        # 
+        #
         self._check_stacking()
 
-        # 
+        #
         reward = self._compute_reward()
 
-        # 
+        #
         terminated = False
         truncated = self.stacked_count >= self.num_blocks
 
@@ -100,7 +101,7 @@ class BlockStackingEnv(gym.Env):
         """"""
         for i, block in enumerate(self.blocks):
             if block["grasped"] and not block["stacked"]:
-                # 
+                #
                 for j, other in enumerate(self.blocks):
                     if i != j and other["stacked"]:
                         dist = np.linalg.norm(block["pos"][:2] - other["pos"][:2])
@@ -111,12 +112,12 @@ class BlockStackingEnv(gym.Env):
     def _get_observation(self) -> np.ndarray:
         obs = [*self.joint_pos, *np.zeros(7), *self.ee_pos]
 
-        # 
+        #
         for block in self.blocks:
             obs.extend(block["pos"])
             obs.append(1.0 if block["stacked"] else 0.0)
 
-        # 
+        #
         while len(obs) < 50:
             obs.append(0.0)
 
@@ -125,6 +126,7 @@ class BlockStackingEnv(gym.Env):
     def _compute_reward(self) -> float:
         stacking_reward = self.stacked_count * 10.0
         return stacking_reward
+
 
 if __name__ == "__main__":
     gym.register(id="BlockStacking-v0", entry_point="__main__:BlockStackingEnv")

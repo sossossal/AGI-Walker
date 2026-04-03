@@ -151,6 +151,7 @@ if HAS_QT:
 
 def run_cv_app():
     receiver = VideoReceiver()
+
     def show_frame(frame):
         cv2.imshow("AGI-Walker Remote Stream", frame)
         if cv2.waitKey(1) & 0xFF == ord("q"):

@@ -1,8 +1,8 @@
 """
 :  (Collaborative Carrying)
-: 
+:
 :  ()
-: 
+:
 """
 
 import sys
@@ -16,6 +16,7 @@ import gymnasium as gym
 import numpy as np
 from typing import Dict, Tuple
 
+
 class CollaborativeCarryingEnv(gym.Env):
     """"""
 
@@ -24,7 +25,7 @@ class CollaborativeCarryingEnv(gym.Env):
     def __init__(self, render_mode=None):
         super().__init__()
 
-        # 
+        #
         self.observation_space = gym.spaces.Box(
             low=-np.inf, high=np.inf, shape=(60,), dtype=np.float32
         )
@@ -32,11 +33,11 @@ class CollaborativeCarryingEnv(gym.Env):
             low=-1.0, high=1.0, shape=(16,), dtype=np.float32  # 2 robots x 8 joints
         )
 
-        # 
+        #
         self.object_mass = 10.0  # 10kg ()
         self.target_distance = 5.0
 
-        # 
+        #
         self.robot1_pos = np.zeros(3)
         self.robot2_pos = np.zeros(3)
         self.object_pos = np.zeros(3)
@@ -47,7 +48,7 @@ class CollaborativeCarryingEnv(gym.Env):
     def reset(self, seed=None, options=None) -> Tuple[np.ndarray, Dict]:
         super().reset(seed=seed)
 
-        # 
+        #
         self.robot1_pos = np.array([-0.5, 0.0, 0.5])
         self.robot2_pos = np.array([0.5, 0.0, 0.5])
         self.object_pos = np.array([0.0, 0.0, 0.3])
@@ -59,15 +60,15 @@ class CollaborativeCarryingEnv(gym.Env):
         return obs, info
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict]:
-        # 
+        #
         action1 = action[:8]
         action2 = action[8:]
 
-        # 
+        #
         self.robot1_pos[:2] += action1[:2] * 0.01
         self.robot2_pos[:2] += action2[:2] * 0.01
 
-        # 
+        #
         dist1 = np.linalg.norm(self.robot1_pos - self.object_pos)
         dist2 = np.linalg.norm(self.robot2_pos - self.object_pos)
 
@@ -76,16 +77,16 @@ class CollaborativeCarryingEnv(gym.Env):
         if dist2 < 0.3:
             self.object_grasped[1] = True
 
-        # 
+        #
         if all(self.object_grasped):
-            # 
+            #
             self.object_pos = (self.robot1_pos + self.robot2_pos) / 2
 
-        # 
+        #
         distance_moved = self.object_pos[0]  # x
         reward = self._compute_reward(distance_moved)
 
-        # 
+        #
         terminated = False
         truncated = distance_moved >= self.target_distance
 
@@ -98,28 +99,29 @@ class CollaborativeCarryingEnv(gym.Env):
         obs = np.concatenate(
             [
                 self.robot1_pos,
-                np.zeros(5),  # robot1 
+                np.zeros(5),  # robot1
                 self.robot2_pos,
-                np.zeros(5),  # robot2 
+                np.zeros(5),  # robot2
                 self.object_pos,
                 [1.0 if self.object_grasped[0] else 0.0],
                 [1.0 if self.object_grasped[1] else 0.0],
-                np.zeros(40),  # 
+                np.zeros(40),  #
             ]
         )
         return obs[:60].astype(np.float32)
 
     def _compute_reward(self, distance: float) -> float:
-        # 
+        #
         move_reward = distance * 2.0
 
-        # 
+        #
         collab_reward = 5.0 if all(self.object_grasped) else 0.0
 
         #  ()
         sync_penalty = -np.linalg.norm(self.robot1_pos - self.robot2_pos)
 
         return move_reward + collab_reward + sync_penalty * 0.1
+
 
 if __name__ == "__main__":
     gym.register(
@@ -141,9 +143,7 @@ if __name__ == "__main__":
             if terminated or truncated:
                 break
 
-        status = (
-            " " if info["distance"] >= 5.0 else f"⏱ {info['distance']:.2f}m/5.0m"
-        )
+        status = " " if info["distance"] >= 5.0 else f"⏱ {info['distance']:.2f}m/5.0m"
         print(
             f"Episode {episode+1}: {status}, ={info['both_grasped']}, Reward={total_reward:.2f}"
         )

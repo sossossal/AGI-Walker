@@ -1,6 +1,6 @@
 """
 :  (Slope Walking)
-: 
+:
 :  ()
 : /
 """
@@ -14,6 +14,7 @@ sys.path.insert(
 
 import gymnasium as gym
 import numpy as np
+
 
 class SlopeWalkingEnv(gym.Env):
     """"""
@@ -39,12 +40,10 @@ class SlopeWalkingEnv(gym.Env):
 
     def step(self, action):
         self.joint_pos += action * 0.1
-        self.robot_pos[0] += 0.02  # 
-        self.robot_pos[2] = 0.5 + self.robot_pos[0] * np.tan(
-            self.slope_angle
-        )  # 
+        self.robot_pos[0] += 0.02  #
+        self.robot_pos[2] = 0.5 + self.robot_pos[0] * np.tan(self.slope_angle)  #
 
-        reward = 0.1  # 
+        reward = 0.1  #
         done = self.robot_pos[0] >= 10.0  # 10
 
         return (
@@ -59,6 +58,7 @@ class SlopeWalkingEnv(gym.Env):
         return np.concatenate(
             [self.joint_pos, np.zeros(8), self.robot_pos, np.zeros(6)]
         ).astype(np.float32)
+
 
 if __name__ == "__main__":
     gym.register(id="SlopeWalking-v0", entry_point="__main__:SlopeWalkingEnv")

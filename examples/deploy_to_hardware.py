@@ -132,7 +132,9 @@ def step4_test_on_hardware():
 
     except ImportError as e:
         print(f"Hardware dependencies are missing: {e}")
-        print("  Install the CAN stack and hardware dependencies before running this step")
+        print(
+            "  Install the CAN stack and hardware dependencies before running this step"
+        )
     except Exception as e:
         print(f"Hardware test failed: {e}")
         print("  请检查:")

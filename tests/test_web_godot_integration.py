@@ -64,6 +64,15 @@ class TestWebSocketProtocol:
         assert len(handler.handlers) >= 4
         assert MessageType.PING.value in [h for h in handler.handlers.keys()]
 
+    def test_protocol_handler_factory_returns_fresh_instances(self) -> None:
+        """测试 handler 工厂不共享全局实例"""
+        handler_a = get_protocol_handler()
+        handler_b = get_protocol_handler()
+
+        assert handler_a is not handler_b
+        handler_a.on_start_simulation = lambda _physics: None
+        assert handler_b.on_start_simulation is None
+
     def test_ping_pong(self) -> None:
         """测试 ping-pong 消息"""
         handler = WebSocketProtocolHandler()

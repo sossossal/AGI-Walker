@@ -1,7 +1,7 @@
 """
 :  (Stair Climbing)
 
-: 
+:
 :  ()
 : /
 """
@@ -17,9 +17,10 @@ import gymnasium as gym
 import numpy as np
 from typing import Dict, Tuple
 
+
 class StairClimbingEnv(gym.Env):
     """
-    
+
 
     :
         -  (8D)
@@ -44,7 +45,7 @@ class StairClimbingEnv(gym.Env):
     def __init__(self, render_mode=None):
         super().__init__()
 
-        # 
+        #
         self.observation_space = gym.spaces.Box(
             low=-np.inf, high=np.inf, shape=(24,), dtype=np.float32
         )
@@ -52,12 +53,12 @@ class StairClimbingEnv(gym.Env):
             low=-1.0, high=1.0, shape=(8,), dtype=np.float32
         )
 
-        # 
+        #
         self.stair_height = 0.15  #  15cm
         self.stair_depth = 0.30  #  30cm
-        self.num_stairs = 5  # 
+        self.num_stairs = 5  #
 
-        # 
+        #
         self.robot_pos = np.zeros(3)
         self.robot_vel = np.zeros(3)
         self.joint_pos = np.zeros(8)
@@ -69,8 +70,8 @@ class StairClimbingEnv(gym.Env):
     def reset(self, seed=None, options=None) -> Tuple[np.ndarray, Dict]:
         super().reset(seed=seed)
 
-        # 
-        self.robot_pos = np.array([0.0, 0.0, 0.5])  # 
+        #
+        self.robot_pos = np.array([0.0, 0.0, 0.5])  #
         self.robot_vel = np.zeros(3)
         self.joint_pos = np.zeros(8)
         self.joint_vel = np.zeros(8)
@@ -84,18 +85,18 @@ class StairClimbingEnv(gym.Env):
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict]:
         #  (,)
         self.joint_pos += action * 0.1
-        self.robot_pos[0] += 0.01  # : 
+        self.robot_pos[0] += 0.01  # :
 
-        # 
+        #
         current_stair = int(self.robot_pos[0] / self.stair_depth)
         if current_stair > self.steps_climbed:
             self.steps_climbed = current_stair
             self.robot_pos[2] += self.stair_height
 
-        # 
+        #
         reward = self._compute_reward(action)
 
-        # 
+        #
         terminated = self._check_terminated()
         truncated = self.steps_climbed >= self.num_stairs
 
@@ -106,7 +107,7 @@ class StairClimbingEnv(gym.Env):
 
     def _get_observation(self) -> np.ndarray:
         """"""
-        # 
+        #
         obs = np.concatenate(
             [
                 self.joint_pos,  # 8D
@@ -121,13 +122,13 @@ class StairClimbingEnv(gym.Env):
 
     def _compute_reward(self, action: np.ndarray) -> float:
         """"""
-        # 
+        #
         forward_reward = self.robot_pos[0] * 0.1
 
-        # 
+        #
         climb_reward = self.steps_climbed * 0.5
 
-        # 
+        #
         energy_cost = -0.01 * np.sum(action**2)
 
         #  (: )
@@ -137,7 +138,7 @@ class StairClimbingEnv(gym.Env):
 
     def _check_terminated(self) -> bool:
         """"""
-        # : 
+        # :
         if self.robot_pos[2] < 0.2:
             return True
         return False
@@ -149,14 +150,16 @@ class StairClimbingEnv(gym.Env):
                 f"Pos: {self.robot_pos[0]:.2f}m"
             )
 
+
 # ====================  ====================
+
 
 def train_stair_climbing():
     """"""
     print("\n: ")
     print("=" * 60)
 
-    # 
+    #
     env = StairClimbingEnv()
 
     #  ()
@@ -183,12 +186,13 @@ def train_stair_climbing():
     print("\n!")
     print(":  PPO ")
 
+
 if __name__ == "__main__":
-    # 
+    #
     gym.register(
         id="StairClimbing-v0",
         entry_point="__main__:StairClimbingEnv",
     )
 
-    # 
+    #
     train_stair_climbing()

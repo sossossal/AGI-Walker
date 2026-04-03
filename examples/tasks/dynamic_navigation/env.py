@@ -1,6 +1,6 @@
 """
 :  (Dynamic Navigation)
-: 
+:
 :  ()
 : /
 """
@@ -15,8 +15,9 @@ sys.path.insert(
 import gymnasium as gym
 import numpy as np
 
+
 class DynamicNavigationEnv(gym.Env):
-    """ ()"""
+    """()"""
 
     def __init__(self):
         super().__init__()
@@ -35,7 +36,7 @@ class DynamicNavigationEnv(gym.Env):
         super().reset(seed=seed)
         self.robot_pos = np.zeros(2)
         self.goal_pos = np.random.uniform(-5, 5, 2)
-        # 
+        #
         self.obstacles = [
             {"pos": np.random.uniform(-5, 5, 2), "vel": np.random.uniform(-0.5, 0.5, 2)}
             for _ in range(10)
@@ -44,7 +45,7 @@ class DynamicNavigationEnv(gym.Env):
 
     def step(self, action):
         self.robot_pos += action * 0.1
-        # 
+        #
         for obs in self.obstacles:
             obs["pos"] += obs["vel"] * 0.1
 
@@ -58,6 +59,7 @@ class DynamicNavigationEnv(gym.Env):
         return np.concatenate([self.robot_pos, self.goal_pos, np.zeros(366)]).astype(
             np.float32
         )
+
 
 if __name__ == "__main__":
     gym.register(id="DynamicNavigation-v0", entry_point="__main__:DynamicNavigationEnv")

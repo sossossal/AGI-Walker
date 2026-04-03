@@ -1,8 +1,8 @@
 """
 :  (Formation Walking)
-: 
+:
 :  ()
-: 
+:
 """
 
 import sys
@@ -15,6 +15,7 @@ sys.path.insert(
 import gymnasium as gym
 import numpy as np
 from typing import Dict, Tuple
+
 
 class FormationWalkingEnv(gym.Env):
     """"""
@@ -31,7 +32,7 @@ class FormationWalkingEnv(gym.Env):
         )
 
         self.robot_positions = np.zeros((num_robots, 3))
-        self.target_formation = np.array([[0, 0, 0], [1, 0, 0], [0.5, 1, 0]])  # 
+        self.target_formation = np.array([[0, 0, 0], [1, 0, 0], [0.5, 1, 0]])  #
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -55,6 +56,7 @@ class FormationWalkingEnv(gym.Env):
         return self.robot_positions.flatten()[: self.observation_space.shape[0]].astype(
             np.float32
         )
+
 
 if __name__ == "__main__":
     gym.register(id="FormationWalking-v0", entry_point="__main__:FormationWalkingEnv")

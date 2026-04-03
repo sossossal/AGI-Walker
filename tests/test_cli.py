@@ -9,6 +9,7 @@ from typing import Any, Optional, Dict, List, Tuple
 logger = logging.getLogger(__name__)
 import pytest
 import sys
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from io import StringIO
@@ -283,6 +284,159 @@ class TestSkillsCLI:
         captured = capsys.readouterr()
         output = captured.out + captured.err
         assert "执行结果: completed" in output
+
+    def test_skills_workflows_run_reports_skipped_steps_as_success(self, capsys) -> None:
+        """测试：SKIPPED 步骤不会把成功率显示成 0%"""
+        from agi_walker.cli.skills_cli import main as skills_main
+        from agi_walker.workflow_orchestrator import (
+            StepStatus,
+            WorkflowResult,
+            WorkflowStatus,
+            WorkflowStep,
+        )
+
+        start_time = datetime.now()
+        result = WorkflowResult(
+            workflow_name="robot_creation_pipeline",
+            status=WorkflowStatus.COMPLETED,
+            start_time=start_time,
+            end_time=start_time,
+            steps=[
+                WorkflowStep(
+                    name="create_model",
+                    skill_executor="robot_modeling",
+                    action="create_from_template",
+                    status=StepStatus.SKIPPED,
+                    output={"status": "success", "skipped": True},
+                ),
+                WorkflowStep(
+                    name="optimize_params",
+                    skill_executor="parameter_optimizer",
+                    action="optimize_mass_distribution",
+                    status=StepStatus.SKIPPED,
+                    output={"status": "success", "skipped": True},
+                ),
+                WorkflowStep(
+                    name="export_urdf",
+                    skill_executor="urdf_generator",
+                    action="export_to_format",
+                    status=StepStatus.SKIPPED,
+                    output={"status": "success", "skipped": True},
+                ),
+            ],
+        )
+
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.execute_workflow.return_value = result
+
+        with patch(
+            "agi_walker.cli.skills_cli.get_workflow_orchestrator",
+            return_value=mock_orchestrator,
+        ):
+            with patch.object(
+                sys,
+                "argv",
+                ["agi_walker", "workflows", "run", "robot_creation_pipeline", "--mock"],
+            ):
+                exit_code = skills_main()
+                assert exit_code == 0
+
+        captured = capsys.readouterr()
+        output = captured.out + captured.err
+        assert "成功率: 100.0%" in output
+        assert "步骤统计: 完成 0, 跳过 3, 失败 0" in output
+
+    def test_skills_workflows_run_passes_force_and_output_root(self, capsys) -> None:
+        """测试：--force 和 --output-root 会传给 orchestrator"""
+        from agi_walker.cli.skills_cli import main as skills_main
+        from agi_walker.workflow_orchestrator import WorkflowResult, WorkflowStatus
+
+        start_time = datetime.now()
+        result = WorkflowResult(
+            workflow_name="robot_creation_pipeline",
+            status=WorkflowStatus.COMPLETED,
+            start_time=start_time,
+            end_time=start_time,
+        )
+
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.execute_workflow.return_value = result
+
+        with patch(
+            "agi_walker.cli.skills_cli.get_workflow_orchestrator",
+            return_value=mock_orchestrator,
+        ):
+            with patch.object(
+                sys,
+                "argv",
+                [
+                    "agi_walker",
+                    "workflows",
+                    "run",
+                    "robot_creation_pipeline",
+                    "--mock",
+                    "--force",
+                    "--output-root",
+                    "test_env/run_force",
+                ],
+            ):
+                exit_code = skills_main()
+                assert exit_code == 0
+
+        mock_orchestrator.execute_workflow.assert_called_once()
+        call_args = mock_orchestrator.execute_workflow.call_args
+        assert call_args.args[0] == "robot_creation_pipeline"
+        assert call_args.args[1]["execution_strategy"] == "force"
+        assert call_args.args[1]["output_root"] == "test_env/run_force"
+        assert call_args.kwargs["use_real"] is False
+
+        captured = capsys.readouterr()
+        output = captured.out + captured.err
+        assert "执行策略: force" in output
+        assert "输出根目录: test_env/run_force" in output
+
+    def test_skills_workflows_run_passes_resume_strategy(self, capsys) -> None:
+        """测试：--resume 会显式传递 resume 策略"""
+        from agi_walker.cli.skills_cli import main as skills_main
+        from agi_walker.workflow_orchestrator import WorkflowResult, WorkflowStatus
+
+        start_time = datetime.now()
+        result = WorkflowResult(
+            workflow_name="robot_creation_pipeline",
+            status=WorkflowStatus.COMPLETED,
+            start_time=start_time,
+            end_time=start_time,
+        )
+
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.execute_workflow.return_value = result
+
+        with patch(
+            "agi_walker.cli.skills_cli.get_workflow_orchestrator",
+            return_value=mock_orchestrator,
+        ):
+            with patch.object(
+                sys,
+                "argv",
+                [
+                    "agi_walker",
+                    "workflows",
+                    "run",
+                    "robot_creation_pipeline",
+                    "--resume",
+                ],
+            ):
+                exit_code = skills_main()
+                assert exit_code == 0
+
+        mock_orchestrator.execute_workflow.assert_called_once()
+        call_args = mock_orchestrator.execute_workflow.call_args
+        assert call_args.args[1]["execution_strategy"] == "resume"
+        assert call_args.kwargs["use_real"] is True
+
+        captured = capsys.readouterr()
+        output = captured.out + captured.err
+        assert "执行策略: resume" in output
 
     def test_skills_workflows_run_real_simulation_ready_robot(self, capsys) -> None:
         """测试：simulation_ready_robot 在 real 模式下可执行"""

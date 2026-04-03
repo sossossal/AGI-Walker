@@ -1,8 +1,8 @@
 """
 :  (Door Opening)
-: 
+:
 :  ()
-: 
+:
 """
 
 import sys
@@ -16,9 +16,10 @@ import gymnasium as gym
 import numpy as np
 from typing import Dict, Tuple
 
+
 class DoorOpeningEnv(gym.Env):
     """
-    
+
 
     :
         - / (14D)
@@ -50,12 +51,12 @@ class DoorOpeningEnv(gym.Env):
             low=-1.0, high=1.0, shape=(8,), dtype=np.float32
         )
 
-        # 
+        #
         self.door_width = 0.8
         self.handle_height = 1.0
         self.handle_radius = 0.03
 
-        # 
+        #
         self.joint_pos = np.zeros(7)
         self.ee_pos = np.zeros(3)
         self.handle_pos = np.array([0.7, 0.0, 1.0])
@@ -80,25 +81,25 @@ class DoorOpeningEnv(gym.Env):
         return obs, info
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict]:
-        # 
+        #
         self.joint_pos += action[:7] * 0.01
         self.ee_pos += action[:3] * 0.01
 
-        # 
+        #
         dist_to_handle = np.linalg.norm(self.ee_pos - self.handle_pos)
         if dist_to_handle < 0.05 and action[7] > 0.5:
             self.handle_grasped = True
 
-        # 
+        #
         if self.handle_grasped:
             self.handle_turned = True
-            # 
+            #
             self.door_angle = min(self.door_angle + 0.02, 1.57)
 
-        # 
+        #
         reward = self._compute_reward(dist_to_handle)
 
-        # 
+        #
         terminated = False
         truncated = self.door_angle > 1.5  # 90
 
@@ -133,6 +134,7 @@ class DoorOpeningEnv(gym.Env):
         open_reward = 20.0 * (self.door_angle / 1.57)
 
         return approach_reward + grasp_reward + turn_reward + open_reward
+
 
 if __name__ == "__main__":
     gym.register(id="DoorOpening-v0", entry_point="__main__:DoorOpeningEnv")
