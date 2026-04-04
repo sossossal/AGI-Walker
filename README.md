@@ -59,8 +59,8 @@ except ImportError:
 
 ### 文档资源
 
-- 📖 [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) - 升级指南和最佳实践
-- 📊 [CODE_QUALITY.md](CODE_QUALITY.md) - 详细的代码质量报告
+- 📖 [MIGRATION_GUIDE.md](docs/MIGRATION_GUIDE.md) - 升级指南和最佳实践
+- 📊 [CODE_QUALITY.md](docs/CODE_QUALITY.md) - 详细的代码质量报告
 - 📋 [CHANGELOG.md](CHANGELOG.md) - 完整的变更清单
 - 📢 [RELEASE_NOTES.md](RELEASE_NOTES.md) - v2.0 发版说明
 - 🧭 [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md) - 当前状态与历史文档边界
