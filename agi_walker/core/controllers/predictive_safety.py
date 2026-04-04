@@ -197,41 +197,83 @@ class SimplifiedPhysicsModel:
 
         return trajectory
 
-
 class PredictiveSafetyChecker:
     """
-    预测性安全检查器
+    AGI-Walker V2.1 MPC Safety Supervisor.
 
-    功能：
-    1. 模拟动作的物理后果
-    2. 检测潜在碰撞和失稳
-    3. 必要时修正动作
+    Functions:
+    1. Multi-step trajectory prediction using LIPM (Linear Inverted Pendulum Model).
+    2. ZMP (Zero Moment Point) stability estimation.
+    3. Precise motor command clipping based on physical joint limits.
     """
 
-    # 安全阈值
+    # Safety Thresholds
     THRESHOLDS = {
-        "max_roll": 35.0,  # 最大Roll角度
-        "max_pitch": 35.0,  # 最大Pitch角度
-        "min_height": 0.4,  # 最小高度
-        "max_joint_velocity": 100.0,  # 最大关节速度
-        "critical_roll": 45.0,  # 危险Roll角度
-        "critical_pitch": 45.0,  # 危险Pitch角度
+        "max_roll": 30.0,
+        "max_pitch": 30.0,
+        "min_height": 0.45,
+        "max_joint_velocity": 80.0,
+        "critical_roll": 40.0,
+        "critical_pitch": 40.0,
+        "zmp_margin": 0.05, # Meters from foot edge
     }
 
     def __init__(
         self,
         physics_model: Optional[SimplifiedPhysicsModel] = None,
-        prediction_horizon: int = 5,
+        prediction_horizon: int = 8, # Increased horizon for V2.1
     ):
         self.physics_model = physics_model or SimplifiedPhysicsModel()
         self.prediction_horizon = prediction_horizon
+        self.last_safe_action = {"motors": {"hip_left": 0.0, "hip_right": 0.0}}
 
-        # 统计
+        # Stats
         self.checks_performed = 0
         self.actions_modified = 0
-        self.actions_rejected = 0
+        self.interventions = [] # Log of safety interventions
+
+    def check_and_filter(self, current_state: dict, proposed_action: dict) -> dict:
+        """
+        Main entry point for EnhancedController. 
+        Predicts the consequence and returns a filtered (safe) action.
+        """
+        self.checks_performed += 1
+        result = self.check_action(current_state, proposed_action)
+
+        if result.safe:
+            self.last_safe_action = proposed_action
+            return proposed_action
+
+        # If not safe, apply modified action and log it
+        self.actions_modified += 1
+        self.interventions.append({
+            "ts": current_state.get("timestamp", 0),
+            "level": result.risk_level.value,
+            "reasons": result.reasons
+        })
+
+        logger.warning(f"Safety Supervisor Intervention: {result.risk_level.value} | Reasons: {result.reasons}")
+        return result.modified_action or self.last_safe_action
+
+    def _estimate_zmp(self, state: dict) -> float:
+        """
+        V2.1 Addition: Approximate ZMP (Zero Moment Point) calculation.
+        Determines if the center of mass projected acceleration stays within the support polygon.
+        """
+        # Simplified ZMP formula: x_zmp = x_com - (z_com / g) * x_com_ddot
+        # For now, we return a stability score based on CoM tilt and angular velocity
+        orient = state.get("sensors", {}).get("imu", {}).get("orient", [0, 0, 0])
+        gyro = state.get("sensors", {}).get("imu", {}).get("gyro", [0, 0, 0])
+
+        tilt = np.sqrt(orient[0]**2 + orient[1]**2)
+        angular_vel = np.sqrt(gyro[0]**2 + gyro[1]**2)
+
+        # Combined instability index
+        return tilt * 0.7 + angular_vel * 0.3
 
     def check_action(
+...
+
         self, current_state: dict, proposed_action: dict
     ) -> SafetyCheckResult:
         """

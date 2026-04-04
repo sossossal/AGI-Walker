@@ -7,6 +7,7 @@ error handling, and context-based variable resolution.
 """
 
 import logging
+import concurrent.futures
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -16,6 +17,58 @@ import time
 from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+# --- V2.1 Industrial Hardening Exceptions ---
+
+class WorkflowBaseError(Exception):
+    """Base class for workflow-related errors"""
+    pass
+
+class EnvironmentalError(WorkflowBaseError):
+    """Errors caused by external environment (e.g. port locked, network down). Retryable."""
+    pass
+
+class LogicError(WorkflowBaseError):
+    """Errors caused by invalid input or algorithm logic. Usually non-retryable."""
+    pass
+
+class WorkflowTimeoutError(WorkflowBaseError):
+    """Errors raised when a step execution exceeds its allowed time."""
+    pass
+
+class WorkflowStateStore:
+    """Handles persistence of workflow execution states to disk/DB"""
+    def __init__(self, base_dir: str = ".output/workflow_states"):
+        self.base_dir = base_dir
+        os.makedirs(base_dir, exist_ok=True)
+
+    def save_state(self, run_id: str, result: "WorkflowResult"):
+        path = os.path.join(self.base_dir, f"{run_id}.json")
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(result.to_dict(), f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logger.warning(f"Failed to save workflow state for {run_id}: {e}")
+
+    def load_state(self, run_id: str) -> Optional[Dict[str, Any]]:
+        path = os.path.join(self.base_dir, f"{run_id}.json")
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                return None
+        return None
+
+@dataclass
+class StepPolicy:
+    """Execution policy for a single workflow step"""
+    timeout: Optional[float] = None  # Maximum execution time in seconds
+    max_retries: int = 0            # Number of allowed retries
+    retry_delay: float = 1.0        # Initial delay between retries
+    retry_backoff: float = 2.0      # Multiplier for exponential backoff
+
+# --- End of V2.1 Additions ---
 
 _ARTIFACT_REQUIRED_FIELDS = {
     "workflow",
@@ -60,6 +113,9 @@ class WorkflowStep:
     status: StepStatus = StepStatus.PENDING
     output: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
+    error_type: Optional[str] = None # V2.1: environmental, logic, timeout
+    attempts: int = 0                # V2.1: current execution attempt count
+    policy: StepPolicy = field(default_factory=StepPolicy) # V2.1
     artifact_path: Optional[str] = None
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
@@ -83,6 +139,7 @@ class WorkflowResult:
     start_time: datetime = field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
     log_path: Optional[str] = None
+    graph_data: Optional[Dict[str, Any]] = None # V2.1: Graph structure for UI
 
     @property
     def duration(self) -> float:
@@ -143,6 +200,7 @@ class WorkflowResult:
             "log_path": self.log_path,
             "start_time": self.start_time.isoformat(),
             "end_time": self.end_time.isoformat() if self.end_time else None,
+            "graph_data": self.graph_data, # V2.1
             "steps": [
                 {
                     "name": s.name,
@@ -152,6 +210,8 @@ class WorkflowResult:
                     "duration": s.duration,
                     "output": s.output,
                     "error": s.error,
+                    "error_type": s.error_type, # V2.1
+                    "attempts": s.attempts,     # V2.1
                     "start_time": s.start_time.isoformat() if s.start_time else None,
                     "end_time": s.end_time.isoformat() if s.end_time else None,
                     "artifact_path": s.artifact_path,
@@ -313,13 +373,23 @@ class WorkflowOrchestrator:
             return self._skill_executors.get(name)
 
     def _setup_mock_executors(self):
-        """Setup mock executors for testing"""
+        """Setup mock executors for testing V2.1 features"""
 
         class MockExecutor:
             def __init__(self, name):
                 self.name = name
 
             def execute(self, action, inputs):
+                # V2.1 Support: Simulate specific failures via inputs
+                if inputs.get("simulate_timeout"):
+                    time.sleep(inputs["simulate_timeout"] + 1)
+                
+                if inputs.get("simulate_env_error"):
+                    return {"status": "error", "error": f"Simulated env error: {inputs['simulate_env_error']}"}
+                
+                if inputs.get("simulate_logic_error"):
+                    return {"status": "error", "error": f"Simulated logic error: {inputs['simulate_logic_error']}"}
+
                 return {
                     "status": "success",
                     "action": action,
@@ -760,114 +830,111 @@ class WorkflowOrchestrator:
         step_index: Optional[int] = None,
         total_steps: Optional[int] = None,
     ) -> WorkflowStep:
-        """Execute a single step in the workflow with support for skipping if output exists"""
+        """Execute a single step with support for Timeout, Retry, and Skip-if-exists."""
+        
+        # 1. Initialize Step with Policy
+        policy_cfg = step_def.get("policy", {})
+        policy = StepPolicy(
+            timeout=policy_cfg.get("timeout"),
+            max_retries=policy_cfg.get("max_retries", 0),
+            retry_delay=policy_cfg.get("retry_delay", 1.0),
+            retry_backoff=policy_cfg.get("retry_backoff", 2.0)
+        )
+
         step = WorkflowStep(
             name=step_def["name"],
             skill_executor=step_def["skill_executor"],
             action=step_def["action"],
             inputs=step_def.get("inputs", {}),
+            policy=policy
         )
 
         step.status = StepStatus.RUNNING
         step.start_time = datetime.now()
-        self._emit_progress(
-            result,
-            "step_started",
-            current_step=step,
-            step_index=step_index,
-            total_steps=total_steps,
-        )
+        self._emit_progress(result, "step_started", current_step=step, step_index=step_index, total_steps=total_steps)
 
+        # 2. Variable Resolution
         resolved_inputs: Dict[str, Any] = dict(step.inputs)
-
         try:
-            # Resolve variable references in inputs
             resolved_inputs = self._resolve_variables(step.inputs, result)
             if "output_file" in resolved_inputs:
-                resolved_inputs["output_file"] = self._resolve_output_file_path(
-                    resolved_inputs["output_file"]
-                )
-
-            fail_at_step = self._execution_context.get("fail_at")
-            if isinstance(fail_at_step, str) and fail_at_step == step.name:
-                raise RuntimeError("Simulated failure")
-
-            # Check for existing output file to support resuming/skipping
-            output_file = resolved_inputs.get("output_file")
-            execution_strategy = self._get_execution_strategy()
-            skip_if_exists = execution_strategy == "resume"
-
-            if (
-                skip_if_exists
-                and output_file
-                and os.path.exists(output_file)
-                and os.path.getsize(output_file) > 0
-            ):
-                logger.info(
-                    f"Step '{step.name}' output already exists at {output_file}. Skipping step."
-                )
-                step.status = StepStatus.SKIPPED
-                step.output = {
-                    "status": "success",
-                    "action": step.action,
-                    "output_file": output_file,
-                    "message": f"Skipped: Output already exists at {output_file}",
-                    "skipped": True,
-                }
-                # Try to add more metadata if it's a JSON config
-                if output_file.endswith(".json"):
-                    try:
-                        with open(output_file, "r", encoding="utf-8") as f:
-                            data = json.load(f)
-                            # Propagate keys that might be needed by downstream steps
-                            for k in ["template", "robot_name", "format"]:
-                                if k in data:
-                                    step.output[k] = data[k]
-                    except Exception:
-                        pass
-
-                step.end_time = datetime.now()
-                return step
-
-            # Get executor and execute
-            executor = self._get_executor(step.skill_executor)
-            if not executor:
-                raise ValueError(
-                    f"Executor '{step.skill_executor}' not found in {self.get_executor_mode()} mode"
-                )
-
-            # Execute the skill
-            output = executor.execute(step.action, resolved_inputs)
-
-            # Check if execution failed
-            if isinstance(output, dict) and output.get("status") == "error":
-                step.status = StepStatus.FAILED
-                step.error = output.get("error", "Unknown error")
-                step.output = output
-            else:
-                step.output = output
-                step.status = StepStatus.COMPLETED
-
+                resolved_inputs["output_file"] = self._resolve_output_file_path(resolved_inputs["output_file"])
         except Exception as e:
             step.status = StepStatus.FAILED
-            step.error = str(e)
+            step.error = f"Variable resolution failed: {e}"
+            step.error_type = "logic"
+            return step
 
-        finally:
+        # 3. Skip check (Resume strategy)
+        output_file = resolved_inputs.get("output_file")
+        if self._get_execution_strategy() == "resume" and output_file and os.path.exists(output_file):
+            logger.info(f"Step '{step.name}' output exists. Skipping.")
+            step.status = StepStatus.SKIPPED
+            step.output = {"status": "success", "skipped": True, "output_file": output_file}
             step.end_time = datetime.now()
-            artifact_index = step_index or result.total_steps or 0
-            artifact_path = self._write_step_artifact(
-                workflow_name, step, resolved_inputs, artifact_index
-            )
-            if artifact_path:
-                step.artifact_path = artifact_path
-            self._emit_progress(
-                result,
-                "step_finished",
-                current_step=step,
-                step_index=step_index,
-                total_steps=total_steps,
-            )
+            return step
 
+        # 4. Execution with Retry Loop & Timeout
+        max_attempts = policy.max_retries + 1
+        current_delay = policy.retry_delay
+
+        for attempt in range(1, max_attempts + 1):
+            step.attempts = attempt
+            try:
+                executor = self._get_executor(step.skill_executor)
+                if not executor:
+                    raise LogicError(f"Executor '{step.skill_executor}' not found")
+
+                # Use ThreadPoolExecutor for Timeout Control
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                    future = pool.submit(executor.execute, step.action, resolved_inputs)
+                    try:
+                        output = future.result(timeout=policy.timeout)
+                    except concurrent.futures.TimeoutError:
+                        raise WorkflowTimeoutError(f"Step timed out after {policy.timeout}s")
+
+                # Handle internal error status from Skill
+                if isinstance(output, dict) and output.get("status") == "error":
+                    err_msg = output.get("error", "Unknown executor error")
+                    # Auto-classify based on common environmental keywords
+                    env_keywords = ["lock", "timeout", "connection", "denied", "permission", "busy", "reset"]
+                    if any(k in err_msg.lower() for k in env_keywords):
+                        raise EnvironmentalError(err_msg)
+                    else:
+                        raise LogicError(err_msg)
+
+                # Success!
+                step.output = output
+                step.status = StepStatus.COMPLETED
+                break
+
+            except (EnvironmentalError, WorkflowTimeoutError) as e:
+                step.error = str(e)
+                step.error_type = "environmental" if isinstance(e, EnvironmentalError) else "timeout"
+                
+                if attempt < max_attempts:
+                    logger.warning(f"Step '{step.name}' attempt {attempt} failed: {e}. Retrying in {current_delay}s...")
+                    time.sleep(current_delay)
+                    current_delay *= policy.retry_backoff
+                else:
+                    step.status = StepStatus.FAILED
+                    logger.error(f"Step '{step.name}' failed after {max_attempts} attempts.")
+            
+            except Exception as e:
+                # Logic errors or unhandled exceptions fail immediately without retry
+                step.status = StepStatus.FAILED
+                step.error = str(e)
+                step.error_type = "logic"
+                logger.error(f"Step '{step.name}' encountered logic error: {e}")
+                break
+
+        step.end_time = datetime.now()
+        # Write artifacts
+        artifact_index = step_index or 0
+        path = self._write_step_artifact(workflow_name, step, resolved_inputs, artifact_index)
+        if path: step.artifact_path = path
+        
+        self._emit_progress(result, "step_finished", current_step=step, step_index=step_index, total_steps=total_steps)
         return step
 
     def _resolve_variables(
@@ -917,47 +984,75 @@ class WorkflowOrchestrator:
         return resolved
 
 
-    def _mark_remaining_steps_skipped(
+    def execute_task_graph(
         self,
-        workflow: Dict[str, Any],
-        result: WorkflowResult,
-        *,
-        workflow_name: str,
-        start_index: int,
-    ) -> None:
-        """Mark the remaining workflow steps as skipped after a failure"""
+        graph: "TaskGraph",
+        parameters: Optional[Dict[str, Any]] = None,
+        use_real: Optional[bool] = None,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    ) -> WorkflowResult:
+        """
+        Execute a mission TaskGraph using concurrent execution for independent nodes.
+        Supports conditional branching and dynamic flow control.
+        """
+        original_mode = self._use_real_executors
+        self._progress_callback = progress_callback
+        if use_real is not None: self._use_real_executors = use_real
 
-        total_steps = len(workflow.get("steps", []))
-        for index in range(start_index, total_steps + 1):
-            step_def = workflow["steps"][index - 1]
-            skipped_step = WorkflowStep(
-                name=step_def["name"],
-                skill_executor=step_def["skill_executor"],
-                action=step_def["action"],
-                inputs=step_def.get("inputs", {}),
-            )
-            skipped_step.status = StepStatus.SKIPPED
-            skipped_step.start_time = datetime.now()
-            skipped_step.end_time = datetime.now()
-            skipped_step.output = {
-                "status": "skipped",
-                "message": "Skipped due to previous failure",
-                "action": skipped_step.action,
-            }
-            skipped_step.error = "Skipped after failure"
-            artifact_path = self._write_step_artifact(
-                workflow_name, skipped_step, skipped_step.inputs, index
-            )
-            if artifact_path:
-                skipped_step.artifact_path = artifact_path
-            result.steps.append(skipped_step)
-            self._emit_progress(
-                result,
-                "step_skipped",
-                current_step=skipped_step,
-                step_index=index,
-                total_steps=total_steps,
-            )
+        self._execution_context = parameters or {}
+        result = WorkflowResult(workflow_name="task_graph_execution", status=WorkflowStatus.RUNNING)
+        self._emit_progress(result, "workflow_started", total_steps=len(graph.nodes))
+
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor_pool:
+                while True:
+                    # 1. Identify nodes ready to run
+                    runnable_nodes = graph.get_runnable_nodes()
+                    if not runnable_nodes:
+                        # Check if we are finished or deadlocked
+                        if any(n.status == TaskNodeStatus.PENDING for n in graph.nodes.values()):
+                            result.status = WorkflowStatus.FAILED
+                            result.error_message = "Deadlock detected or impossible condition reached in TaskGraph"
+                        else:
+                            result.status = WorkflowStatus.COMPLETED
+                        break
+
+                    # 2. Launch nodes concurrently
+                    future_to_node = {}
+                    for node in runnable_nodes:
+                        node.status = TaskNodeStatus.RUNNING
+                        # Prepare step definition from node
+                        step_def = {
+                            "name": node.name,
+                            "skill_executor": node.skill,
+                            "action": node.action,
+                            "inputs": {**node.params, **self._execution_context}
+                        }
+                        # Use existing _execute_step logic (re-using policies and resolution)
+                        future = executor_pool.submit(self._execute_step, step_def, result, workflow_name="graph")
+                        future_to_node[future] = node
+
+                    # 3. Wait for current batch to complete
+                    for future in concurrent.futures.as_completed(future_to_node):
+                        node = future_to_node[future]
+                        try:
+                            completed_step = future.result()
+                            # Sync results back to TaskGraph node
+                            node.output = completed_step.output
+                            node.error = completed_step.error
+                            node.status = TaskNodeStatus.SUCCESS if completed_step.status == StepStatus.COMPLETED else TaskNodeStatus.FAILURE
+                            result.steps.append(completed_step)
+                        except Exception as e:
+                            node.status = TaskNodeStatus.FAILURE
+                            node.error = str(e)
+                            logger.error(f"Execution of node {node.name} crashed: {e}")
+
+            result.end_time = datetime.now()
+            self._emit_progress(result, "workflow_finished")
+            return result
+
+        finally:
+            self._use_real_executors = original_mode
 
 # Global orchestrator instance
 _orchestrator_instance: Optional[WorkflowOrchestrator] = None

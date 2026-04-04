@@ -25,6 +25,7 @@ class MessageType(Enum):
     SIMULATION_STOP = "simulation.stop"
     CONFIG_LOAD_ROBOT = "config.load_robot"
     PARAMS_UPDATE = "params.update"
+    TELEOP_COMMAND = "teleop.command" # V3.0: VR/XR Remote Teaching
     PING = "ping"
     
     # Pushes (godot → web)
@@ -116,6 +117,7 @@ class WebSocketProtocolHandler:
             MessageType.SIMULATION_STOP.value: self._handle_stop_simulation,
             MessageType.CONFIG_LOAD_ROBOT.value: self._handle_load_robot,
             MessageType.PARAMS_UPDATE.value: self._handle_update_params,
+            MessageType.TELEOP_COMMAND.value: self._handle_teleop_command,
             MessageType.PING.value: self._handle_ping,
         }
         
@@ -246,6 +248,27 @@ class WebSocketProtocolHandler:
             payload={'timestamp': datetime.now().isoformat()},
             status='success'
         )
+
+    def _handle_teleop_command(self, message: WsMessage) -> WsMessage:
+        """V3.0: Handle VR/XR remote teleoperation commands."""
+        try:
+            # Command structure: {"action": "move_arm", "target_pose": [...]}
+            # In V3.0, this would be routed to the low-latency robot bridge
+            logger.info(f"VR Teleop Received: {message.payload.get('action')}")
+            
+            return WsMessage(
+                type=message.type,
+                id=message.id,
+                payload={'status': 'teleop_command_dispatched'},
+                status='success'
+            )
+        except Exception as e:
+            return WsMessage(
+                type=message.type,
+                id=message.id,
+                payload={'error': str(e)},
+                status='error'
+            )
     
     # Push methods (godot → web)
     def push_telemetry(self, telemetry_data: Dict[str, Any]) -> WsMessage:

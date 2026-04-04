@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List
 from fastapi import APIRouter
 from fastapi import WebSocket
 from fastapi.responses import FileResponse
+from agi_walker.skills_loader import get_skills_loader
 
 
 DEFAULT_GODOT_SESSION_ID = "default"
@@ -167,5 +168,11 @@ def build_router(
     async def get_distributed_status():
         """Get snapshot of distributed actors"""
         return distributed_status(distributed_monitor)
+
+    @router.get("/api/skills/catalog")
+    async def get_skill_catalog():
+        """获取所有可用 Skill 的正式契约定义 (V2.5 No-code 支持)"""
+        loader = get_skills_loader()
+        return loader.get_catalog()
 
     return router

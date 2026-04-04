@@ -18,6 +18,35 @@ from web_panel.ws_protocol import MessageType, WsMessage
 
 logger = logging.getLogger(__name__)
 
+class TrajectoryRecorder:
+    """AGI-Walker V2.1 Data Engine: Records state-action sequences."""
+    def __init__(self, session_id: str):
+        self.session_id = session_id
+        self.buffer = []
+        self.output_dir = Path(".output/trajectories")
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def record(self, state: Dict[str, Any], action: List[float]):
+        self.buffer.append({
+            "ts": time.time(),
+            "state": state,
+            "action": action
+        })
+        # Auto-save every 100 frames
+        if len(self.buffer) >= 100:
+            self.flush()
+
+    def flush(self):
+        if not self.buffer: return
+        ts_str = time.strftime("%Y%m%d_%H%M%S")
+        file_path = self.output_dir / f"{self.session_id}_{ts_str}.json"
+        try:
+            with open(file_path, "w") as f:
+                json.dump(self.buffer, f)
+        except Exception:
+            pass
+        self.buffer = []
+
 GODOT_PROJECT_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "godot_project",
@@ -33,6 +62,8 @@ class GodotBridge:
         self.reader: Optional[asyncio.StreamReader] = None
         self.writer: Optional[asyncio.StreamWriter] = None
         self.last_sensor: Dict[str, Any] = {}
+        self.last_shadow_pose: List[float] = [] # V2.1
+        self.recorder = TrajectoryRecorder(session_id) # V2.1
         self.schema: Dict[str, Any] = {}
         self.schema_fetched = False
         self.tcp_lock: Optional[asyncio.Lock] = None
@@ -393,7 +424,13 @@ class GodotBridge:
         resp = await self._send_recv({"type": "step", "action": action}) or {}
         if resp:
             self.last_sensor = resp
+            self.recorder.record(resp, action) # V2.1: Record trajectory
         return resp
+
+    async def send_shadow_pose(self, pose: List[float]) -> Dict[str, Any]:
+        """V2.1 Addition: Update the phantom shadow in simulation."""
+        self.last_shadow_pose = pose
+        return await self._send_recv({"type": "update_shadow", "pose": pose}) or {}
 
     async def send_load_robot(self, config: Dict[str, Any]) -> Dict[str, Any]:
         return await self._send_recv({"type": "load_robot", "robot_config": config}) or {}

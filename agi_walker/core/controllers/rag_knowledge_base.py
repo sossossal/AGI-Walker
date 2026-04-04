@@ -16,14 +16,23 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class KnowledgeEntry:
-    """知识条目"""
-
+    """文本知识条目"""
     id: str
     category: str
     title: str
     content: str
     keywords: List[str]
     embedding: Optional[List[float]] = None
+
+@dataclass
+class ExperienceEntry:
+    """V2.5: 具身智能经验条目 (轨迹数据)"""
+    id: str
+    scenario: str        # 场景描述 (如: "侧倾恢复")
+    outcome: str         # 结果 (success/failure)
+    state_pattern: List[float] # 特征向量 (提取自轨迹)
+    action_ref: List[float]    # 核心参考动作
+    source_file: str     # 原始轨迹文件路径
 
 
 class PhysicsKnowledgeBase:
@@ -172,8 +181,9 @@ class PhysicsKnowledgeBase:
         self.index_path = Path(index_path)
         self.use_embeddings = use_embeddings
 
-        # 知识库
+        # 知识库与经验库
         self.entries: List[KnowledgeEntry] = []
+        self.experiences: List[ExperienceEntry] = [] # V2.5
         self.embedder = None
 
         # 加载或创建索引
@@ -324,56 +334,89 @@ class PhysicsKnowledgeBase:
         scores.sort(key=lambda x: x[1], reverse=True)
         return scores[:top_k]
 
+    def index_historical_trajectories(self, trajectories_dir: str = ".output/trajectories"):
+        """V2.5: 扫描并索引历史运行数据"""
+        import numpy as np
+        path = Path(trajectories_dir)
+        if not path.exists(): return
+        
+        logger.info(f"🧠 正在索引历史经验: {trajectories_dir}")
+        for traj_file in path.glob("*.json"):
+            try:
+                with open(traj_file, "r") as f:
+                    data = json.load(f)
+                if not data or len(data) < 5: continue
+                
+                # 提取特征 (取前 5 帧平均姿态作为特征点)
+                orientations = [d["state"].get("sensors", {}).get("imu", {}).get("orient", [0,0,0]) for d in data[:5]]
+                avg_orient = np.mean(orientations, axis=0).tolist()
+                
+                # 记录核心动作 (动作均值或关键帧)
+                actions = [d["action"] for d in data if isinstance(d.get("action"), list)]
+                ref_action = np.mean(actions, axis=0).tolist() if actions else []
+                
+                exp = ExperienceEntry(
+                    id=traj_file.stem,
+                    scenario="stabilization_recovery",
+                    outcome="success", 
+                    state_pattern=avg_orient,
+                    action_ref=ref_action,
+                    source_file=str(traj_file)
+                )
+                self.experiences.append(exp)
+            except Exception as e:
+                logger.warning(f"无法索引轨迹文件 {traj_file}: {e}")
+        
+        logger.info(f"✅ 已加载 {len(self.experiences)} 条运行经验")
+
+    def retrieve_experience(self, current_sensor: dict, top_k: int = 1) -> List[ExperienceEntry]:
+        """V2.5: 根据当前传感器状态检索最相似的历史成功经验"""
+        import numpy as np
+        if not self.experiences: return []
+        
+        orient = current_sensor.get("sensors", {}).get("imu", {}).get("orient", [0,0,0])
+        curr_vec = np.array(orient)
+        
+        # 简单欧氏距离匹配
+        def calc_dist(exp):
+            return np.linalg.norm(np.array(exp.state_pattern) - curr_vec)
+        
+        sorted_exps = sorted(self.experiences, key=calc_dist)
+        return sorted_exps[:top_k]
+
     def augment_prompt(
-        self, base_prompt: str, sensor_data: dict, max_context_length: int = 500
+        self, base_prompt: str, sensor_data: dict, max_context_length: int = 800
     ) -> str:
-        """
-        用RAG检索结果增强Prompt
-
-        Args:
-            base_prompt: 基础Prompt
-            sensor_data: 传感器数据（用于提取查询）
-            max_context_length: 上下文最大长度
-
-        Returns:
-            增强后的Prompt
-        """
-        # 从传感器数据提取查询
+        """用文本知识和历史轨迹经验共同增强Prompt"""
+        # 1. 文本检索
         query = self._extract_query(sensor_data)
+        text_results = self.retrieve(query, top_k=2)
+        
+        # 2. 经验检索 (V2.5)
+        exp_results = self.retrieve_experience(sensor_data, top_k=1)
 
-        # 检索相关知识
-        results = self.retrieve(query, top_k=3)
+        # 构建 Prompt 章节
+        knowledge_context = ""
+        for entry, score in text_results:
+            if score >= 0.3:
+                knowledge_context += f"- 【{entry.title}】: {entry.content}\n"
 
-        if not results:
+        experience_context = ""
+        for exp in exp_results:
+            experience_context += f"- 历史相似场景: 在姿态接近 {exp.state_pattern} 时，系统通过执行动作 {exp.action_ref} 成功维持了平衡。\n"
+
+        if not knowledge_context and not experience_context:
             return base_prompt
-
-        # 构建知识上下文
-        context_parts = []
-        total_length = 0
-
-        for entry, score in results:
-            if score < 0.3:  # 相关度阈值
-                continue
-
-            snippet = f"【{entry.title}】{entry.content}"
-
-            if total_length + len(snippet) > max_context_length:
-                break
-
-            context_parts.append(snippet)
-            total_length += len(snippet)
-
-        if not context_parts:
-            return base_prompt
-
-        context = "\n".join(context_parts)
 
         return f"""{base_prompt}
 
-## 相关物理知识
-{context}
+## 核心物理参考
+{knowledge_context}
 
-请结合以上物理知识进行分析和决策。"""
+## 历史成功经验
+{experience_context}
+
+请综合物理规则与历史成功经验，为当前传感器状态给出最优控制指令。"""
 
     def _extract_query(self, sensor_data: dict) -> str:
         """从传感器数据提取查询关键词"""

@@ -10,26 +10,102 @@ Task Planning System
 """
 
 import numpy as np
-from typing import Dict, List, Optional
-from dataclasses import dataclass
+from typing import Dict, List, Optional, Any, Callable, Set
+from dataclasses import dataclass, field
+from enum import Enum
 import heapq
 import logging
+import uuid
 
 logger = logging.getLogger(__name__)
 
+# --- V2.1 TaskGraph & Planner Evolution ---
 
-def setup_logging():
-    """Configure basic logging for demonstration purposes"""
-    if not logger.handlers:
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter("%(levelname)s: %(message)s")
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
+class TaskNodeStatus(Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    SUCCESS = "success"
+    FAILURE = "failure"
+    SKIPPED = "skipped"
 
+@dataclass
+class TaskNode:
+    """A single executable unit in a TaskGraph"""
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    name: str = "unnamed_task"
+    skill: str = ""
+    action: str = ""
+    params: Dict[str, Any] = field(default_factory=dict)
+    status: TaskNodeStatus = TaskNodeStatus.PENDING
+    output: Dict[str, Any] = field(default_factory=dict)
+    error: Optional[str] = None
+
+@dataclass
+class TaskEdge:
+    """A directed edge between nodes with an execution condition"""
+    from_node_id: str
+    to_node_id: str
+    condition: str = "on_success"  # "on_success", "on_failure", "always"
+
+class TaskGraph:
+    """
+    Manages a collection of TaskNodes and TaskEdges.
+    Supports complex execution flows (DAG).
+    """
+    def __init__(self):
+        self.nodes: Dict[str, TaskNode] = {}
+        self.edges: List[TaskEdge] = []
+        self.metadata: Dict[str, Any] = {}
+
+    def add_node(self, node: TaskNode) -> str:
+        self.nodes[node.id] = node
+        return node.id
+
+    def add_edge(self, from_id: str, to_id: str, condition: str = "on_success"):
+        if from_id not in self.nodes or to_id not in self.nodes:
+            raise ValueError("Nodes must exist before creating an edge")
+        self.edges.append(TaskEdge(from_id, to_id, condition))
+
+    def get_runnable_nodes(self) -> List[TaskNode]:
+        """Identify nodes that are PENDING and have their dependencies met."""
+        runnable = []
+        for node_id, node in self.nodes.items():
+            if node.status != TaskNodeStatus.PENDING:
+                continue
+            
+            # Check incoming edges
+            incoming = [e for e in self.edges if e.to_node_id == node_id]
+            if not incoming:
+                runnable.append(node)
+                continue
+            
+            # Dependency resolution logic
+            met = True
+            for edge in incoming:
+                parent = self.nodes[edge.from_node_id]
+                if edge.condition == "on_success" and parent.status != TaskNodeStatus.SUCCESS:
+                    met = False
+                elif edge.condition == "on_failure" and parent.status != TaskNodeStatus.FAILURE:
+                    met = False
+                elif edge.condition == "always" and parent.status not in [TaskNodeStatus.SUCCESS, TaskNodeStatus.FAILURE]:
+                    met = False
+                
+                if not met: break
+            
+            if met: runnable.append(node)
+            
+        return runnable
+
+class BasePlanner:
+    """Abstract base class for Planners (LLM, Rule-based, etc.)"""
+    def plan(self, instruction: str, context: Optional[Dict[str, Any]] = None) -> TaskGraph:
+        raise NotImplementedError("Planners must implement the plan() method")
+
+# --- End of V2.1 Additions ---
 
 @dataclass
 class Point:
+...
     """二维点"""
 
     x: float

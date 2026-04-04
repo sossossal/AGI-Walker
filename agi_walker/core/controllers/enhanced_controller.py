@@ -14,6 +14,7 @@ from agi_walker.core.controllers.tcp_client import GodotClient
 from agi_walker.core.controllers.load_monitor import LoadMonitor, SimplePIDController, ControlMode
 from agi_walker.core.controllers.model_orchestrator import create_orchestrator
 from agi_walker.core.controllers.rag_knowledge_base import PhysicsKnowledgeBase
+from agi_walker.core.controllers.predictive_safety import PredictiveSafetyChecker
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,10 @@ class EnhancedController:
         logger.info("3. 初始化负载监控器...")
         self.load_monitor = LoadMonitor(self.pid_controller)
         self.load_monitor.on_mode_change = self._on_mode_change
+
+        # 预测性安全保险 (V2.1 MPC Shell)
+        logger.info("3.1 初始化预测性安全保险...")
+        self.safety_supervisor = PredictiveSafetyChecker(prediction_horizon=8)
 
         # 模型编排器
         logger.info("4. 初始化模型编排器...")
@@ -185,10 +190,14 @@ class EnhancedController:
                 # 3. 获取控制动作
                 action, ai_time = self._get_control_action(sensor_data)
 
-                # 4. 记录延迟
+                # 4. 预测性安全过滤 (V2.1 MPC Safety Shell)
+                if action and "motors" in action:
+                    action = self.safety_supervisor.check_and_filter(sensor_data, action)
+
+                # 5. 记录延迟
                 self.load_monitor.record_latency(ai_time * 1000)
 
-                # 5. 发送控制指令
+                # 6. 发送控制指令
                 if action and "motors" in action:
                     self.client.send_motor_commands(action)
 
