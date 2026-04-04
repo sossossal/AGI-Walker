@@ -11,7 +11,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python_api.parts.custom_parts import (
+from agi_walker.core.api.parts.custom_parts import (
     CustomMotor,
     CustomJoint,
     CustomSensor,

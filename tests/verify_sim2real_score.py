@@ -3,7 +3,7 @@ from typing import Any, Optional, Dict, List, Tuple
 logger = logging.getLogger(__name__)
 import numpy as np
 import json
-from sysid.metrics import Sim2RealScorer
+from agi_walker.core.sysid.metrics import Sim2RealScorer
 
 
 def create_mock_data(noise_level=0.0):

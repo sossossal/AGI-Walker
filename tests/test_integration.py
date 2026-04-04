@@ -67,7 +67,7 @@ def test_zenoh_pubsub() -> None:
     logger.info("=" * 60)
 
     try:
-        from python_api.comm.zenoh_interface import ZenohInterface
+        from agi_walker.core.api.comm.zenoh_interface import ZenohInterface
         try:
             zenoh = ZenohInterface()
         except Exception as e:
@@ -100,7 +100,7 @@ def test_tcp_zenoh_bridge() -> None:
     logger.info("=" * 60)
 
     try:
-        from python_api.comm.tcp_zenoh_bridge import TcpZenohBridge
+        from agi_walker.core.api.comm.tcp_zenoh_bridge import TcpZenohBridge
         try:
             bridge = TcpZenohBridge(tcp_port=9091)
             bridge.start()
@@ -124,7 +124,7 @@ def test_ros2_node() -> None:
 
     try:
         import rclpy
-        from python_api.ros2_robot_node import AGIWalkerNode
+        from agi_walker.core.api.ros2_robot_node import AGIWalkerNode
 
         rclpy.init()
         node = AGIWalkerNode()
@@ -149,7 +149,7 @@ def test_parts_manager() -> None:
     logger.info("=" * 60)
 
     try:
-        from python_api.parts.parts_manager import PartsManager
+        from agi_walker.core.api.parts.parts_manager import PartsManager
         pm = PartsManager()
         assert len(pm.parts_db) > 0, "零件库为空"
 

@@ -4,7 +4,7 @@
 
 import numpy as np
 from typing import Dict, List, Optional
-from python_api.control.parametric_control import ParametricRobotController
+from agi_walker.core.api.control.parametric_control import ParametricRobotController
 
 
 class SimpleController:

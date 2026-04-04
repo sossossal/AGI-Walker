@@ -21,9 +21,9 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 try:
-    from python_api.control.parametric_control import ParametricController
-    from python_api.control.gait_generator import GaitGenerator
-    from python_api.control.precision_adjuster import PrecisionAdjuster
+    from agi_walker.core.api.control.parametric_control import ParametricController
+    from agi_walker.core.api.control.gait_generator import GaitGenerator
+    from agi_walker.core.api.control.precision_adjuster import PrecisionAdjuster
 except ImportError:
     pytest.skip("Control module not available", allow_module_level=True)
 

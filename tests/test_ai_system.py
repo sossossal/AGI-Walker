@@ -13,8 +13,8 @@ import pytest
 pytestmark = pytest.mark.integration
 
 try:
-    from python_controller.ai_model import create_ai_model
-    from python_controller.ai_controller import AIController
+    from agi_walker.core.controllers.ai_model import create_ai_model
+    from agi_walker.core.controllers.ai_controller import AIController
     AI_MODULES_AVAILABLE = True
 except ImportError:
     AI_MODULES_AVAILABLE = False
@@ -159,7 +159,7 @@ def test_safety_checker() -> None:
     logger.info("=" * 60)
 
     try:
-        from python_controller.ai_controller import SafetyChecker
+        from agi_walker.core.controllers.ai_controller import SafetyChecker
 
         safety = SafetyChecker()
 

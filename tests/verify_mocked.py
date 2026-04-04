@@ -63,7 +63,7 @@ async def run_verification():
 
     # 现在本地导入项目模块，防止污染全局作用域
     try:
-        from python_controller.evolution_manager import EvolutionManager, EvolutionConfig
+        from agi_walker.core.controllers.evolution_manager import EvolutionManager, EvolutionConfig
     except ImportError as e:
         logger.info(f"导入失败: {e}")
         return False

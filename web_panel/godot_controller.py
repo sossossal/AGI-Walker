@@ -9,7 +9,7 @@ import asyncio
 # 添加项目根目录以导入 python_api
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python_api.comm.godot_client import GodotSimulationClient
+from agi_walker.core.api.comm.godot_client import GodotSimulationClient
 from web_panel.core_api import DEFAULT_GODOT_SESSION_ID
 from web_panel.ws_protocol import MessageType, WsMessage
 

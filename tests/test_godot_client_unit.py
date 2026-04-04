@@ -1,6 +1,6 @@
 import pytest
 
-from python_api.comm.godot_client import GodotSimulationClient
+from agi_walker.core.api.comm.godot_client import GodotSimulationClient
 
 
 def test_start_simulation_merges_physics_overrides(

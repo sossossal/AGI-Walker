@@ -8,9 +8,9 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python_api.diagnostics.energy_management import Battery, EnergyManager
-from python_api.diagnostics.safety_system import SafetySystem
-from python_api.diagnostics.thermal_management import ThermalManager
+from agi_walker.core.api.diagnostics.energy_management import Battery, EnergyManager
+from agi_walker.core.api.diagnostics.safety_system import SafetySystem
+from agi_walker.core.api.diagnostics.thermal_management import ThermalManager
 import numpy as np
 
 

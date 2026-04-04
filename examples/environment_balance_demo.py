@@ -9,7 +9,7 @@ from typing import Dict
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python_api.env.environment_balance import (
+from agi_walker.core.api.env.environment_balance import (
     EnvironmentBalanceSimulator,
     Environments,
     EnvironmentCondition,

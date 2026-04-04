@@ -14,7 +14,7 @@ import pytest
 pytestmark = pytest.mark.integration
 
 try:
-    from python_controller.tcp_client import GodotClient
+    from agi_walker.core.controllers.tcp_client import GodotClient
     CLIENT_AVAILABLE = True
 except ImportError:
     CLIENT_AVAILABLE = False

@@ -8,7 +8,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python_api.physics_validator import PhysicsSimulator, PhysicsValidator
+from agi_walker.core.api.physics_validator import PhysicsSimulator, PhysicsValidator
 import matplotlib.pyplot as plt
 import numpy as np
 

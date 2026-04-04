@@ -9,7 +9,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python_api.comm.zenoh_interface import ZenohInterface, ZENOH_AVAILABLE
+from agi_walker.core.api.comm.zenoh_interface import ZenohInterface, ZENOH_AVAILABLE
 
 
 def demo_zenoh_basic():
@@ -54,7 +54,7 @@ def demo_tcp_zenoh_bridge():
     print("=" * 60)
 
     try:
-        from python_api.comm.tcp_zenoh_bridge import TcpZenohBridge
+        from agi_walker.core.api.comm.tcp_zenoh_bridge import TcpZenohBridge
     except ImportError:
         print("Bridge module not found")
         return
@@ -81,7 +81,7 @@ def demo_ros2_node():
 
     try:
         import rclpy
-        from python_api.ros2_robot_node import AGIWalkerNode
+        from agi_walker.core.api.ros2_robot_node import AGIWalkerNode
     except ImportError:
         print("ROS 2 not installed, skipping")
         print("   安装方法: sudo apt install ros-jazzy-rclpy")

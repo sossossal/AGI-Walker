@@ -26,7 +26,7 @@ def analyze_sim2real_gap(req: Sim2RealAnalyzeRequest) -> Dict[str, Any]:
         sys.path.insert(0, root_dir)
 
     try:
-        from python_controller.sim2real_gap import Sim2RealGapEstimator
+        from agi_walker.core.controllers.sim2real_gap import Sim2RealGapEstimator
 
         estimator = Sim2RealGapEstimator(
             data_dir=os.path.join(root_dir, "offline_data", "sim2real")

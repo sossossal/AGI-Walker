@@ -5,7 +5,7 @@ import pytest
 import time
 import threading
 import numpy as np
-from python_api.godot_robot_env.gym_env import GodotRobotEnv, RandomizerConfig
+from agi_walker.core.api.godot_robot_env.gym_env import GodotRobotEnv, RandomizerConfig
 from tests.mock_godot_server import MockGodotServer
 
 @pytest.fixture

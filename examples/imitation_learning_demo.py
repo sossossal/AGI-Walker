@@ -5,7 +5,7 @@
 
 import gymnasium as gym
 from stable_baselines3 import PPO
-from python_api.learning.imitation_learning import BehaviorCloning, GAIL
+from agi_walker.core.api.learning.imitation_learning import BehaviorCloning, GAIL
 
 
 def demo_behavior_cloning():

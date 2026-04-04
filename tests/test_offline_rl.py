@@ -9,7 +9,7 @@ import pytest
 
 # 延迟导入，防止收集阶段崩溃
 def get_offline_rl():
-    from python_api.learning.offline_rl import ExpertDataCollector, OfflineRLTrainer
+    from agi_walker.core.api.learning.offline_rl import ExpertDataCollector, OfflineRLTrainer
     return ExpertDataCollector, OfflineRLTrainer
 
 def test_offline_rl_imports() -> None:

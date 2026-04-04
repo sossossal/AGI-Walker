@@ -21,7 +21,7 @@ class TestZenohInterface:
 
     def setup_method(self) -> None:
         try:
-            from python_api.comm.zenoh_interface import ZenohInterface, ZENOH_AVAILABLE
+            from agi_walker.core.api.comm.zenoh_interface import ZenohInterface, ZENOH_AVAILABLE
             if not ZENOH_AVAILABLE:
                 pytest.skip("Zenoh 未安装")
             self.zenoh = ZenohInterface()
@@ -59,7 +59,7 @@ class TestTaskEditor:
     """测试任务编辑器"""
 
     def setup_method(self) -> None:
-        from python_api.task_editor import TaskEditor
+        from agi_walker.core.api.task_editor import TaskEditor
         self.editor = TaskEditor()
 
     def test_create_task(self) -> None:
@@ -96,7 +96,7 @@ class TestPartsManager:
     """测试零件管理器"""
 
     def setup_method(self) -> None:
-        from python_api.parts.parts_manager import PartsManager
+        from agi_walker.core.api.parts.parts_manager import PartsManager
         self.pm = PartsManager()
 
     def test_load_parts(self) -> None:

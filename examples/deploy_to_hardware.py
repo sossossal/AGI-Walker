@@ -12,7 +12,7 @@ from stable_baselines3 import PPO
 # 添加父目录到路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from python_api.godot_robot_env import GodotRobotEnv
+from agi_walker.core.api.godot_robot_env import GodotRobotEnv
 
 
 def step1_train_in_simulation():
@@ -105,7 +105,7 @@ def step4_test_on_hardware():
     print("=" * 60)
 
     try:
-        from python_api.godot_robot_env.hardware_controller import HardwareEnvironment
+        from agi_walker.core.api.godot_robot_env.hardware_controller import HardwareEnvironment
 
         # 创建硬件环境
         print("\n连接硬件中...")

@@ -26,7 +26,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from python_api.comm.godot_client import GodotSimulationClient, MockGodotServer
+from agi_walker.core.api.comm.godot_client import GodotSimulationClient, MockGodotServer
 
 
 def verify_integration():

@@ -13,12 +13,12 @@ from unittest.mock import Mock, patch, MagicMock
 
 # 导入测试目标模块
 try:
-    from python_controller.load_monitor import (
+    from agi_walker.core.controllers.load_monitor import (
         LoadMonitor,
         SimplePIDController,
         ControlMode,
     )
-    from python_controller.rag_knowledge_base import PhysicsKnowledgeBase
+    from agi_walker.core.controllers.rag_knowledge_base import PhysicsKnowledgeBase
     MODULES_AVAILABLE = True
 except ImportError:
     MODULES_AVAILABLE = False
@@ -141,7 +141,7 @@ class TestRAGKnowledgeBase:
 def test_vision_processor_mock() -> None:
     """测试视觉处理器 (Mock模式)"""
     try:
-        from python_api.vision_processor import create_vision_processor
+        from agi_walker.core.api.vision_processor import create_vision_processor
         processor = create_vision_processor()
         assert processor is not None
     except ImportError:
@@ -151,7 +151,7 @@ def test_vision_processor_mock() -> None:
 def test_multimodal_fusion_mock() -> None:
     """测试多模态融合 (Mock模式)"""
     try:
-        from python_api.multimodal_fusion import create_multimodal_fusion
+        from agi_walker.core.api.multimodal_fusion import create_multimodal_fusion
         fusion = create_multimodal_fusion()
         assert fusion is not None
     except ImportError:

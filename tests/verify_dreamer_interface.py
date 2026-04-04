@@ -3,7 +3,7 @@ from typing import Any, Optional, Dict, List, Tuple
 logger = logging.getLogger(__name__)
 import time
 import numpy as np
-from algorithms.dreamer_env import DreamerEnv
+from agi_walker.core.algorithms.dreamer_env import DreamerEnv
 
 
 def test_dreamer_interface() -> None:

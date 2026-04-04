@@ -81,7 +81,7 @@ class PerformanceBenchmark:
         logger.info("=" * 60)
 
         try:
-            from python_api.comm.optimized_zenoh import OptimizedZenohInterface
+            from agi_walker.core.api.comm.optimized_zenoh import OptimizedZenohInterface
 
             zenoh = OptimizedZenohInterface()
 
@@ -116,7 +116,7 @@ class PerformanceBenchmark:
         logger.info("=" * 60)
 
         try:
-            from python_controller.parallel_trainer import ParallelTrainingManager
+            from agi_walker.core.controllers.parallel_trainer import ParallelTrainingManager
             import gymnasium as gym
 
             # 单进程基准

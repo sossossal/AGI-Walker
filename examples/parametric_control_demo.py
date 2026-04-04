@@ -8,7 +8,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python_api.control.parametric_control import (
+from agi_walker.core.api.control.parametric_control import (
     ParametricRobotController,
     InteractiveParameterTuner,
 )

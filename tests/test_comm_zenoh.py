@@ -26,7 +26,7 @@ from dataclasses import dataclass
 
 # 模拟路径组件
 try:
-    from python_api.comm.zenoh_interface import ZenohInterface, ZenohConfig
+    from agi_walker.core.api.comm.zenoh_interface import ZenohInterface, ZenohConfig
 except ImportError:
     pytest.skip("zenoh_interface not available", allow_module_level=True)
 

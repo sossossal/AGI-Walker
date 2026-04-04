@@ -25,9 +25,9 @@ from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime
 
 try:
-    from python_api.data.batch_generator import BatchGenerator
-    from python_api.data.data_recorder import DataRecorder
-    from python_api.data.dataset_manager import DatasetManager
+    from agi_walker.core.api.data.batch_generator import BatchGenerator
+    from agi_walker.core.api.data.data_recorder import DataRecorder
+    from agi_walker.core.api.data.dataset_manager import DatasetManager
 except ImportError:
     pytest.skip("Data module not available", allow_module_level=True)
 

@@ -11,7 +11,7 @@ import unittest
 import time
 import threading
 import pytest
-from python_api.comm.godot_client import GodotSimulationClient, MockGodotServer
+from agi_walker.core.api.comm.godot_client import GodotSimulationClient, MockGodotServer
 
 # 需要 TCP 服务器，不适合默认单元测试路径
 pytestmark = pytest.mark.integration

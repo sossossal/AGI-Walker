@@ -27,9 +27,9 @@ sys.path.insert(0, str(project_root))
 
 # 尝试导入实际模块，如果失败则使用模拟版本
 try:
-    from python_api.control.parametric_control import ParametricRobotController
-    from python_api.control.gait_generator import TrotGait, GallopGait
-    from python_api.control.precision_adjuster import PrecisionAdjuster
+    from agi_walker.core.api.control.parametric_control import ParametricRobotController
+    from agi_walker.core.api.control.gait_generator import TrotGait, GallopGait
+    from agi_walker.core.api.control.precision_adjuster import PrecisionAdjuster
     REAL_MODULES = True
 except ImportError as e:
     REAL_MODULES = False
