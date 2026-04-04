@@ -343,7 +343,7 @@ $env:AGI_WALKER_GODOT_HEADLESS_ARTIFACT_DIR='test_env/godot_headless_smoke'
 python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
 ```
 
-如果你的工作环境暂时没有安装 Godot，可使用仓库根目录提供的 `godot_stub.bat` + `godot_stub.py` 来模拟 headless 进程。把 `GODOT_EXECUTABLE` 指向这份 `.bat`，其内部会调用 `python godot_stub.py` 并在 `--tcp-port` 指定的端口上开启模拟服务，从而在不依赖 Godot 二进制的情况下也能跑通 headless smoke。例如：
+如果你的工作环境暂时没有安装 Godot，可使用 `tests/stubs/` 目录下提供的 `godot_stub.bat` + `godot_stub.py` 来模拟 headless 进程。把 `GODOT_EXECUTABLE` 指向这份 `.bat`，其内部会调用 `python godot_stub.py` 并在 `--tcp-port` 指定的端口上开启模拟服务，从而在不依赖 Godot 二进制的情况下也能跑通 headless smoke。例如：
 
 ```powershell
 $env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
