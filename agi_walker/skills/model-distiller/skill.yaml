@@ -1,0 +1,39 @@
+name: model-distiller
+description: 将大规模教师模型的决策知识蒸馏到轻量级学生模型中，以实现边缘端的实时推理。
+version: 1.0.0
+category: 优化
+inputs:
+  teacher_model_path:
+    type: string
+    description: 3B 参数的原始教师模型路径 (.pt / .pth)
+    required: true
+  student_config:
+    type: dict
+    description: 学生模型的架构配置 (层数、隐藏维度等)
+    required: true
+  training_dataset:
+    type: string
+    description: 离线训练数据集路径 (.h5 / .npy)
+    required: true
+  temperature:
+    type: float
+    description: 蒸馏温度，用于平滑教师模型的输出概率分布
+    default: 2.0
+  alpha:
+    type: float
+    description: 蒸馏损失与原始损失的加权比例
+    default: 0.5
+outputs:
+  student_model_path:
+    type: string
+    description: 蒸馏后的轻量化模型路径
+  distillation_report:
+    type: dict
+    description: 包含准确率、计算开销缩减比等指标的报告
+commands:
+  train:
+    script: python scripts/distill_model.py
+    description: 开始蒸馏训练任务
+  evaluate:
+    script: python scripts/evaluate_distilled.py
+    description: 评估蒸馏模型在仿真环境中的表现

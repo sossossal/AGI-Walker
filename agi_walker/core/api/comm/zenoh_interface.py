@@ -5,39 +5,36 @@ Zenoh 通信接口层
 
 import json
 import time
-from typing import Callable, Optional, Dict, Any
+import logging
+from typing import Callable, Optional, Dict, Any, Type
 from dataclasses import dataclass
 
 try:
     import zenoh
-
     ZENOH_AVAILABLE = True
 except ImportError:
     ZENOH_AVAILABLE = False
     print("Zenoh not installed. Run: pip install eclipse-zenoh")
 
+try:
+    from google.protobuf.message import Message
+    PROTOBUF_AVAILABLE = True
+except ImportError:
+    PROTOBUF_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class ZenohConfig:
     """Zenoh 配置"""
-
     mode: str = "peer"  # "peer" 或 "client"
     connect: Optional[str] = None  # 例如 "tcp/127.0.0.1:7447"
     listen: Optional[str] = None  # 例如 "tcp/0.0.0.0:7447"
 
-
 class ZenohInterface:
     """
-    Zenoh 通信接口
-
-    用法示例:
-        zenoh_if = ZenohInterface()
-        zenoh_if.declare_publisher("rt/robot/cmd")
-        zenoh_if.publish("rt/robot/cmd", {"joint_0": 1.5})
-
-        def callback(data):
-            print(f"Received: {data}")
-        zenoh_if.declare_subscriber("rt/robot/state", callback)
+    AGI-Walker V2.0 Enhanced Zenoh Interface.
+    Supports both JSON and High-Performance Protobuf binary streams.
     """
 
     def __init__(self, config: Optional[ZenohConfig] = None):
@@ -55,79 +52,77 @@ class ZenohInterface:
         zenoh_config = zenoh.Config()
 
         if self.config.mode == "client" and self.config.connect:
-            zenoh_config.insert_json5(
-                "connect/endpoints", json.dumps([self.config.connect])
-            )
+            zenoh_config.insert_json5("connect/endpoints", json.dumps([self.config.connect]))
         elif self.config.mode == "peer" and self.config.listen:
-            zenoh_config.insert_json5(
-                "listen/endpoints", json.dumps([self.config.listen])
-            )
+            zenoh_config.insert_json5("listen/endpoints", json.dumps([self.config.listen]))
 
         self.session = zenoh.open(zenoh_config)
-        print(f"Zenoh session established (mode: {self.config.mode})")
+        logger.info(f"Zenoh session established (mode: {self.config.mode})")
 
     def declare_publisher(self, key: str) -> None:
-        """
-        声明发布者
-
-        Args:
-            key: Zenoh 资源键，例如 "rt/robot/cmd"
-        """
         if key not in self.publishers:
             pub = self.session.declare_publisher(key)
             self.publishers[key] = pub
-            print(f"Publisher created: {key}")
+            logger.debug(f"Publisher created: {key}")
 
-    def publish(self, key: str, data: Any, serialize: bool = True) -> None:
+    def publish(self, key: str, data: Any) -> None:
         """
-        发布数据
-
-        Args:
-            key: 资源键
-            data: 要发布的数据 (dict/list 会自动 JSON 序列化)
-            serialize: 是否自动序列化为 JSON
+        发布数据。自动处理 Protobuf 消息和普通 Python 对象。
         """
         if key not in self.publishers:
             self.declare_publisher(key)
 
-        payload = json.dumps(data).encode() if serialize else data
+        if PROTOBUF_AVAILABLE and isinstance(data, Message):
+            # 自动进行 Protobuf 二进制序列化
+            payload = data.SerializeToString()
+        elif isinstance(data, (dict, list)):
+            # 自动进行 JSON 序列化
+            payload = json.dumps(data).encode()
+        else:
+            # 原始字节或其他
+            payload = bytes(data)
+
         self.publishers[key].put(payload)
 
-    def declare_subscriber(self, key: str, callback: Callable[[Any], None]) -> None:
+    def declare_subscriber(self, key: str, callback: Callable[[Any], None], pb_class: Optional[Type[Message]] = None) -> None:
         """
-        声明订阅者
+        声明订阅者。
 
         Args:
             key: 资源键
-            callback: 回调函数，接收解析后的数据
+            callback: 回调函数
+            pb_class: (可选) Protobuf 类。如果指定，将自动解析二进制数据。
         """
 
         def zenoh_callback(sample):
             try:
-                # 兼容 Zenoh 1.7+ 的 ZBytes 类型
                 payload_bytes = bytes(sample.payload)
-                data = json.loads(payload_bytes.decode())
-                callback(data)
-            except json.JSONDecodeError:
-                # 如果不是 JSON，直接传递原始字节
-                callback(payload_bytes)
+                
+                if pb_class:
+                    # 尝试进行 Protobuf 解析
+                    msg = pb_class()
+                    msg.ParseFromString(payload_bytes)
+                    callback(msg)
+                else:
+                    # 回退到 JSON 或 原始字节
+                    try:
+                        data = json.loads(payload_bytes.decode())
+                        callback(data)
+                    except:
+                        callback(payload_bytes)
+                        
             except Exception as e:
-                print(f"Subscriber callback error: {e}")
+                logger.error(f"Subscriber callback error on key {key}: {e}")
 
         sub = self.session.declare_subscriber(key, zenoh_callback)
         self.subscribers[key] = sub
-        print(f"Subscriber created: {key}")
+        logger.debug(f"Subscriber created: {key}")
 
     def close(self):
         """关闭 Zenoh 会话"""
-        for pub in self.publishers.values():
-            pub.undeclare()
-        for sub in self.subscribers.values():
-            sub.undeclare()
-
         if self.session:
             self.session.close()
-        print("Zenoh session closed")
+        logger.info("Zenoh session closed")
 
 
 # ==================== 示例代码 ====================

@@ -4,230 +4,183 @@ AI驱动的机器人控制器
 """
 
 import time
-from typing import Optional
-from tcp_client import GodotClient
-from ai_model import create_ai_model, BaseAIModel
-
+import threading
 import logging
+import numpy as np
+from typing import Optional, Dict, Any, List
+from .tcp_client import GodotClient
+from .onnx_inference import ONNXInferenceEngine
+from .ai_model import create_ai_model, BaseAIModel
+from .load_monitor import SystemMonitor
 
 logger = logging.getLogger(__name__)
 
-
 class SafetyChecker:
-    """安全检查器"""
-
+    """AGI-Walker V2.0 工业级安全检查器"""
     def __init__(self) -> None:
-        # 关节限位
-        self.joint_limits = {"hip_left": (-45, 90), "hip_right": (-45, 90)}
+        # 关节限位 (弧度)
+        self.joint_limits = {"hip_left": (-0.8, 1.5), "hip_right": (-0.8, 1.5)}
+        # 速度限制 (rad/s)
+        self.max_velocity = 5.0 
+        self.last_pos = {}
+        self.last_time = time.time()
 
-        # 速度限制
-        self.max_angle_change = 20  # 度/帧
-        self.last_angles = {}
-
-    def check(self, action: dict) -> dict:
-        """检查并修正动作"""
+    def check(self, action: Dict[str, Any]) -> Dict[str, Any]:
+        """高频安全校验"""
+        now = time.time()
+        dt = now - self.last_time
         safe_action = {"motors": {}}
 
-        for joint, angle in action.get("motors", {}).items():
-            # 类型检查
-            if not isinstance(angle, (int, float)):
-                logger.info(f"⚠️ {joint} 角度类型错误: {type(angle)}")
-                angle = 0.0
-
-            # 限位检查
+        for joint, pos in action.get("motors", {}).items():
             if joint in self.joint_limits:
-                min_angle, max_angle = self.joint_limits[joint]
-                original_angle = angle
-                angle = max(min_angle, min(max_angle, angle))
+                low, high = self.joint_limits[joint]
+                pos = max(low, min(high, pos))
 
-                if angle != original_angle:
-                    logger.info(
-                        f"⚠️ {joint} 角度限位: {original_angle:.1f}° → {angle:.1f}°"
-                    )
+            if joint in self.last_pos and dt > 0:
+                vel = (pos - self.last_pos[joint]) / dt
+                if abs(vel) > self.max_velocity:
+                    pos = self.last_pos[joint] + np.sign(vel) * self.max_velocity * dt
 
-            # 速度限制
-            if joint in self.last_angles:
-                max_change = self.max_angle_change
-                change = angle - self.last_angles[joint]
+            safe_action["motors"][joint] = pos
+            self.last_pos[joint] = pos
 
-                if abs(change) > max_change:
-                    angle = self.last_angles[joint] + (
-                        max_change if change > 0 else -max_change
-                    )
-                    logger.info(
-                        f"⚠️ {joint} 速度限制: {change:.1f}° → {max_change:.1f}°"
-                    )
-
-            safe_action["motors"][joint] = angle
-            self.last_angles[joint] = angle
-
+        self.last_time = now
         return safe_action
 
-
 class AIController:
-    """AI控制器主类"""
-
+    """
+    AGI-Walker V2.0 Decoupled AI Controller with Adaptive Degradation.
+    Prioritizes hardware safety by falling back to pre-defined safe modes.
+    """
     def __init__(
         self,
-        ai_model: Optional[BaseAIModel] = None,
-        strategy: str = "保持躯干直立，站立稳定",
+        model_path: Optional[str] = None,
+        backend: str = "onnx",
+        strategy: str = "balanced_standing"
     ):
-        """
-        初始化AI控制器
-
-        Args:
-            ai_model: AI模型实例（如果为None，使用默认Ollama）
-            strategy: 控制策略
-        """
         self.client = GodotClient()
-        self.ai_model = ai_model or create_ai_model(engine="ollama")
         self.safety = SafetyChecker()
+        self.monitor = SystemMonitor()
         self.strategy = strategy
+        self.backend_type = backend
+        
+        # 推理后端初始化
+        if backend == "onnx" and model_path:
+            self.engine = ONNXInferenceEngine(model_path)
+        else:
+            self.engine = create_ai_model(engine="ollama")
 
+        # 共享状态
+        self.latest_action = {"motors": {}}
+        self.sensor_buffer = {}
+        self.running = False
+        self.degraded_mode = False
+        self.lock = threading.Lock()
+        
         # 统计
-        self.loop_count = 0
-        self.start_time = None
-        self.fall_time = None
+        self.ctrl_count = 0
+        self.inf_count = 0
 
-    def run(self, duration: float = 120.0, target_hz: float = 30.0) -> None:
-        """
-        运行AI控制循环
+    def _inference_worker(self, hz: float):
+        """低频 AI 推理线程 (支持自适应挂起)"""
+        interval = 1.0 / hz
+        logger.info(f"Inference thread started at {hz} Hz")
+        
+        while self.running:
+            if self.degraded_mode:
+                # 降级模式下暂停 AI 推理，减少 CPU 压力
+                time.sleep(0.5)
+                continue
 
-        Args:
-            duration: 运行时长（秒）
-            target_hz: 目标控制频率
-        """
+            start_time = time.time()
+            with self.lock:
+                sensors = self.sensor_buffer.copy()
+            
+            if sensors:
+                action = self.engine.predict(sensors) if hasattr(self.engine, 'predict') else {}
+                with self.lock:
+                    self.latest_action = action
+                    self.inf_count += 1
+            
+            elapsed = time.time() - start_time
+            # 性能预警
+            if elapsed > 0.1: # 超过 100ms 则认为推理太慢
+                logger.warning(f"Extreme Inference Latency: {elapsed*1000:.1f}ms")
+
+            time.sleep(max(0, interval - elapsed))
+
+    def run(self, duration: float = 60.0, ctrl_hz: float = 500.0, inf_hz: float = 30.0):
         if not self.client.connect():
-            logger.info("❌ 无法连接到Godot仿真器")
+            logger.error("Failed to connect to simulation.")
             return
 
-        logger.info("\n" + "=" * 60)
-        logger.info("🤖 AI控制器启动")
-        logger.info("=" * 60)
-        logger.info(f"模型: {self.ai_model.__class__.__name__}")
-        logger.info(f"策略: {self.strategy}")
-        logger.info(f"目标频率: {target_hz} Hz")
-        logger.info(f"运行时长: {duration} 秒")
-        logger.info("=" * 60 + "\n")
+        self.running = True
+        inf_thread = threading.Thread(target=self._inference_worker, args=(inf_hz,))
+        inf_thread.daemon = True
+        inf_thread.start()
 
-        self.start_time = time.time()
-        loop_time_target = 1.0 / target_hz
+        logger.info(f"V2.0 Adaptive Controller active: {ctrl_hz}Hz balance loop")
+        start_time = time.time()
+        ctrl_interval = 1.0 / ctrl_hz
 
         try:
-            while time.time() - self.start_time < duration:
+            while time.time() - start_time < duration:
                 loop_start = time.time()
 
-                # 1. 获取传感器数据
-                sensor_data = self.client.get_latest_sensors()
-                if not sensor_data:
-                    time.sleep(0.01)
+                # 1. 硬件自适应监测 (每秒检查一次)
+                if self.ctrl_count % int(ctrl_hz) == 0:
+                    self._check_hardware_health()
+
+                # 2. 获取传感器
+                sensors = self.client.get_latest_sensors()
+                if not sensors:
                     continue
+                
+                with self.lock:
+                    self.sensor_buffer = sensors
+                    if not self.degraded_mode:
+                        action = self.latest_action.copy()
+                    else:
+                        # 降级模式: 使用预设的“安全站立”姿态数据
+                        action = {"motors": {"hip_left": 0.0, "hip_right": 0.0}}
 
-                # 2. 检查稳定性
-                if not self._check_stability(sensor_data):
-                    logger.info("❌ 机器人摔倒!")
-                    self.fall_time = time.time() - self.start_time
-                    break
-
-                # 3. AI推理
-                ai_start = time.time()
-                action = self.ai_model.predict(sensor_data, self.strategy)
-                ai_time = time.time() - ai_start
-
-                # 4. 安全检查
+                # 3. 高频安全控制 (1kHz)
                 safe_action = self.safety.check(action)
 
-                # 5. 发送指令
+                # 4. 发送指令
                 self.client.send_motor_commands(safe_action)
+                self.ctrl_count += 1
 
-                # 6. 性能监控
-                self.loop_count += 1
-                loop_time = time.time() - loop_start
-
-                # 每秒输出一次状态
-                if self.loop_count % int(target_hz) == 0:
-                    self._print_status(sensor_data, ai_time, loop_time)
-
-                # 警告：推理太慢
-                if ai_time > 0.05:  # 50ms
-                    logger.info(f"⚠️ AI推理延迟: {ai_time*1000:.1f}ms")
-
-                # 7. 控制频率
-                sleep_time = max(0, loop_time_target - loop_time)
-                if sleep_time > 0:
-                    time.sleep(sleep_time)
+                # 5. 控制频率同步
+                elapsed = time.time() - loop_start
+                if elapsed < ctrl_interval:
+                    time.sleep(ctrl_interval - elapsed)
 
         except KeyboardInterrupt:
-            logger.info("\n\n⏹️ 用户中断")
-
+            logger.info("Interrupted by user.")
         finally:
-            self._cleanup()
+            self.running = False
+            inf_thread.join(timeout=1.0)
+            self.client.close()
+            logger.info("Controller shutdown complete.")
 
-    def _check_stability(self, sensor_data: dict) -> bool:
-        """检查机器人是否摔倒"""
-        orient = sensor_data["sensors"]["imu"]["orient"]
-        roll, pitch = orient[0], orient[1]
+    def _check_hardware_health(self):
+        """硬件健康检查逻辑"""
+        is_overloaded = self.monitor.is_overloaded()
+        
+        if is_overloaded and not self.degraded_mode:
+            self.degraded_mode = True
+            logger.error("SYSTEM OVERLOAD: FALLING BACK TO SAFE MODE!")
+        elif not is_overloaded and self.degraded_mode:
+            # 自动恢复 (如果硬件负载回到正常范围)
+            self.degraded_mode = False
+            logger.info("Hardware recovered: Resuming AI Inference.")
+        
+        self.monitor.report()
 
-        # 倾斜超过45度视为摔倒
-        if abs(roll) > 45 or abs(pitch) > 45:
-            return False
-
-        # 躯干高度过低
-        if sensor_data.get("torso_height", 1.0) < 0.3:
-            return False
-
-        return True
-
-    def _print_status(
-        self, sensor_data: dict, ai_time: float, loop_time: float
-    ) -> None:
-        """打印状态信息"""
-        orient = sensor_data["sensors"]["imu"]["orient"]
-        elapsed = time.time() - self.start_time
-
-        logger.info(
-            f"[{elapsed:6.1f}s] "
-            f"Roll: {orient[0]:5.1f}° | "
-            f"Pitch: {orient[1]:5.1f}° | "
-            f"高度: {sensor_data['torso_height']:.2f}m | "
-            f"AI: {ai_time*1000:4.1f}ms | "
-            f"循环: {loop_time*1000:4.1f}ms | "
-            f"频率: {1/loop_time:4.1f}Hz"
-        )
-
-    def _cleanup(self) -> None:
-        """清理和统计"""
-        self.client.close()
-
-        # 打印总结
-        logger.info("\n" + "=" * 60)
-        logger.info("📊 运行总结")
-        logger.info("=" * 60)
-
-        elapsed = time.time() - self.start_time if self.start_time else 0
-
-        logger.info(f"运行时间: {elapsed:.1f}秒")
-        logger.info(f"总循环数: {self.loop_count}")
-        logger.info(
-            f"平均频率: {self.loop_count/elapsed:.1f}Hz" if elapsed > 0 else "N/A"
-        )
-
-        if self.fall_time:
-            logger.info(f"摔倒时间: {self.fall_time:.1f}秒")
-        else:
-            logger.info("状态: ✅ 稳定站立")
-
-        # AI统计
-        ai_stats = self.ai_model.get_stats()
-        logger.info("\nAI推理统计:")
-        logger.info(f"  总次数: {ai_stats['total_predictions']}")
-        logger.info(f"  平均耗时: {ai_stats['avg_inference_time']*1000:.2f}ms")
-        logger.info(f"  错误次数: {ai_stats['errors']}")
-
-        if ai_stats.get("error_rate"):
-            logger.info(f"  错误率: {ai_stats['error_rate']*100:.1f}%")
-
-        logger.info("=" * 60 + "\n")
+if __name__ == "__main__":
+    controller = AIController()
+    controller.run()
 
 
 # 使用示例

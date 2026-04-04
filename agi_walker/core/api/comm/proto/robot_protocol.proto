@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package agi_walker;
+
+// 电机单项控制指令
+message MotorCommand {
+    int32 motor_id = 1;      // 电机 ID
+    float target_pos = 2;    // 目标角度 (rad)
+    float target_vel = 3;    // 目标角速度 (rad/s)
+    float kp = 4;            // 比例增益
+    float kd = 5;            // 微分增益
+    float feed_forward_torque = 6; // 前馈扭矩 (Nm)
+}
+
+// IMU 传感器数据
+message IMUData {
+    float qx = 1; // 四元数 X
+    float qy = 2; // 四元数 Y
+    float qz = 3; // 四元数 Z
+    float qw = 4; // 四元数 W
+    float gx = 5; // 陀螺仪 X (rad/s)
+    float gy = 6; // 陀螺仪 Y
+    float gz = 7; // 陀螺仪 Z
+    float ax = 8; // 加速度 X (m/s^2)
+    float ay = 9; // 加速度 Y
+    float az = 10; // 加速度 Z
+}
+
+// 机器人足端传感器
+message FootSensor {
+    int32 foot_id = 1;
+    float pressure = 2; // 压力感应 (N)
+    bool is_contact = 3; // 是否触地
+}
+
+// 机器人完整反馈数据
+message RobotFeedback {
+    uint64 timestamp = 1;     // 时间戳 (us)
+    IMUData imu = 2;          // IMU 数据
+    repeated FootSensor foot = 3; // 各足反馈
+    repeated float motor_pos = 4; // 电机实时角度
+    repeated float motor_vel = 5; // 电机实时速度
+    float battery_voltage = 6; // 电池电压
+    float cpu_usage = 7;      // CPU 占用率 (V2.0 监控)
+    float temp_max = 8;       // 驱动器最高温度
+}
+
+// 顶层消息包装器，用于双向传输
+message RobotMessage {
+    enum Type {
+        PING = 0;
+        COMMAND = 1;
+        FEEDBACK = 2;
+        DIAGNOSTIC = 3;
+    }
+    Type type = 1;
+    uint64 msg_id = 2;
+    repeated MotorCommand commands = 3; // 仅当 type=COMMAND 时有效
+    RobotFeedback feedback = 4;         // 仅当 type=FEEDBACK 时有效
+    string diagnostic_info = 5;         // 诊断文本
+}
