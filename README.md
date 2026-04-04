@@ -276,8 +276,8 @@ pip install -r requirements.txt
 
 ### 辅助脚本
 
-- Windows: `install.bat`
-- Linux/macOS: `install.sh`
+- Windows: `scripts/install.bat`
+- Linux/macOS: `scripts/install.sh`
 
 说明：
 
@@ -348,7 +348,7 @@ python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short
 ```powershell
 $env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
 $env:AGI_WALKER_GODOT_HEADLESS_SCENE='run_rl_server.tscn'
-$env:GODOT_EXECUTABLE='D:\新建文件夹\AGI-Walker\godot_stub.bat'
+$env:GODOT_EXECUTABLE='D:\新建文件夹\AGI-Walker\tests\stubs\godot_stub.bat'
 python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
 ```
 
