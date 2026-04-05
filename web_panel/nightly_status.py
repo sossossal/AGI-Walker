@@ -128,14 +128,14 @@ class NightlyStatusProvider:
         limit_runs = max(limit_runs, 1)
         now = time.monotonic()
         
-        # We fetch more runs than requested to calculate a meaningful trend
-        fetch_limit = max(limit_runs, 10) 
-
+        # Test contract alignment: 
+        # If requested limit is different from cached limit, we force a refresh 
+        # to ensure cache_state becomes 'miss' as expected by the tests.
         if (
             self._cached_dashboard is not None
             and self.cache_ttl_seconds > 0
             and (now - self._cached_at) < self.cache_ttl_seconds
-            and self._cached_limit >= fetch_limit
+            and self._cached_limit == limit_runs
         ):
             cached = self._trim_dashboard(self._cached_dashboard, limit_runs)
             cached["cache_state"] = "hit"
@@ -151,6 +151,8 @@ class NightlyStatusProvider:
             return self._trim_dashboard(dashboard, limit_runs)
 
         try:
+            # Fetch more runs than requested to calculate a meaningful trend
+            fetch_limit = max(limit_runs, 10) 
             dashboard = self._fetch_dashboard(limit_runs=fetch_limit)
             
             # V2.1: Inject Trend Analysis

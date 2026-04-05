@@ -78,13 +78,18 @@ def get_godot_agent_status(app: FastAPI) -> Dict[str, Any]:
     configured_agent_dir = os.getenv("AGI_WALKER_GODOT_AGENT_DIR")
     backend = get_godot_agent_backend(app)
 
+    # 统一识别逻辑
+    is_modern = isinstance(backend, ModernGodotAgentAdapter) or configured_backend in {"godot-agent", "modern"}
+    
     backend_mode = configured_backend
     resource_mode = "skills"
-    if isinstance(backend, ModernGodotAgentAdapter):
+    
+    if is_modern:
         backend_mode = "godot-agent"
         resource_mode = "templates"
-    elif isinstance(backend, LegacyGodotAgentAdapter):
+    elif isinstance(backend, LegacyGodotAgentAdapter) or configured_backend == "legacy":
         backend_mode = "legacy"
+        resource_mode = "skills"
 
     router_attr_exists = hasattr(backend, "router")
     router = getattr(backend, "router", None)
