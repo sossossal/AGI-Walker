@@ -91,7 +91,7 @@ class SimplePlanner(BasePlanner):
         
         graph.add_edge(b_id, o_id, condition="on_success")
         graph.add_edge(b_id, f_id, condition="on_failure")
-        # Retry loop logic via Edge
-        graph.add_edge(f_id, b_id, condition="on_success")
+        # Retry logic is now handled via StepPolicy in V2.1+, 
+        # so we remove the cyclic edge back to b_id.
         
         return graph

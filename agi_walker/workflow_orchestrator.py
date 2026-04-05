@@ -28,11 +28,11 @@ class WorkflowBaseError(Exception):
     pass
 
 class EnvironmentalError(WorkflowBaseError):
-    """Errors caused by external environment (e.g. port locked, network down). Retryable."""
+    """Errors caused by external environment. Retryable."""
     pass
 
 class LogicError(WorkflowBaseError):
-    """Errors caused by invalid input or algorithm logic. Usually non-retryable."""
+    """Errors caused by invalid input or algorithm logic. Non-retryable."""
     pass
 
 class WorkflowTimeoutError(WorkflowBaseError):
@@ -40,7 +40,7 @@ class WorkflowTimeoutError(WorkflowBaseError):
     pass
 
 class WorkflowStateStore:
-    """Handles persistence of workflow execution states to disk/DB"""
+    """Handles persistence of workflow execution states"""
     def __init__(self, base_dir: str = ".output/workflow_states"):
         self.base_dir = base_dir
         os.makedirs(base_dir, exist_ok=True)
@@ -71,41 +71,27 @@ class StepPolicy:
     retry_delay: float = 1.0
     retry_backoff: float = 2.0
 
-_ARTIFACT_REQUIRED_FIELDS = {
-    "workflow",
-    "step",
-    "executor",
-    "status",
-    "inputs",
-    "output",
-    "mode",
-}
-
+_ARTIFACT_REQUIRED_FIELDS = {"workflow", "step", "executor", "action", "status", "inputs", "output", "mode"}
 
 class WorkflowStatus(Enum):
     """Workflow execution states"""
-
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
 
-
 class StepStatus(Enum):
     """Individual step execution states"""
-
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
     SKIPPED = "skipped"
 
-
 @dataclass
 class WorkflowStep:
     """Represents a single step in a workflow"""
-
     name: str
     skill_executor: str
     action: str
@@ -122,13 +108,11 @@ class WorkflowStep:
 
     @property
     def duration(self) -> float:
-        """Get step execution duration in seconds"""
         if self.start_time and self.end_time:
             return (self.end_time - self.start_time).total_seconds()
         return 0.0
 
     def to_dict(self) -> Dict[str, Any]:
-        """Formal serialization for persistence and UI."""
         return {
             "name": self.name,
             "executor": self.skill_executor,
@@ -144,11 +128,9 @@ class WorkflowStep:
             "artifact_path": self.artifact_path,
         }
 
-
 @dataclass
 class WorkflowResult:
     """Result of a workflow execution"""
-
     workflow_name: str
     status: WorkflowStatus
     steps: List[WorkflowStep] = field(default_factory=list)
@@ -165,29 +147,18 @@ class WorkflowResult:
         return 0.0
 
     @property
-    def total_steps(self) -> int:
-        return len(self.steps)
-
+    def total_steps(self) -> int: return len(self.steps)
     @property
-    def completed_steps(self) -> int:
-        return sum(1 for step in self.steps if step.status == StepStatus.COMPLETED)
-
+    def completed_steps(self) -> int: return sum(1 for s in self.steps if s.status == StepStatus.COMPLETED)
     @property
-    def skipped_steps(self) -> int:
-        return sum(1 for step in self.steps if step.status == StepStatus.SKIPPED)
-
+    def skipped_steps(self) -> int: return sum(1 for s in self.steps if s.status == StepStatus.SKIPPED)
     @property
-    def failed_steps(self) -> int:
-        return sum(1 for step in self.steps if step.status == StepStatus.FAILED)
-
+    def failed_steps(self) -> int: return sum(1 for s in self.steps if s.status == StepStatus.FAILED)
     @property
-    def successful_steps(self) -> int:
-        return self.completed_steps + self.skipped_steps
-
+    def successful_steps(self) -> int: return self.completed_steps + self.skipped_steps
     @property
     def success_rate(self) -> float:
-        if not self.total_steps:
-            return 0.0
+        if not self.total_steps: return 0.0
         return (self.successful_steps / self.total_steps) * 100
 
     def to_dict(self) -> Dict[str, Any]:
@@ -202,17 +173,14 @@ class WorkflowResult:
             "successful_steps": self.successful_steps,
             "success_rate": self.success_rate,
             "error_message": self.error_message,
-            "log_path": self.log_path,
             "start_time": self.start_time.isoformat(),
             "end_time": self.end_time.isoformat() if self.end_time else None,
             "graph_data": self.graph_data,
             "steps": [s.to_dict() for s in self.steps],
         }
 
-
 class WorkflowOrchestrator:
     """Main orchestration engine for Skills workflows"""
-
     DEFAULT_EXECUTION_STRATEGY = "resume"
     VALID_EXECUTION_STRATEGIES = {"resume", "force"}
 
@@ -224,7 +192,6 @@ class WorkflowOrchestrator:
         self._progress_callback: Optional[Callable] = None
         self._use_real_executors = use_real_executors
         self._state_store = WorkflowStateStore()
-
         self._register_builtin_workflows()
         self._register_builtin_executors()
 
@@ -232,37 +199,29 @@ class WorkflowOrchestrator:
         self.workflows["robot_creation_pipeline"] = {
             "name": "robot_creation_pipeline",
             "steps": [
-                {
-                    "name": "create_model",
-                    "skill_executor": "robot_modeling",
-                    "action": "create_from_template",
-                    "inputs": {"template": "biped_basic", "output_file": ".output/created_robot.json"},
-                },
-                {
-                    "name": "optimize_params",
-                    "skill_executor": "parameter_optimizer",
-                    "action": "optimize_mass_distribution",
-                    "inputs": {"robot_config": "{create_model.output_file}", "output_file": ".output/optimized_robot.json", "target_com_height": 0.4},
-                },
-                {
-                    "name": "export_urdf",
-                    "skill_executor": "urdf_generator",
-                    "action": "export_to_format",
-                    "inputs": {"robot_config": "{optimize_params.output_file}", "output_format": "urdf", "output_file": "exports/robot.urdf"},
-                },
-            ],
+                {"name": "create_model", "skill_executor": "robot_modeling", "action": "create_from_template", "inputs": {"template": "biped_basic", "output_file": ".output/created_robot.json"}},
+                {"name": "optimize_params", "skill_executor": "parameter_optimizer", "action": "optimize_mass_distribution", "inputs": {"robot_config": "{create_model.output_file}", "output_file": ".output/optimized_robot.json", "target_com_height": 0.4}},
+                {"name": "export_urdf", "skill_executor": "urdf_generator", "action": "export_to_format", "inputs": {"robot_config": "{optimize_params.output_file}", "output_format": "urdf", "output_file": "exports/robot.urdf"}},
+            ]
+        }
+        self.workflows["simulation_ready_robot"] = {
+            "name": "simulation_ready_robot",
+            "steps": [
+                {"name": "load_model", "skill_executor": "robot_modeling", "action": "load_config", "inputs": {"config_file": "configs/tutorial_01_biped.json", "output_file": ".output/sim_robot.json"}},
+                {"name": "validate_physics", "skill_executor": "parameter_optimizer", "action": "validate_physics", "inputs": {"robot_config": "{load_model.output_file}", "output_file": ".output/validated_robot.json"}},
+                {"name": "export_for_sim", "skill_executor": "urdf_generator", "action": "export_to_format", "inputs": {"robot_config": "{validate_physics.output_file}", "output_format": "sdf", "output_file": "exports/robot_sim.sdf"}},
+            ]
         }
 
     def _register_builtin_executors(self):
         try:
             from agi_walker.skill_executors import get_skill_executor
             for name in ["robot_modeling", "parameter_optimizer", "urdf_generator"]:
-                try:
-                    self._skill_executors[name] = get_skill_executor(name, use_real=False)
-                    self._real_skill_executors[name] = get_skill_executor(name, use_real=True)
+                try: self._skill_executors[name] = get_skill_executor(name, use_real=False)
                 except Exception: pass
-        except ImportError:
-            self._setup_mock_executors()
+                try: self._real_skill_executors[name] = get_skill_executor(name, use_real=True)
+                except Exception: pass
+        except ImportError: self._setup_mock_executors()
 
     def _setup_mock_executors(self):
         class MockExecutor:
@@ -270,27 +229,15 @@ class WorkflowOrchestrator:
             def execute(self, action, inputs):
                 if inputs.get("simulate_timeout"): time.sleep(inputs["simulate_timeout"] + 1)
                 if inputs.get("simulate_env_error"): return {"status": "error", "error": f"Simulated env error: {inputs['simulate_env_error']}"}
-                return {
-                    "status": "success",
-                    "action": action,
-                    "output_file": inputs.get("output_file", f"output_{self.name}.json"),
-                }
+                return {"status": "success", "action": action, "output_file": inputs.get("output_file", f"output_{self.name}.json")}
         for name in ["robot_modeling", "parameter_optimizer", "urdf_generator"]:
             self._skill_executors[name] = MockExecutor(name)
 
-    def set_executor_mode(self, use_real: bool) -> None:
-        self._use_real_executors = use_real
-
-    def get_executor_mode(self) -> str:
-        return "real" if self._use_real_executors else "mock"
-
-    def _get_executor(self, name: str):
-        if self._use_real_executors:
-            return self._real_skill_executors.get(name) or self._skill_executors.get(name)
-        return self._skill_executors.get(name)
+    def list_workflows(self) -> List[str]: return list(self.workflows.keys())
+    def get_workflow(self, name: str) -> Optional[Dict[str, Any]]: return self.workflows.get(name)
 
     def validate_workflow(self, name: str) -> tuple[bool, str]:
-        workflow = self.workflows.get(name)
+        workflow = self.get_workflow(name)
         if not workflow: return False, f"Workflow '{name}' not found"
         return True, "Workflow is valid"
 
@@ -298,18 +245,25 @@ class WorkflowOrchestrator:
         self.workflows[name] = {"name": name, "description": description, "steps": steps}
         return True
 
+    def get_executor_mode(self) -> str: return "real" if self._use_real_executors else "mock"
+    def _get_executor(self, name: str):
+        if self._use_real_executors: return self._real_skill_executors.get(name) or self._skill_executors.get(name)
+        return self._skill_executors.get(name)
+
     def _get_execution_strategy(self) -> str:
         strategy = self._execution_context.get("execution_strategy")
         if strategy is None:
-            return "resume" if self._execution_context.get("skip_if_exists") else self.DEFAULT_EXECUTION_STRATEGY
-        return str(strategy).strip().lower()
-
-    def _get_output_root(self) -> Optional[str]:
-        return self._execution_context.get("output_root")
+            if "skip_if_exists" in self._execution_context:
+                return "resume" if self._execution_context["skip_if_exists"] else "force"
+            return self.DEFAULT_EXECUTION_STRATEGY
+        normalized = str(strategy).strip().lower()
+        if normalized not in self.VALID_EXECUTION_STRATEGIES:
+            raise ValueError(f"Invalid execution_strategy '{strategy}'")
+        return normalized
 
     def _resolve_output_file_path(self, output_file: Any) -> Any:
         if not isinstance(output_file, str) or not output_file: return output_file
-        root = self._get_output_root()
+        root = self._execution_context.get("output_root")
         if not root or os.path.isabs(output_file): return output_file
         return os.path.normpath(os.path.join(root, output_file))
 
@@ -333,7 +287,7 @@ class WorkflowOrchestrator:
 
     def _write_step_artifact(self, workflow_name: str, step: WorkflowStep, inputs: Dict, index: int) -> Optional[str]:
         if self.get_executor_mode() != "real": return None
-        base_dir = self._get_output_root() or ".output"
+        base_dir = self._execution_context.get("output_root") or ".output"
         artifact_dir = os.path.join(base_dir, "workflow_artifacts", workflow_name.replace("/", "_"))
         os.makedirs(artifact_dir, exist_ok=True)
         path = os.path.join(artifact_dir, f"{index:02d}_{step.name}.json")
@@ -344,29 +298,30 @@ class WorkflowOrchestrator:
         except Exception: return None
 
     def execute_workflow(self, name: str, parameters: Optional[Dict] = None, use_real: Optional[bool] = None, progress_callback: Optional[Callable] = None) -> WorkflowResult:
-        original_mode = self._use_real_executors
-        self._progress_callback = progress_callback
+        orig_mode = self._use_real_executors
         if use_real is not None: self._use_real_executors = use_real
-        self._execution_context = parameters or {}
-
-        workflow = self.workflows.get(name)
+        self._progress_callback, self._execution_context = progress_callback, parameters or {}
+        try: self._get_execution_strategy()
+        except ValueError as exc:
+            res = WorkflowResult(name, WorkflowStatus.FAILED, error_message=str(exc))
+            res.end_time = datetime.now()
+            return res
+        workflow = self.get_workflow(name)
         if not workflow: return WorkflowResult(name, WorkflowStatus.FAILED, error_message="Workflow not found")
-
         result = WorkflowResult(workflow_name=name, status=WorkflowStatus.RUNNING)
         total_steps = len(workflow["steps"])
         self._emit_progress(result, "workflow_started", total_steps=total_steps)
-
         for i, step_def in enumerate(workflow["steps"], 1):
             step = self._execute_step(step_def, result, name, i, total_steps)
             result.steps.append(step)
+            self._emit_progress(result, "step_finished", current_step=step.to_dict(), step_index=i, total_steps=total_steps)
             if step.status == StepStatus.FAILED:
                 result.status = WorkflowStatus.FAILED
                 break
-
         if result.status == WorkflowStatus.RUNNING: result.status = WorkflowStatus.COMPLETED
         result.end_time = datetime.now()
         self._emit_progress(result, "workflow_finished")
-        self._use_real_executors = original_mode
+        self._use_real_executors = orig_mode
         return result
 
     def _execute_step(self, step_def: Dict, result: WorkflowResult, wf_name: str, index: int, total: int) -> WorkflowStep:
@@ -374,43 +329,32 @@ class WorkflowOrchestrator:
         step = WorkflowStep(name=step_def["name"], skill_executor=step_def["skill_executor"], action=step_def["action"], inputs=step_def.get("inputs", {}), policy=policy)
         step.status, step.start_time = StepStatus.RUNNING, datetime.now()
         self._emit_progress(result, "step_started", current_step=step.to_dict(), step_index=index, total_steps=total)
-
         resolved = self._resolve_variables(step.inputs, result)
         if "output_file" in resolved: resolved["output_file"] = self._resolve_output_file_path(resolved["output_file"])
-
-        # Resume logic
         if self._get_execution_strategy() == "resume" and resolved.get("output_file") and os.path.exists(resolved["output_file"]):
             step.status, step.output = StepStatus.SKIPPED, {"status": "success", "skipped": True}
             step.end_time = datetime.now()
             return step
-
         max_att = policy.max_retries + 1
         for att in range(1, max_att + 1):
             step.attempts = att
             try:
                 executor = self._get_executor(step.skill_executor)
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                    future = pool.submit(executor.execute, step.action, resolved)
-                    output = future.result(timeout=policy.timeout)
-                
-                if isinstance(output, dict) and output.get("status") == "error":
-                    raise EnvironmentalError(output.get("error"))
+                    output = pool.submit(executor.execute, step.action, resolved).result(timeout=policy.timeout)
+                if isinstance(output, dict) and output.get("status") == "error": raise EnvironmentalError(output.get("error"))
                 step.output, step.status = output, StepStatus.COMPLETED
                 break
             except Exception as e:
                 step.error = str(e)
                 if att == max_att: step.status = StepStatus.FAILED
-        
         step.end_time = datetime.now()
         step.artifact_path = self._write_step_artifact(wf_name, step, resolved, index)
-        self._emit_progress(result, "step_finished", current_step=step.to_dict(), step_index=index, total_steps=total)
         return step
 
     def _resolve_variables(self, inputs: Any, result: WorkflowResult) -> Any:
-        if isinstance(inputs, dict):
-            return {k: self._resolve_variables(v, result) for k, v in inputs.items()}
-        if isinstance(inputs, list):
-            return [self._resolve_variables(v, result) for v in inputs]
+        if isinstance(inputs, dict): return {k: self._resolve_variables(v, result) for k, v in inputs.items()}
+        if isinstance(inputs, list): return [self._resolve_variables(v, result) for v in inputs]
         if isinstance(inputs, str) and inputs.startswith("{") and inputs.endswith("}"):
             ref = inputs[1:-1]
             if "." in ref:
@@ -420,34 +364,45 @@ class WorkflowOrchestrator:
         return inputs
 
     def execute_task_graph(self, graph: TaskGraph, parameters: Optional[Dict] = None, use_real: Optional[bool] = None, progress_callback: Optional[Callable] = None) -> WorkflowResult:
-        original_mode = self._use_real_executors
-        self._progress_callback = progress_callback
+        orig_mode = self._use_real_executors
         if use_real is not None: self._use_real_executors = use_real
-        self._execution_context = parameters or {}
-        
-        result = WorkflowResult(workflow_name="task_graph_execution", status=WorkflowStatus.RUNNING)
+        self._progress_callback, self._execution_context = progress_callback, parameters or {}
+        result = WorkflowResult(workflow_name="task_graph", status=WorkflowStatus.RUNNING)
         total_nodes = len(graph.nodes)
         self._emit_progress(result, "workflow_started", total_steps=total_nodes)
-
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
                 while True:
                     runnable = graph.get_runnable_nodes()
                     if not runnable:
-                        result.status = WorkflowStatus.FAILED if any(n.status == TaskNodeStatus.PENDING for n in graph.nodes.values()) else WorkflowStatus.COMPLETED
+                        # V2.1 Refinement: Determine if we finished successfully or stalled
+                        executed_steps = len(result.steps)
+                        any_failed = any(n.status == TaskNodeStatus.FAILURE for n in graph.nodes.values())
+                        
+                        # Mark untaken branches as SKIPPED for clearer auditing
+                        for n in graph.nodes.values():
+                            if n.status == TaskNodeStatus.PENDING:
+                                n.status = TaskNodeStatus.SKIPPED
+
+                        if executed_steps == 0 and len(graph.nodes) > 0:
+                            # Not a single node could be started -> Deadlock or Cycle detected
+                            result.status = WorkflowStatus.FAILED
+                            result.error_message = "TaskGraph stalled: no nodes are runnable. Check for cycles."
+                        elif any_failed:
+                            result.status = WorkflowStatus.FAILED
+                        else:
+                            result.status = WorkflowStatus.COMPLETED
                         break
-                    
                     futures = {pool.submit(self._execute_step, {"name": n.name, "skill_executor": n.skill, "action": n.action, "inputs": n.params}, result, "graph", 0, total_nodes): n for n in runnable}
                     for f in concurrent.futures.as_completed(futures):
                         node, step = futures[f], f.result()
                         node.status = TaskNodeStatus.SUCCESS if step.status == StepStatus.COMPLETED else TaskNodeStatus.FAILURE
                         result.steps.append(step)
-            
+                        self._emit_progress(result, "step_finished", current_step=step.to_dict())
             result.end_time = datetime.now()
             self._emit_progress(result, "workflow_finished")
             return result
-        finally:
-            self._use_real_executors = original_mode
+        finally: self._use_real_executors = orig_mode
 
 _orchestrator_instance = None
 def get_workflow_orchestrator():
