@@ -105,7 +105,6 @@ class BasePlanner:
 
 @dataclass
 class Point:
-...
     """二维点"""
 
     x: float

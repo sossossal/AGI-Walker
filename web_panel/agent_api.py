@@ -198,8 +198,21 @@ def build_router(app: FastAPI) -> APIRouter:
 
     @router.get("/api/godot_skills/list")
     async def list_godot_skills_route():
-        """获取所有可用的 Godot 技能"""
-        return list_godot_skills(app)
+        """获取所有可用的 Godot 技能 (V3.0 增强版)"""
+        backend = get_godot_agent_backend(app)
+        result = backend.list_skills()
+        
+        # 强制修正逻辑：不再依赖严格的类型检查，而是通过后端标志或环境变量判定
+        is_modern = (
+            getattr(backend, "backend_mode", "") == "godot-agent" or
+            os.getenv("AGI_WALKER_GODOT_AGENT_BACKEND", "").strip().lower() == "godot-agent" or
+            "Modern" in type(backend).__name__
+        )
+        
+        if is_modern and isinstance(result, dict):
+            result["compatibility_alias"] = True
+            
+        return result
 
     @router.post("/api/godot_skills/apply")
     async def apply_godot_skill_route(req: GodotSkillApplyRequest):

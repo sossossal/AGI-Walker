@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional
 
-from ai_model import BaseAIModel, create_ai_model
-from medium_model import MediumModel
+from agi_walker.core.controllers.ai_model import BaseAIModel, create_ai_model
+from agi_walker.core.controllers.medium_model import MediumModel
 
 import logging
 

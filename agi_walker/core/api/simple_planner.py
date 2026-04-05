@@ -34,14 +34,14 @@ class SimplePlanner(BasePlanner):
         
         move_node = TaskNode(
             name="move_to_point",
-            skill="robot-modeling", # Placeholder skill
+            skill="robot_modeling", 
             action="move",
             params={"target": [5.0, 5.0]}
         )
         
         inspect_node = TaskNode(
             name="inspect_area",
-            skill="vision-processor",
+            skill="vision_processor",
             action="capture_and_analyze"
         )
         
@@ -67,14 +67,14 @@ class SimplePlanner(BasePlanner):
         
         build_node = TaskNode(
             name="create_model",
-            skill="robot-modeling",
+            skill="robot_modeling",
             action="create_from_template",
             params={"template": "biped_basic"}
         )
         
         optimize_node = TaskNode(
             name="optimize_params",
-            skill="parameter-optimizer",
+            skill="parameter_optimizer",
             action="optimize_mass_distribution"
         )
         

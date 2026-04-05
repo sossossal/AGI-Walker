@@ -80,7 +80,7 @@ class GodotStudioRouter:
         # 会话上下文（跨命令共享状态）
         self.session_context: Dict[str, Any] = {}
 
-        print("🎮 Godot Studio Agent 已就绪，共", len(self._roles), "个角色")
+        print("Godot Studio Agent ready with", len(self._roles), "roles")
 
     # ─── 初始化 ─────────────────────────────────────────────────────────────
 

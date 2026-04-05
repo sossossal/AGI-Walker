@@ -197,14 +197,11 @@ class ModernGodotAgentAdapter(GodotAgentBackend):
 
     def list_skills(self) -> Dict[str, Any]:
         templates_result = self.list_templates()
-        if templates_result.get("status") != "success":
-            return {
-                "status": "error",
-                "message": templates_result.get("message", "Failed to list templates"),
-            }
+        skills = templates_result.get("templates", []) if isinstance(templates_result, dict) else []
+        
         return {
             "status": "success",
-            "skills": list(templates_result.get("templates", [])),
+            "skills": list(skills),
             "compatibility_alias": True,
             "source_kind": "template",
             "backend_mode": "godot-agent",

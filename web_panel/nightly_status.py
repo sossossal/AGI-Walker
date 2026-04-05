@@ -5,7 +5,7 @@ import os
 import time
 import urllib.parse
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List
 
 
@@ -208,7 +208,7 @@ class NightlyStatusProvider:
             "success_rate": success_trend,
             "job_durations": job_durations,
             "failure_clusters": failure_clusters,
-            "period_days": (datetime.now() - _parse_timestamp(runs[-1].get("created_at"))).days if runs else 0
+            "period_days": (datetime.now(timezone.utc) - _parse_timestamp(runs[-1].get("created_at"))).days if runs else 0
         }
 
     def _fetch_dashboard(self, limit_runs: int) -> Dict[str, Any]:
