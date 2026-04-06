@@ -7,13 +7,15 @@ from typing import List, Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
-class RiskLevel(Enum):
-    """风险等级"""
-    SAFE = "safe"
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
+from enum import IntEnum
+
+class RiskLevel(IntEnum):
+    """风险等级 (支持比较)"""
+    SAFE = 0
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+    CRITICAL = 4
 
 @dataclass
 class SafetyCheckResult:
@@ -62,11 +64,11 @@ class PredictiveSafetyChecker:
     Predicts consequences and filters actions.
     """
     THRESHOLDS = {
-        "max_roll": 30.0,
-        "max_pitch": 30.0,
-        "min_height": 0.45,
-        "critical_roll": 45.0,
-        "critical_pitch": 45.0
+        "max_roll": 15.0,      # 收紧: 原为 30.0
+        "max_pitch": 15.0,     # 收紧
+        "min_height": 0.55,    # 提高安全高度
+        "critical_roll": 30.0,
+        "critical_pitch": 30.0
     }
 
     def __init__(self, physics_model: Optional[SimplifiedPhysicsModel] = None, prediction_horizon: int = 8):

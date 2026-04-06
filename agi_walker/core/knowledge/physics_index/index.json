@@ -1,0 +1,28 @@
+[
+  {
+    "id": "builtin_0",
+    "category": "物理稳定性",
+    "title": "ZMP 平衡判据",
+    "content": "零力矩点 (ZMP) 必须保持在足端支撑多边形内，以确保机器人不发生倾倒。",
+    "keywords": [
+      "平衡",
+      "ZMP",
+      "稳定",
+      "重心"
+    ],
+    "embedding": null
+  },
+  {
+    "id": "builtin_1",
+    "category": "物理稳定性",
+    "title": "摩擦力补偿",
+    "content": "在光滑地面（摩擦系数 < 0.3）时，应减小关节峰值扭矩，避免足端打滑。",
+    "keywords": [
+      "摩擦",
+      "打滑",
+      "地面",
+      "补偿"
+    ],
+    "embedding": null
+  }
+]
