@@ -1,0 +1,15 @@
+{
+  "workflow": "simulation_ready_robot_smoke_real",
+  "step": "load_model",
+  "inputs": {
+    "config_file": "configs/tutorial_01_biped.json",
+    "output_file": "D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\simulation_ready_real_a1a1c256d7e14265a1fb5053b8ea8c5e\\sim_robot.json"
+  },
+  "output": {
+    "status": "success",
+    "action": "load_config",
+    "source_config": "configs/tutorial_01_biped.json",
+    "output_file": "D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\simulation_ready_real_a1a1c256d7e14265a1fb5053b8ea8c5e\\sim_robot.json",
+    "message": "Loaded config from: configs/tutorial_01_biped.json"
+  }
+}

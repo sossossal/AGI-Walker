@@ -14,9 +14,11 @@ from enum import Enum
 import json
 import os
 import time
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-# V2.1 TaskGraph Integration
+# V2.1/V3.0 Path & TaskGraph Integration
+from agi_walker.core.utils.paths import RuntimePaths
 from agi_walker.core.api.task_planning import TaskGraph, TaskNode, TaskNodeStatus
 
 logger = logging.getLogger(__name__)
@@ -40,13 +42,13 @@ class WorkflowTimeoutError(WorkflowBaseError):
     pass
 
 class WorkflowStateStore:
-    """Handles persistence of workflow execution states"""
-    def __init__(self, base_dir: str = ".output/workflow_states"):
-        self.base_dir = base_dir
-        os.makedirs(base_dir, exist_ok=True)
+    """Handles persistence of workflow execution states (V3.0 isolated)"""
+    def __init__(self, base_dir: Optional[Path] = None):
+        self.base_dir = base_dir or RuntimePaths.STATES
+        self.base_dir.mkdir(parents=True, exist_ok=True)
 
     def save_state(self, run_id: str, result: "WorkflowResult"):
-        path = os.path.join(self.base_dir, f"{run_id}.json")
+        path = self.base_dir / f"{run_id}.json"
         try:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(result.to_dict(), f, indent=2, ensure_ascii=False)
@@ -54,8 +56,8 @@ class WorkflowStateStore:
             logger.warning(f"Failed to save workflow state for {run_id}: {e}")
 
     def load_state(self, run_id: str) -> Optional[Dict[str, Any]]:
-        path = os.path.join(self.base_dir, f"{run_id}.json")
-        if os.path.exists(path):
+        path = self.base_dir / f"{run_id}.json"
+        if path.exists():
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     return json.load(f)
@@ -199,17 +201,17 @@ class WorkflowOrchestrator:
         self.workflows["robot_creation_pipeline"] = {
             "name": "robot_creation_pipeline",
             "steps": [
-                {"name": "create_model", "skill_executor": "robot_modeling", "action": "create_from_template", "inputs": {"template": "biped_basic", "output_file": ".output/created_robot.json"}},
-                {"name": "optimize_params", "skill_executor": "parameter_optimizer", "action": "optimize_mass_distribution", "inputs": {"robot_config": "{create_model.output_file}", "output_file": ".output/optimized_robot.json", "target_com_height": 0.4}},
-                {"name": "export_urdf", "skill_executor": "urdf_generator", "action": "export_to_format", "inputs": {"robot_config": "{optimize_params.output_file}", "output_format": "urdf", "output_file": "exports/robot.urdf"}},
+                {"name": "create_model", "skill_executor": "robot_modeling", "action": "create_from_template", "inputs": {"template": "biped_basic", "output_file": "created_robot.json"}},
+                {"name": "optimize_params", "skill_executor": "parameter_optimizer", "action": "optimize_mass_distribution", "inputs": {"robot_config": "{create_model.output_file}", "output_file": "optimized_robot.json", "target_com_height": 0.4}},
+                {"name": "export_urdf", "skill_executor": "urdf_generator", "action": "export_to_format", "inputs": {"robot_config": "{optimize_params.output_file}", "output_format": "urdf", "output_file": "robot.urdf"}},
             ]
         }
         self.workflows["simulation_ready_robot"] = {
             "name": "simulation_ready_robot",
             "steps": [
-                {"name": "load_model", "skill_executor": "robot_modeling", "action": "load_config", "inputs": {"config_file": "configs/tutorial_01_biped.json", "output_file": ".output/sim_robot.json"}},
-                {"name": "validate_physics", "skill_executor": "parameter_optimizer", "action": "validate_physics", "inputs": {"robot_config": "{load_model.output_file}", "output_file": ".output/validated_robot.json"}},
-                {"name": "export_for_sim", "skill_executor": "urdf_generator", "action": "export_to_format", "inputs": {"robot_config": "{validate_physics.output_file}", "output_format": "sdf", "output_file": "exports/robot_sim.sdf"}},
+                {"name": "load_model", "skill_executor": "robot_modeling", "action": "load_config", "inputs": {"config_file": "configs/tutorial_01_biped.json", "output_file": "sim_robot.json"}},
+                {"name": "validate_physics", "skill_executor": "parameter_optimizer", "action": "validate_physics", "inputs": {"robot_config": "{load_model.output_file}", "output_file": "validated_robot.json"}},
+                {"name": "export_for_sim", "skill_executor": "urdf_generator", "action": "export_to_format", "inputs": {"robot_config": "{validate_physics.output_file}", "output_format": "sdf", "output_file": "robot_sim.sdf"}},
             ]
         }
 
@@ -235,11 +237,9 @@ class WorkflowOrchestrator:
 
     def list_workflows(self) -> List[str]: return list(self.workflows.keys())
     def get_workflow(self, name: str) -> Optional[Dict[str, Any]]: return self.workflows.get(name)
-
     def validate_workflow(self, name: str) -> tuple[bool, str]:
-        workflow = self.get_workflow(name)
-        if not workflow: return False, f"Workflow '{name}' not found"
-        return True, "Workflow is valid"
+        wf = self.get_workflow(name)
+        return (True, "Valid") if wf else (False, "Not found")
 
     def create_custom_workflow(self, name: str, steps: List[Dict], description: str = "") -> bool:
         self.workflows[name] = {"name": name, "description": description, "steps": steps}
@@ -251,35 +251,36 @@ class WorkflowOrchestrator:
         return self._skill_executors.get(name)
 
     def _get_execution_strategy(self) -> str:
-        strategy = self._execution_context.get("execution_strategy")
+        ctx = self._execution_context
+        strategy = ctx.get("execution_strategy")
         if strategy is None:
-            if "skip_if_exists" in self._execution_context:
-                return "resume" if self._execution_context["skip_if_exists"] else "force"
-            return self.DEFAULT_EXECUTION_STRATEGY
+            return "resume" if ctx.get("skip_if_exists") else self.DEFAULT_EXECUTION_STRATEGY
         normalized = str(strategy).strip().lower()
-        if normalized not in self.VALID_EXECUTION_STRATEGIES:
-            raise ValueError(f"Invalid execution_strategy '{strategy}'")
+        if normalized not in self.VALID_EXECUTION_STRATEGIES: raise ValueError(f"Invalid execution_strategy '{strategy}'")
         return normalized
 
     def _resolve_output_file_path(self, output_file: Any) -> Any:
         if not isinstance(output_file, str) or not output_file: return output_file
+        
+        # V1.0 Test Contract: If the path is already absolute, use it directly.
+        if os.path.isabs(output_file) or Path(output_file).is_absolute():
+            return os.path.normpath(output_file)
+        
+        # Priority 1: Use explicit output_root (common in tests)
         root = self._execution_context.get("output_root")
-        if not root or os.path.isabs(output_file): return output_file
-        return os.path.normpath(os.path.join(root, output_file))
+        if root: return os.path.normpath(os.path.join(root, output_file))
+        
+        # Priority 2: Use global data root (standard V3.0 isolation)
+        return os.path.normpath(os.path.join(str(RuntimePaths.DATA_ROOT), output_file))
 
     def _emit_progress(self, result: WorkflowResult, event: str, **kwargs) -> None:
         if not self._progress_callback: return
         try:
             payload = {
-                "event": event,
-                "workflow_name": result.workflow_name,
-                "workflow_status": result.status.value,
-                "timestamp": datetime.now().isoformat(),
-                "completed_steps": result.completed_steps,
-                "skipped_steps": result.skipped_steps,
-                "failed_steps": result.failed_steps,
-                "success_rate": result.success_rate,
-                "steps": [s.to_dict() for s in result.steps],
+                "event": event, "workflow_name": result.workflow_name, "workflow_status": result.status.value,
+                "timestamp": datetime.now().isoformat(), "completed_steps": result.completed_steps,
+                "skipped_steps": result.skipped_steps, "failed_steps": result.failed_steps,
+                "success_rate": result.success_rate, "steps": [s.to_dict() for s in result.steps],
                 **kwargs
             }
             self._progress_callback(payload)
@@ -287,14 +288,19 @@ class WorkflowOrchestrator:
 
     def _write_step_artifact(self, workflow_name: str, step: WorkflowStep, inputs: Dict, index: int) -> Optional[str]:
         if self.get_executor_mode() != "real": return None
-        base_dir = self._execution_context.get("output_root") or ".output"
-        artifact_dir = os.path.join(base_dir, "workflow_artifacts", workflow_name.replace("/", "_"))
+        # Align with tests: use output_root if provided, otherwise isolated paths
+        root = self._execution_context.get("output_root")
+        if root:
+            artifact_dir = root
+        else:
+            artifact_dir = RuntimePaths.get_workflow_artifact_dir(workflow_name)
+            
         os.makedirs(artifact_dir, exist_ok=True)
         path = os.path.join(artifact_dir, f"{index:02d}_{step.name}.json")
         try:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump({"workflow": workflow_name, "step": step.name, "inputs": inputs, "output": step.output}, f, indent=2)
-            return path
+            return str(path)
         except Exception: return None
 
     def execute_workflow(self, name: str, parameters: Optional[Dict] = None, use_real: Optional[bool] = None, progress_callback: Optional[Callable] = None) -> WorkflowResult:
@@ -364,6 +370,7 @@ class WorkflowOrchestrator:
         return inputs
 
     def execute_task_graph(self, graph: TaskGraph, parameters: Optional[Dict] = None, use_real: Optional[bool] = None, progress_callback: Optional[Callable] = None) -> WorkflowResult:
+        """Execute mission TaskGraph with DAG logic and concurrency."""
         orig_mode = self._use_real_executors
         if use_real is not None: self._use_real_executors = use_real
         self._progress_callback, self._execution_context = progress_callback, parameters or {}
@@ -375,23 +382,13 @@ class WorkflowOrchestrator:
                 while True:
                     runnable = graph.get_runnable_nodes()
                     if not runnable:
-                        # V2.1 Refinement: Determine if we finished successfully or stalled
-                        executed_steps = len(result.steps)
                         any_failed = any(n.status == TaskNodeStatus.FAILURE for n in graph.nodes.values())
-                        
-                        # Mark untaken branches as SKIPPED for clearer auditing
                         for n in graph.nodes.values():
-                            if n.status == TaskNodeStatus.PENDING:
-                                n.status = TaskNodeStatus.SKIPPED
-
-                        if executed_steps == 0 and len(graph.nodes) > 0:
-                            # Not a single node could be started -> Deadlock or Cycle detected
-                            result.status = WorkflowStatus.FAILED
-                            result.error_message = "TaskGraph stalled: no nodes are runnable. Check for cycles."
-                        elif any_failed:
-                            result.status = WorkflowStatus.FAILED
+                            if n.status == TaskNodeStatus.PENDING: n.status = TaskNodeStatus.SKIPPED
+                        if len(result.steps) == 0 and len(graph.nodes) > 0:
+                            result.status, result.error_message = WorkflowStatus.FAILED, "TaskGraph stalled"
                         else:
-                            result.status = WorkflowStatus.COMPLETED
+                            result.status = WorkflowStatus.FAILED if any_failed else WorkflowStatus.COMPLETED
                         break
                     futures = {pool.submit(self._execute_step, {"name": n.name, "skill_executor": n.skill, "action": n.action, "inputs": n.params}, result, "graph", 0, total_nodes): n for n in runnable}
                     for f in concurrent.futures.as_completed(futures):

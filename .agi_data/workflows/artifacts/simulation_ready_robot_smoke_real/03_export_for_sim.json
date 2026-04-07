@@ -1,0 +1,20 @@
+{
+  "workflow": "simulation_ready_robot_smoke_real",
+  "step": "export_for_sim",
+  "inputs": {
+    "robot_config": "D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\simulation_ready_real_a1a1c256d7e14265a1fb5053b8ea8c5e\\validated_robot.json",
+    "output_format": "sdf",
+    "output_file": "D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\simulation_ready_real_a1a1c256d7e14265a1fb5053b8ea8c5e\\robot_sim.sdf"
+  },
+  "output": {
+    "status": "success",
+    "action": "export_to_format",
+    "input_config": "D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\simulation_ready_real_a1a1c256d7e14265a1fb5053b8ea8c5e\\validated_robot.json",
+    "output_file": "D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\simulation_ready_real_a1a1c256d7e14265a1fb5053b8ea8c5e\\robot_sim.sdf",
+    "format": "sdf",
+    "file_size": 4178,
+    "valid": true,
+    "message": "Exported to sdf: D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\simulation_ready_real_a1a1c256d7e14265a1fb5053b8ea8c5e\\robot_sim.sdf",
+    "output_generated": true
+  }
+}

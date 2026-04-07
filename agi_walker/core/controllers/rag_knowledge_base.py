@@ -1,7 +1,6 @@
 """
 RAG物理知识库（Retrieval-Augmented Generation）
-离线部署版本，用于增强大模型的物理知识。
-V3.0: 切换为纯 JSON 存储以消除 Pickle 路径敏感导致的导入错误。
+V3.0: 切换为纯 JSON 存储并使用隔离的 RuntimePaths。
 """
 
 import json
@@ -10,6 +9,7 @@ import numpy as np
 from typing import List, Optional, Tuple, Dict, Any
 from dataclasses import dataclass
 from pathlib import Path
+from agi_walker.core.utils.paths import RuntimePaths
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class ExperienceEntry:
 
 class PhysicsKnowledgeBase:
     """
-    物理知识库 & 经验记忆 RAG 增强模块
+    物理知识库 & 经验记忆 RAG 增强模块 (V3.0 隔离版)
     """
 
     BUILTIN_KNOWLEDGE = [
@@ -53,9 +53,9 @@ class PhysicsKnowledgeBase:
         },
     ]
 
-    def __init__(self, index_path: str = "agi_walker/core/knowledge/physics_index", use_embeddings: bool = True):
-        self.index_path = Path(index_path)
-        self.use_embeddings = use_embeddings # Keep for interface compatibility
+    def __init__(self, index_path: Optional[Path] = None, use_embeddings: bool = True):
+        self.index_path = index_path or RuntimePaths.KNOWLEDGE
+        self.use_embeddings = use_embeddings
         self.entries: List[KnowledgeEntry] = []
         self.experiences: List[ExperienceEntry] = []
         self._load_or_create_index()
@@ -89,12 +89,12 @@ class PhysicsKnowledgeBase:
         with open(self.index_path / "index.json", "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
-    def index_historical_trajectories(self, trajectories_dir: str = ".output/trajectories"):
-        path = Path(trajectories_dir)
-        if not path.exists(): return
+    def index_historical_trajectories(self, trajectories_dir: Optional[Path] = None):
+        target_dir = trajectories_dir or RuntimePaths.TRAJECTORIES
+        if not target_dir.exists(): return
         
-        logger.info(f"🧠 扫描历史轨迹: {trajectories_dir}")
-        for traj_file in path.glob("*.json"):
+        logger.info(f"🧠 扫描历史轨迹: {target_dir}")
+        for traj_file in target_dir.glob("*.json"):
             try:
                 with open(traj_file, "r") as f: data = json.load(f)
                 if not data: continue
@@ -114,13 +114,11 @@ class PhysicsKnowledgeBase:
         return sorted(self.experiences, key=dist)[:top_k]
 
     def augment_prompt(self, base_prompt: str, sensor_data: dict) -> str:
-        # 简单关键词检索模拟
         context = " ".join([e.content for e in self.entries[:2]])
         exp_context = ""
         exps = self.retrieve_experience(sensor_data)
         if exps:
             exp_context = f"历史参考: 在姿态 {exps[0].state_pattern} 附近，执行动作 {exps[0].action_ref} 成功。"
-        
         return f"{base_prompt}\n\n物理背景: {context}\n{exp_context}"
 
     def get_stats(self) -> dict:

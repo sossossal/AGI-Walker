@@ -5,17 +5,18 @@ import time
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+from agi_walker.core.utils.paths import RuntimePaths
 
 logger = logging.getLogger(__name__)
 
 class OTAManager:
     """
-    AGI-Walker V3.0 Over-The-Air (OTA) Evolution Manager.
+    AGI-Walker V3.0 Over-The-Air (OTA) Evolution Manager (Isolated).
     Closes the loop: Trajectory -> Auto-Finetune -> Weight Deployment.
     """
-    def __init__(self, model_dir: str = "models/registry", trajectory_dir: str = ".output/trajectories"):
-        self.model_dir = Path(model_dir)
-        self.trajectory_dir = Path(trajectory_dir)
+    def __init__(self, model_dir: Optional[Path] = None, trajectory_dir: Optional[Path] = None):
+        self.model_dir = model_dir or RuntimePaths.MODELS
+        self.trajectory_dir = trajectory_dir or RuntimePaths.TRAJECTORIES
         self.model_dir.mkdir(parents=True, exist_ok=True)
         
         # 模型版本库索引
@@ -24,8 +25,11 @@ class OTAManager:
 
     def _load_registry(self) -> Dict[str, Any]:
         if self.registry_file.exists():
-            with open(self.registry_file, "r") as f:
-                return json.load(f)
+            try:
+                with open(self.registry_file, "r") as f:
+                    return json.load(f)
+            except Exception:
+                pass
         return {"current_version": "v3.0.0", "history": []}
 
     def scan_and_trigger_evolution(self) -> bool:
@@ -37,42 +41,36 @@ class OTAManager:
             try:
                 with open(traj, "r") as f:
                     data = json.load(f)
-                # 简单判定：如果包含大量成功的交互
                 if data and len(data) > 50:
                     success_count += 1
             except Exception:
                 continue
         
-        # 触发阈值：累积 5 条长成功轨迹则开启微调
         if success_count >= 5:
             logger.info(f"🚀 Evolution Triggered: {success_count} new trajectories ready.")
             return self._run_finetune_workflow()
-        
         return False
 
     def _run_finetune_workflow(self) -> bool:
-        """
-        触发模型微调 Workflow (调用 WorkflowOrchestrator)
-        """
         logger.info("Triggering 'model_evolution_pipeline'...")
-        # 此处模拟流程：1. 聚合数据 -> 2. 执行微调 -> 3. 产生新权重
         new_version = self._increment_version(self.registry["current_version"])
         
         # 模拟产生新模型文件
         new_model_path = self.model_dir / f"walker_brain_{new_version}.onnx"
-        with open(new_model_path, "w") as f: f.write("dummy_onnx_weights")
-        
-        # 更新注册表
-        self.registry["current_version"] = new_version
-        self.registry["history"].append({
-            "version": new_version,
-            "timestamp": datetime.now().isoformat(),
-            "path": str(new_model_path)
-        })
-        self._save_registry()
-        
-        logger.info(f"✅ New Model Version {new_version} ready for OTA.")
-        return True
+        try:
+            with open(new_model_path, "w") as f: f.write("dummy_onnx_weights")
+            self.registry["current_version"] = new_version
+            self.registry["history"].append({
+                "version": new_version,
+                "timestamp": datetime.now().isoformat(),
+                "path": str(new_model_path)
+            })
+            self._save_registry()
+            logger.info(f"✅ New Model Version {new_version} ready for OTA.")
+            return True
+        except Exception as e:
+            logger.error(f"Finetune simulation failed: {e}")
+            return False
 
     def _increment_version(self, version: str) -> str:
         parts = version.strip("v").split(".")

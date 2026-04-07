@@ -1,0 +1,16 @@
+{
+  "workflow": "robot_creation_pipeline_smoke_real",
+  "step": "optimize_params",
+  "inputs": {
+    "robot_config": "D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\robot_creation_real_09afb7997f58455883996300404311aa\\created_robot.json",
+    "output_file": "D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\robot_creation_real_09afb7997f58455883996300404311aa\\optimized_robot.json",
+    "target_com_height": 0.4
+  },
+  "output": {
+    "status": "success",
+    "action": "optimize_mass_distribution",
+    "input_config": "D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\robot_creation_real_09afb7997f58455883996300404311aa\\created_robot.json",
+    "output_file": "D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\robot_creation_real_09afb7997f58455883996300404311aa\\optimized_robot.json",
+    "message": "Mass distribution optimized successfully"
+  }
+}

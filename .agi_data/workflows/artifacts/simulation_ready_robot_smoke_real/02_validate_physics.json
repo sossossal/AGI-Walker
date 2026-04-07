@@ -1,0 +1,22 @@
+{
+  "workflow": "simulation_ready_robot_smoke_real",
+  "step": "validate_physics",
+  "inputs": {
+    "robot_config": "D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\simulation_ready_real_a1a1c256d7e14265a1fb5053b8ea8c5e\\sim_robot.json",
+    "output_file": "D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\simulation_ready_real_a1a1c256d7e14265a1fb5053b8ea8c5e\\validated_robot.json"
+  },
+  "output": {
+    "status": "success",
+    "action": "validate_physics",
+    "input_config": "D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\simulation_ready_real_a1a1c256d7e14265a1fb5053b8ea8c5e\\sim_robot.json",
+    "output_file": "D:\\\u65b0\u5efa\u6587\u4ef6\u5939\\AGI-Walker\\.agi_data\\test_env\\workflow_smoke\\simulation_ready_real_a1a1c256d7e14265a1fb5053b8ea8c5e\\validated_robot.json",
+    "validation_results": {
+      "physics_valid": true,
+      "collision_free": true,
+      "joint_limits_ok": true,
+      "parts_count": 5,
+      "connections_count": 4
+    },
+    "message": "Physics validation completed"
+  }
+}

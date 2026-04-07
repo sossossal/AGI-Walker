@@ -1,0 +1,20 @@
+{
+  "workflow": "robot_creation_pipeline",
+  "step": "export_urdf",
+  "inputs": {
+    "robot_config": "test_env\\smoke_runs\\final_stable_v3_fully_separated_and_fixed_v3\\robot_creation_real\\optimized_robot.json",
+    "output_format": "urdf",
+    "output_file": "test_env\\smoke_runs\\final_stable_v3_fully_separated_and_fixed_v3\\robot_creation_real\\robot.urdf"
+  },
+  "output": {
+    "status": "success",
+    "action": "export_to_format",
+    "input_config": "test_env\\smoke_runs\\final_stable_v3_fully_separated_and_fixed_v3\\robot_creation_real\\optimized_robot.json",
+    "output_file": "test_env\\smoke_runs\\final_stable_v3_fully_separated_and_fixed_v3\\robot_creation_real\\robot.urdf",
+    "format": "urdf",
+    "file_size": 61,
+    "valid": true,
+    "message": "Exported to urdf: test_env\\smoke_runs\\final_stable_v3_fully_separated_and_fixed_v3\\robot_creation_real\\robot.urdf",
+    "output_generated": true
+  }
+}

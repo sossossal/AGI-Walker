@@ -1,0 +1,15 @@
+{
+  "workflow": "robot_creation_pipeline",
+  "step": "create_model",
+  "inputs": {
+    "template": "biped_basic",
+    "output_file": "test_env\\smoke_runs\\final_stable_v3_fully_separated_and_fixed_v3\\robot_creation_real\\created_robot.json"
+  },
+  "output": {
+    "status": "success",
+    "action": "create_from_template",
+    "output_file": "test_env\\smoke_runs\\final_stable_v3_fully_separated_and_fixed_v3\\robot_creation_real\\created_robot.json",
+    "template": "biped_basic",
+    "message": "Created robot from template: biped_basic"
+  }
+}
