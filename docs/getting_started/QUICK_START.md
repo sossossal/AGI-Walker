@@ -1,391 +1,391 @@
-# 🚀 快速开始指�?
+# 棣冩畬 韫囶偊鈧喎绱戞慨瀣瘹閸?
 
-欢迎使用 Godot 机器人模拟套件！本指南将帮助您快速测试已实现的所有功能�?
-
----
-
-## 📋 前置要求
-
-- �?Godot 4.2+
-- �?Python 3.8+
-- �?已完成的项目文件
+濞嗐垼绻嬫担璺ㄦ暏 Godot 閺堝搫娅掓禍鐑樐侀幏鐔奉殰娴犺绱掗張顒佸瘹閸楁鐨㈢敮顔煎И閹劌鎻╅柅鐔哥ゴ鐠囨洖鍑＄€圭偟骞囬惃鍕閺堝濮涢懗濮愨偓?
 
 ---
 
-## 🎯 测试路线�?
+## 棣冩惖 閸撳秶鐤嗙憰浣圭湴
+
+- 閴?Godot 4.2+
+- 閴?Python 3.8+
+- 閴?瀹告彃鐣幋鎰畱妞ゅ湱娲伴弬鍥︽
+
+---
+
+## 棣冨箚 濞村鐦捄顖滃殠閸?
 
 ```
-第一�? 测试零件库（Python�?    �?5分钟
-    �?
-第二�? 测试环境系统（Godot�?   �?10分钟
-    �?
-第三�? 测试Python API（可选）   �?15分钟
+缁楊兛绔村? 濞村鐦梿鏈垫鎼存搫绱橮ython閿?    閳?5閸掑棝鎸?
+    閳?
+缁楊兛绨╁? 濞村鐦悳顖氼暔缁崵绮洪敍鍦檕dot閿?   閳?10閸掑棝鎸?
+    閳?
+缁楊兛绗佸? 濞村鐦疨ython API閿涘牆褰查柅澶涚礆   閳?15閸掑棝鎸?
 ```
 
 ---
 
-## 第一�? 测试零件�?📚
+## 缁楊兛绔村? 濞村鐦梿鏈垫鎼?棣冩憥
 
-### 1.1 Python 环境准备
+### 1.1 Python 閻滎垰顣ㄩ崙鍡楊槵
 
 ```powershell
-# 进入 python_api 目录
-cd d:\新建文件夹\AGI-Walker\python_api
+# 鏉╂稑鍙?python_api 閻╊喖缍?
+cd d:\閺傛澘缂撻弬鍥︽婢剁AGI-Walker\python_api
 
-# 确保已安�?gymnasium �?numpy
+# 绾喕绻氬鎻掔暔鐟?gymnasium 閸?numpy
 pip install gymnasium numpy
 ```
 
-### 1.2 运行零件库测�?
+### 1.2 鏉╂劘顢戦梿鏈垫鎼存挻绁寸拠?
 
 ```powershell
-# 简单演�?
+# 缁犫偓閸楁洘绱ㄧ粈?
 python examples\demo_parts.py
 
-# 完整测试
+# 鐎瑰本鏆ｅù瀣槸
 python examples\test_parts.py
 ```
 
-**预期输出**:
+**妫板嫭婀℃潏鎾冲毉**:
 ```
 ============================================================
-机器人零件库演示
+閺堝搫娅掓禍娲祩娴犺泛绨卞鏃傘仛
 ============================================================
 
-[1] 加载零件数据�?..
-    �?成功加载 3 个零�?
-    零件列表: dynamixel_xl430_w250, dynamixel_mx106, bosch_bno055
+[1] 閸旂姾娴囬梿鏈垫閺佺増宓佹惔?..
+    閴?閹存劕濮涢崝鐘烘祰 3 娑擃亪娴傛禒?
+    闂嗘湹娆㈤崚妤勩€? dynamixel_xl430_w250, dynamixel_mx106, bosch_bno055
 
-[2] 获取 Dynamixel XL430-W250 详情...
-    型号: XL430-W250-T
-    制造商: ROBOTIS
-    堵转扭矩: 1.4 N·m
-    空载速度: 50 RPM
+[2] 閼惧嘲褰?Dynamixel XL430-W250 鐠囷附鍎?..
+    閸ㄥ褰? XL430-W250-T
+    閸掑爼鈧姴鏅? ROBOTIS
+    閸絻娴嗛幍顓犵叐: 1.4 N璺痬
+    缁岄缚娴囬柅鐔峰: 50 RPM
     ...
 
-�?所有测试通过！零件库功能正常
+閴?閹碘偓閺堝绁寸拠鏇⑩偓姘崇箖閿涗線娴傛禒璺虹氨閸旂喕鍏樺锝呯埗
 ```
 
-### 1.3 电机性能对比
+### 1.3 閻㈠灚婧€閹嗗厴鐎佃鐦?
 
 ```powershell
 python examples\test_parts.py
 ```
 
-您会看到不同电机的性能对比和性价比分析�?
+閹劋绱伴惇瀣煂娑撳秴鎮撻悽鍨簚閻ㄥ嫭鈧嗗厴鐎佃鐦崪灞锯偓褌鐜В鏂垮瀻閺嬫劑鈧?
 
 ---
 
-## 第二�? �?Godot 中测试环境系�?🌍
+## 缁楊兛绨╁? 閸?Godot 娑擃厽绁寸拠鏇犲箚婢у啰閮寸紒?棣冨
 
-### 2.1 打开 Godot 项目
+### 2.1 閹垫挸绱?Godot 妞ゅ湱娲?
 
-1. 启动 Godot 4.2+
-2. 点击 "导入"
-3. 选择 `d:\新建文件夹\AGI-Walker\godot_project\project.godot`
-4. 点击 "导入并编�?
+1. 閸氼垰濮?Godot 4.2+
+2. 閻愮懓鍤?"鐎电厧鍙?
+3. 闁瀚?`d:\閺傛澘缂撻弬鍥︽婢剁AGI-Walker\godot_project\project.godot`
+4. 閻愮懓鍤?"鐎电厧鍙嗛獮鍓佺椽鏉?
 
-### 2.2 启用插件
+### 2.2 閸氼垳鏁ら幓鎺嶆
 
-1. 进入 `项目` �?`项目设置` �?`插件`
-2. 启用 **"Robot Simulation Toolkit"**
-3. 关闭设置窗口
+1. 鏉╂稑鍙?`妞ゅ湱娲癭 閳?`妞ゅ湱娲扮拋鍓х枂` 閳?`閹绘帊娆
+2. 閸氼垳鏁?**"Robot Simulation Toolkit"**
+3. 閸忔娊妫寸拋鍓х枂缁愭褰?
 
-### 2.3 创建测试场景
+### 2.3 閸掓稑缂撳ù瀣槸閸︾儤娅?
 
-**文件** �?**新建场景**
+**閺傚洣娆?* 閳?**閺傛澘缂撻崷鐑樻珯**
 
-创建以下节点结构�?
+閸掓稑缂撴禒銉ょ瑓閼哄倻鍋ｇ紒鎾寸€敍?
 
 ```
 TestEnvironment (Node3D)
-├── EnvironmentController (Node)
-├── GroundMaterialLibrary (Node)
-├── Ground (StaticBody3D)
-�?  └── CollisionShape3D (BoxShape3D: 20x1x20)
-�?      └── MeshInstance3D (BoxMesh: 20x1x20)
-├── TestRobot (RigidBody3D)
-�?  └── CollisionShape3D (CapsuleShape3D)
-�?      └── MeshInstance3D (CapsuleMesh)
-├── Camera3D
-└── DirectionalLight3D
+閳规壕鏀㈤埞鈧?EnvironmentController (Node)
+閳规壕鏀㈤埞鈧?GroundMaterialLibrary (Node)
+閳规壕鏀㈤埞鈧?Ground (StaticBody3D)
+閳?  閳规柡鏀㈤埞鈧?CollisionShape3D (BoxShape3D: 20x1x20)
+閳?      閳规柡鏀㈤埞鈧?MeshInstance3D (BoxMesh: 20x1x20)
+閳规壕鏀㈤埞鈧?TestRobot (RigidBody3D)
+閳?  閳规柡鏀㈤埞鈧?CollisionShape3D (CapsuleShape3D)
+閳?      閳规柡鏀㈤埞鈧?MeshInstance3D (CapsuleMesh)
+閳规壕鏀㈤埞鈧?Camera3D
+閳规柡鏀㈤埞鈧?DirectionalLight3D
 ```
 
-### 2.4 附加脚本
+### 2.4 闂勫嫬濮為懘姘拱
 
-#### �?EnvironmentController 添加脚本
-
-```
-选中 EnvironmentController 节点
-�?附加脚本
-�?选择 res://scripts/environment/environment_controller.gd
-```
-
-#### �?GroundMaterialLibrary 添加脚本
+#### 缂?EnvironmentController 濞ｈ濮為懘姘拱
 
 ```
-选中 GroundMaterialLibrary 节点
-�?附加脚本
-�?选择 res://scripts/environment/ground_material_library.gd
+闁鑵?EnvironmentController 閼哄倻鍋?
+閳?闂勫嫬濮為懘姘拱
+閳?闁瀚?res://scripts/environment/environment_controller.gd
 ```
 
-#### 给根节点添加测试脚本
+#### 缂?GroundMaterialLibrary 濞ｈ濮為懘姘拱
 
 ```
-选中 TestEnvironment 节点
-�?附加脚本
-�?选择 res://scripts/test_environment.gd
+闁鑵?GroundMaterialLibrary 閼哄倻鍋?
+閳?闂勫嫬濮為懘姘拱
+閳?闁瀚?res://scripts/environment/ground_material_library.gd
 ```
 
-### 2.5 运行场景
+#### 缂佹瑦鐗撮懞鍌滃仯濞ｈ濮炲ù瀣槸閼存碍婀?
 
-1. �?**F5** 或点击播放按�?
-2. 查看控制台输�?
-
-**预期输出**:
 ```
-=== 环境系统测试 ===
+闁鑵?TestEnvironment 閼哄倻鍋?
+閳?闂勫嫬濮為懘姘拱
+閳?闁瀚?res://scripts/test_environment.gd
+```
 
-[1] 测试环境预设...
-🌍 Loaded environment preset: 地球
-🌑 Loaded environment preset: 月球
-🔴 Loaded environment preset: 火星
-  �?环境预设测试完成
+### 2.5 鏉╂劘顢戦崷鐑樻珯
 
-[2] 测试地面材质...
-  可用材质: [concrete, wood, carpet, ice, metal, sand, grass, mud]
-  - Concrete: 摩擦=0.9 弹�?0.1
-  - Wood: 摩擦=0.6 弹�?0.2
+1. 閹?**F5** 閹存牜鍋ｉ崙缁樻尡閺€鐐瘻闁?
+2. 閺屻儳婀呴幒褍鍩楅崣鎷岀翻閸?
+
+**妫板嫭婀℃潏鎾冲毉**:
+```
+=== 閻滎垰顣ㄧ化鑽ょ埠濞村鐦?===
+
+[1] 濞村鐦悳顖氼暔妫板嫯顔?..
+棣冨 Loaded environment preset: 閸︽壆鎮?
+棣冨 Loaded environment preset: 閺堝牏鎮?
+棣冩暥 Loaded environment preset: 閻忣偅妲?
+  閴?閻滎垰顣ㄦ０鍕啎濞村鐦€瑰本鍨?
+
+[2] 濞村鐦崷浼存桨閺夋劘宸?..
+  閸欘垳鏁ら弶鎰窛: [concrete, wood, carpet, ice, metal, sand, grass, mud]
+  - Concrete: 閹解晜鎽?0.9 瀵鈧?0.1
+  - Wood: 閹解晜鎽?0.6 瀵鈧?0.2
   ...
-  �?地面材质测试完成
+  閴?閸︿即娼伴弶鎰窛濞村鐦€瑰本鍨?
 
-[3] 测试动态参�?..
-  重力: 9.81 m/s²
+[3] 濞村鐦崝銊︹偓浣稿棘閺?..
+  闁插秴濮? 9.81 m/s铏?
   ...
-  �?动态参数测试完�?
+  閴?閸斻劍鈧礁寮弫鐗堢ゴ鐠囨洖鐣幋?
 ```
 
-### 2.6 交互测试
+### 2.6 娴溿倓绨板ù瀣槸
 
-运行场景后，按以下键测试�?
+鏉╂劘顢戦崷鐑樻珯閸氬函绱濋幐澶変簰娑撳鏁ù瀣槸閿?
 
-| 按键 | 功能 |
+| 閹稿鏁?| 閸旂喕鍏?|
 |------|------|
-| **1** | 切换到地球环�?|
-| **2** | 切换到月球环�?|
-| **3** | 切换到火星环�?|
-| **C** | 切换到混凝土地面 |
-| **I** | 切换到冰�?|
-| **S** | 切换到沙�?|
+| **1** | 閸掑洦宕查崚鏉挎勾閻炲啰骞嗘晶?|
+| **2** | 閸掑洦宕查崚鐗堟箑閻炲啰骞嗘晶?|
+| **3** | 閸掑洦宕查崚鎵紑閺勭喓骞嗘晶?|
+| **C** | 閸掑洦宕查崚鐗堣穿閸戞繂婀￠崷浼存桨 |
+| **I** | 閸掑洦宕查崚鏉垮暫闂?|
+| **S** | 閸掑洦宕查崚鐗堢煓閸?|
 
-观察机器人在不同环境/材质下的物理行为变化�?
+鐟欏倸鐧傞張鍝勬珤娴滃搫婀稉宥呮倱閻滎垰顣?閺夋劘宸濇稉瀣畱閻椻晝鎮婄悰灞艰礋閸欐ê瀵查妴?
 
 ---
 
-## 第三�? 测试 Python API（可选）🐍
+## 缁楊兛绗佸? 濞村鐦?Python API閿涘牆褰查柅澶涚礆棣冩倳
 
-### 3.1 准备工作
+### 3.1 閸戝棗顦銉ょ稊
 
-**注意**: 此步骤需�?Godot 仿真器运行并监听 TCP 端口 9999�?
+**濞夈劍鍓?*: 濮濄倖顒炴銈夋付鐟?Godot 娴犺法婀￠崳銊ㄧ箥鐞涘苯鑻熼惄鎴濇儔 TCP 缁旑垰褰?9999閵?
 
-当前由于 TCP 服务器需要在 Godot 场景中配置，建议跳过此步或稍后配置�?
+瑜版挸澧犻悽鍙樼艾 TCP 閺堝秴濮熼崳銊╂付鐟曚礁婀?Godot 閸︾儤娅欐稉顓㈠帳缂冾噯绱濆楦款唴鐠哄疇绻冨銈嗩劄閹存牜鈼㈤崥搴ㄥ帳缂冾喓鈧?
 
-### 3.2 安装依赖
+### 3.2 鐎瑰顥婃笟婵婄
 
 ```powershell
-cd d:\新建文件夹\AGI-Walker\python_api
+cd d:\閺傛澘缂撻弬鍥︽婢剁AGI-Walker\python_api
 pip install -r requirements.txt
 ```
 
-这会安装�?
+鏉╂瑤绱扮€瑰顥婇敍?
 - gymnasium
 - numpy
 - stable-baselines3
 - torch
 - tensorboard
 
-### 3.3 测试 Gym 环境（模拟）
+### 3.3 濞村鐦?Gym 閻滎垰顣ㄩ敍鍫熌侀幏鐕傜礆
 
-创建测试脚本 `test_gym_env.py`:
+閸掓稑缂撳ù瀣槸閼存碍婀?`test_gym_env.py`:
 
 ```python
 from godot_robot_env import GodotRobotEnv, PartsDatabase
 
-# 测试零件库集�?
+# 濞村鐦梿鏈垫鎼存捇娉﹂幋?
 db = PartsDatabase()
-print("�?Parts database loaded")
+print("閴?Parts database loaded")
 
 robot_config = db.create_robot_config([
     {"part_id": "dynamixel_xl430_w250", "joint": "hip_left"},
     {"part_id": "dynamixel_xl430_w250", "joint": "hip_right"},
 ])
-print("�?Robot config created")
+print("閴?Robot config created")
 
-# 测试环境创建
+# 濞村鐦悳顖氼暔閸掓稑缂?
 env = GodotRobotEnv(robot_config=robot_config)
-print("�?Environment created")
+print("閴?Environment created")
 
-# 测试观察空间
-print("\n观察空间:")
+# 濞村鐦憴鍌氱檪缁屾椽妫?
+print("\n鐟欏倸鐧傜粚娲？:")
 print(env.observation_space)
 
-# 测试动作空间
-print("\n动作空间:")
+# 濞村鐦崝銊ょ稊缁屾椽妫?
+print("\n閸斻劋缍旂粚娲？:")
 print(env.action_space)
 
-print("\n�?所有测试通过!")
+print("\n閴?閹碘偓閺堝绁寸拠鏇⑩偓姘崇箖!")
 ```
 
-运行:
+鏉╂劘顢?
 ```powershell
 python test_gym_env.py
 ```
 
 ---
 
-## 🎨 可视化功能一�?
+## 棣冨腹 閸欘垵顫嬮崠鏍у閼虫垝绔寸憴?
 
-### 环境预设效果
+### 閻滎垰顣ㄦ０鍕啎閺佸牊鐏?
 
-| 环境 | 重力变化 | 视觉效果 |
+| 閻滎垰顣?| 闁插秴濮忛崣妯哄 | 鐟欏棜顫庨弫鍫熺亯 |
 |------|----------|----------|
-| 🌍 地球 | 9.81 m/s² | 正常行走 |
-| 🌑 月球 | 1.62 m/s² | 缓慢飘浮 |
-| 🔴 火星 | 3.71 m/s² | 轻盈跳跃 |
-| 🪐 木星 | 24.79 m/s² | 沉重坠落 |
+| 棣冨 閸︽壆鎮?| 9.81 m/s铏?| 濮濓絽鐖剁悰宀冭泲 |
+| 棣冨 閺堝牏鎮?| 1.62 m/s铏?| 缂傛挻鍙冩妯昏癁 |
+| 棣冩暥 閻忣偅妲?| 3.71 m/s铏?| 鏉炶崵娉╃捄瀹犵┈ |
+| 棣冪崫 閺堛劍妲?| 24.79 m/s铏?| 濞屽鍣搁崸鐘烘儰 |
 
-### 地面材质效果
+### 閸︿即娼伴弶鎰窛閺佸牊鐏?
 
-| 材质 | 摩擦效果 | 适用场景 |
+| 閺夋劘宸?| 閹解晜鎽濋弫鍫熺亯 | 闁倻鏁ら崷鐑樻珯 |
 |------|----------|----------|
-| 混凝�?| 高摩擦，稳定 | 标准测试 |
-| 冰面 | 极低摩擦，滑�?| 极端测试 |
-| 沙地 | 中摩擦，可变�?| 户外环境 |
-| 地毯 | 极高摩擦，阻�?| 室内环境 |
+| 濞ｅ嘲鍤岄崷?| 妤傛ɑ鎳囬幙锔肩礉缁嬪啿鐣?| 閺嶅洤鍣ù瀣槸 |
+| 閸愪即娼?| 閺嬩椒缍嗛幗鈺傛憹閿涘本绮︾悰?| 閺嬩胶顏ù瀣槸 |
+| 濞屾瑥婀?| 娑擃厽鎳囬幙锔肩礉閸欘垰褰夎ぐ?| 閹村嘲顦婚悳顖氼暔 |
+| 閸︾増顕?| 閺嬩線鐝幗鈺傛憹閿涘矂妯嗙亸?| 鐎广倕鍞撮悳顖氼暔 |
 
 ---
 
-## 📊 性能基准
+## 棣冩惓 閹嗗厴閸╁搫鍣?
 
-### Python 零件�?
-
-```
-�?加载时间: < 0.1 �?
-�?查询时间: < 0.001 �?
-�?内存占用: ~10 MB
-```
-
-### Godot 环境系统
+### Python 闂嗘湹娆㈡惔?
 
 ```
-�?环境切换: < 0.05 �?
-�?材质切换: < 0.02 �?
-�?物理帧率: 60 FPS
+閴?閸旂姾娴囬弮鍫曟？: < 0.1 缁?
+閴?閺屻儴顕楅弮鍫曟？: < 0.001 缁?
+閴?閸愬懎鐡ㄩ崡鐘垫暏: ~10 MB
+```
+
+### Godot 閻滎垰顣ㄧ化鑽ょ埠
+
+```
+閴?閻滎垰顣ㄩ崚鍥ㄥ床: < 0.05 缁?
+閴?閺夋劘宸濋崚鍥ㄥ床: < 0.02 缁?
+閴?閻椻晝鎮婄敮褏宸? 60 FPS
 ```
 
 ---
 
-## 🐛 常见问题
+## 棣冩偘 鐢瓕顫嗛梻顕€顣?
 
-### Q1: Godot 无法找到脚本
+### Q1: Godot 閺冪姵纭堕幍鎯у煂閼存碍婀?
 
-**问题**: "Can't open script res://scripts/environment/..."
+**闂傤噣顣?*: "Can't open script res://scripts/environment/..."
 
-**解决**: 确保所有脚本文件都在正确的路径下，检查文件名大小写�?
+**鐟欙絽鍠?*: 绾喕绻氶幍鈧張澶庡壖閺堫剚鏋冩禒鍫曞厴閸︺劍顒滅涵顔炬畱鐠侯垰绶炴稉瀣剁礉濡偓閺屻儲鏋冩禒璺烘倳婢堆冪毈閸愭瑣鈧?
 
-### Q2: Python 缺少依赖
+### Q2: Python 缂傚搫鐨笟婵婄
 
-**问题**: "ModuleNotFoundError: No module named 'gymnasium'"
+**闂傤噣顣?*: "ModuleNotFoundError: No module named 'gymnasium'"
 
-**解决**:
+**鐟欙絽鍠?*:
 ```powershell
 pip install gymnasium numpy
 ```
 
-### Q3: 零件库加载失�?
+### Q3: 闂嗘湹娆㈡惔鎾冲鏉炶棄銇戠拹?
 
-**问题**: "Parts library not found"
+**闂傤噣顣?*: "Parts library not found"
 
-**解决**: 检查路径是否正确：
+**鐟欙絽鍠?*: 濡偓閺屻儴鐭惧鍕Ц閸氾附顒滅涵顕嗙窗
 ```python
-# 初始化零件库 (自动定位项目根目�?
+# 閸掓繂顫愰崠鏍祩娴犺泛绨?(閼奉亜濮╃€规矮缍呮い鍦窗閺嶅湱娲拌ぐ?
 db = PartsDatabase("./parts_library")
 ```
 
-### Q4: 测试脚本没有输出
+### Q4: 濞村鐦懘姘拱濞屸剝婀佹潏鎾冲毉
 
-**问题**: 运行场景但控制台没有输出
+**闂傤噣顣?*: 鏉╂劘顢戦崷鐑樻珯娴ｅ棙甯堕崚璺哄酱濞屸剝婀佹潏鎾冲毉
 
-**解决**: 
-1. 确保脚本正确附加到节�?
-2. 检�?Godot 输出面板（而不是调试器�?
-3. 确认脚本�?`_ready()` 函数被调�?
-
----
-
-## �?验证清单
-
-完成以下项目以确保一切正常：
-
-### Python �?
-- [ ] 零件库测试脚本运行成�?
-- [ ] 能够加载所�?3 个零�?
-- [ ] 电机性能对比正常显示
-- [ ] 机器人配置创建成�?
-
-### Godot �?
-- [ ] 项目导入成功
-- [ ] 插件启用成功
-- [ ] 测试场景创建完成
-- [ ] 环境预设切换正常
-- [ ] 地面材质切换正常
-- [ ] 键盘控制响应正常
-
-### 集成
-- [ ] 零件规格能应用到 Godot
-- [ ] 环境参数能从 Python 控制（如果配置了TCP�?
+**鐟欙絽鍠?*: 
+1. 绾喕绻氶懘姘拱濮濓絿鈥橀梽鍕閸掓媽濡悙?
+2. 濡偓閺?Godot 鏉堟挸鍤棃銏℃緲閿涘牐鈧奔绗夐弰顖濈殶鐠囨洖娅掗敍?
+3. 绾喛顓婚懘姘拱閻?`_ready()` 閸戣姤鏆熺悮顐ョ殶閻?
 
 ---
 
-## 🎓 下一步学�?
+## 閴?妤犲矁鐦夊〒鍛礋
 
-完成基础测试后，您可以：
+鐎瑰本鍨氭禒銉ょ瑓妞ゅ湱娲版禒銉р€樻穱婵呯閸掑洦顒滅敮闈╃窗
 
-1. **阅读详细文档**
-   - [零件库使用指南](file:///d:/新建文件�?AGI-Walker/PARTS_LIBRARY_GUIDE.md)
-   - [物理环境增强指南](file:///d:/新建文件�?AGI-Walker/PHYSICS_ENVIRONMENT_GUIDE.md)
-   - [参数转换指南](file:///d:/新建文件�?AGI-Walker/PARAMETER_CONVERSION_GUIDE.md)
+### Python 缁?
+- [ ] 闂嗘湹娆㈡惔鎾寸ゴ鐠囨洝鍓奸張顒冪箥鐞涘本鍨氶崝?
+- [ ] 閼宠棄顧勯崝鐘烘祰閹碘偓閺?3 娑擃亪娴傛禒?
+- [ ] 閻㈠灚婧€閹嗗厴鐎佃鐦锝呯埗閺勫墽銇?
+- [ ] 閺堝搫娅掓禍娲帳缂冾喖鍨卞鐑樺灇閸?
 
-2. **创建自定义机器人**
-   - 使用零件库组�?
-   - 配置关节参数
-   - 添加传感�?
+### Godot 缁?
+- [ ] 妞ゅ湱娲扮€电厧鍙嗛幋鎰
+- [ ] 閹绘帊娆㈤崥顖滄暏閹存劕濮?
+- [ ] 濞村鐦崷鐑樻珯閸掓稑缂撶€瑰本鍨?
+- [ ] 閻滎垰顣ㄦ０鍕啎閸掑洦宕插锝呯埗
+- [ ] 閸︿即娼伴弶鎰窛閸掑洦宕插锝呯埗
+- [ ] 闁款喚娲忛幒褍鍩楅崫宥呯安濮濓絽鐖?
 
-3. **训练强化学习策略**
-   - 配置 TCP 通信
-   - 运行 PPO 训练脚本
-   - 域随机化实验
-
-4. **添加新零�?*
-   - 查找真实零件规格
-   - 创建 JSON 数据文件
-   - 验证并测�?
+### 闂嗗棙鍨?
+- [ ] 闂嗘湹娆㈢憴鍕壐閼宠棄绨查悽銊ュ煂 Godot
+- [ ] 閻滎垰顣ㄩ崣鍌涙殶閼虫垝绮?Python 閹貉冨煑閿涘牆顩ч弸婊堝帳缂冾喕绨CP閿?
 
 ---
 
-## 📞 获取帮助
+## 棣冨笚 娑撳绔村銉ヮ劅娑?
 
-遇到问题�?
+鐎瑰本鍨氶崺铏诡攨濞村鐦崥搴礉閹劌褰叉禒銉窗
 
-1. 查看[项目总结](file:///C:/Users/荣耀/.gemini/antigravity/brain/13b03e40-12d0-4ed9-92ae-1182ae98df13/walkthrough.md)
-2. 检查[任务清单](file:///C:/Users/荣耀/.gemini/antigravity/brain/13b03e40-12d0-4ed9-92ae-1182ae98df13/task.md)
-3. 查看各个功能的详细文�?
+1. **闂冨懓顕扮拠锔剧矎閺傚洦銆?*
+   - [闂嗘湹娆㈡惔鎾插▏閻劍瀵氶崡姊?file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/PARTS_LIBRARY_GUIDE.md)
+   - [閻椻晝鎮婇悳顖氼暔婢х偛宸遍幐鍥у础](file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/PHYSICS_ENVIRONMENT_GUIDE.md)
+   - [閸欏倹鏆熸潪顒佸床閹稿洤宕(file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/PARAMETER_CONVERSION_GUIDE.md)
+
+2. **閸掓稑缂撻懛顏勭暰娑斿婧€閸ｃ劋姹?*
+   - 娴ｈ法鏁ら梿鏈垫鎼存挾绮嶇憗?
+   - 闁板秶鐤嗛崗瀹犲Ν閸欏倹鏆?
+   - 濞ｈ濮炴导鐘冲妳閸?
+
+3. **鐠侇厾绮屽鍝勫鐎涳缚绡勭粵鏍殣**
+   - 闁板秶鐤?TCP 闁矮淇?
+   - 鏉╂劘顢?PPO 鐠侇厾绮岄懘姘拱
+   - 閸╃喖娈㈤張鍝勫鐎圭偤鐛?
+
+4. **濞ｈ濮為弬浼存祩娴?*
+   - 閺屻儲澹橀惇鐔风杽闂嗘湹娆㈢憴鍕壐
+   - 閸掓稑缂?JSON 閺佺増宓侀弬鍥︽
+   - 妤犲矁鐦夐獮鑸电ゴ鐠?
 
 ---
 
-**祝您测试愉快�?* 🎉
+## 棣冩憮 閼惧嘲褰囩敮顔煎И
+
+闁洤鍩岄梻顕€顣介敍?
+
+1. 閺屻儳婀匸妞ゅ湱娲伴幀鑽ょ波](file:///C:/Users/閼斤綀鈧偓/.gemini/antigravity/brain/13b03e40-12d0-4ed9-92ae-1182ae98df13/walkthrough.md)
+2. 濡偓閺岊櫋娴犺濮熷〒鍛礋](file:///C:/Users/閼斤綀鈧偓/.gemini/antigravity/brain/13b03e40-12d0-4ed9-92ae-1182ae98df13/task.md)
+3. 閺屻儳婀呴崥鍕嚋閸旂喕鍏橀惃鍕嚊缂佸棙鏋冨?
 
 ---
 
-**版本**: 1.0  
-**最后更�?*: 2026-01-14
+**缁佹繃鍋嶅ù瀣槸閹板鎻╅敍?* 棣冨竴
+
+---
+
+**閻楀牊婀?*: 1.0  
+**閺堚偓閸氬孩娲块弬?*: 2026-01-14

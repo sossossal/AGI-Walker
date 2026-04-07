@@ -1,69 +1,69 @@
-# 机器人零件库使用指南
+# 閺堝搫娅掓禍娲祩娴犺泛绨辨担璺ㄦ暏閹稿洤宕?
 
-## 📦 简�?
+## 棣冩憹 缁犫偓娴?
 
-机器人零件库�?AGI-Walker 项目的扩展功能，提供了基于真实硬件规格的数字零件库系统。您可以使用这些零件来构建精确的机器人仿真模型�?
+閺堝搫娅掓禍娲祩娴犺泛绨遍弰?AGI-Walker 妞ゅ湱娲伴惃鍕⒖鐏炴洖濮涢懗鏂ょ礉閹绘劒绶垫禍鍡楃唨娴滃海婀＄€圭偟鈥栨禒鎯邦潐閺嶈偐娈戦弫鏉跨摟闂嗘湹娆㈡惔鎾堕兇缂佺喆鈧倹鍋嶉崣顖欎簰娴ｈ法鏁ゆ潻娆庣昂闂嗘湹娆㈤弶銉︾€铏圭翱绾喚娈戦張鍝勬珤娴滆桨璞㈤惇鐔改侀崹瀣ㄢ偓?
 
-## 🎯 功能特�?
+## 棣冨箚 閸旂喕鍏橀悧瑙勨偓?
 
-- �?**真实规格数据**：基于实际供应商数据手册的参�?
-- �?**标准化格�?*：JSON Schema 验证，确保数据一致�?
-- �?**即插即用**：通过 API 快速创建零件实�?
-- �?**物理精确**：包含质量、惯量、摩擦、热特性等参数
-- �?**易于扩展**：按�?Schema 添加新零�?
+- 閴?**閻喎鐤勭憴鍕壐閺佺増宓?*閿涙艾鐔€娴滃骸鐤勯梽鍛返鎼存柨鏅㈤弫鐗堝祦閹靛鍞介惃鍕棘閺?
+- 閴?**閺嶅洤鍣崠鏍ㄧ壐瀵?*閿涙SON Schema 妤犲矁鐦夐敍宀€鈥樻穱婵囨殶閹诡喕绔撮懛瀛樷偓?
+- 閴?**閸楄櫕褰冮崡宕囨暏**閿涙岸鈧俺绻?API 韫囶偊鈧喎鍨卞娲祩娴犺泛鐤勬笟?
+- 閴?**閻椻晝鎮婄划鍓р€?*閿涙艾瀵橀崥顐ュ窛闁插繈鈧焦鍎婚柌蹇嬧偓浣规噰閹匡负鈧胶鍎归悧瑙勨偓褏鐡戦崣鍌涙殶
+- 閴?**閺勬挷绨幍鈺佺潔**閿涙碍瀵滈悡?Schema 濞ｈ濮為弬浼存祩娴?
 
-## 📂 目录结构
+## 棣冩惃 閻╊喖缍嶇紒鎾寸€?
 
 ```
 parts_library/
-├── schema/                    # JSON Schema 定义
-�?  ├── motor.schema.json      # 电机规格 Schema
-�?  └── sensor_imu.schema.json # IMU 传感�?Schema
-�?
-├── motors/                    # 电机零件
-�?  └── dynamixel/
-�?      ├── xl430_w250.json    # Dynamixel XL430-W250
-�?      └── mx106.json         # Dynamixel MX-106
-�?
-└── sensors/                   # 传感器零�?
-    └── imu/
-        └── bno055.json        # Bosch BNO055 IMU
+閳规壕鏀㈤埞鈧?schema/                    # JSON Schema 鐎规矮绠?
+閳?  閳规壕鏀㈤埞鈧?motor.schema.json      # 閻㈠灚婧€鐟欏嫭鐗?Schema
+閳?  閳规柡鏀㈤埞鈧?sensor_imu.schema.json # IMU 娴肩姵鍔呴崳?Schema
+閳?
+閳规壕鏀㈤埞鈧?motors/                    # 閻㈠灚婧€闂嗘湹娆?
+閳?  閳规柡鏀㈤埞鈧?dynamixel/
+閳?      閳规壕鏀㈤埞鈧?xl430_w250.json    # Dynamixel XL430-W250
+閳?      閳规柡鏀㈤埞鈧?mx106.json         # Dynamixel MX-106
+閳?
+閳规柡鏀㈤埞鈧?sensors/                   # 娴肩姵鍔呴崳銊╂祩娴?
+    閳规柡鏀㈤埞鈧?imu/
+        閳规柡鏀㈤埞鈧?bno055.json        # Bosch BNO055 IMU
 ```
 
-## 🚀 快速开�?
+## 棣冩畬 韫囶偊鈧喎绱戞慨?
 
-### 1. 启用插件
+### 1. 閸氼垳鏁ら幓鎺嶆
 
-�?Godot 编辑器中�?
-1. 打开 `项目` -> `项目设置` -> `插件`
-2. 找到 "Robot Simulation Toolkit"
-3. 勾选启�?
+閸?Godot 缂傛牞绶崳銊よ厬閿?
+1. 閹垫挸绱?`妞ゅ湱娲癭 -> `妞ゅ湱娲扮拋鍓х枂` -> `閹绘帊娆
+2. 閹垫儳鍩?"Robot Simulation Toolkit"
+3. 閸曢箖鈧鎯庨悽?
 
-### 2. 在场景中使用零件�?
+### 2. 閸︺劌婧€閺咁垯鑵戞担璺ㄦ暏闂嗘湹娆㈡惔?
 
 ```gdscript
-# 在您的脚本中
+# 閸︺劍鍋嶉惃鍕壖閺堫兛鑵?
 extends Node3D
 
 var parts_lib: RobotPartsLibrary
 
 func _ready():
-    # 创建零件库管理器
+    # 閸掓稑缂撻梿鏈垫鎼存挾顓搁悶鍡楁珤
     parts_lib = RobotPartsLibrary.new()
     add_child(parts_lib)
     
-    # 等待加载完成
+    # 缁涘绶熼崝鐘烘祰鐎瑰本鍨?
     await get_tree().process_frame
     
-    # 使用零件�?
+    # 娴ｈ法鏁ら梿鏈垫鎼?
     create_robot_arm()
 
 func create_robot_arm():
-    # 获取零件信息
+    # 閼惧嘲褰囬梿鏈垫娣団剝浼?
     var motor_data = parts_lib.get_part("dynamixel_xl430_w250")
-    print("使用电机: ", motor_data.get("model"))
+    print("娴ｈ法鏁ら悽鍨簚: ", motor_data.get("model"))
     
-    # 创建电机实例
+    # 閸掓稑缂撻悽鍨簚鐎圭偘绶?
     var shoulder_motor = parts_lib.create_motor_instance(
         "dynamixel_xl430_w250",
         self
@@ -71,52 +71,52 @@ func create_robot_arm():
     shoulder_motor.position = Vector3(0, 1, 0)
 ```
 
-### 3. 创建电机关节
+### 3. 閸掓稑缂撻悽鍨簚閸忓疇濡?
 
 ```gdscript
 func create_joint_with_motor():
-    # 假设已有两个刚体：upper_arm �?forearm
+    # 閸嬪洩顔曞鍙夋箒娑撱倓閲滈崚姘秼閿涙pper_arm 閸?forearm
     var upper_arm = $UpperArm  # RigidBody3D
     var forearm = $Forearm     # RigidBody3D
     
-    # 使用 Dynamixel MX-106 创建肘关�?
+    # 娴ｈ法鏁?Dynamixel MX-106 閸掓稑缂撻懖妯哄彠閼?
     var elbow_joint = parts_lib.create_motor_joint(
-        "dynamixel_mx106",        # 零件 ID
-        upper_arm,                 # 父刚�?
-        forearm,                   # 子刚�?
-        Vector3.RIGHT,             # 旋转�?
-        Vector3(0, -0.2, 0),      # 父刚体连接点
-        Vector3(0, 0.2, 0)        # 子刚体连接点
+        "dynamixel_mx106",        # 闂嗘湹娆?ID
+        upper_arm,                 # 閻栬泛鍨版担?
+        forearm,                   # 鐎涙劕鍨版担?
+        Vector3.RIGHT,             # 閺冨娴嗘潪?
+        Vector3(0, -0.2, 0),      # 閻栬泛鍨版担鎾圭箾閹恒儳鍋?
+        Vector3(0, 0.2, 0)        # 鐎涙劕鍨版担鎾圭箾閹恒儳鍋?
     )
     
-    # 设置关节限位
+    # 鐠佸墽鐤嗛崗瀹犲Ν闂勬劒缍?
     elbow_joint.set_param(HingeJoint3D.PARAM_LIMIT_LOWER, deg_to_rad(-120))
     elbow_joint.set_param(HingeJoint3D.PARAM_LIMIT_UPPER, deg_to_rad(0))
     
-    # 控制电机
+    # 閹貉冨煑閻㈠灚婧€
     elbow_joint.set_param(HingeJoint3D.PARAM_MOTOR_TARGET_VELOCITY, 2.0)
 ```
 
-## 🔍 API 参�?
+## 棣冩敵 API 閸欏倽鈧?
 
-### RobotPartsLibrary �?
+### RobotPartsLibrary 缁?
 
-#### 核心方法
+#### 閺嶇绺鹃弬瑙勭《
 
 ```gdscript
-# 获取零件数据
+# 閼惧嘲褰囬梿鏈垫閺佺増宓?
 func get_part(part_id: String) -> Dictionary
 
-# 按类别筛�?
+# 閹稿琚崚顐ょ摣闁?
 func get_parts_by_category(category: String) -> Array[Dictionary]
 
-# 按制造商筛�?
+# 閹稿鍩楅柅鐘叉櫌缁涙盯鈧?
 func get_parts_by_manufacturer(manufacturer: String) -> Array[Dictionary]
 
-# 创建电机实例
+# 閸掓稑缂撻悽鍨簚鐎圭偘绶?
 func create_motor_instance(part_id: String, parent: Node3D = null) -> Node3D
 
-# 创建电机关节
+# 閸掓稑缂撻悽鍨簚閸忓疇濡?
 func create_motor_joint(
     part_id: String,
     body_a: RigidBody3D,
@@ -126,36 +126,36 @@ func create_motor_joint(
     local_pos_b: Vector3 = Vector3.ZERO
 ) -> HingeJoint3D
 
-# 验证零件数据
+# 妤犲矁鐦夐梿鏈垫閺佺増宓?
 func validate_part(part_id: String) -> bool
 
-# 列出所有零�?
+# 閸掓鍤幍鈧張澶愭祩娴?
 func list_all_parts() -> Array[String]
 
-# 打印统计信息
+# 閹垫挸宓冪紒鐔活吀娣団剝浼?
 func print_statistics() -> void
 ```
 
-## 📊 当前零件�?
+## 棣冩惓 瑜版挸澧犻梿鏈垫鎼?
 
-### 电机/舵机
+### 閻㈠灚婧€/閼稿灚婧€
 
-| Part ID | 型号 | 扭矩 | 速度 | 价格 |
+| Part ID | 閸ㄥ褰?| 閹殿厾鐓?| 闁喎瀹?| 娴犻攱鐗?|
 |---------|------|------|------|------|
-| `dynamixel_xl430_w250` | XL430-W250-T | 1.4 N·m | 50 RPM | $69.90 |
-| `dynamixel_mx106` | MX-106T | 8.4 N·m | 45 RPM | $459.90 |
+| `dynamixel_xl430_w250` | XL430-W250-T | 1.4 N璺痬 | 50 RPM | $69.90 |
+| `dynamixel_mx106` | MX-106T | 8.4 N璺痬 | 45 RPM | $459.90 |
 
-### 传感�?
+### 娴肩姵鍔呴崳?
 
-| Part ID | 型号 | 类型 | 更新�?| 价格 |
+| Part ID | 閸ㄥ褰?| 缁鐎?| 閺囧瓨鏌婇悳?| 娴犻攱鐗?|
 |---------|------|------|--------|------|
-| `bosch_bno055` | BNO055 | 9轴IMU | 100 Hz | $34.95 |
+| `bosch_bno055` | BNO055 | 9鏉炵MU | 100 Hz | $34.95 |
 
-## �?添加新零�?
+## 閴?濞ｈ濮為弬浼存祩娴?
 
-### 步骤 1: 创建 JSON 文件
+### 濮濄儵顎?1: 閸掓稑缂?JSON 閺傚洣娆?
 
-在相应类别目录下创建新的 JSON 文件，例�?`parts_library/motors/maxon/ec45.json`:
+閸︺劎娴夋惔鏃傝閸掝偆娲拌ぐ鏇氱瑓閸掓稑缂撻弬鎵畱 JSON 閺傚洣娆㈤敍灞肩伐婵?`parts_library/motors/maxon/ec45.json`:
 
 ```json
 {
@@ -186,127 +186,127 @@ func print_statistics() -> void
 }
 ```
 
-### 步骤 2: 验证数据
+### 濮濄儵顎?2: 妤犲矁鐦夐弫鐗堝祦
 
-使用在线 JSON Schema 验证器或运行�?
+娴ｈ法鏁ら崷銊у殠 JSON Schema 妤犲矁鐦夐崳銊﹀灗鏉╂劘顢戦敍?
 
 ```gdscript
 var is_valid = parts_lib.validate_part("maxon_ec45_flat")
 if is_valid:
-    print("�?零件数据有效")
+    print("閴?闂嗘湹娆㈤弫鐗堝祦閺堝鏅?)
 ```
 
-### 步骤 3: 重新加载
+### 濮濄儵顎?3: 闁插秵鏌婇崝鐘烘祰
 
-重新启动 Godot 项目或手动调用：
+闁插秵鏌婇崥顖氬З Godot 妞ゅ湱娲伴幋鏍ㄥ閸斻劏鐨熼悽顭掔窗
 
 ```gdscript
 parts_lib.load_parts_database()
 ```
 
-## 🔧 高级用法
+## 棣冩暋 妤傛楠囬悽銊︾《
 
-### 访问零件元数�?
+### 鐠佸潡妫堕梿鏈垫閸忓啯鏆熼幑?
 
-电机实例和关节都包含原始零件数据�?
+閻㈠灚婧€鐎圭偘绶ラ崪灞藉彠閼哄倿鍏橀崠鍛儓閸樼喎顫愰梿鏈垫閺佺増宓侀敍?
 
 ```gdscript
 var motor = parts_lib.create_motor_instance("dynamixel_xl430_w250", self)
 
-# 获取零件数据
+# 閼惧嘲褰囬梿鏈垫閺佺増宓?
 var part_data = motor.get_meta("part_data")
-print("制造商: ", part_data.get("manufacturer"))
-print("数据手册: ", part_data.get("datasheet_url"))
+print("閸掑爼鈧姴鏅? ", part_data.get("manufacturer"))
+print("閺佺増宓侀幍瀣斀: ", part_data.get("datasheet_url"))
 
-# 获取特定参数
+# 閼惧嘲褰囬悧鐟扮暰閸欏倹鏆?
 var stall_torque = motor.get_meta("stall_torque")
 var friction = motor.get_meta("friction_params")
-print("静摩�? ", friction.get("static"), " N·m")
+print("闂堟瑦鎳囬幙? ", friction.get("static"), " N璺痬")
 ```
 
-### 运行时调整参�?
+### 鏉╂劘顢戦弮鎯扮殶閺佹潙寮弫?
 
 ```gdscript
-# 修改关节扭矩限制
+# 娣囶喗鏁奸崗瀹犲Ν閹殿厾鐓╅梽鎰煑
 var joint = parts_lib.create_motor_joint(...)
-joint.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, 2.0)  # 自定义扭�?
+joint.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, 2.0)  # 閼奉亜鐣炬稊澶嬪閻?
 
-# 模拟电机过载降额
+# 濡剝瀚欓悽鍨簚鏉╁洩娴囬梽宥夘杺
 var normal_torque = joint.get_meta("part_data")["specifications"]["stall_torque"]
-var derated_torque = normal_torque * 0.8  # 降额 20%
+var derated_torque = normal_torque * 0.8  # 闂勫秹顤?20%
 joint.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, derated_torque)
 ```
 
-## 🧪 测试示例
+## 棣冃?濞村鐦粈杞扮伐
 
-运行测试场景�?
+鏉╂劘顢戝ù瀣槸閸︾儤娅欓敍?
 
-1. �?Godot 编辑器中创建新场�?
-2. 添加 `Node3D` 根节�?
-3. 附加脚本 `res://scripts/test_parts_library.gd`
-4. 运行场景 (F5)
+1. 閸?Godot 缂傛牞绶崳銊よ厬閸掓稑缂撻弬鏉挎簚閺?
+2. 濞ｈ濮?`Node3D` 閺嶇濡悙?
+3. 闂勫嫬濮為懘姘拱 `res://scripts/test_parts_library.gd`
+4. 鏉╂劘顢戦崷鐑樻珯 (F5)
 
-预期输出�?
+妫板嫭婀℃潏鎾冲毉閿?
 ```
-🔧 开始加载零件库...
-  �?加载零件: dynamixel_xl430_w250 (XL430-W250-T)
-  �?加载零件: dynamixel_mx106 (MX-106T)
-  �?加载零件: bosch_bno055 (BNO055)
-�?零件库加载完成，�?3 个零�?
+棣冩暋 瀵偓婵濮炴潪浠嬫祩娴犺泛绨?..
+  閴?閸旂姾娴囬梿鏈垫: dynamixel_xl430_w250 (XL430-W250-T)
+  閴?閸旂姾娴囬梿鏈垫: dynamixel_mx106 (MX-106T)
+  閴?閸旂姾娴囬梿鏈垫: bosch_bno055 (BNO055)
+閴?闂嗘湹娆㈡惔鎾冲鏉炶棄鐣幋鎰剁礉閸?3 娑擃亪娴傛禒?
 
-=== 零件库统�?===
-总零件数: 3
-分类统计:
+=== 闂嗘湹娆㈡惔鎾剁埠鐠?===
+閹娴傛禒鑸垫殶: 3
+閸掑棛琚紒鐔活吀:
   - actuator_servo: 2
   - sensor_imu: 1
 ==================
 ```
 
-## 🐛 故障排除
+## 棣冩偘 閺佸懘娈伴幒鎺楁珟
 
-### 问题 1: 零件加载失败
+### 闂傤噣顣?1: 闂嗘湹娆㈤崝鐘烘祰婢惰精瑙?
 
-**症状**: 控制台显�?"目录不存�? 警告
+**閻ュ洨濮?*: 閹貉冨煑閸欑増妯夌粈?"閻╊喖缍嶆稉宥呯摠閸? 鐠€锕€鎲?
 
-**解决**:
-- 检查文件路径是否正�?
-- 确认 JSON 文件在正确的目录�?
-- 验证 `PARTS_ROOT` 常量指向 `res://parts_library/`
+**鐟欙絽鍠?*:
+- 濡偓閺屻儲鏋冩禒鎯扮熅瀵板嫭妲搁崥锔筋劀绾?
+- 绾喛顓?JSON 閺傚洣娆㈤崷銊︻劀绾喚娈戦惄顔肩秿娑?
+- 妤犲矁鐦?`PARTS_ROOT` 鐢悂鍣洪幐鍥ф倻 `res://parts_library/`
 
-### 问题 2: JSON 解析错误
+### 闂傤噣顣?2: JSON 鐟欙絾鐎介柨娆掝嚖
 
-**症状**: "JSON 解析失败" 错误
+**閻ュ洨濮?*: "JSON 鐟欙絾鐎芥径杈Е" 闁挎瑨顕?
 
-**解决**:
-- 使用 JSON 验证工具检查语�?
-- 确保没有多余的逗号
-- 检查引号是否正确闭�?
+**鐟欙絽鍠?*:
+- 娴ｈ法鏁?JSON 妤犲矁鐦夊銉ュ徔濡偓閺屻儴顕㈠▔?
+- 绾喕绻氬▽鈩冩箒婢舵矮缍戦惃鍕偓妤€褰?
+- 濡偓閺屻儱绱╅崣閿嬫Ц閸氾附顒滅涵顕€妫撮崥?
 
-### 问题 3: 零件实例没有物理效果
+### 闂傤噣顣?3: 闂嗘湹娆㈢€圭偘绶ュ▽鈩冩箒閻椻晝鎮婇弫鍫熺亯
 
-**症状**: 创建的电机不会掉落或碰撞
+**閻ュ洨濮?*: 閸掓稑缂撻惃鍕暩閺堣桨绗夋导姘竴閽€鑺ュ灗绾扮増鎸?
 
-**解决**:
-- 确认场景中有 `StaticBody3D` 地面
-- 检查碰撞层设置
-- 验证 RigidBody3D 没有被设置为 `freeze`
+**鐟欙絽鍠?*:
+- 绾喛顓婚崷鐑樻珯娑擃厽婀?`StaticBody3D` 閸︿即娼?
+- 濡偓閺屻儳顫幘鐐茬湴鐠佸墽鐤?
+- 妤犲矁鐦?RigidBody3D 濞屸剝婀佺悮顐ヮ啎缂冾喕璐?`freeze`
 
-## 📚 参考资�?
+## 棣冩憥 閸欏倽鈧啳绁┃?
 
-- [Dynamixel 官方文档](https://emanual.robotis.com/)
-- [Godot 物理引擎文档](https://docs.godotengine.org/en/stable/tutorials/physics/index.html)
-- [JSON Schema 规范](https://json-schema.org/)
+- [Dynamixel 鐎规ɑ鏌熼弬鍥ㄣ€俔(https://emanual.robotis.com/)
+- [Godot 閻椻晝鎮婂鏇熸惛閺傚洦銆俔(https://docs.godotengine.org/en/stable/tutorials/physics/index.html)
+- [JSON Schema 鐟欏嫯瀵朷(https://json-schema.org/)
 
-## 🔮 未来计划
+## 棣冩暛 閺堫亝娼电拋鈥冲灊
 
-- [ ] 添加更多品牌的电机（Faulhaber、Maxon、RoboMaster�?
-- [ ] 支持�?扭矩传感�?
-- [ ] 支持 LiDAR 和相机传感器
-- [ ] 3D 模型库（GLB 格式�?
-- [ ] 在线零件数据�?
-- [ ] 可视化零件选择�?UI
+- [ ] 濞ｈ濮為弴鏉戭樋閸濅胶澧濋惃鍕暩閺堢尨绱橣aulhaber閵嗕府axon閵嗕阜oboMaster閿?
+- [ ] 閺€顖涘瘮閸?閹殿厾鐓╂导鐘冲妳閸?
+- [ ] 閺€顖涘瘮 LiDAR 閸滃瞼娴夐張杞扮炊閹扮喎娅?
+- [ ] 3D 濡€崇€锋惔鎿勭礄GLB 閺嶇厧绱￠敍?
+- [ ] 閸︺劎鍤庨梿鏈垫閺佺増宓佹惔?
+- [ ] 閸欘垵顫嬮崠鏍祩娴犲爼鈧瀚ㄩ崳?UI
 
 ---
 
-**版本**: 0.1.0  
-**最后更�?*: 2026-01-13
+**閻楀牊婀?*: 0.1.0  
+**閺堚偓閸氬孩娲块弬?*: 2026-01-13

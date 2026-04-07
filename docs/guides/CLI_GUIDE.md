@@ -1,174 +1,174 @@
-# AGI-Walker CLI 使用指南
+# AGI-Walker CLI 娴ｈ法鏁ら幐鍥у础
 
-## 快速开�?
+## 韫囶偊鈧喎绱戞慨?
 
-### 安装
+### 鐎瑰顥?
 
-CLI工具已内置在AGI-Walker�?无需额外安装�?
+CLI瀹搞儱鍙垮鎻掑敶缂冾喖婀狝GI-Walker娑?閺冪娀娓舵０婵嗩樆鐎瑰顥婇妴?
 
-### 基本用法
+### 閸╃儤婀伴悽銊︾《
 
-# CLI 支持两套入口，等效执�?```bash
-# 通用 Skills 命令
+# CLI 閺€顖涘瘮娑撱倕顨滈崗銉ュ經閿涘瞼鐡戦弫鍫熷⒔鐞?```bash
+# 闁氨鏁?Skills 閸涙垝鎶?
 python -m agi_walker.cli skills <command>
 
-# 直接调用 workflows 子命令（等价�?skills workflows�?python -m agi_walker.cli workflows <subcommand>
+# 閻╁瓨甯寸拫鍐暏 workflows 鐎涙劕鎳℃禒銈忕礄缁涘鐜禍?skills workflows閿?python -m agi_walker.cli workflows <subcommand>
 
-# 或使用快捷脚�?agi_walker.bat skills <command>
+# 閹存牔濞囬悽銊ユ彥閹圭柉鍓奸張?agi_walker.bat skills <command>
 agi_walker.bat workflows <subcommand>
 ```
 
 ---
 
-## 命令参�?
-### 1. 列出所有Skills
+## 閸涙垝鎶ら崣鍌濃偓?
+### 1. 閸掓鍤幍鈧張濉杒ills
 
 ```bash
 python -m agi_walker.cli skills list
 ```
 
-**输出示例:**
+**鏉堟挸鍤粈杞扮伐:**
 ```
-可用 Skills (3 �?:
+閸欘垳鏁?Skills (3 娑?:
 
-【建模�?
-  🤖 robot-modeling
-    快速创建双�?四足/轮式机器人模�?..
+閵嗘劕缂撳Ο掳鈧?
+  棣冾樆 robot-modeling
+    韫囶偊鈧喎鍨卞鍝勫蓟鐡?閸ユ稖鍐?鏉烆喖绱￠張鍝勬珤娴滅儤膩閸?..
 
-【优化�?
-  ⚙️ parameter-optimizer
-    自动优化机器人参�?质量分布/PID增益)...
+閵嗘劒绱崠鏍モ偓?
+  閳挎瑱绗?parameter-optimizer
+    閼奉亜濮╂导妯哄閺堝搫娅掓禍鍝勫棘閺?鐠愩劑鍣洪崚鍡楃/PID婢х偟娉?...
 
-【转换�?
-  📄 urdf-generator
-    将配置转换为URDF/SDF格式...
+閵嗘劘娴嗛幑顫偓?
+  棣冩惈 urdf-generator
+    鐏忓棝鍘ょ純顔挎祮閹诡澀璐烾RDF/SDF閺嶇厧绱?..
 ```
 
-**选项:**
-- `-v, --verbose` - 显示详细信息
-- `--category <分类>` - 按分类过�?
+**闁銆?**
+- `-v, --verbose` - 閺勫墽銇氱拠锔剧矎娣団剝浼?
+- `--category <閸掑棛琚?` - 閹稿鍨庣猾鏄忕箖濠?
 
-**示例:**
+**缁€杞扮伐:**
 ```bash
-# 详细列表
+# 鐠囷妇绮忛崚妤勩€?
 python -m agi_walker.cli skills list -v
 
-# 只看建模类skills
-python -m agi_walker.cli skills list --category 建模
+# 閸欘亞婀呭鐑樐佺猾绫筴ills
+python -m agi_walker.cli skills list --category 瀵ょ儤膩
 ```
 
 ---
 
-### 2. 查看Skill详情
+### 2. 閺屻儳婀匰kill鐠囷附鍎?
 
 ```bash
-python -m agi_walker.cli skills info <skill名称>
+python -m agi_walker.cli skills info <skill閸氬秶袨>
 ```
 
-**示例:**
+**缁€杞扮伐:**
 ```bash
 python -m agi_walker.cli skills info robot-modeling
 ```
 
-**输出:**
+**鏉堟挸鍤?**
 ```
-🤖 robot-modeling
+棣冾樆 robot-modeling
 ============================================================
-名称: robot-modeling
-分类: 建模
-描述: 快速创建双�?四足...
-路径: agi_walker\skills\robot-modeling
+閸氬秶袨: robot-modeling
+閸掑棛琚? 瀵ょ儤膩
+閹诲繗鍫? 韫囶偊鈧喎鍨卞鍝勫蓟鐡?閸ユ稖鍐?..
+鐠侯垰绶? agi_walker\skills\robot-modeling
 
-依赖:
+娓氭繆绂?
   python_modules: numpy, pydantic
 
-可用脚本:
-  - (�?
+閸欘垳鏁ら懘姘拱:
+  - (閺?
 
-参考文�?
+閸欏倽鈧啯鏋冨?
   - api.md
 ```
 
-**选项:**
-- `-d, --doc` - 显示完整SKILL.md文档
+**闁銆?**
+- `-d, --doc` - 閺勫墽銇氱€瑰本鏆KILL.md閺傚洦銆?
 
-**示例:**
+**缁€杞扮伐:**
 ```bash
-# 查看完整文档
+# 閺屻儳婀呯€瑰本鏆ｉ弬鍥ㄣ€?
 python -m agi_walker.cli skills info robot-modeling -d
 ```
 
 ---
 
-### 3. 搜索Skills
+### 3. 閹兼粎鍌⊿kills
 
 ```bash
-python -m agi_walker.cli skills search <关键�?
+python -m agi_walker.cli skills search <閸忔娊鏁拠?
 ```
 
-**示例:**
+**缁€杞扮伐:**
 ```bash
-python -m agi_walker.cli skills search 优化
+python -m agi_walker.cli skills search 娴兼ê瀵?
 python -m agi_walker.cli skills search URDF
-python -m agi_walker.cli skills search 机器�?
+python -m agi_walker.cli skills search 閺堝搫娅掓禍?
 ```
 
-**输出:**
+**鏉堟挸鍤?**
 ```
-搜索结果 (2 �?:
+閹兼粎鍌ㄧ紒鎾寸亯 (2 娑?:
 
-⚙️ parameter-optimizer
-  自动优化机器人参�?..
+閳挎瑱绗?parameter-optimizer
+  閼奉亜濮╂导妯哄閺堝搫娅掓禍鍝勫棘閺?..
 
-📄 urdf-generator
-  将配置转换为URDF/SDF格式...
+棣冩惈 urdf-generator
+  鐏忓棝鍘ょ純顔挎祮閹诡澀璐烾RDF/SDF閺嶇厧绱?..
 ```
 
 ---
 
-### 4. 列出分类
+### 4. 閸掓鍤崚鍡欒
 
 ```bash
 python -m agi_walker.cli skills categories
 ```
 
-**输出:**
+**鏉堟挸鍤?**
 ```
-Skill 分类 (3 �?:
+Skill 閸掑棛琚?(3 娑?:
 
-  优化 (1 个skills)
-  建模 (1 个skills)
-  转换 (1 个skills)
+  娴兼ê瀵?(1 娑撶尰kills)
+  瀵ょ儤膩 (1 娑撶尰kills)
+  鏉烆剚宕?(1 娑撶尰kills)
 ```
 
 ---
 
-### 5. 验证配置
+### 5. 妤犲矁鐦夐柊宥囩枂
 
-检查所有skills的依赖是否满足�?
+濡偓閺屻儲澧嶉張濉籯ills閻ㄥ嫪绶风挧鏍ㄦЦ閸氾附寮х搾鐐解偓?
 
 ```bash
 python -m agi_walker.cli skills validate
 ```
 
-**输出:**
+**鏉堟挸鍤?**
 ```
-验证 Skills 配置...
+妤犲矁鐦?Skills 闁板秶鐤?..
 
-�?所有skills配置有效
+閴?閹碘偓閺堝』kills闁板秶鐤嗛張澶嬫櫏
 ```
 
-**选项:**
-- `-v, --verbose` - 显示所有验证结�?
+**闁銆?**
+- `-v, --verbose` - 閺勫墽銇氶幍鈧張澶愮崣鐠囦胶绮ㄩ弸?
 
-**示例:**
+**缁€杞扮伐:**
 ```bash
 python -m agi_walker.cli skills validate -v
 ```
 
 ---
 
-### 6. Workflows 快速通道
+### 6. Workflows 韫囶偊鈧喖鈧岸浜?
 
 ```bash
 python -m agi_walker workflows list
@@ -176,32 +176,32 @@ python -m agi_walker workflows run simulation_ready_robot
 python -m agi_walker workflows validate robot_creation_pipeline
 ```
 
-�?alias 直接映射�?`skills workflows`，所以之前的 workflow 子命令所有选项行为一模一样�?
+鐠?alias 閻╁瓨甯撮弰鐘茬殸閸?`skills workflows`閿涘本澧嶆禒銉ょ閸撳秶娈?workflow 鐎涙劕鎳℃禒銈嗗閺堝鈧銆嶇悰灞艰礋娑撯偓濡€茬閺嶆灚鈧?
 ---
 
-### 7. Workflow 执行策略
+### 7. Workflow 閹笛嗩攽缁涙牜鏆?
 
-`workflows run` 现在支持显式指定执行策略，避免“已有产物时到底是重跑还是跳过”这种隐式行为�?
-#### 默认行为: `resume`
+`workflows run` 閻滄澘婀弨顖涘瘮閺勬儳绱￠幐鍥х暰閹笛嗩攽缁涙牜鏆愰敍宀勪缉閸忓秮鈧粌鍑￠張澶夐獓閻椻晜妞傞崚鏉跨俺閺勵垶鍣哥捄鎴ｇ箷閺勵垵鐑︽潻鍥ｂ偓婵婄箹缁夊秹娈ｅ蹇氼攽娑撴亽鈧?
+#### 姒涙顓荤悰灞艰礋: `resume`
 
 ```bash
 python -m agi_walker.cli skills workflows run robot_creation_pipeline
 python -m agi_walker.cli workflows run robot_creation_pipeline --resume
 ```
 
-- 遇到已经存在且非空的 `output_file` 时，步骤会标记为 `SKIPPED`
-- `SKIPPED` 现在算成功终态，所以不会再出现 “completed + 0.0% success�?这种误导性结�?
-#### 强制重跑: `force`
+- 闁洤鍩屽鑼病鐎涙ê婀稉鏃堟姜缁岃櫣娈?`output_file` 閺冭绱濆銉╊€冩导姘垼鐠侀璐?`SKIPPED`
+- `SKIPPED` 閻滄澘婀粻妤佸灇閸旂喓绮撻幀渚婄礉閹碘偓娴犮儰绗夋导姘晙閸戣櫣骞?閳ユ竷ompleted + 0.0% success閳?鏉╂瑧顫掔拠顖氼嚤閹呯波閺?
+#### 瀵搫鍩楅柌宥堢獓: `force`
 
 ```bash
 python -m agi_walker.cli skills workflows run robot_creation_pipeline --force
 ```
 
-- 忽略已有产物
-- 所有步骤都会重新执�?- 适合回归测试和重新生成产�?
-#### 隔离输出目录
+- 韫囩晫鏆愬鍙夋箒娴溠呭⒖
+- 閹碘偓閺堝顒炴銈夊厴娴兼岸鍣搁弬鐗堝⒔鐞?- 闁倸鎮庨崶鐐茬秺濞村鐦崪宀勫櫢閺傛壆鏁撻幋鎰獓閻?
+#### 闂呮梻顬囨潏鎾冲毉閻╊喖缍?
 
-如果你不想污染仓库默认的 `.output/` �?`exports/`，可以把相对输出路径重定向到新的根目录：
+婵″倹鐏夋担鐘辩瑝閹櫕钖勯弻鎾茬波鎼存捇绮拋銈囨畱 `.output/` 閸?`exports/`閿涘苯褰叉禒銉﹀Ω閻╃顕潏鎾冲毉鐠侯垰绶為柌宥呯暰閸氭垵鍩岄弬鎵畱閺嶅湱娲拌ぐ鏇窗
 
 ```bash
 python -m agi_walker.cli skills workflows run robot_creation_pipeline ^
@@ -209,71 +209,71 @@ python -m agi_walker.cli skills workflows run robot_creation_pipeline ^
   --output-root test_env/workflow_runs/run_001
 ```
 
-效果�?
-- `.output/created_robot.json` 会写�?`test_env/workflow_runs/run_001/.output/created_robot.json`
-- `exports/robot.urdf` 会写�?`test_env/workflow_runs/run_001/exports/robot.urdf`
-- workflow log 也会进入该隔离目录下�?`.output/`
+閺佸牊鐏夐敍?
+- `.output/created_robot.json` 娴兼艾鍟撻崚?`test_env/workflow_runs/run_001/.output/created_robot.json`
+- `exports/robot.urdf` 娴兼艾鍟撻崚?`test_env/workflow_runs/run_001/exports/robot.urdf`
+- workflow log 娑旂喍绱版潻娑樺弳鐠囥儵娈х粋鑽ゆ窗瑜版洑绗呴惃?`.output/`
 
 ---
 
-### 8. 最�?Smoke 验收
+### 8. 閺堚偓鐏?Smoke 妤犲本鏁?
 
-推荐把下面这个脚本作为最小可信验收入口：
+閹恒劏宕橀幎濠佺瑓闂堛垼绻栨稉顏囧壖閺堫兛缍旀稉鐑樻付鐏忓繐褰叉穱锟犵崣閺€璺哄弳閸欙綇绱?
 
 ```bash
 python tests/run_smoke_tests.py
 ```
 
-这个脚本会检查：
+鏉╂瑤閲滈懘姘拱娴兼碍顥呴弻銉窗
 
-- Skills CLI 是否可列出内�?- Skills 配置是否有效
-- mock workflow 是否可运�?- real workflow 是否可运�?- Web 面板导入�?`WsMessage(type="ping")` 兼容性是否正�?- Godot Agent fake backend 的最�?Web/API 可用�?- 如果存在 external `godot-agent` 目录，再追加 modern backend 的模�?计划/自检 smoke
+- Skills CLI 閺勵垰鎯侀崣顖氬灙閸戝搫鍞寸€?- Skills 闁板秶鐤嗛弰顖氭儊閺堝鏅?
+- mock workflow 閺勵垰鎯侀崣顖濈箥鐞?- real workflow 閺勵垰鎯侀崣顖濈箥鐞?- Web 闂堛垺婢樼€电厧鍙嗛崪?`WsMessage(type="ping")` 閸忕厧顔愰幀褎妲搁崥锔筋劀鐢?- Godot Agent fake backend 閻ㄥ嫭娓剁亸?Web/API 閸欘垳鏁ら幀?- 婵″倹鐏夌€涙ê婀?external `godot-agent` 閻╊喖缍嶉敍灞藉晙鏉╄棄濮?modern backend 閻ㄥ嫭膩閺?鐠佲€冲灊/閼奉亝顥?smoke
 
-自定�?smoke 产物目录�?
+閼奉亜鐣炬稊?smoke 娴溠呭⒖閻╊喖缍嶉敍?
 ```bash
 python tests/run_smoke_tests.py --output-root test_env/smoke_runs/manual
 ```
 
-如果要显式指�?modern `godot-agent` 目录�?
+婵″倹鐏夌憰浣规▔瀵繑瀵氱€?modern `godot-agent` 閻╊喖缍嶉敍?
 ```bash
 AGI_WALKER_SMOKE_GODOT_AGENT_DIR=/path/to/godot-agent python tests/run_smoke_tests.py
 ```
 
 
-## 使用场景
+## 娴ｈ法鏁ら崷鐑樻珯
 
-### 场景1: 快速查找Skill
+### 閸︾儤娅?: 韫囶偊鈧喐鐓￠幍缍璳ill
 
 ```bash
-# 1. 搜索相关skill
-python -m agi_walker.cli skills search 建模
+# 1. 閹兼粎鍌ㄩ惄绋垮彠skill
+python -m agi_walker.cli skills search 瀵ょ儤膩
 
-# 2. 查看详情
+# 2. 閺屻儳婀呯拠锔藉剰
 python -m agi_walker.cli skills info robot-modeling
 
-# 3. 查看完整文档
+# 3. 閺屻儳婀呯€瑰本鏆ｉ弬鍥ㄣ€?
 python -m agi_walker.cli skills info robot-modeling -d
 ```
 
-### 场景2: 检查系统状�?
+### 閸︾儤娅?: 濡偓閺屻儳閮寸紒鐔哄Ц閹?
 ```bash
-# 列出所有skills
+# 閸掓鍤幍鈧張濉籯ills
 python -m agi_walker.cli skills list
 
-# 验证配置
+# 妤犲矁鐦夐柊宥囩枂
 python -m agi_walker.cli skills validate -v
 
-# 运行最�?smoke 验收
+# 鏉╂劘顢戦張鈧亸?smoke 妤犲本鏁?
 python tests/run_smoke_tests.py
 ```
 
-### 场景3: 浏览文档
+### 閸︾儤娅?: 濞村繗顫嶉弬鍥ㄣ€?
 
 ```bash
-# 列出建模类skills
-python -m agi_walker.cli skills list --category 建模
+# 閸掓鍤鐑樐佺猾绫筴ills
+python -m agi_walker.cli skills list --category 瀵ょ儤膩
 
-# 查看每个skill的详�?
+# 閺屻儳婀呭В蹇庨嚋skill閻ㄥ嫯顕涢幆?
 python -m agi_walker.cli skills info robot-modeling
 python -m agi_walker.cli skills info parameter-optimizer
 python -m agi_walker.cli skills info urdf-generator
@@ -281,28 +281,28 @@ python -m agi_walker.cli skills info urdf-generator
 
 ---
 
-## 快捷脚本
+## 韫囶偅宓庨懘姘拱
 
 ### Windows
 
-使用 `agi_walker.bat`:
+娴ｈ法鏁?`agi_walker.bat`:
 
 ```bash
 agi_walker.bat skills list
 agi_walker.bat skills info robot-modeling
-agi_walker.bat skills search 优化
+agi_walker.bat skills search 娴兼ê瀵?
 ```
 
 ### Linux/macOS (TODO)
 
-创建 `agi_walker.sh`:
+閸掓稑缂?`agi_walker.sh`:
 
 ```bash
 #!/bin/bash
 python -m agi_walker.cli "$@"
 ```
 
-使用:
+娴ｈ法鏁?
 ```bash
 chmod +x agi_walker.sh
 ./agi_walker.sh skills list
@@ -310,9 +310,9 @@ chmod +x agi_walker.sh
 
 ---
 
-## 提示和技�?
+## 閹绘劗銇氶崪灞惧Η瀹?
 
-### 1. 快速查看帮�?
+### 1. 韫囶偊鈧喐鐓￠惇瀣簻閸?
 
 ```bash
 python -m agi_walker.cli --help
@@ -320,53 +320,53 @@ python -m agi_walker.cli skills --help
 python -m agi_walker.cli skills list --help
 ```
 
-### 2. 输出重定�?
+### 2. 鏉堟挸鍤柌宥呯暰閸?
 
 ```bash
-# 保存skills列表
+# 娣囨繂鐡╯kills閸掓銆?
 python -m agi_walker.cli skills list > skills_list.txt
 
-# 保存skill文档
+# 娣囨繂鐡╯kill閺傚洦銆?
 python -m agi_walker.cli skills info robot-modeling -d > robot_modeling_doc.md
 ```
 
-### 3. 管道操作
+### 3. 缁狅繝浜鹃幙宥勭稊
 
 ```bash
-# 搜索并统�?
-python -m agi_walker.cli skills search 机器�?| find /c "skill"
+# 閹兼粎鍌ㄩ獮鍓佺埠鐠?
+python -m agi_walker.cli skills search 閺堝搫娅掓禍?| find /c "skill"
 
-# 过滤结果
-python -m agi_walker.cli skills list -v | findstr "建模"
+# 鏉╁洦鎶ょ紒鎾寸亯
+python -m agi_walker.cli skills list -v | findstr "瀵ょ儤膩"
 ```
 
 ---
 
-## 常见问题
+## 鐢瓕顫嗛梻顕€顣?
 
-**Q: 如何查看skill的脚�?**
-A: 使用 `info` 命令会列出可用脚�?然后�?`agi_walker/skills/<skill-name>/scripts/` 目录查看�?
+**Q: 婵″倷缍嶉弻銉ф箙skill閻ㄥ嫯鍓奸張?**
+A: 娴ｈ法鏁?`info` 閸涙垝鎶ゆ导姘灙閸戝搫褰查悽銊ㄥ壖閺?閻掕泛鎮楅崚?`agi_walker/skills/<skill-name>/scripts/` 閻╊喖缍嶉弻銉ф箙閵?
 
-**Q: 如何运行skill的脚�?**
-A: 直接使用Python运行,例如:
+**Q: 婵″倷缍嶆潻鎰攽skill閻ㄥ嫯鍓奸張?**
+A: 閻╁瓨甯存担璺ㄦ暏Python鏉╂劘顢?娓氬顩?
 ```bash
 python agi_walker/skills/parameter-optimizer/scripts/batch_optimize.py --help
 ```
 
-**Q: 如何添加新的skill?**
-A: 参�?`.agent/AGENTS.md` 中的Skills开发指南�?
+**Q: 婵″倷缍嶅ǎ璇插閺傛壆娈憇kill?**
+A: 閸欏倽鈧?`.agent/AGENTS.md` 娑擃厾娈慡kills瀵偓閸欐垶瀵氶崡妞尖偓?
 
 ---
 
-## 下一�?
+## 娑撳绔村?
 
-- **GUI工具**: 使用图形界面浏览和使用Skills
-- **集成到IDE**: 在代码编辑器中直接访问Skills
-- **CI/CD集成**: 在自动化流程中使用CLI工具
+- **GUI瀹搞儱鍙?*: 娴ｈ法鏁ら崶鎯ц埌閻ｅ矂娼板ù蹇氼潔閸滃奔濞囬悽鈯縦ills
+- **闂嗗棙鍨氶崚鐧怐E**: 閸︺劋鍞惍浣虹椽鏉堟垵娅掓稉顓犳纯閹恒儴顔栭梻鐢媖ills
+- **CI/CD闂嗗棙鍨?*: 閸︺劏鍤滈崝銊ュ濞翠胶鈻兼稉顓濆▏閻⑩€揕I瀹搞儱鍙?
 
 ---
 
-**相关文档:**
-- `.agent/AGENTS.md` - Skills系统完整指南
-- `agi_walker/skills/*/SKILL.md` - 各Skill的使用文�?
-- `examples/*.py` - Python代码示例
+**閻╃鍙ч弬鍥ㄣ€?**
+- `.agent/AGENTS.md` - Skills缁崵绮虹€瑰本鏆ｉ幐鍥у础
+- `agi_walker/skills/*/SKILL.md` - 閸氬嚪kill閻ㄥ嫪濞囬悽銊︽瀮濡?
+- `examples/*.py` - Python娴狅絿鐖滅粈杞扮伐

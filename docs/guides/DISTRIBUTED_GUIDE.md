@@ -65,53 +65,53 @@ cd deployment
 docker-compose up --build
 ```
 
-Compose 默认会启动：
+Compose 姒涙顓绘导姘儙閸旑煉绱?
 
 *   `zenoh-router`
 *   `learner`
 *   `sidecar-1`
 *   `web-panel`
 
-其中�?
-*   `web-panel` 是默认的核心 Web 面板镜像，保�?workflow 控制台和基础页面能力可构建、可启动�?*   `web-panel-distributed` 是可�?profile，额外安�?`eclipse-zenoh`，用于需要在容器内直接启�?Zenoh 分布式监控的场景�?
-如需启动带分布式监控依赖�?Web 面板变体�?
+閸忔湹鑵戦敍?
+*   `web-panel` 閺勵垶绮拋銈囨畱閺嶇绺?Web 闂堛垺婢橀梹婊冨剼閿涘奔绻氱拠?workflow 閹貉冨煑閸欐澘鎷伴崺铏诡攨妞ょ敻娼伴懗钘夊閸欘垱鐎鎭掆偓浣稿讲閸氼垰濮╅妴?*   `web-panel-distributed` 閺勵垰褰查柅?profile閿涘矂顤傛径鏍х暔鐟?`eclipse-zenoh`閿涘瞼鏁ゆ禍搴ㄦ付鐟曚礁婀€圭懓娅掗崘鍛纯閹恒儱鎯庨悽?Zenoh 閸掑棗绔峰蹇曟磧閹貉呮畱閸︾儤娅欓妴?
+婵″倿娓堕崥顖氬З鐢箑鍨庣敮鍐ㄧ础閻╂垶甯舵笟婵婄閻?Web 闂堛垺婢橀崣妯圭秼閿?
 ```bash
 cd deployment
 docker compose --profile distributed up --build web-panel-distributed
 ```
 
-Docker 场景下的访问地址�?
-*   Web 面板主页: `http://localhost:8080/static/index.html`
-*   分布式监控页: `http://localhost:8080/static/distributed.html`
-*   Workflow 控制�? `http://localhost:8080/static/workflows.html`
-*   可�?`web-panel-distributed` 变体: `http://localhost:8081/static/index.html`
+Docker 閸︾儤娅欐稉瀣畱鐠佸潡妫堕崷鏉挎絻閿?
+*   Web 闂堛垺婢樻稉濠氥€? `http://localhost:8080/static/index.html`
+*   閸掑棗绔峰蹇曟磧閹貉囥€? `http://localhost:8080/static/distributed.html`
+*   Workflow 閹貉冨煑閸? `http://localhost:8080/static/workflows.html`
+*   閸欘垶鈧?`web-panel-distributed` 閸欐ü缍? `http://localhost:8081/static/index.html`
 
-如需执行最�?Docker 分布�?smoke，可直接在仓库根目录运行�?
+婵″倿娓堕幍褑顢戦張鈧亸?Docker 閸掑棗绔峰?smoke閿涘苯褰查惄瀛樺复閸︺劋绮ㄦ惔鎾寸壌閻╊喖缍嶆潻鎰攽閿?
 ```bash
 python tests/run_distributed_smoke.py --build
 ```
 
-该脚本会启用 compose �?`distributed` �?`smoke` profiles，并依次拉起�?
+鐠囥儴鍓奸張顑跨窗閸氼垳鏁?compose 閻?`distributed` 閸?`smoke` profiles閿涘苯鑻熸笟婵囶偧閹峰鎹ｉ敍?
 *   `zenoh-router`
 *   `learner`
 *   `web-panel-distributed`
 *   `mock-godot`
 *   `sidecar-1`
 
-其中 `mock-godot` 是仅用于 smoke 验证的轻�?TCP 测试服务，用来替代真�?Godot 进程，确�?`sidecar-1 -> zenoh-router -> learner -> web-panel-distributed` 整条链路可以真正产生活跃 actor。验证通过后，可在�?
+閸忔湹鑵?`mock-godot` 閺勵垯绮庨悽銊ょ艾 smoke 妤犲矁鐦夐惃鍕氦闁?TCP 濞村鐦張宥呭閿涘瞼鏁ら弶銉︽禌娴狅絿婀＄€?Godot 鏉╂稓鈻奸敍宀€鈥樼拋?`sidecar-1 -> zenoh-router -> learner -> web-panel-distributed` 閺佸瓨娼柧鎹愮熅閸欘垯浜掗惇鐔割劀娴溠呮晸濞叉槒绌?actor閵嗗倿鐛欑拠渚€鈧俺绻冮崥搴礉閸欘垰婀敍?
 *   `http://localhost:8081/static/distributed.html`
 *   `http://localhost:8081/api/distributed/status`
 
-看到 actor 状态和基础遥测字段�?
+閻鍩?actor 閻樿埖鈧礁鎷伴崺铏诡攨闁儲绁寸€涙顔岄妴?
 **Note**:
 *   Since Godot requires GPU/Display (or specific headless setup), the default compose file assumes Godot runs on the **Host Machine**. The Sidecar container connects to `host.docker.internal`.
 *   Port `8000` on the host remains available for Zenoh Router HTTP/REST. The Web Panel is exposed on host port `8080`.
-*   `GET /api/system/status` �?`GET /api/distributed/status` 现在会返�?`distributed_monitor` / `monitor` 状态字段，用于说明当前容器是否具备 Zenoh 监控能力�?*   `mock-godot` 只用于自动化 smoke，不应替代真�?Godot 部署路径�?
+*   `GET /api/system/status` 閸?`GET /api/distributed/status` 閻滄澘婀导姘崇箲閸?`distributed_monitor` / `monitor` 閻樿埖鈧礁鐡у▓纰夌礉閻劋绨拠瀛樻瑜版挸澧犵€圭懓娅掗弰顖氭儊閸忓嘲顦?Zenoh 閻╂垶甯堕懗钘夊閵?*   `mock-godot` 閸欘亞鏁ゆ禍搴ゅ殰閸斻劌瀵?smoke閿涘奔绗夋惔鏃€娴涙禒锝囨埂鐎?Godot 闁劎璁茬捄顖氱窞閵?
 ### Configuration
 *   **ZENOH_ROUTER**: Address of the Zenoh router (default `tcp/zenoh-router:7447`).
 *   **GODOT_HOST**: Address of the Godot instance.
-*   **AGI_WALKER_GODOT_HOST**: Compose/Smoke �?Sidecar 使用�?Godot 主机名；分布�?smoke 默认会指�?`mock-godot`�?*   **AGI_WALKER_SIDECAR_ACTOR_ID**: 分布�?smoke 使用�?actor 标识，默�?`actor_docker_1`�?*   **Web Panel pagination/archive policy**: `deployment/web_panel.env.example` is loaded into the `web-panel` service by default.
-*   **AGI_WALKER_ZENOH_ENDPOINT**: Web 面板分布式监控连接地址。默�?compose 配置会指�?`tcp/zenoh-router:7447`�?*   **AGI_WALKER_DISTRIBUTED_ACTOR_TTL_SECONDS**: Web 面板保留 actor 的最大空闲秒数，默认 `30`�?
+*   **AGI_WALKER_GODOT_HOST**: Compose/Smoke 娑?Sidecar 娴ｈ法鏁ら惃?Godot 娑撶粯婧€閸氬稄绱遍崚鍡楃瀵?smoke 姒涙顓绘导姘瘹閸?`mock-godot`閵?*   **AGI_WALKER_SIDECAR_ACTOR_ID**: 閸掑棗绔峰?smoke 娴ｈ法鏁ら惃?actor 閺嶅洩鐦戦敍宀勭帛鐠?`actor_docker_1`閵?*   **Web Panel pagination/archive policy**: `deployment/web_panel.env.example` is loaded into the `web-panel` service by default.
+*   **AGI_WALKER_ZENOH_ENDPOINT**: Web 闂堛垺婢橀崚鍡楃瀵繒娲冮幒褑绻涢幒銉ユ勾閸р偓閵嗗倿绮拋?compose 闁板秶鐤嗘导姘瘹閸?`tcp/zenoh-router:7447`閵?*   **AGI_WALKER_DISTRIBUTED_ACTOR_TTL_SECONDS**: Web 闂堛垺婢樻穱婵堟殌 actor 閻ㄥ嫭娓舵径褏鈹栭梻鑼潡閺佸府绱濇妯款吇 `30`閵?
 ## 4. Optimization Features
 
 *   **Zlib Compression**: Payloads > 1KB are automatically compressed by Sidecar. Learner/Monitor transparently decompress.

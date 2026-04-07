@@ -1,23 +1,23 @@
-# C++ 插件编译快速指�?
+# C++ 閹绘帊娆㈢紓鏍槯韫囶偊鈧喐瀵氶崡?
 
-本指南帮助您编译 AGI-Walker �?GDExtension C++ 插件，提升物理模拟性能�?**10�?*�?
+閺堫剚瀵氶崡妤€搴滈崝鈺傚亶缂傛牞鐦?AGI-Walker 閻?GDExtension C++ 閹绘帊娆㈤敍灞惧絹閸楀洨澧块悶鍡樐侀幏鐔糕偓褑鍏樼痪?**10閸?*閵?
 
 ---
 
-## 📋 前置要求
+## 棣冩惖 閸撳秶鐤嗙憰浣圭湴
 
 ### Windows
 
 ```powershell
-# 安装 MinGW-w64（推荐使�?MSYS2�?
-# 访问: https://www.msys2.org/
+# 鐎瑰顥?MinGW-w64閿涘牊甯归懡鎰▏閻?MSYS2閿?
+# 鐠佸潡妫? https://www.msys2.org/
 
-# �?MSYS2 中安装工�?
+# 閸?MSYS2 娑擃厼鐣ㄧ憗鍛紣閸?
 pacman -S mingw-w64-x86_64-gcc
 pacman -S mingw-w64-x86_64-cmake
 pacman -S mingw-w64-x86_64-python-scons
 
-# 添加�?PATH
+# 濞ｈ濮為崚?PATH
 # C:\msys64\mingw64\bin
 ```
 
@@ -39,18 +39,18 @@ xcode-select --install
 
 ---
 
-## 🔨 编译步骤
+## 棣冩暏 缂傛牞鐦у銉╊€?
 
-### 步骤 1: 初始化子模块
+### 濮濄儵顎?1: 閸掓繂顫愰崠鏍х摍濡€虫健
 
 ```bash
-cd d:\新建文件夹\AGI-Walker
+cd d:\閺傛澘缂撻弬鍥︽婢剁AGI-Walker
 
-# 如果还未克隆子模�?
+# 婵″倹鐏夋潻妯绘弓閸忓娈曠€涙劖膩閸?
 git submodule update --init --recursive
 ```
 
-### 步骤 2: 编译 godot-cpp
+### 濮濄儵顎?2: 缂傛牞鐦?godot-cpp
 
 ```bash
 cd gdextension_src/godot-cpp
@@ -68,12 +68,12 @@ scons platform=macos target=template_debug
 scons platform=macos target=template_release
 ```
 
-**编译时间**: �?10-20 分钟（首次）
+**缂傛牞鐦ч弮鍫曟？**: 缁?10-20 閸掑棝鎸撻敍鍫ヮ浕濞嗏槄绱?
 
-### 步骤 3: 编译项目插件
+### 濮濄儵顎?3: 缂傛牞鐦фい鍦窗閹绘帊娆?
 
 ```bash
-cd ../  # 回到 gdextension_src
+cd ../  # 閸ョ偛鍩?gdextension_src
 
 # Windows
 scons platform=windows
@@ -85,39 +85,39 @@ scons platform=linux
 scons platform=macos
 ```
 
-**输出文件**:
+**鏉堟挸鍤弬鍥︽**:
 - Windows: `bin/libgdexample.windows.template_debug.x86_64.dll`
 - Linux: `bin/libgdexample.linux.template_debug.x86_64.so`
 - macOS: `bin/libgdexample.macos.template_debug.universal.dylib`
 
 ---
 
-## �?验证安装
+## 閴?妤犲矁鐦夌€瑰顥?
 
-### �?Godot 中测�?
+### 閸?Godot 娑擃厽绁寸拠?
 
-1. **打开 Godot 项目**
+1. **閹垫挸绱?Godot 妞ゅ湱娲?*
    ```bash
-   # 使用 Godot 4.2+ 打开
-   godot --path d:\新建文件夹\AGI-Walker\godot_project
+   # 娴ｈ法鏁?Godot 4.2+ 閹垫挸绱?
+   godot --path d:\閺傛澘缂撻弬鍥︽婢剁AGI-Walker\godot_project
    ```
 
-2. **检查插�?*
-   - 项目设置 �?插件
-   - 确认 "Robot Simulation Toolkit" 显示并启�?
+2. **濡偓閺屻儲褰冩禒?*
+   - 妞ゅ湱娲扮拋鍓х枂 閳?閹绘帊娆?
+   - 绾喛顓?"Robot Simulation Toolkit" 閺勫墽銇氶獮璺烘儙閻?
 
-3. **运行测试场景**
-   - 打开 `scenes/test_physics.tscn`
-   - �?F5 运行
-   - 观察 FPS（应该显著提升）
+3. **鏉╂劘顢戝ù瀣槸閸︾儤娅?*
+   - 閹垫挸绱?`scenes/test_physics.tscn`
+   - 閹?F5 鏉╂劘顢?
+   - 鐟欏倸鐧?FPS閿涘牆绨茬拠銉︽▔閽佹褰侀崡鍥风礆
 
 ---
 
-## 🐛 常见问题
+## 棣冩偘 鐢瓕顫嗛梻顕€顣?
 
-### 问题 1: `scons: command not found`
+### 闂傤噣顣?1: `scons: command not found`
 
-**解决**:
+**鐟欙絽鍠?*:
 ```bash
 # Windows
 pip install scons
@@ -127,63 +127,63 @@ sudo apt-get install scons  # Linux
 brew install scons          # macOS
 ```
 
-### 问题 2: 找不�?Python
+### 闂傤噣顣?2: 閹靛彞绗夐崚?Python
 
-**解决**:
+**鐟欙絽鍠?*:
 ```bash
-# 确保 Python 3.6+ 已安�?
+# 绾喕绻?Python 3.6+ 瀹告彃鐣ㄧ憗?
 python --version
 
-# Windows: 添加 Python �?PATH
+# Windows: 濞ｈ濮?Python 閸?PATH
 ```
 
-### 问题 3: 编译错误 - 找不到头文件
+### 闂傤噣顣?3: 缂傛牞鐦ч柨娆掝嚖 - 閹靛彞绗夐崚鏉裤仈閺傚洣娆?
 
-**解决**:
+**鐟欙絽鍠?*:
 ```bash
-# 确保子模块已正确初始�?
+# 绾喕绻氱€涙劖膩閸ф鍑″锝団€橀崚婵嗩潗閸?
 cd gdextension_src/godot-cpp
 git submodule update --init --recursive
 ```
 
-### 问题 4: Godot 无法加载插件
+### 闂傤噣顣?4: Godot 閺冪姵纭堕崝鐘烘祰閹绘帊娆?
 
-**检�?*:
-1. 插件文件是否�?`gdextension_src/bin/` 目录
-2. 文件扩展名是否匹配操作系�?
-3. Godot 版本是否 4.2+
+**濡偓閺?*:
+1. 閹绘帊娆㈤弬鍥︽閺勵垰鎯侀崷?`gdextension_src/bin/` 閻╊喖缍?
+2. 閺傚洣娆㈤幍鈺佺潔閸氬秵妲搁崥锕€灏柊宥嗘惙娴ｆ粎閮寸紒?
+3. Godot 閻楀牊婀伴弰顖氭儊 4.2+
 
 ---
 
-## 📊 性能对比
+## 棣冩惓 閹嗗厴鐎佃鐦?
 
-编译前后性能对比（预期）:
+缂傛牞鐦ч崜宥呮倵閹嗗厴鐎佃鐦敍鍫ヮ暕閺堢噦绱?
 
-| 指标 | Python/GDScript | C++ 插件 | 提升 |
+| 閹稿洦鐖?| Python/GDScript | C++ 閹绘帊娆?| 閹绘劕宕?|
 |------|----------------|----------|------|
-| 物理步进 | ~30 FPS | ~300 FPS | **10x** |
-| 电机模拟 | ~50 FPS | ~500 FPS | **10x** |
-| 内存占用 | 500 MB | 200 MB | **2.5x** |
+| 閻椻晝鎮婂銉ㄧ箻 | ~30 FPS | ~300 FPS | **10x** |
+| 閻㈠灚婧€濡剝瀚?| ~50 FPS | ~500 FPS | **10x** |
+| 閸愬懎鐡ㄩ崡鐘垫暏 | 500 MB | 200 MB | **2.5x** |
 
 ---
 
-## 🎯 下一�?
+## 棣冨箚 娑撳绔村?
 
-编译成功后：
-1. 运行完整训练（性能更快�?
-2. 测试复杂场景（更多并行环境）
-3. 调整物理参数（更精确�?
+缂傛牞鐦ч幋鎰閸氬函绱?
+1. 鏉╂劘顢戠€瑰本鏆ｇ拋顓犵矊閿涘牊鈧嗗厴閺囨潙鎻╅敍?
+2. 濞村鐦径宥嗘絽閸︾儤娅欓敍鍫熸纯婢舵艾鑻熺悰宀€骞嗘晶鍐跨礆
+3. 鐠嬪啯鏆ｉ悧鈺冩倞閸欏倹鏆熼敍鍫熸纯缁墽鈥橀敍?
 
 ---
 
-## 📚 参考资�?
+## 棣冩憥 閸欏倽鈧啳绁弬?
 
-- [GDExtension 官方文档](https://docs.godotengine.org/en/stable/tutorials/scripting/gdextension/index.html)
+- [GDExtension 鐎规ɑ鏌熼弬鍥ㄣ€俔(https://docs.godotengine.org/en/stable/tutorials/scripting/gdextension/index.html)
 - [Godot-cpp GitHub](https://github.com/godotengine/godot-cpp)
-- [详细构建指南](BUILD_GUIDE.md)
+- [鐠囷妇绮忛弸鍕紦閹稿洤宕(BUILD_GUIDE.md)
 
 ---
 
-**需要帮助？**
+**闂団偓鐟曚礁搴滈崝鈺嬬吹**
 - Discord: discord.gg/agi-walker
 - GitHub Issues: github.com/agi-walker/agi-walker-sim/issues

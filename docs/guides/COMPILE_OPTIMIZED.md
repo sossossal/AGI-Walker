@@ -1,101 +1,101 @@
-# C++ 插件优化编译流程
+# C++ 閹绘帊娆㈡导妯哄缂傛牞鐦уù浣衡柤
 
-## 构建系统分析
+## 閺嬪嫬缂撶化鑽ょ埠閸掑棙鐎?
 
-**发现**: 项目使用 **CMake** 构建系统（不�?scons�?
+**閸欐垹骞?*: 妞ゅ湱娲版担璺ㄦ暏 **CMake** 閺嬪嫬缂撶化鑽ょ埠閿涘牅绗夐弰?scons閿?
 
-**优势**:
-- �?更好�?IDE 集成
-- �?跨平台支�?
-- �?自动依赖管理
-- �?Visual Studio 原生支持
+**娴兼ê濞?*:
+- 閴?閺囨潙銈介惃?IDE 闂嗗棙鍨?
+- 閴?鐠恒劌閽╅崣鐗堟暜閹?
+- 閴?閼奉亜濮╂笟婵婄缁狅紕鎮?
+- 閴?Visual Studio 閸樼喓鏁撻弨顖涘瘮
 
-## 编译步骤优化
+## 缂傛牞鐦у銉╊€冩导妯哄
 
-### 阶段 1: 准备（一次性）
+### 闂冭埖顔?1: 閸戝棗顦敍鍫滅濞嗏剝鈧嶇礆
 ```powershell
-# 1. 初始�?godot-cpp 子模�?
-cd d:\新建文件夹\AGI-Walker\gdextension_src
+# 1. 閸掓繂顫愰崠?godot-cpp 鐎涙劖膩閸?
+cd d:\閺傛澘缂撻弬鍥︽婢剁AGI-Walker\gdextension_src
 git submodule update --init --recursive
 
-# 预计时间: 2-3 分钟（下�?godot-cpp�?
+# 妫板嫯顓搁弮鍫曟？: 2-3 閸掑棝鎸撻敍鍫滅瑓鏉?godot-cpp閿?
 ```
 
-### 阶段 2: 配置（一次性）
+### 闂冭埖顔?2: 闁板秶鐤嗛敍鍫滅濞嗏剝鈧嶇礆
 ```powershell
-# 2. 创建构建目录
+# 2. 閸掓稑缂撻弸鍕紦閻╊喖缍?
 New-Item -ItemType Directory -Force -Path build
 cd build
 
-# 3. 生成 Visual Studio 项目
+# 3. 閻㈢喐鍨?Visual Studio 妞ゅ湱娲?
 cmake .. -G "Visual Studio 17 2022" -A x64
 
-# 预计时间: 30 �?
+# 妫板嫯顓搁弮鍫曟？: 30 缁?
 ```
 
-### 阶段 3: 编译
+### 闂冭埖顔?3: 缂傛牞鐦?
 ```powershell
-# 4a. Release 模式（推荐，用于性能测试�?
+# 4a. Release 濡€崇础閿涘牊甯归懡鎰剁礉閻劋绨幀褑鍏樺ù瀣槸閿?
 cmake --build . --config Release -- /m
 
-# 4b. �?Debug 模式（开发调试用�?
+# 4b. 閹?Debug 濡€崇础閿涘牆绱戦崣鎴ｇ殶鐠囨洜鏁ら敍?
 cmake --build . --config Debug -- /m
 
-# 预计时间:
-# - 首次: 15-20 分钟（编�?godot-cpp�?
-# - 后续: 1-2 分钟（仅编译修改部分�?
+# 妫板嫯顓搁弮鍫曟？:
+# - 妫ｆ牗顐? 15-20 閸掑棝鎸撻敍鍫㈢椽鐠?godot-cpp閿?
+# - 閸氬海鐢? 1-2 閸掑棝鎸撻敍鍫滅矌缂傛牞鐦ф穱顔芥暭闁劌鍨庨敍?
 ```
 
-## 性能优化参数
+## 閹嗗厴娴兼ê瀵查崣鍌涙殶
 
-### 并行编译
+### 楠炴儼顢戠紓鏍槯
 ```powershell
-# /m 标志 = 使用所有CPU核心
+# /m 閺嶅洤绻?= 娴ｈ法鏁ら幍鈧張濉丳U閺嶇绺?
 cmake --build . --config Release -- /m
 ```
 
-### 编译时间预估
+### 缂傛牞鐦ч弮鍫曟？妫板嫪鍙?
 
-| 阶段 | 首次 | 增量 |
+| 闂冭埖顔?| 妫ｆ牗顐?| 婢х偤鍣?|
 |------|------|------|
-| godot-cpp | 10-15 分钟 | - |
-| 项目代码 | 1-2 分钟 | 10-30 �?|
-| **总计** | **15-20 分钟** | **< 1 分钟** |
+| godot-cpp | 10-15 閸掑棝鎸?| - |
+| 妞ゅ湱娲版禒锝囩垳 | 1-2 閸掑棝鎸?| 10-30 缁?|
+| **閹槒顓?* | **15-20 閸掑棝鎸?* | **< 1 閸掑棝鎸?* |
 
-## 验证编译结果
+## 妤犲矁鐦夌紓鏍槯缂佹挻鐏?
 
 ```powershell
-# 检�?DLL 文件
+# 濡偓閺?DLL 閺傚洣娆?
 Test-Path "..\godot_project\addons\robot_sim_toolkit\bin\robotparts.windows.x86_64.dll"
 
-# 应该返回: True
+# 鎼存棁顕氭潻鏂挎礀: True
 ```
 
-## 常见错误处理
+## 鐢瓕顫嗛柨娆掝嚖婢跺嫮鎮?
 
-### 错误 1: CMake not found
+### 闁挎瑨顕?1: CMake not found
 ```powershell
-# 安装 CMake
+# 鐎瑰顥?CMake
 winget install Kitware.CMake
-# 或从 https://cmake.org/download/ 下载
+# 閹存牔绮?https://cmake.org/download/ 娑撳娴?
 ```
 
-### 错误 2: Visual Studio not found
+### 闁挎瑨顕?2: Visual Studio not found
 ```powershell
-# 选项 1: 使用 MinGW（见 MINGW_BUILD_GUIDE.md�?
-# 选项 2: 安装 Visual Studio 2022 Community（免费）
+# 闁銆?1: 娴ｈ法鏁?MinGW閿涘牐顫?MINGW_BUILD_GUIDE.md閿?
+# 闁銆?2: 鐎瑰顥?Visual Studio 2022 Community閿涘牆鍘ょ拹鐧哥礆
 # https://visualstudio.microsoft.com/downloads/
 ```
 
-### 错误 3: godot-cpp not found
+### 闁挎瑨顕?3: godot-cpp not found
 ```powershell
-# 重新初始化子模块
+# 闁插秵鏌婇崚婵嗩潗閸栨牕鐡欏Ο鈥虫健
 git submodule update --init --recursive --force
 ```
 
-## 下一�?
+## 娑撳绔村?
 
-编译成功后：
-1. �?Godot 编辑器中打开项目
-2. 启用插件（项目设�?�?插件�?
-3. 运行测试场景验证性能提升
+缂傛牞鐦ч幋鎰閸氬函绱?
+1. 閸?Godot 缂傛牞绶崳銊よ厬閹垫挸绱戞い鍦窗
+2. 閸氼垳鏁ら幓鎺嶆閿涘牓銆嶉惄顔款啎缂?閳?閹绘帊娆㈤敍?
+3. 鏉╂劘顢戝ù瀣槸閸︾儤娅欐宀冪槈閹嗗厴閹绘劕宕?

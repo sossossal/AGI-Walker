@@ -222,7 +222,7 @@ jobs:
           pip install ".[dev,training]"
           pip install pytest pytest-mock stable-baselines3 gymnasium
 
-      # 运行带有 integration 标记的测�?
+      # 鏉╂劘顢戠敮锔芥箒 integration 閺嶅洩顔囬惃鍕ゴ鐠?
       - name: Run Integration Tests
         run: pytest tests/ -m integration -v --tb=short
         env:

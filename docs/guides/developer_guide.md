@@ -1,45 +1,45 @@
-# 开发者指�?
+# 瀵偓閸欐垼鈧懏瀵氶崡?
 
-本指南帮助开发者快速上�?AGI-Walker 的开发�?
+閺堫剚瀵氶崡妤€搴滈崝鈺佺磻閸欐垼鈧懎鎻╅柅鐔剁瑐閹?AGI-Walker 閻ㄥ嫬绱戦崣鎴欌偓?
 
-## 环境设置
+## 閻滎垰顣ㄧ拋鍓х枂
 
-### 1. 克隆仓库
+### 1. 閸忓娈曟禒鎾崇氨
 ```bash
 git clone https://github.com/sossossal/AGI-Walker.git
 cd AGI-Walker
 ```
 
-### 2. 安装依赖
+### 2. 鐎瑰顥婃笟婵婄
 ```bash
-# 使用一键安装脚�?
+# 娴ｈ法鏁ゆ稉鈧柨顔肩暔鐟佸懓鍓奸張?
 ./install.sh  # Linux/Mac
-# �?
+# 閹?
 install.bat   # Windows
 
-# 或手动安�?
+# 閹存牗澧滈崝銊ョ暔鐟?
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # venv\Scripts\activate.bat  # Windows
 pip install -r requirements.txt
 ```
 
-### 3. 运行测试
+### 3. 鏉╂劘顢戝ù瀣槸
 ```bash
 python tests/test_integration.py
 python tests/test_extended.py
 ```
 
-## 代码规范
+## 娴狅絿鐖滅憴鍕瘱
 
-### Python 风格
-遵循 PEP 8:
-- 使用 4 空格缩进
-- 行长�?�?100 字符
-- 使用 `black` 格式�?
+### Python 妞嬪孩鐗?
+闁潧鎯?PEP 8:
+- 娴ｈ法鏁?4 缁岀儤鐗哥紓鈺勭箻
+- 鐞涘矂鏆辨惔?閳?100 鐎涙顑?
+- 娴ｈ法鏁?`black` 閺嶇厧绱￠崠?
 
-### 类型注解
-所有公�?API 必须有类型注�?
+### 缁鐎峰▔銊ㄐ?
+閹碘偓閺堝鍙曢崗?API 韫囧懘銆忛張澶岃閸ㄥ鏁炵憴?
 ```python
 from typing import List, Dict, Optional
 
@@ -47,23 +47,23 @@ def process_data(
     data: List[float],
     config: Optional[Dict[str, Any]] = None
 ) -> np.ndarray:
-    """处理数据"""
+    """婢跺嫮鎮婇弫鐗堝祦"""
     ...
 ```
 
-### 文档字符�?
-使用 Google 风格:
+### 閺傚洦銆傜€涙顑佹稉?
+娴ｈ法鏁?Google 妞嬪孩鐗?
 ```python
 def train_model(env, algorithm="PPO"):
     """
-    训练强化学习模型
+    鐠侇厾绮屽鍝勫鐎涳缚绡勫Ο鈥崇€?
     
     Args:
-        env: Gymnasium 环境
-        algorithm: 算法名称
+        env: Gymnasium 閻滎垰顣?
+        algorithm: 缁犳纭堕崥宥囆?
     
     Returns:
-        训练好的模型
+        鐠侇厾绮屾總鐣屾畱濡€崇€?
     
     Example:
         >>> model = train_model(env, "PPO")
@@ -71,27 +71,27 @@ def train_model(env, algorithm="PPO"):
     ...
 ```
 
-## 项目结构
+## 妞ゅ湱娲扮紒鎾寸€?
 
 ```
 AGI-Walker/
-├── python_api/          # Python 接口
-�?  ├── zenoh_interface.py
-�?  ├── task_editor.py
-�?  └── mujoco_backend.py
-├── python_controller/   # 控制�?
-�?  ├── evolution_manager.py
-�?  └── rl_optimizer.py
-├── examples/            # 示例代码
-�?  └── tasks/          # 任务环境
-├── tests/              # 测试
-├── docs/               # 文档
-└── godot_project/      # Godot 仿真
+閳规壕鏀㈤埞鈧?python_api/          # Python 閹恒儱褰?
+閳?  閳规壕鏀㈤埞鈧?zenoh_interface.py
+閳?  閳规壕鏀㈤埞鈧?task_editor.py
+閳?  閳规柡鏀㈤埞鈧?mujoco_backend.py
+閳规壕鏀㈤埞鈧?python_controller/   # 閹貉冨煑閸?
+閳?  閳规壕鏀㈤埞鈧?evolution_manager.py
+閳?  閳规柡鏀㈤埞鈧?rl_optimizer.py
+閳规壕鏀㈤埞鈧?examples/            # 缁€杞扮伐娴狅絿鐖?
+閳?  閳规柡鏀㈤埞鈧?tasks/          # 娴犺濮熼悳顖氼暔
+閳规壕鏀㈤埞鈧?tests/              # 濞村鐦?
+閳规壕鏀㈤埞鈧?docs/               # 閺傚洦銆?
+閳规柡鏀㈤埞鈧?godot_project/      # Godot 娴犺法婀?
 ```
 
-## 添加新任�?
+## 濞ｈ濮為弬棰佹崲閸?
 
-### 1. 创建环境文件
+### 1. 閸掓稑缂撻悳顖氼暔閺傚洣娆?
 ```python
 # examples/tasks/my_task/env.py
 import gymnasium as gym
@@ -99,7 +99,7 @@ import gymnasium as gym
 class MyTaskEnv(gym.Env):
     def __init__(self):
         super().__init__()
-        # 定义观测和动作空�?
+        # 鐎规矮绠熺憴鍌涚ゴ閸滃苯濮╂担婊呪敄闂?
         ...
     
     def reset(self, seed=None, options=None):
@@ -109,7 +109,7 @@ class MyTaskEnv(gym.Env):
         ...
 ```
 
-### 2. 注册环境
+### 2. 濞夈劌鍞介悳顖氼暔
 ```python
 gym.register(
     id='MyTask-v0',
@@ -117,7 +117,7 @@ gym.register(
 )
 ```
 
-### 3. 添加测试
+### 3. 濞ｈ濮炲ù瀣槸
 ```python
 def test_my_task():
     env = gym.make('MyTask-v0')
@@ -125,64 +125,64 @@ def test_my_task():
     assert obs.shape == env.observation_space.shape
 ```
 
-## 提交代码
+## 閹绘劒姘︽禒锝囩垳
 
-### 1. 创建分支
+### 1. 閸掓稑缂撻崚鍡樻暜
 ```bash
 git checkout -b feature/my-feature
 ```
 
-### 2. 编写代码和测�?
+### 2. 缂傛牕鍟撴禒锝囩垳閸滃本绁寸拠?
 ```bash
-# 运行测试
+# 鏉╂劘顢戝ù瀣槸
 python tests/test_extended.py
 
-# 格式化代�?
+# 閺嶇厧绱￠崠鏍﹀敩閻?
 black python_api/ python_controller/
 ```
 
-### 3. 提交
+### 3. 閹绘劒姘?
 ```bash
 git add .
 git commit -m "feat: add my feature"
 git push origin feature/my-feature
 ```
 
-### 4. 创建 Pull Request
-�?GitHub 上创�?PR,等待审核�?
+### 4. 閸掓稑缂?Pull Request
+閸?GitHub 娑撳﹤鍨卞?PR,缁涘绶熺€光剝鐗抽妴?
 
-## 调试技�?
+## 鐠嬪啳鐦幎鈧?
 
-### 1. 使用 Python 调试�?
+### 1. 娴ｈ法鏁?Python 鐠嬪啳鐦崳?
 ```python
 import pdb; pdb.set_trace()
 ```
 
-### 2. Zenoh 调试
+### 2. Zenoh 鐠嬪啳鐦?
 ```bash
-# 启用详细日志
+# 閸氼垳鏁ょ拠锔剧矎閺冦儱绻?
 export RUST_LOG=debug
 python your_script.py
 ```
 
-### 3. 查看 Godot 日志
+### 3. 閺屻儳婀?Godot 閺冦儱绻?
 ```bash
-# �?Godot 编辑器中查看输出面板
+# 閸?Godot 缂傛牞绶崳銊よ厬閺屻儳婀呮潏鎾冲毉闂堛垺婢?
 ```
 
-## 常见问题
+## 鐢瓕顫嗛梻顕€顣?
 
-### Q: Zenoh 连接失败?
-A: 检查防火墙设置,确保端口 7447 开放�?
+### Q: Zenoh 鏉╃偞甯存径杈Е?
+A: 濡偓閺屻儵妲婚悘顐㈩暰鐠佸墽鐤?绾喕绻氱粩顖氬經 7447 瀵偓閺€淇扁偓?
 
-### Q: MuJoCo 安装失败?
-A: 确保�?C++ 编译�?(Linux: gcc, Windows: MSVC)�?
+### Q: MuJoCo 鐎瑰顥婃径杈Е?
+A: 绾喕绻氶張?C++ 缂傛牞鐦ч崳?(Linux: gcc, Windows: MSVC)閵?
 
-### Q: 测试失败?
-A: 运行 `pip install -r requirements.txt` 确保依赖完整�?
+### Q: 濞村鐦径杈Е?
+A: 鏉╂劘顢?`pip install -r requirements.txt` 绾喕绻氭笟婵婄鐎瑰本鏆ｉ妴?
 
-## 资源链接
+## 鐠у嫭绨柧鐐复
 
-- [GitHub 仓库](https://github.com/sossossal/AGI-Walker)
-- [贡献指南](../CONTRIBUTING.md)
-- [技术债务计划](../archive_and_reports/TECH_DEBT_PLAN.md)
+- [GitHub 娴犳挸绨盷(https://github.com/sossossal/AGI-Walker)
+- [鐠愶紕灏為幐鍥у础](../CONTRIBUTING.md)
+- [閹垛偓閺堫垰鈧搫濮熺拋鈥冲灊](../archive_and_reports/TECH_DEBT_PLAN.md)

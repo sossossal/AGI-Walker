@@ -1,49 +1,49 @@
-# AGI-Walker GitHub 更新指南
+# AGI-Walker GitHub 閺囧瓨鏌婇幐鍥у础
 
-本文档包含更新GitHub仓库所需的所有信息和命令�?
-
----
-
-## 📋 本次更新内容
-
-### �?新功�? Moltbot Skills 系统集成
-
-**主要特�?**
-- 🤖 Robot Modeling Skill - 机器人建模系�?
-- ⚙️ Parameter Optimizer Skill - 参数优化系统
-- 📄 URDF Generator Skill - URDF转换系统
-- 💻 CLI工具 - 命令行管理界�?
-- 🖥�?GUI浏览�?- 图形化Skills浏览�?
-
-**统计数据:**
-- 新增代码: 2100+ �?
-- 新增文档: 2500+ �?
-- Skills数量: 3�?
-- 测试覆盖: 15/15 通过(100%)
+閺堫剚鏋冨锝呭瘶閸氼偅娲块弬鐧巌tHub娴犳挸绨遍幍鈧棁鈧惃鍕閺堝淇婇幁顖氭嫲閸涙垝鎶ら妴?
 
 ---
 
-## 🚀 快速更新步�?
+## 棣冩惖 閺堫剚顐奸弴瀛樻煀閸愬懎顔?
 
-### 1. 准备工作
+### 閴?閺傛澘濮涢懗? Moltbot Skills 缁崵绮洪梿鍡樺灇
+
+**娑撴槒顩﹂悧瑙勨偓?**
+- 棣冾樆 Robot Modeling Skill - 閺堝搫娅掓禍鍝勭紦濡紕閮寸紒?
+- 閳挎瑱绗?Parameter Optimizer Skill - 閸欏倹鏆熸导妯哄缁崵绮?
+- 棣冩惈 URDF Generator Skill - URDF鏉烆剚宕茬化鑽ょ埠
+- 棣冩崌 CLI瀹搞儱鍙?- 閸涙垝鎶ょ悰宀€顓搁悶鍡欐櫕闂?
+- 棣冩灱閿?GUI濞村繗顫嶉崳?- 閸ユ儳鑸伴崠鏈ills濞村繗顫嶉崳?
+
+**缂佺喕顓搁弫鐗堝祦:**
+- 閺傛澘顤冩禒锝囩垳: 2100+ 鐞?
+- 閺傛澘顤冮弬鍥ㄣ€? 2500+ 鐞?
+- Skills閺佷即鍣? 3娑?
+- 濞村鐦憰鍡欐磰: 15/15 闁俺绻?100%)
+
+---
+
+## 棣冩畬 韫囶偊鈧喐娲块弬鐗堫劄妤?
+
+### 1. 閸戝棗顦銉ょ稊
 
 ```bash
-cd d:\新建文件夹\AGI-Walker
+cd d:\閺傛澘缂撻弬鍥︽婢剁AGI-Walker
 
-# 检查当前状�?
+# 濡偓閺屻儱缍嬮崜宥囧Ц閹?
 git status
 
-# 查看变更
+# 閺屻儳婀呴崣妯绘纯
 git diff
 ```
 
-### 2. 提交更改
+### 2. 閹绘劒姘﹂弴瀛樻暭
 
 ```bash
-# 添加所有新文件
+# 濞ｈ濮為幍鈧張澶嬫煀閺傚洣娆?
 git add .
 
-# 或者分批添�?
+# 閹存牞鈧懎鍨庨幍瑙勫潑閸?
 git add agi_walker/skills/
 git add agi_walker/skills_loader.py
 git add agi_walker/cli/
@@ -55,114 +55,114 @@ git add .agent/AGENTS.md
 git add README.md
 git add requirements.txt
 
-# 提交
-git commit -m "feat: 集成Moltbot Skills系统
+# 閹绘劒姘?
+git commit -m "feat: 闂嗗棙鍨歁oltbot Skills缁崵绮?
 
-主要更新:
-- 添加3个核心Skills (robot-modeling, parameter-optimizer, urdf-generator)
-- 实现CLI工具和GUI浏览�?
-- 完整的文档系统和使用教程
-- 100%测试覆盖
+娑撴槒顩﹂弴瀛樻煀:
+- 濞ｈ濮?娑擃亝鐗宠箛鍍慿ills (robot-modeling, parameter-optimizer, urdf-generator)
+- 鐎圭偟骞嘋LI瀹搞儱鍙块崪瀛廢I濞村繗顫嶉崳?
+- 鐎瑰本鏆ｉ惃鍕瀮濡楋絿閮寸紒鐔锋嫲娴ｈ法鏁ら弫娆戔柤
+- 100%濞村鐦憰鍡欐磰
 
-详细信息请查�?SKILLS_CHANGELOG.md
+鐠囷妇绮忔穱鈩冧紖鐠囬攱鐓￠惇?SKILLS_CHANGELOG.md
 "
 ```
 
-### 3. 推送到GitHub
+### 3. 閹恒劑鈧礁鍩孏itHub
 
 ```bash
-# 推送到主分�?
+# 閹恒劑鈧礁鍩屾稉璇插瀻閺€?
 git push origin main
 
-# 如果是第一次推�?
+# 婵″倹鐏夐弰顖滎儑娑撯偓濞嗏剝甯归柅?
 git push -u origin main
 ```
 
-### 4. 创建发布标签 (可�?
+### 4. 閸掓稑缂撻崣鎴濈閺嶅洨顒?(閸欘垶鈧?
 
 ```bash
-# 创建版本标签
-git tag -a v0.2.0 -m "Skills系统集成版本
+# 閸掓稑缂撻悧鍫熸拱閺嶅洨顒?
+git tag -a v0.2.0 -m "Skills缁崵绮洪梿鍡樺灇閻楀牊婀?
 
-新增:
-- Moltbot Skills架构
-- 3个生产级Skills
-- CLI和GUI工具
-- 完整文档
+閺傛澘顤?
+- Moltbot Skills閺嬭埖鐎?
+- 3娑擃亞鏁撴禍褏楠嘢kills
+- CLI閸滃瓘UI瀹搞儱鍙?
+- 鐎瑰本鏆ｉ弬鍥ㄣ€?
 
-测试状�? 15/15通过
+濞村鐦悩鑸碘偓? 15/15闁俺绻?
 "
 
-# 推送标�?
+# 閹恒劑鈧焦鐖ｇ粵?
 git push origin v0.2.0
 ```
 
 ---
 
-## 📝 GitHub Release 描述
+## 棣冩憫 GitHub Release 閹诲繗鍫?
 
-复制以下内容到GitHub Release页面:
+婢跺秴鍩楁禒銉ょ瑓閸愬懎顔愰崚鐧巌tHub Release妞ょ敻娼?
 
 ```markdown
 # AGI-Walker v0.2.0 - Skills System Integration
 
-## 🎉 重大更新
+## 棣冨竴 闁插秴銇囬弴瀛樻煀
 
-成功集成 **Moltbot Skills 系统**,为AGI-Walker带来模块化、智能化的机器人建模工作流！
+閹存劕濮涢梿鍡樺灇 **Moltbot Skills 缁崵绮?*,娑撶瘓GI-Walker鐢附娼靛Ο鈥虫健閸栨牓鈧焦娅ら懗钘夊閻ㄥ嫭婧€閸ｃ劋姹夊鐑樐佸銉ょ稊濞翠緤绱?
 
-## �?新增功能
+## 閴?閺傛澘顤冮崝鐔诲厴
 
-### 🤖 Robot Modeling Skill
-- 流式API设计,链式调用
-- 2个预设模�?双足/四足)
-- JSON配置保存
-- 300+ 行API文档
+### 棣冾樆 Robot Modeling Skill
+- 濞翠礁绱PI鐠佹崘顓?闁炬儳绱＄拫鍐暏
+- 2娑擃亪顣╃拋鐐侀弶?閸欏矁鍐?閸ユ稖鍐?
+- JSON闁板秶鐤嗘穱婵嗙摠
+- 300+ 鐞涘瓑PI閺傚洦銆?
 
-### ⚙️ Parameter Optimizer Skill
-- 质量分布优化 (梯度�?遗传算法)
-- PID参数调优
-- scipy科学计算集成
-- 批量优化工具
+### 閳挎瑱绗?Parameter Optimizer Skill
+- 鐠愩劑鍣洪崚鍡楃娴兼ê瀵?(濮婎垰瀹冲▔?闁ぞ绱剁粻妤佺《)
+- PID閸欏倹鏆熺拫鍐х喘
+- scipy缁夋垵顒熺拋锛勭暬闂嗗棙鍨?
+- 閹靛綊鍣烘导妯哄瀹搞儱鍙?
 
-### 📄 URDF Generator Skill
-- JSON �?URDF 转换
-- 自动几何生成
-- URDF验证工具
-- 支持ROS 2/Gazebo/MuJoCo
+### 棣冩惈 URDF Generator Skill
+- JSON 閳?URDF 鏉烆剚宕?
+- 閼奉亜濮╅崙鐘辩秿閻㈢喐鍨?
+- URDF妤犲矁鐦夊銉ュ徔
+- 閺€顖涘瘮ROS 2/Gazebo/MuJoCo
 
-### 💻 CLI 工具
+### 棣冩崌 CLI 瀹搞儱鍙?
 ```bash
 python -m agi_walker.cli skills list
 python -m agi_walker.cli skills info robot-modeling
-python -m agi_walker.cli skills search 优化
+python -m agi_walker.cli skills search 娴兼ê瀵?
 ```
 
-### 🖥�?GUI 浏览�?
+### 棣冩灱閿?GUI 濞村繗顫嶉崳?
 ```bash
 python agi_walker/gui/skills_browser.py
 ```
 
-## 📊 统计数据
+## 棣冩惓 缂佺喕顓搁弫鐗堝祦
 
-- **代码**: 2100+ �?
-- **文档**: 2500+ �?
-- **Skills**: 3个生产级
-- **测试**: 15/15 通过 (100%)
+- **娴狅絿鐖?*: 2100+ 鐞?
+- **閺傚洦銆?*: 2500+ 鐞?
+- **Skills**: 3娑擃亞鏁撴禍褏楠?
+- **濞村鐦?*: 15/15 闁俺绻?(100%)
 
-## 📚 文档
+## 棣冩憥 閺傚洦銆?
 
-- [Skills系统指南](.agent/AGENTS.md)
-- [实战教程](docs/AGENT_ROBOT_TUTORIAL.md)
-- [CLI使用](../guides/CLI_GUIDE.md)
-- [GUI使用](../guides/GUI_GUIDE.md)
-- [Skills开发](../guides/SKILLS_DEVELOPMENT.md)
+- [Skills缁崵绮洪幐鍥у础](.agent/AGENTS.md)
+- [鐎圭偞鍨弫娆戔柤](docs/AGENT_ROBOT_TUTORIAL.md)
+- [CLI娴ｈ法鏁(../guides/CLI_GUIDE.md)
+- [GUI娴ｈ法鏁(../guides/GUI_GUIDE.md)
+- [Skills瀵偓閸欐叜(../guides/SKILLS_DEVELOPMENT.md)
 
-## 🎯 快速开�?
+## 棣冨箚 韫囶偊鈧喎绱戞慨?
 
 ```python
 from agi_walker.skills.robot_modeling import RobotBuilder
 
-# 创建机器�?
+# 閸掓稑缂撻張鍝勬珤娴?
 robot = (
     RobotBuilder("my_biped")
     .add_torso(height=0.5, mass=5.0)
@@ -170,29 +170,29 @@ robot = (
     .build()
 )
 
-# 优化参数
+# 娴兼ê瀵查崣鍌涙殶
 from agi_walker.skills.parameter_optimizer import optimize_mass_distribution
 result = optimize_mass_distribution(robot, target_com_height=0.22)
 
-# 导出URDF
+# 鐎电厧鍤璘RDF
 from agi_walker.skills.urdf_generator import convert_to_urdf
 convert_to_urdf("robot.json", "robot.urdf")
 ```
 
-## 🙏 致谢
+## 棣冩 閼风闃?
 
-感谢 [Moltbot](https://github.com/moltbot/moltbot) 项目提供的优秀架构设计!
+閹扮喕闃?[Moltbot](https://github.com/moltbot/moltbot) 妞ゅ湱娲伴幓鎰返閻ㄥ嫪绱粔鈧弸鑸电€拋鎹愵吀!
 
 ---
 
-**完整更新日志**: [SKILLS_CHANGELOG.md](../archive_and_reports/SKILLS_CHANGELOG.md)
+**鐎瑰本鏆ｉ弴瀛樻煀閺冦儱绻?*: [SKILLS_CHANGELOG.md](../archive_and_reports/SKILLS_CHANGELOG.md)
 ```
 
 ---
 
-## 📦 需要提交的文件清单
+## 棣冩憹 闂団偓鐟曚焦褰佹禍銈囨畱閺傚洣娆㈠〒鍛礋
 
-### 核心代码
+### 閺嶇绺炬禒锝囩垳
 - [x] `agi_walker/skills_loader.py`
 - [x] `agi_walker/skills/__init__.py`
 - [x] `agi_walker/skills/robot-modeling/`
@@ -202,60 +202,60 @@ convert_to_urdf("robot.json", "robot.urdf")
 - [x] `agi_walker/gui/`
 - [x] `agi_walker/__init__.py`
 
-### 文档
+### 閺傚洦銆?
 - [x] `.agent/AGENTS.md`
 - [x] `docs/CLI_GUIDE.md`
 - [x] `docs/GUI_GUIDE.md`
 - [x] `docs/SKILLS_DEVELOPMENT.md`
-- [x] `README.md` (已更�?
+- [x] `README.md` (瀹稿弶娲块弬?
 - [x] `SKILLS_CHANGELOG.md`
 
-### 测试和示�?
+### 濞村鐦崪宀€銇氭笟?
 - [x] `tests/test_skills_loader.py`
 - [x] `tests/test_simple.py`
 - [x] `examples/skills_demo.py`
 - [x] `examples/parameter_optimizer_demo.py`
 - [x] `examples/complete_workflow_demo.py`
 
-### 配置
-- [x] `requirements.txt` (已更�?
+### 闁板秶鐤?
+- [x] `requirements.txt` (瀹稿弶娲块弬?
 - [x] `agi_walker.bat`
 
 ---
 
-## 🔍 提交前检�?
+## 棣冩敵 閹绘劒姘﹂崜宥嗩梾閺?
 
 ```bash
-# 1. 运行测试
+# 1. 鏉╂劘顢戝ù瀣槸
 python tests/test_simple.py
 
-# 2. 检查文档链�?
-# 确保README.md中的所有链接有�?
+# 2. 濡偓閺屻儲鏋冨锝夋懠閹?
+# 绾喕绻歊EADME.md娑擃厾娈戦幍鈧張澶愭懠閹恒儲婀侀弫?
 
-# 3. 验证CLI
+# 3. 妤犲矁鐦塁LI
 python -m agi_walker.cli skills list
 
-# 4. 检查代码风�?(可�?
+# 4. 濡偓閺屻儰鍞惍渚€顥撻弽?(閸欘垶鈧?
 # pylint agi_walker/
 
-# 5. 查看提交内容
+# 5. 閺屻儳婀呴幓鎰唉閸愬懎顔?
 git diff --stat
 ```
 
 ---
 
-## 📢 社交媒体公告模板
+## 棣冩憴 缁€鍙ユ唉婵帊缍嬮崗顒€鎲″Ο鈩冩緲
 
 ### Twitter/X
 ```
-🚀 AGI-Walker v0.2.0 发布!
+棣冩畬 AGI-Walker v0.2.0 閸欐垵绔?
 
-�?全新Moltbot Skills系统
-🤖 智能化机器人建模
-⚙️ 自动参数优化
-📄 一键导出URDF
+閴?閸忋劍鏌奙oltbot Skills缁崵绮?
+棣冾樆 閺呴缚鍏橀崠鏍ㄦ簚閸ｃ劋姹夊鐑樐?
+閳挎瑱绗?閼奉亜濮╅崣鍌涙殶娴兼ê瀵?
+棣冩惈 娑撯偓闁款喖顕遍崙绡DF
 
-3个生产级Skills | CLI+GUI | 100%测试覆盖
+3娑擃亞鏁撴禍褏楠嘢kills | CLI+GUI | 100%濞村鐦憰鍡欐磰
 
 GitHub: https://github.com/sossossal/AGI-Walker
 #Robotics #AI #OpenSource
@@ -268,10 +268,10 @@ Title: AGI-Walker v0.2.0 - Integrated Moltbot Skills System for Intelligent Robo
 We're excited to announce AGI-Walker v0.2.0, featuring a complete integration of the Moltbot Skills system!
 
 **Key Features:**
-- 🤖 Robot Modeling with fluent API
-- ⚙️ Automatic parameter optimization
-- 📄 URDF/SDF export for Gazebo/ROS 2
-- 💻 CLI tools + 🖥�?GUI browser
+- 棣冾樆 Robot Modeling with fluent API
+- 閳挎瑱绗?Automatic parameter optimization
+- 棣冩惈 URDF/SDF export for Gazebo/ROS 2
+- 棣冩崌 CLI tools + 棣冩灱閿?GUI browser
 
 **Complete workflow example:**
 [Include code snippet from README]
@@ -282,24 +282,24 @@ GitHub: [link]
 
 ---
 
-## �?常见问题
+## 閴?鐢瓕顫嗛梻顕€顣?
 
-### Q: 推送失败怎么�?
+### Q: 閹恒劑鈧礁銇戠拹銉︹偓搴濈疄閸?
 
 ```bash
-# 拉取最新更�?
+# 閹峰褰囬張鈧弬鐗堟纯閺€?
 git pull origin main --rebase
 
-# 解决冲突�?
+# 鐟欙絽鍠呴崘鑼崐閸?
 git rebase --continue
 
-# 重新推�?
+# 闁插秵鏌婇幒銊┾偓?
 git push origin main
 ```
 
-### Q: 需要创�?gitignore�?
+### Q: 闂団偓鐟曚礁鍨卞?gitignore閸?
 
-检查是否已�?如果没有则创�?
+濡偓閺屻儲妲搁崥锕€鍑￠張?婵″倹鐏夊▽鈩冩箒閸掓瑥鍨卞?
 
 ```gitignore
 # Python
@@ -324,7 +324,7 @@ wheels/
 .installed.cfg
 *.egg
 
-# 虚拟环境
+# 閾忔碍瀚欓悳顖氼暔
 venv/
 ENV/
 env/
@@ -335,12 +335,12 @@ env/
 *.swp
 *.swo
 
-# 输出文件
+# 鏉堟挸鍤弬鍥︽
 configs/*.json
 exports/*.urdf
 exports/*.sdf
 
-# 测试
+# 濞村鐦?
 .pytest_cache/
 .coverage
 htmlcov/
@@ -350,15 +350,15 @@ htmlcov/
 Thumbs.db
 ```
 
-### Q: 如何只推送特定文�?
+### Q: 婵″倷缍嶉崣顏呭腹闁胶澹掔€规碍鏋冩禒?
 
 ```bash
-# 添加特定目录
+# 濞ｈ濮為悧鐟扮暰閻╊喖缍?
 git add agi_walker/skills/
 git commit -m "Add skills modules"
 git push
 
-# 继续添加其他
+# 缂佈呯敾濞ｈ濮為崗鏈电铂
 git add docs/
 git commit -m "Add documentation"
 git push
@@ -366,13 +366,13 @@ git push
 
 ---
 
-## 📈 发布后跟�?
+## 棣冩惐 閸欐垵绔烽崥搴ょ闊?
 
-1. **GitHub Issues** - 关注用户反馈
-2. **Star数量** - 监控项目关注�?
-3. **Fork数量** - 观察社区参与
-4. **Pull Requests** - 欢迎贡献
+1. **GitHub Issues** - 閸忚櫕鏁為悽銊﹀煕閸欏秹顩?
+2. **Star閺佷即鍣?* - 閻╂垶甯舵い鍦窗閸忚櫕鏁炴惔?
+3. **Fork閺佷即鍣?* - 鐟欏倸鐧傜粈鎯у隘閸欏倷绗?
+4. **Pull Requests** - 濞嗐垼绻嬬拹锛勫盀
 
 ---
 
-**准备好了�? 让我们发布到GitHub!** 🚀
+**閸戝棗顦總鎴掔啊閸? 鐠佲晜鍨滄禒顒€褰傜敮鍐ㄥ煂GitHub!** 棣冩畬

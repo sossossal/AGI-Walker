@@ -1,47 +1,47 @@
-# AGI-Walker AI模型集成快速指�?
+# AGI-Walker AI濡€崇€烽梿鍡樺灇韫囶偊鈧喐瀵氶崡?
 
-本指南帮助您快速完成AI模型的安装和配置�?
+閺堫剚瀵氶崡妤€搴滈崝鈺傚亶韫囶偊鈧喎鐣幋鎬塈濡€崇€烽惃鍕暔鐟佸懎鎷伴柊宥囩枂閵?
 
 ---
 
-## 🚀 快速开始（5分钟�?
+## 棣冩畬 韫囶偊鈧喎绱戞慨瀣剁礄5閸掑棝鎸撻敍?
 
-### 步骤1: 安装Ollama
+### 濮濄儵顎?: 鐎瑰顥奜llama
 
 **Windows**:
 ```powershell
 winget install Ollama.Ollama
 ```
 
-**或下载安装器**: https://ollama.com/download
+**閹存牔绗呮潪钘夌暔鐟佸懎娅?*: https://ollama.com/download
 
-### 步骤2: 下载AI模型
+### 濮濄儵顎?: 娑撳娴嘇I濡€崇€?
 
 ```bash
 ollama pull phi3:mini
 ```
 
-等待下载完成（约2.3GB�?
+缁涘绶熸稉瀣祰鐎瑰本鍨氶敍鍫㈠2.3GB閿?
 
-### 步骤3: 安装Python依赖
+### 濮濄儵顎?: 鐎瑰顥奝ython娓氭繆绂?
 
 ```bash
 cd python_controller
 pip install ollama
 ```
 
-### 步骤4: 测试AI模型
+### 濮濄儵顎?: 濞村鐦疉I濡€崇€?
 
 ```bash
 python ai_model.py
 ```
 
-应该看到:
+鎼存棁顕氶惇瀣煂:
 ```
-�?模型 phi3:mini 已加�?
-执行推理...
+閴?濡€崇€?phi3:mini 瀹告彃濮炴潪?
+閹笛嗩攽閹恒劎鎮?..
 
-预测动作:
+妫板嫭绁撮崝銊ょ稊:
 {
   "motors": {
     "hip_left": -2.3,
@@ -51,68 +51,68 @@ python ai_model.py
 }
 ```
 
-### 步骤5: 运行AI控制�?
+### 濮濄儵顎?: 鏉╂劘顢慉I閹貉冨煑閸?
 
-1. **启动Godot仿真**（按F5�?
-2. **运行AI控制�?*:
+1. **閸氼垰濮〨odot娴犺法婀?*閿涘牊瀵淔5閿?
+2. **鏉╂劘顢慉I閹貉冨煑閸?*:
    ```bash
    python ai_controller.py --duration 60
    ```
 
 ---
 
-## 📋 详细安装步骤
+## 棣冩惖 鐠囷妇绮忕€瑰顥婂銉╊€?
 
-### 方案A: Ollama（推荐）
+### 閺傝顢岮: Ollama閿涘牊甯归懡鎰剁礆
 
-#### 1. 安装Ollama
+#### 1. 鐎瑰顥奜llama
 
 **Windows PowerShell**:
 ```powershell
-# 方法1: 使用winget
+# 閺傝纭?: 娴ｈ法鏁inget
 winget install Ollama.Ollama
 
-# 方法2: 使用Chocolatey
+# 閺傝纭?: 娴ｈ法鏁hocolatey
 choco install ollama
 
-# 方法3: 手动下载
-# 访问 https://ollama.com/download
+# 閺傝纭?: 閹靛濮╂稉瀣祰
+# 鐠佸潡妫?https://ollama.com/download
 ```
 
-安装后，Ollama会自动启动为后台服务�?
+鐎瑰顥婇崥搴礉Ollama娴兼俺鍤滈崝銊ユ儙閸斻劋璐熼崥搴″酱閺堝秴濮熼妴?
 
-#### 2. 验证安装
+#### 2. 妤犲矁鐦夌€瑰顥?
 
 ```bash
 ollama --version
 ```
 
-应该显示版本号，�? `ollama version 0.1.x`
+鎼存棁顕氶弰鍓с仛閻楀牊婀伴崣鍑ょ礉婵? `ollama version 0.1.x`
 
-#### 3. 下载模型
+#### 3. 娑撳娴囧Ο鈥崇€?
 
-**Phi-3-mini**（推荐）:
+**Phi-3-mini**閿涘牊甯归懡鎰剁礆:
 ```bash
 ollama pull phi3:mini
 ```
 
-**其他选项**:
+**閸忔湹绮柅澶愩€?*:
 ```bash
-ollama pull gemma:2b      # 更小更快
-ollama pull qwen2:3b      # 中文优化
+ollama pull gemma:2b      # 閺囨潙鐨弴鏉戞彥
+ollama pull qwen2:3b      # 娑擃厽鏋冩导妯哄
 ```
 
-#### 4. 测试模型
+#### 4. 濞村鐦Ο鈥崇€?
 
 ```bash
 ollama run phi3:mini
 ```
 
-输入: `你好，介绍一下你自己`
+鏉堟挸鍙? `娴ｇ姴銈介敍灞肩矙缂佸秳绔存稉瀣╃稑閼奉亜绻乣
 
-如果模型正常响应，说明安装成功！
+婵″倹鐏夊Ο鈥崇€峰锝呯埗閸濆秴绨查敍宀冾嚛閺勫骸鐣ㄧ憗鍛灇閸旂噦绱?
 
-#### 5. 安装Python客户�?
+#### 5. 鐎瑰顥奝ython鐎广垺鍩涚粩?
 
 ```bash
 pip install ollama
@@ -120,32 +120,32 @@ pip install ollama
 
 ---
 
-### 方案B: llama.cpp（高级用户）
+### 閺傝顢岯: llama.cpp閿涘牓鐝痪褏鏁ら幋鍑ょ礆
 
-#### 1. 编译llama.cpp
+#### 1. 缂傛牞鐦lama.cpp
 
-**Windows (使用CMake)**:
+**Windows (娴ｈ法鏁Make)**:
 ```powershell
 git clone https://github.com/ggerganov/llama.cpp
 cd llama.cpp
 
-# 编译
+# 缂傛牞鐦?
 cmake -B build
 cmake --build build --config Release
 ```
 
-**启用GPU加�?* (如果有NVIDIA GPU):
+**閸氼垳鏁PU閸旂娀鈧?* (婵″倹鐏夐張濉廣IDIA GPU):
 ```powershell
 cmake -B build -DLLAMA_CUDA=ON
 cmake --build build --config Release
 ```
 
-#### 2. 下载模型
+#### 2. 娑撳娴囧Ο鈥崇€?
 
-从HuggingFace下载GGUF格式:
+娴犲订uggingFace娑撳娴嘒GUF閺嶇厧绱?
 
 ```bash
-# 使用huggingface-cli
+# 娴ｈ法鏁uggingface-cli
 pip install huggingface-hub
 
 huggingface-cli download \
@@ -154,10 +154,10 @@ huggingface-cli download \
   --local-dir ./models
 ```
 
-**或手动下�?*:
+**閹存牗澧滈崝銊ょ瑓鏉?*:
 https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf
 
-#### 3. 测试模型
+#### 3. 濞村鐦Ο鈥崇€?
 
 ```bash
 .\build\bin\Release\main.exe \
@@ -166,22 +166,22 @@ https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf
   -n 50
 ```
 
-#### 4. 安装Python绑定
+#### 4. 鐎瑰顥奝ython缂佹垵鐣?
 
 ```bash
 pip install llama-cpp-python
 ```
 
-**GPU版本**:
+**GPU閻楀牊婀?*:
 ```bash
 CMAKE_ARGS="-DLLAMA_CUDA=ON" pip install llama-cpp-python
 ```
 
 ---
 
-## 🧪 测试与验�?
+## 棣冃?濞村鐦稉搴ㄧ崣鐠?
 
-### 测试1: 模型响应速度
+### 濞村鐦?: 濡€崇€烽崫宥呯安闁喎瀹?
 
 ```bash
 python -c "
@@ -200,142 +200,142 @@ dummy = {
     'torso_height': 1.45
 }
 
-# 测试10�?
+# 濞村鐦?0濞?
 times = []
 for _ in range(10):
     t0 = time.time()
     ai.predict(dummy)
     times.append(time.time() - t0)
 
-print(f'平均: {sum(times)/len(times)*1000:.1f}ms')
+print(f'楠炲啿娼? {sum(times)/len(times)*1000:.1f}ms')
 "
 ```
 
-**目标**: < 100ms
+**閻╊喗鐖?*: < 100ms
 
-### 测试2: JSON格式
+### 濞村鐦?: JSON閺嶇厧绱?
 
 ```bash
 python ai_model.py
 ```
 
-检查输出是否为有效JSON�?
+濡偓閺屻儴绶崙鐑樻Ц閸氾缚璐熼張澶嬫櫏JSON閵?
 
-### 测试3: 集成控制
+### 濞村鐦?: 闂嗗棙鍨氶幒褍鍩?
 
 ```bash
-# 1. 启动Godot (另一个终�?
-# 2. 运行AI控制�?
+# 1. 閸氼垰濮〨odot (閸欙缚绔存稉顏嗙矒缁?
+# 2. 鏉╂劘顢慉I閹貉冨煑閸?
 python ai_controller.py --duration 30
 ```
 
-**验收标准**:
-- �?无连接错�?
-- �?控制频率 > 20Hz
-- �?无JSON解析错误
-- �?机器人保持站�?
+**妤犲本鏁归弽鍥у櫙**:
+- 閴?閺冪姾绻涢幒銉╂晩鐠?
+- 閴?閹貉冨煑妫版垹宸?> 20Hz
+- 閴?閺冪嚒SON鐟欙絾鐎介柨娆掝嚖
+- 閴?閺堝搫娅掓禍杞扮箽閹镐胶鐝粩?
 
 ---
 
-## 🛠�?故障排除
+## 棣冩礈閿?閺佸懘娈伴幒鎺楁珟
 
-### 问题1: Ollama服务未启�?
+### 闂傤噣顣?: Ollama閺堝秴濮熼張顏勬儙閸?
 
-**症状**:
+**閻ュ洨濮?*:
 ```
-�?无法连接到Ollama服务
+閴?閺冪姵纭舵潻鐐村复閸掔櫂llama閺堝秴濮?
 ```
 
-**解决**:
+**鐟欙絽鍠?*:
 ```bash
-# Windows: 在开始菜单搜�?Ollama"并启�?
+# Windows: 閸︺劌绱戞慨瀣綅閸楁洘鎮崇槐?Ollama"楠炶泛鎯庨崝?
 
-# 或命令行启动
+# 閹存牕鎳℃禒銈堫攽閸氼垰濮?
 ollama serve
 ```
 
-### 问题2: 模型下载失败
+### 闂傤噣顣?: 濡€崇€锋稉瀣祰婢惰精瑙?
 
-**解决**:
+**鐟欙絽鍠?*:
 ```bash
-# 使用国内镜像（如果需要）
+# 娴ｈ法鏁ら崶钘夊敶闂€婊冨剼閿涘牆顩ч弸婊堟付鐟曚緤绱?
 export OLLAMA_HOST=https://ollama.mirror.cn
 
-# 或手动下载后导入
+# 閹存牗澧滈崝銊ょ瑓鏉炶棄鎮楃€电厧鍙?
 ollama create phi3:mini -f Modelfile
 ```
 
-### 问题3: 推理太慢
+### 闂傤噣顣?: 閹恒劎鎮婃径顏呭弮
 
-**症状**: 推理 > 200ms
+**閻ュ洨濮?*: 閹恒劎鎮?> 200ms
 
-**解决方案**:
-1. 使用GPU加�?
-2. 使用更小的模型（gemma:2b�?
-3. 减少`num_predict`参数
-4. 升级硬件
+**鐟欙絽鍠呴弬瑙勵攳**:
+1. 娴ｈ法鏁PU閸旂娀鈧?
+2. 娴ｈ法鏁ら弴鏉戠毈閻ㄥ嫭膩閸ㄥ绱檊emma:2b閿?
+3. 閸戝繐鐨痐num_predict`閸欏倹鏆?
+4. 閸楀洨楠囩涵顑挎
 
-### 问题4: JSON格式错误
+### 闂傤噣顣?: JSON閺嶇厧绱￠柨娆掝嚖
 
-**症状**: 
+**閻ュ洨濮?*: 
 ```
-�?JSON解析错误
+閴?JSON鐟欙絾鐎介柨娆掝嚖
 ```
 
-**临时解决**:
-AI模型会返回默认安全动作（角度0�?
+**娑撳瓨妞傜憴锝呭枀**:
+AI濡€崇€锋导姘崇箲閸ョ偤绮拋銈呯暔閸忋劌濮╂担婊愮礄鐟欐帒瀹?閿?
 
-**长期解决**:
-1. 使用Grammar约束（llama.cpp�?
-2. 优化Prompt
-3. 增加后处理修�?
+**闂€鎸庢埂鐟欙絽鍠?*:
+1. 娴ｈ法鏁rammar缁撅附娼敍鍧檒ama.cpp閿?
+2. 娴兼ê瀵睵rompt
+3. 婢х偛濮為崥搴☆槱閻炲棔鎱ㄦ径?
 
 ---
 
-## ⚙️ 配置优化
+## 閳挎瑱绗?闁板秶鐤嗘导妯哄
 
-### 降低延迟
+### 闂勫秳缍嗗鎯扮箿
 
-�?`ai_model.py` 中调�?
+閸?`ai_model.py` 娑擃叀鐨熼弫?
 ```python
 options={
-    'temperature': 0.05,  # 降低温度
-    'num_predict': 30,    # 减少生成token�?
+    'temperature': 0.05,  # 闂勫秳缍嗗〒鈺佸
+    'num_predict': 30,    # 閸戝繐鐨悽鐔稿灇token閺?
     'top_p': 0.85
 }
 ```
 
-### 提高稳定�?
+### 閹绘劙鐝粙鍐茬暰閹?
 
 ```python
 options={
-    'temperature': 0.01,  # 极低温度
-    'top_k': 10,          # 限制采样范围
+    'temperature': 0.01,  # 閺嬩椒缍嗗〒鈺佸
+    'top_k': 10,          # 闂勬劕鍩楅柌鍥ㄧ壉閼煎啫娲?
     'repeat_penalty': 1.1
 }
 ```
 
 ---
 
-## 📊 性能基准
+## 棣冩惓 閹嗗厴閸╁搫鍣?
 
-| 硬件配置 | 模型 | 推理速度 | 控制频率 |
+| 绾兛娆㈤柊宥囩枂 | 濡€崇€?| 閹恒劎鎮婇柅鐔峰 | 閹貉冨煑妫版垹宸?|
 |---------|------|---------|---------|
-| i7-12700 | Phi-3 Q4 | 40-60ms | 25-30Hz �?|
-| i5-10400 | Phi-3 Q4 | 80-120ms | 12-18Hz ⚠️ |
-| RTX 4060 | Phi-3 Q4 | 15-25ms | 40-50Hz 🔥 |
+| i7-12700 | Phi-3 Q4 | 40-60ms | 25-30Hz 閴?|
+| i5-10400 | Phi-3 Q4 | 80-120ms | 12-18Hz 閳跨媴绗?|
+| RTX 4060 | Phi-3 Q4 | 15-25ms | 40-50Hz 棣冩暉 |
 
 ---
 
-## 🎓 下一�?
+## 棣冨笚 娑撳绔村?
 
-完成安装�?
+鐎瑰本鍨氱€瑰顥婇崥?
 
-1. **调优Prompt** - 改进 `_build_prompt()` 方法
-2. **收集数据** - 记录成功的控制轨�?
-3. **集成PID** - 结合PID控制�?
-4. **添加70B优化�?* - 实现策略优化
+1. **鐠嬪啩绱璓rompt** - 閺€纭呯箻 `_build_prompt()` 閺傝纭?
+2. **閺€鍫曟肠閺佺増宓?* - 鐠佹澘缍嶉幋鎰閻ㄥ嫭甯堕崚鎯板缓鏉?
+3. **闂嗗棙鍨歅ID** - 缂佹挸鎮嶱ID閹貉冨煑閸?
+4. **濞ｈ濮?0B娴兼ê瀵查崳?* - 鐎圭偟骞囩粵鏍殣娴兼ê瀵?
 
 ---
 
-> 💡 **提示**: 第一次运行可能需要一些时间让模型"热身"，后续推理会更快�?
+> 棣冩寱 **閹绘劗銇?*: 缁楊兛绔村▎陇绻嶇悰灞藉讲閼充粙娓剁憰浣风娴滄稒妞傞梻纾嬵唨濡€崇€?閻戭叀闊?閿涘苯鎮楃紒顓熷腹閻炲棔绱伴弴鏉戞彥閵?

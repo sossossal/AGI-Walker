@@ -1,97 +1,97 @@
-# 参数化机器人控制系统
+# 閸欏倹鏆熼崠鏍ㄦ簚閸ｃ劋姹夐幒褍鍩楃化鑽ょ埠
 
-通过调整物理参数来间接控制机器人，而非直接发送动作命令�?
+闁俺绻冪拫鍐╂殻閻椻晝鎮婇崣鍌涙殶閺夈儵妫块幒銉﹀付閸掕埖婧€閸ｃ劋姹夐敍宀冣偓宀勬姜閻╁瓨甯撮崣鎴︹偓浣稿З娴ｆ粌鎳℃禒銈冣偓?
 
-## 核心概念
+## 閺嶇绺惧鍌氬悍
 
-### 传统控制 vs 参数化控�?
+### 娴肩姷绮洪幒褍鍩?vs 閸欏倹鏆熼崠鏍ㄥ付閸?
 
-**传统控制**:
+**娴肩姷绮洪幒褍鍩?*:
 ```python
-action = [0.5, -0.3, 0.8, ...]  # 直接指定关节扭矩
+action = [0.5, -0.3, 0.8, ...]  # 閻╁瓨甯撮幐鍥х暰閸忓疇濡幍顓犵叐
 env.step(action)
 ```
 
-**参数化控�?*:
+**閸欏倹鏆熼崠鏍ㄥ付閸?*:
 ```python
 controller.set_physics_param('motor_power_multiplier', 1.5)
-# 控制器根据参数自动计算动�?
+# 閹貉冨煑閸ｃ劍鐗撮幑顔煎棘閺佹媽鍤滈崝銊吀缁犳濮╂担?
 result = controller.run_episode()
 ```
 
-## 快速开�?
+## 韫囶偊鈧喎绱戞慨?
 
-### 基础用法
+### 閸╄櫣顢呴悽銊︾《
 
 ```python
 from python_api.parametric_control import ParametricRobotController
 
-# 创建控制�?
+# 閸掓稑缂撻幒褍鍩楅崳?
 controller = ParametricRobotController()
 
-# 调整电机功率
+# 鐠嬪啯鏆ｉ悽鍨簚閸旂喓宸?
 controller.set_physics_param('motor_power_multiplier', 1.2)
 
-# 运行并查看效�?
+# 鏉╂劘顢戦獮鑸电叀閻鏅ラ弸?
 result = controller.run_episode()
-print(f"奖励: {result['total_reward']}")
+print(f"婵傛牕濮? {result['total_reward']}")
 ```
 
-### 可调参数
+### 閸欘垵鐨熼崣鍌涙殶
 
-| 参数 | 默认�?| 范围 | 影响 |
+| 閸欏倹鏆?| 姒涙顓婚崐?| 閼煎啫娲?| 瑜板崬鎼?|
 |------|--------|------|------|
-| `motor_power_multiplier` | 1.0 | 0.5-2.0 | 最大扭�?速度 |
-| `joint_stiffness` | 1.0 | 0.5-3.0 | 精度/震荡 |
-| `joint_damping` | 0.5 | 0.1-1.0 | 稳定�?响应速度 |
-| `friction` | 0.9 | 0.1-1.5 | 摩擦/能�?|
-| `mass_multiplier` | 1.0 | 0.5-1.5 | 惯�?所需力矩 |
-| `gravity` | 9.81 | 0-20 | 重力环境 |
+| `motor_power_multiplier` | 1.0 | 0.5-2.0 | 閺堚偓婢堆勫閻?闁喎瀹?|
+| `joint_stiffness` | 1.0 | 0.5-3.0 | 缁儳瀹?闂囧洩宕?|
+| `joint_damping` | 0.5 | 0.1-1.0 | 缁嬪啿鐣鹃幀?閸濆秴绨查柅鐔峰 |
+| `friction` | 0.9 | 0.1-1.5 | 閹解晜鎽?閼冲€熲偓?|
+| `mass_multiplier` | 1.0 | 0.5-1.5 | 閹垱鈧?閹碘偓闂団偓閸旀稓鐓?|
+| `gravity` | 9.81 | 0-20 | 闁插秴濮忛悳顖氼暔 |
 
-## 使用示例
+## 娴ｈ法鏁ょ粈杞扮伐
 
-### 示例 1: 实验不同配置
+### 缁€杞扮伐 1: 鐎圭偤鐛欐稉宥呮倱闁板秶鐤?
 
 ```python
-# 高功率配�?
+# 妤傛ê濮涢悳鍥帳缂?
 controller.set_physics_param('motor_power_multiplier', 1.5)
 result = controller.run_episode()
 
-# 高精度配�?
+# 妤傛绨挎惔锕傚帳缂?
 controller.set_physics_param('joint_stiffness', 2.0)
 controller.set_physics_param('joint_damping', 0.7)
 result = controller.run_episode()
 ```
 
-### 示例 2: 参数扫描
+### 缁€杞扮伐 2: 閸欏倹鏆熼幍顐ｅ伎
 
 ```python
 import numpy as np
 
-# 扫描电机功率
+# 閹殿偅寮块悽鍨簚閸旂喓宸?
 for power in np.linspace(0.5, 2.0, 10):
     controller.set_physics_param('motor_power_multiplier', power)
     result = controller.run_episode()
-    print(f"功率 {power:.2f}: 奖励 {result['total_reward']:.2f}")
+    print(f"閸旂喓宸?{power:.2f}: 婵傛牕濮?{result['total_reward']:.2f}")
 ```
 
-### 示例 3: 自动优化
+### 缁€杞扮伐 3: 閼奉亜濮╂导妯哄
 
 ```python
-# 定义搜索空间
+# 鐎规矮绠熼幖婊呭偍缁屾椽妫?
 param_ranges = {
     'motor_power_multiplier': (0.8, 1.5),
     'joint_stiffness': (0.5, 2.0),
     'joint_damping': (0.3, 0.8)
 }
 
-# 搜索最优配�?
+# 閹兼粎鍌ㄩ張鈧导姗€鍘ょ純?
 result = controller.find_optimal_params(param_ranges, n_trials=20)
-print(f"最优参�? {result['best_params']}")
-print(f"最高奖�? {result['best_reward']}")
+print(f"閺堚偓娴兼ê寮弫? {result['best_params']}")
+print(f"閺堚偓妤傛ê顨涢崝? {result['best_reward']}")
 ```
 
-### 示例 4: 交互式调�?
+### 缁€杞扮伐 4: 娴溿倓绨板蹇氱殶閺?
 
 ```python
 from python_api.parametric_control import InteractiveParameterTuner
@@ -99,137 +99,137 @@ from python_api.parametric_control import InteractiveParameterTuner
 tuner = InteractiveParameterTuner(controller)
 tuner.interactive_tuning()
 
-# 在交互模式中:
+# 閸︺劋姘︽禍鎺撃佸蹇庤厬:
 # > set motor_power_multiplier 1.3
 # > test
 # > show
 # > quit
 ```
 
-## 完整演示
+## 鐎瑰本鏆ｅ鏃傘仛
 
 ```bash
-# 运行所有示�?
+# 鏉╂劘顢戦幍鈧張澶屻仛娓?
 python examples/parametric_control_demo.py
 
-# 运行特定示例
-python examples/parametric_control_demo.py --demo 1  # 基础控制
-python examples/parametric_control_demo.py --demo 2  # 参数扫描
-python examples/parametric_control_demo.py --demo 3  # 自动优化
+# 鏉╂劘顢戦悧鐟扮暰缁€杞扮伐
+python examples/parametric_control_demo.py --demo 1  # 閸╄櫣顢呴幒褍鍩?
+python examples/parametric_control_demo.py --demo 2  # 閸欏倹鏆熼幍顐ｅ伎
+python examples/parametric_control_demo.py --demo 3  # 閼奉亜濮╂导妯哄
 
-# 交互模式
+# 娴溿倓绨板Ο鈥崇础
 python examples/parametric_control_demo.py --interactive
 ```
 
-## 参数影响分析
+## 閸欏倹鏆熻ぐ鍗炴惙閸掑棙鐎?
 
-### 电机功率 (motor_power_multiplier)
+### 閻㈠灚婧€閸旂喓宸?(motor_power_multiplier)
 
-- **增加**: 更强的驱动力，能爬坡但能耗高
-- **减少**: 节能但可能无法完成任�?
+- **婢х偛濮?*: 閺囨潙宸遍惃鍕攳閸斻劌濮忛敍宀冨厴閻栴剙娼担鍡氬厴閼版鐝?
+- **閸戝繐鐨?*: 閼哄倽鍏樻担鍡楀讲閼宠姤妫ゅ▔鏇炵暚閹存劒鎹㈤崝?
 
-**建议范围**: 0.8 - 1.5
+**瀵ら缚顔呴懠鍐ㄦ纯**: 0.8 - 1.5
 
-### 关节刚度 (joint_stiffness)
+### 閸忓疇濡崚姘 (joint_stiffness)
 
-- **增加**: 更精确，但可能震�?
-- **减少**: 更柔和，但精度降�?
+- **婢х偛濮?*: 閺囧绨跨涵顕嗙礉娴ｅ棗褰查懗浠嬫缚閼?
+- **閸戝繐鐨?*: 閺囧瓨鐓嶉崪宀嬬礉娴ｅ棛绨挎惔锕傛娴?
 
-**建议范围**: 0.5 - 2.0
+**瀵ら缚顔呴懠鍐ㄦ纯**: 0.5 - 2.0
 
-### 关节阻尼 (joint_damping)
+### 閸忓疇濡梼璇插嚬 (joint_damping)
 
-- **增加**: 更稳定，但响应慢
-- **减少**: 响应快，但可能震�?
+- **婢х偛濮?*: 閺囧菙鐎规熬绱濇担鍡楁惙鎼存梹鍙?
+- **閸戝繐鐨?*: 閸濆秴绨茶箛顐礉娴ｅ棗褰查懗浠嬫缚閼?
 
-**建议范围**: 0.3 - 0.8
+**瀵ら缚顔呴懠鍐ㄦ纯**: 0.3 - 0.8
 
-### 质量倍数 (mass_multiplier)
+### 鐠愩劑鍣洪崐宥嗘殶 (mass_multiplier)
 
-- **增加**: 更稳定，但需要更大力�?
-- **减少**: 更灵活，但稳定性降�?
+- **婢х偛濮?*: 閺囧菙鐎规熬绱濇担鍡涙付鐟曚焦娲挎径褍濮忛惌?
+- **閸戝繐鐨?*: 閺囧浼掑ú浼欑礉娴ｅ棛菙鐎规碍鈧囨娴?
 
-**建议范围**: 0.7 - 1.3
+**瀵ら缚顔呴懠鍐ㄦ纯**: 0.7 - 1.3
 
-## 实际应用
+## 鐎圭偤妾惔鏃傛暏
 
-### 机器人设计验�?
+### 閺堝搫娅掓禍楦款啎鐠侊繝鐛欑拠?
 
 ```python
-# 测试轻量化设�?
+# 濞村鐦潪濠氬櫤閸栨牞顔曠拋?
 controller.set_physics_param('mass_multiplier', 0.7)
 controller.set_physics_param('motor_power_multiplier', 0.9)
 result = controller.run_episode()
 ```
 
-### 环境适应
+### 閻滎垰顣ㄩ柅鍌氱安
 
 ```python
-# 模拟月球重力
+# 濡剝瀚欓張鍫㈡倖闁插秴濮?
 controller.set_physics_param('gravity', 1.62)
 
-# 模拟高摩擦地�?
+# 濡剝瀚欐妯绘噰閹匡箑婀撮棃?
 controller.set_physics_param('friction', 1.3)
 ```
 
-### 性能优化
+### 閹嗗厴娴兼ê瀵?
 
 ```python
-# 自动找到最优配�?
+# 閼奉亜濮╅幍鎯у煂閺堚偓娴兼﹢鍘ょ純?
 optimal = controller.find_optimal_params({
     'motor_power_multiplier': (0.8, 1.5),
     'joint_stiffness': (0.5, 2.0)
 }, n_trials=30)
 ```
 
-## 与零件库集成
+## 娑撳酣娴傛禒璺虹氨闂嗗棙鍨?
 
 ```python
 from python_api.custom_parts import CustomMotor, CustomJoint
 
-# 创建定制电机
+# 閸掓稑缂撶€规艾鍩楅悽鍨簚
 motor = CustomMotor({'power': 750, 'gear_ratio': 80})
 
-# 将电机参数映射到控制�?
-power_multiplier = motor.params['power'] / 500.0  # 归一�?
+# 鐏忓棛鏁搁張鍝勫棘閺佺増妲х亸鍕煂閹貉冨煑閸?
+power_multiplier = motor.params['power'] / 500.0  # 瑜版帊绔撮崠?
 controller.set_physics_param('motor_power_multiplier', power_multiplier)
 
-# 创建定制关节
+# 閸掓稑缂撶€规艾鍩楅崗瀹犲Ν
 joint = CustomJoint({'stiffness': 6000})
 
-# 映射刚度
+# 閺勭姴鐨犻崚姘
 stiffness_multiplier = joint.params['stiffness'] / 5000.0
 controller.set_physics_param('joint_stiffness', stiffness_multiplier)
 ```
 
-## 常见问题
+## 鐢瓕顫嗛梻顕€顣?
 
-**Q: 如何选择初始参数�?*
-A: 从默认值开始，逐个参数调整并观察影响�?
+**Q: 婵″倷缍嶉柅澶嬪閸掓繂顫愰崣鍌涙殶閿?*
+A: 娴犲酣绮拋銈呪偓鐓庣磻婵绱濋柅鎰嚋閸欏倹鏆熺拫鍐╂殻楠炴儼顫囩€电喎濂栭崫宥冣偓?
 
-**Q: 参数优化需要多久？**
-A: 10-20次试验通常足够，每次试验约5-10秒�?
+**Q: 閸欏倹鏆熸导妯哄闂団偓鐟曚礁顦挎稊鍜冪吹**
+A: 10-20濞喡ょ槸妤犲矂鈧艾鐖剁搾鍐差檮閿涘本鐦″▎陇鐦宀€瀹?-10缁夋帇鈧?
 
-**Q: 可以保存最优配置吗�?*
-A: 可以，使�?`result['best_params']` 保存为JSON�?
+**Q: 閸欘垯浜掓穱婵嗙摠閺堚偓娴兼﹢鍘ょ純顔兼偋閿?*
+A: 閸欘垯浜掗敍灞煎▏閻?`result['best_params']` 娣囨繂鐡ㄦ稉绡擲ON閵?
 
-**Q: 参数变化会立即生效吗�?*
-A: 是的，下一�?`run_episode()` 时就会使用新参数�?
+**Q: 閸欏倹鏆熼崣妯哄娴兼氨鐝涢崡宕囨晸閺佸牆鎮ч敍?*
+A: 閺勵垳娈戦敍灞肩瑓娑撯偓濞?`run_episode()` 閺冭泛姘ㄦ导姘▏閻劍鏌婇崣鍌涙殶閵?
 
-## API 参�?
+## API 閸欏倽鈧?
 
 ### ParametricRobotController
 
 ```python
 controller = ParametricRobotController(env_id='AGI-Walker/Walker2D-v0')
 
-# 设置参数
+# 鐠佸墽鐤嗛崣鍌涙殶
 controller.set_physics_param(param_name, value)
 
-# 运行回合
+# 鏉╂劘顢戦崶鐐叉値
 result = controller.run_episode(max_steps=1000, render=False)
 
-# 自动优化
+# 閼奉亜濮╂导妯哄
 optimal = controller.find_optimal_params(param_ranges, n_trials=10)
 ```
 
@@ -238,24 +238,24 @@ optimal = controller.find_optimal_params(param_ranges, n_trials=10)
 ```python
 tuner = InteractiveParameterTuner(controller)
 
-# 显示当前参数
+# 閺勫墽銇氳ぐ鎾冲閸欏倹鏆?
 tuner.show_current_params()
 
-# 进入交互模式
+# 鏉╂稑鍙嗘禍銈勭鞍濡€崇础
 tuner.interactive_tuning()
 ```
 
-## 下一�?
+## 娑撳绔村?
 
-- [ ] 扩展到四足机器人
-- [ ] 添加实时可视�?
-- [ ] 支持多目标优�?
-- [ ] 集成强化学习
+- [ ] 閹碘晛鐫嶉崚鏉挎磽鐡掕櫕婧€閸ｃ劋姹?
+- [ ] 濞ｈ濮炵€圭偞妞傞崣顖濐潒閸?
+- [ ] 閺€顖涘瘮婢舵氨娲伴弽鍥︾喘閸?
+- [ ] 闂嗗棙鍨氬鍝勫鐎涳缚绡?
 
 ---
 
-**优势总结**:
-- �?直观：调整物理参数而非抽象动作
-- �?真实：参数对应实际零件属�?
-- �?可解释：清楚影响机制
-- �?高效：自动搜索最优配�?
+**娴兼ê濞嶉幀鑽ょ波**:
+- 閴?閻╃顫囬敍姘崇殶閺佸澧块悶鍡楀棘閺佹媽鈧矂娼幎鍊熻杽閸斻劋缍?
+- 閴?閻喎鐤勯敍姘棘閺佹澘顕惔鏂跨杽闂勫懘娴傛禒璺虹潣閹?
+- 閴?閸欘垵袙闁插绱板〒鍛殶瑜板崬鎼烽張鍝勫煑
+- 閴?妤傛ɑ鏅ラ敍姘冲殰閸斻劍鎮崇槐銏℃付娴兼﹢鍘ょ純?
