@@ -1,27 +1,27 @@
-# AGI-Walker 计算机视觉 (CV) 数据生成实现方案
+# AGI-Walker 计算机视�?(CV) 数据生成实现方案
 
 **日期**: 2026-01-18  
 **版本**: 1.0  
-**状态**: 实施方案
+**状�?*: 实施方案
 
 ---
 
 ## 📋 执行摘要
 
-### 当前状态
-- ✅ 数值数据生成: 92% (完成)
-- ⚠️ 视觉数据生成: 60% (需要实现)
+### 当前状�?
+- �?数值数据生�? 92% (完成)
+- ⚠️ 视觉数据生成: 60% (需要实�?
 
 ### 目标
 实现完整的CV训练数据生成能力，包括：
 - RGB图像
-- 深度图
+- 深度�?
 - 分割掩码
-- 关键点标注
-- 边界框标注
+- 关键点标�?
+- 边界框标�?
 
-### 预期完成度
-60% → **95%**
+### 预期完成�?
+60% �?**95%**
 
 ---
 
@@ -29,13 +29,13 @@
 
 ### 三种实现方案
 
-| 方案 | 复杂度 | 效果 | 时间 | 推荐度 |
+| 方案 | 复杂�?| 效果 | 时间 | 推荐�?|
 |------|-------|------|------|--------|
-| 方案1: Godot集成 | 高 | 优秀 | 5-7天 | ⭐⭐⭐⭐⭐ |
-| 方案2: PyBullet集成 | 中 | 良好 | 3-4天 | ⭐⭐⭐⭐ |
-| 方案3: 简化渲染 | 低 | 基础 | 1-2天 | ⭐⭐⭐ |
+| 方案1: Godot集成 | �?| 优秀 | 5-7�?| ⭐⭐⭐⭐�?|
+| 方案2: PyBullet集成 | �?| 良好 | 3-4�?| ⭐⭐⭐⭐ |
+| 方案3: 简化渲�?| �?| 基础 | 1-2�?| ⭐⭐�?|
 
-**推荐**: 方案1 (Godot集成) - 最完整的解决方案
+**推荐**: 方案1 (Godot集成) - 最完整的解决方�?
 
 ---
 
@@ -47,21 +47,21 @@
 ### 架构
 
 ```
-Python控制器                 Godot渲染引擎
-    │                           │
-    ├─> 发送机器人状态 ────────> │
-    │                           ├─> 更新机器人姿态
-    │                           ├─> 渲染场景
-    │   <──── 返回图像数据 <──── ├─> 捕获相机视图
-    │                           ├─> 生成深度图
-    │                           └─> 语义分割
-    │
+Python控制�?                Godot渲染引擎
+    �?                          �?
+    ├─> 发送机器人状�?────────> �?
+    �?                          ├─> 更新机器人姿�?
+    �?                          ├─> 渲染场景
+    �?  <──── 返回图像数据 <──── ├─> 捕获相机视图
+    �?                          ├─> 生成深度�?
+    �?                          └─> 语义分割
+    �?
     └─> 保存图像 + 标注
 ```
 
 ### 实现步骤
 
-#### 步骤1: Godot端实现 (2-3天)
+#### 步骤1: Godot端实�?(2-3�?
 
 **1.1 创建相机系统**
 
@@ -83,9 +83,9 @@ func setup_cameras():
     )
     cameras.append(third_person_cam)
     
-    # 第一人称相机 (机器人视角)
+    # 第一人称相机 (机器人视�?
     var first_person_cam = create_camera(
-        Vector3(0, 0.3, 0.2),  # 相对机器人
+        Vector3(0, 0.3, 0.2),  # 相对机器�?
         Vector3(0, 0, 0)
     )
     cameras.append(first_person_cam)
@@ -112,10 +112,10 @@ func capture_all_views() -> Dictionary:
         # RGB图像
         images["rgb_" + str(i)] = capture_rgb(cam)
         
-        # 深度图
+        # 深度�?
         images["depth_" + str(i)] = capture_depth(cam)
         
-        # 分割图
+        # 分割�?
         images["segmentation_" + str(i)] = capture_segmentation(cam)
     
     return images
@@ -124,7 +124,7 @@ func capture_rgb(camera: Camera) -> Image:
     var viewport = get_viewport()
     viewport.set_clear_mode(Viewport.CLEAR_MODE_ONLY_NEXT_FRAME)
     
-    # 渲染一帧
+    # 渲染一�?
     yield(get_tree(), "idle_frame")
     
     # 捕获图像
@@ -134,14 +134,14 @@ func capture_rgb(camera: Camera) -> Image:
     return image
 
 func capture_depth(camera: Camera) -> Image:
-    # 切换到深度渲染模式
+    # 切换到深度渲染模�?
     var shader = preload("res://shaders/depth_shader.shader")
     # ... 实现深度渲染
     pass
 
 func capture_segmentation(camera: Camera) -> Image:
     # 语义分割渲染
-    # 每个对象类别用不同颜色
+    # 每个对象类别用不同颜�?
     pass
 ```
 
@@ -161,12 +161,12 @@ void vertex() {
 
 void fragment() {
     # 深度归一化到0-1
-    float normalized_depth = depth / 10.0; # 10m最大深度
+    float normalized_depth = depth / 10.0; # 10m最大深�?
     ALBEDO = vec3(normalized_depth);
 }
 ```
 
-**1.3 TCP通信服务器**
+**1.3 TCP通信服务�?*
 
 ```gdscript
 # godot_project/scripts/TCPVisionServer.gd
@@ -223,14 +223,14 @@ func image_to_base64(image: Image) -> String:
     return Marshalls.raw_to_base64(buffer)
 ```
 
-#### 步骤2: Python端实现 (2-3天)
+#### 步骤2: Python端实�?(2-3�?
 
-**2.1 Godot通信客户端**
+**2.1 Godot通信客户�?*
 
 ```python
 # python_api/godot_vision_client.py
 """
-Godot视觉数据采集客户端
+Godot视觉数据采集客户�?
 """
 
 import socket
@@ -243,7 +243,7 @@ from typing import Dict, List, Optional
 
 
 class GodotVisionClient:
-    """Godot视觉数据客户端"""
+    """Godot视觉数据客户�?""
     
     def __init__(self, host: str = 'localhost', port: int = 9999):
         self.host = host
@@ -252,7 +252,7 @@ class GodotVisionClient:
         self.connected = False
     
     def connect(self):
-        """连接到Godot服务器"""
+        """连接到Godot服务�?""
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.connect((self.host, self.port))
@@ -274,7 +274,7 @@ class GodotVisionClient:
         if not self.connected:
             raise ConnectionError("Not connected to Godot server")
         
-        # 发送
+        # 发�?
         message = json.dumps(command).encode('utf-8')
         self.socket.sendall(message)
         
@@ -286,7 +286,7 @@ class GodotVisionClient:
                 break
             response_data += chunk
             
-            # 尝试解析JSON（简化版）
+            # 尝试解析JSON（简化版�?
             try:
                 response = json.loads(response_data.decode('utf-8'))
                 return response
@@ -298,7 +298,7 @@ class GodotVisionClient:
     def update_robot_state(self, position: List[float], 
                           orientation: List[float],
                           joint_angles: List[float]):
-        """更新机器人状态"""
+        """更新机器人状�?""
         command = {
             'command': 'update_robot',
             'state': {
@@ -343,7 +343,7 @@ class GodotVisionClient:
         return self.send_command(command)
 ```
 
-**2.2 CV数据生成器**
+**2.2 CV数据生成�?*
 
 ```python
 # python_api/cv_data_generator.py
@@ -363,13 +363,13 @@ from python_api.data_recorder import DataRecorder
 
 
 class CVDataGenerator:
-    """CV训练数据生成器"""
+    """CV训练数据生成�?""
     
     def __init__(self, output_dir: str = "data/cv_dataset"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Godot客户端
+        # Godot客户�?
         self.godot_client = GodotVisionClient()
         
         # 数据统计
@@ -387,13 +387,13 @@ class CVDataGenerator:
         
         参数:
             episode_id: Episode ID
-            trajectory: 轨迹数据 (包含每步的状态)
+            trajectory: 轨迹数据 (包含每步的状�?
             save_interval: 保存间隔
         """
         episode_dir = self.output_dir / f"episode_{episode_id:06d}"
         episode_dir.mkdir(exist_ok=True)
         
-        # 创建子目录
+        # 创建子目�?
         (episode_dir / "rgb").mkdir(exist_ok=True)
         (episode_dir / "depth").mkdir(exist_ok=True)
         (episode_dir / "segmentation").mkdir(exist_ok=True)
@@ -404,7 +404,7 @@ class CVDataGenerator:
             if step_id % save_interval != 0:
                 continue
             
-            # 更新Godot中的机器人状态
+            # 更新Godot中的机器人状�?
             self.godot_client.update_robot_state(
                 position=state.get('position', [0, 0, 0]),
                 orientation=state.get('orientation', [0, 0, 0]),
@@ -422,7 +422,7 @@ class CVDataGenerator:
                 
                 elif 'depth' in key:
                     filename = episode_dir / "depth" / f"frame_{step_id:06d}_view_{view_id}.png"
-                    # 深度图保存为16位
+                    # 深度图保存为16�?
                     depth_16bit = (image * 65535).astype(np.uint16)
                     cv2.imwrite(str(filename), depth_16bit)
                 
@@ -446,9 +446,9 @@ class CVDataGenerator:
         生成标注信息
         
         包括:
-        - 机器人姿态
-        - 关键点位置
-        - 边界框
+        - 机器人姿�?
+        - 关键点位�?
+        - 边界�?
         - 语义标签
         """
         annotation = {
@@ -473,7 +473,7 @@ class CVDataGenerator:
     
     def detect_bounding_boxes(self, images: Dict) -> List[Dict]:
         """检测边界框"""
-        # 机器人的边界框
+        # 机器人的边界�?
         boxes = [
             {
                 'class': 'robot',
@@ -485,7 +485,7 @@ class CVDataGenerator:
     
     def extract_semantic_labels(self, images: Dict) -> Dict:
         """提取语义标签"""
-        # 从分割图中提取
+        # 从分割图中提�?
         labels = {
             'robot': 1,
             'ground': 2,
@@ -498,11 +498,11 @@ class CVDataGenerator:
                       episode_length: int = 100,
                       save_interval: int = 5):
         """
-        批量生成CV数据集
+        批量生成CV数据�?
         
         参数:
             num_episodes: Episode数量
-            episode_length: 每个episode的长度
+            episode_length: 每个episode的长�?
             save_interval: 图像保存间隔
         """
         if not self.connect_to_godot():
@@ -538,7 +538,7 @@ class CVDataGenerator:
         return trajectory
 ```
 
-#### 步骤3: 数据集格式 (1天)
+#### 步骤3: 数据集格�?(1�?
 
 **COCO格式支持**
 
@@ -559,7 +559,7 @@ class COCOConverter:
         self.dataset_dir = Path(dataset_dir)
     
     def convert(self, output_file: str):
-        """转换整个数据集"""
+        """转换整个数据�?""
         coco_data = {
             'images': [],
             'annotations': [],
@@ -607,7 +607,7 @@ class COCOConverter:
                     coco_data['annotations'].append(coco_ann)
                     annotation_id += 1
                 
-                # 添加关键点
+                # 添加关键�?
                 for kp in ann['keypoints']:
                     coco_kp = {
                         'id': annotation_id,
@@ -628,25 +628,25 @@ class COCOConverter:
 
 ---
 
-## 方案2: PyBullet集成 (备选)
+## 方案2: PyBullet集成 (备�?
 
 ### 概述
-使用PyBullet的渲染功能生成图像
+使用PyBullet的渲染功能生成图�?
 
 ### 优势
 - 完全Python实现
-- 更容易集成
+- 更容易集�?
 - 不需要Godot运行
 
 ---
 
-## 方案3: 简化渲染 (快速方案)
+## 方案3: 简化渲�?(快速方�?
 
 ### 概述
 使用matplotlib或pygame进行2D渲染
 
 ### 适用场景
-- 快速原型
+- 快速原�?
 - 不需要真实感
 - 2D任务
 
@@ -654,41 +654,41 @@ class COCOConverter:
 
 ## 📊 对比总结
 
-| 特性 | Godot | PyBullet | 简化渲染 |
+| 特�?| Godot | PyBullet | 简化渲�?|
 |------|-------|----------|----------|
-| 图像质量 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ |
-| 实现难度 | 高 | 中 | 低 |
-| 开发时间 | 5-7天 | 3-4天 | 1-2天 |
-| 推荐度 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
+| 图像质量 | ⭐⭐⭐⭐�?| ⭐⭐⭐⭐ | ⭐⭐ |
+| 实现难度 | �?| �?| �?|
+| 开发时�?| 5-7�?| 3-4�?| 1-2�?|
+| 推荐�?| ⭐⭐⭐⭐�?| ⭐⭐⭐⭐ | ⭐⭐�?|
 
 ---
 
 ## 🎯 推荐实施路线
 
-### Phase 1: 基础实现 (3-4天)
-1. Godot TCP服务器
-2. Python客户端
+### Phase 1: 基础实现 (3-4�?
+1. Godot TCP服务�?
+2. Python客户�?
 3. 基础图像捕获
 
-### Phase 2: 增强功能 (2-3天)
-4. 深度图渲染
+### Phase 2: 增强功能 (2-3�?
+4. 深度图渲�?
 5. 语义分割
-6. 多相机视角
+6. 多相机视�?
 
-### Phase 3: 集成优化 (1-2天)
+### Phase 3: 集成优化 (1-2�?
 7. 批量生成集成
-8. 数据集格式转换
+8. 数据集格式转�?
 9. 性能优化
 
-**总时间**: 6-9天
+**总时�?*: 6-9�?
 
 ---
 
-## ✅ 实施后效果
+## �?实施后效�?
 
 **数据类型**:
-- RGB图像 (640x480 或更高)
-- 深度图 (16-bit)
-- 语义分割图
-- 关键点标注
-- 边界框标注
+- RGB图像 (640x480 或更�?
+- 深度�?(16-bit)
+- 语义分割�?
+- 关键点标�?
+- 边界框标�?

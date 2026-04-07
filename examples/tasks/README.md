@@ -1,10 +1,10 @@
-# AGI-Walker 标准任务库
+# AGI-Walker 标准任务�?
 
-本目录包含 AGI-Walker 的标准 RL 任务,每个任务都提供:
-- ✅ Gymnasium 环境
-- ✅ 训练脚本
-- ✅ 预训练模型 (部分)
-- ✅ 性能 Baseline
+本目录包�?AGI-Walker 的标�?RL 任务,每个任务都提�?
+- �?Gymnasium 环境
+- �?训练脚本
+- �?预训练模�?(部分)
+- �?性能 Baseline
 
 ---
 
@@ -12,14 +12,14 @@
 
 ### 1. Locomotion (运动)
 
-#### ✅ 楼梯攀爬 (Stair Climbing)
+#### �?楼梯攀�?(Stair Climbing)
 **路径**: `stair_climbing/`  
-**难度**: ⭐⭐⭐  
-**目标**: 从平地爬上 5 级楼梯  
-**机器人**: 四足/双足  
-**Baseline**: 成功率 85%, 平均奖励 12.5
+**难度**: ⭐⭐�? 
+**目标**: 从平地爬�?5 级楼�? 
+**机器�?*: 四足/双足  
+**Baseline**: 成功�?85%, 平均奖励 12.5
 
-**快速开始**:
+**快速开�?*:
 ```bash
 python examples/tasks/stair_climbing/env.py
 ```
@@ -27,9 +27,9 @@ python examples/tasks/stair_climbing/env.py
 #### 🔄 崎岖地形 (Rough Terrain) - 开发中
 **路径**: `rough_terrain/`  
 **难度**: ⭐⭐⭐⭐  
-**目标**: 在随机生成的崎岖地形上行走 10m
+**目标**: 在随机生成的崎岖地形上行�?10m
 
-#### 🔄 斜坡行走 (Slope Walking) - 规划中
+#### 🔄 斜坡行走 (Slope Walking) - 规划�?
 **难度**: ⭐⭐
 
 ---
@@ -40,12 +40,12 @@ python examples/tasks/stair_climbing/env.py
 **路径**: `object_grasping/`  
 **难度**: ⭐⭐⭐⭐  
 **目标**: 抓取桌面上的随机物体  
-**机器人**: 机械臂
+**机器�?*: 机械�?
 
-#### 🔄 门把手操作 (Door Opening) - 规划中
-**难度**: ⭐⭐⭐⭐⭐
+#### 🔄 门把手操�?(Door Opening) - 规划�?
+**难度**: ⭐⭐⭐⭐�?
 
-#### 🔄 堆叠积木 (Block Stacking) - 规划中
+#### 🔄 堆叠积木 (Block Stacking) - 规划�?
 **难度**: ⭐⭐⭐⭐
 
 ---
@@ -54,22 +54,22 @@ python examples/tasks/stair_climbing/env.py
 
 #### 🔄 避障导航 (Obstacle Avoidance) - 开发中
 **路径**: `obstacle_avoidance/`  
-**难度**: ⭐⭐⭐  
+**难度**: ⭐⭐�? 
 **目标**: 在动态障碍物环境中到达目标点
 
-#### 🔄 动态环境导航 (Dynamic Navigation) - 规划中
+#### 🔄 动态环境导�?(Dynamic Navigation) - 规划�?
 **难度**: ⭐⭐⭐⭐
 
 ---
 
 ### 4. Multi-Agent (多智能体)
 
-#### 🔄 协作搬运 (Collaborative Carrying) - 规划中
-**难度**: ⭐⭐⭐⭐⭐  
-**目标**: 两个机器人协作搬运重物
+#### 🔄 协作搬运 (Collaborative Carrying) - 规划�?
+**难度**: ⭐⭐⭐⭐�? 
+**目标**: 两个机器人协作搬运重�?
 
-#### 🔄 编队行走 (Formation Walking) - 规划中
-**难度**: ⭐⭐⭐
+#### 🔄 编队行走 (Formation Walking) - 规划�?
+**难度**: ⭐⭐�?
 
 ---
 
@@ -115,16 +115,16 @@ python examples/tasks/stair_climbing/evaluate.py --model models/stair_climbing_p
 
 ## 性能 Baseline
 
-| 任务 | 算法 | 成功率 | 平均奖励 | 训练时间 |
+| 任务 | 算法 | 成功�?| 平均奖励 | 训练时间 |
 |------|------|--------|---------|---------|
-| 楼梯攀爬 | PPO | 85% | 12.5 | 2h (A100) |
-| 楼梯攀爬 | SAC | 78% | 11.2 | 3h (A100) |
+| 楼梯攀�?| PPO | 85% | 12.5 | 2h (A100) |
+| 楼梯攀�?| SAC | 78% | 11.2 | 3h (A100) |
 
 ---
 
-## 贡献新任务
+## 贡献新任�?
 
-欢迎贡献新任务! 请遵循以下结构:
+欢迎贡献新任�? 请遵循以下结�?
 
 ```
 examples/tasks/your_task/
@@ -140,7 +140,7 @@ examples/tasks/your_task/
 
 ## 引用
 
-如果您在研究中使用了这些任务,请引用:
+如果您在研究中使用了这些任务,请引�?
 
 ```bibtex
 @software{agi_walker_tasks,

@@ -1,6 +1,6 @@
-# C++ 插件编译快速指南
+# C++ 插件编译快速指�?
 
-本指南帮助您编译 AGI-Walker 的 GDExtension C++ 插件，提升物理模拟性能约 **10倍**。
+本指南帮助您编译 AGI-Walker �?GDExtension C++ 插件，提升物理模拟性能�?**10�?*�?
 
 ---
 
@@ -9,15 +9,15 @@
 ### Windows
 
 ```powershell
-# 安装 MinGW-w64（推荐使用 MSYS2）
+# 安装 MinGW-w64（推荐使�?MSYS2�?
 # 访问: https://www.msys2.org/
 
-# 在 MSYS2 中安装工具
+# �?MSYS2 中安装工�?
 pacman -S mingw-w64-x86_64-gcc
 pacman -S mingw-w64-x86_64-cmake
 pacman -S mingw-w64-x86_64-python-scons
 
-# 添加到 PATH
+# 添加�?PATH
 # C:\msys64\mingw64\bin
 ```
 
@@ -46,7 +46,7 @@ xcode-select --install
 ```bash
 cd d:\新建文件夹\AGI-Walker
 
-# 如果还未克隆子模块
+# 如果还未克隆子模�?
 git submodule update --init --recursive
 ```
 
@@ -68,7 +68,7 @@ scons platform=macos target=template_debug
 scons platform=macos target=template_release
 ```
 
-**编译时间**: 约 10-20 分钟（首次）
+**编译时间**: �?10-20 分钟（首次）
 
 ### 步骤 3: 编译项目插件
 
@@ -92,9 +92,9 @@ scons platform=macos
 
 ---
 
-## ✅ 验证安装
+## �?验证安装
 
-### 在 Godot 中测试
+### �?Godot 中测�?
 
 1. **打开 Godot 项目**
    ```bash
@@ -102,13 +102,13 @@ scons platform=macos
    godot --path d:\新建文件夹\AGI-Walker\godot_project
    ```
 
-2. **检查插件**
-   - 项目设置 → 插件
-   - 确认 "Robot Simulation Toolkit" 显示并启用
+2. **检查插�?*
+   - 项目设置 �?插件
+   - 确认 "Robot Simulation Toolkit" 显示并启�?
 
 3. **运行测试场景**
    - 打开 `scenes/test_physics.tscn`
-   - 按 F5 运行
+   - �?F5 运行
    - 观察 FPS（应该显著提升）
 
 ---
@@ -127,30 +127,30 @@ sudo apt-get install scons  # Linux
 brew install scons          # macOS
 ```
 
-### 问题 2: 找不到 Python
+### 问题 2: 找不�?Python
 
 **解决**:
 ```bash
-# 确保 Python 3.6+ 已安装
+# 确保 Python 3.6+ 已安�?
 python --version
 
-# Windows: 添加 Python 到 PATH
+# Windows: 添加 Python �?PATH
 ```
 
 ### 问题 3: 编译错误 - 找不到头文件
 
 **解决**:
 ```bash
-# 确保子模块已正确初始化
+# 确保子模块已正确初始�?
 cd gdextension_src/godot-cpp
 git submodule update --init --recursive
 ```
 
 ### 问题 4: Godot 无法加载插件
 
-**检查**:
-1. 插件文件是否在 `gdextension_src/bin/` 目录
-2. 文件扩展名是否匹配操作系统
+**检�?*:
+1. 插件文件是否�?`gdextension_src/bin/` 目录
+2. 文件扩展名是否匹配操作系�?
 3. Godot 版本是否 4.2+
 
 ---
@@ -167,16 +167,16 @@ git submodule update --init --recursive
 
 ---
 
-## 🎯 下一步
+## 🎯 下一�?
 
 编译成功后：
-1. 运行完整训练（性能更快）
+1. 运行完整训练（性能更快�?
 2. 测试复杂场景（更多并行环境）
-3. 调整物理参数（更精确）
+3. 调整物理参数（更精确�?
 
 ---
 
-## 📚 参考资料
+## 📚 参考资�?
 
 - [GDExtension 官方文档](https://docs.godotengine.org/en/stable/tutorials/scripting/gdextension/index.html)
 - [Godot-cpp GitHub](https://github.com/godotengine/godot-cpp)

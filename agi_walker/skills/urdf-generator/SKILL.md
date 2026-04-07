@@ -1,6 +1,6 @@
 ---
 name: urdf-generator
-description: "将AGI-Walker配置转换为URDF/SDF格式供Gazebo/MuJoCo/PyBullet使用。适用于:(1)导出到ROS 2生态 (2)与Gazebo仿真集成 (3)MuJoCo物理引擎 (4)生成碰撞网格 (5)创建可视化模型"
+description: "将AGI-Walker配置转换为URDF/SDF格式供Gazebo/MuJoCo/PyBullet使用。适用�?(1)导出到ROS 2生�?(2)与Gazebo仿真集成 (3)MuJoCo物理引擎 (4)生成碰撞网格 (5)创建可视化模�?
 metadata:
   agi_walker:
     emoji: "📄"
@@ -11,9 +11,9 @@ metadata:
 
 # URDF Generator Skill
 
-将AGI-Walker机器人配置转换为标准URDF/SDF格式,实现与主流仿真器的无缝集成。
+将AGI-Walker机器人配置转换为标准URDF/SDF格式,实现与主流仿真器的无缝集成�?
 
-## 快速开始
+## 快速开�?
 
 ### 转换为URDF
 
@@ -49,45 +49,45 @@ python -m agi_walker.skills.urdf_generator.scripts.batch_convert \
     --meshes
 ```
 
-## 支持的格式
+## 支持的格�?
 
 ### URDF (Unified Robot Description Format)
-**用途**: ROS/ROS 2标准格式
+**用�?*: ROS/ROS 2标准格式
 
-**特性**:
-- 完整的运动学树结构
-- 物理参数 (质量/惯性)
-- 关节类型和限位
+**特�?*:
+- 完整的运动学树结�?
+- 物理参数 (质量/惯�?
+- 关节类型和限�?
 - 碰撞和可视化几何
 
-**适用仿真器**:
+**适用仿真�?*:
 - Gazebo Classic
 - Gazebo Ignition
 - PyBullet
 - RViz/RViz2
 
 ### SDF (Simulation Description Format)
-**用途**: Gazebo原生格式
+**用�?*: Gazebo原生格式
 
-**特性**:
-- URDF的超集
+**特�?*:
+- URDF的超�?
 - 支持插件系统
 - 更强大的物理描述
 - 世界环境定义
 
-**适用仿真器**:
+**适用仿真�?*:
 - Gazebo Classic
 - Gazebo Ignition
 
 ### MJCF (MuJoCo XML Format)
-**用途**: MuJoCo仿真器 (实验性支持)
+**用�?*: MuJoCo仿真�?(实验性支�?
 
-**特性**:
+**特�?*:
 - 高性能物理仿真
 - 接触模型
-- 执行器定义
+- 执行器定�?
 
-## 功能特性
+## 功能特�?
 
 ### 1. 自动几何生成
 
@@ -97,17 +97,17 @@ from agi_walker.skills.urdf_generator import URDFGenerator
 generator = URDFGenerator()
 generator.load_config("configs/robot.json")
 
-# 生成简单几何 (盒子/圆柱/球)
+# 生成简单几�?(盒子/圆柱/�?
 generator.generate_collision_geometry(shape="box")
 
-# 或生成三角网格
+# 或生成三角网�?
 generator.generate_collision_meshes(resolution="high")
 
 # 导出
 generator.export_urdf("exports/robot.urdf")
 ```
 
-### 2. 材质和纹理
+### 2. 材质和纹�?
 
 ```python
 generator.set_visual_material(
@@ -117,7 +117,7 @@ generator.set_visual_material(
 )
 ```
 
-### 3. 传感器集成
+### 3. 传感器集�?
 
 ```python
 # 添加IMU
@@ -134,14 +134,14 @@ generator.add_sensor(
     type="camera",
     parent_link="head",
     image_size=(640, 480),
-    fov=1.5708  # 90度
+    fov=1.5708  # 90�?
 )
 ```
 
 ### 4. Gazebo插件
 
 ```python
-# 添加差速驱动插件
+# 添加差速驱动插�?
 generator.add_gazebo_plugin(
     plugin_name="differential_drive",
     plugin_type="gazebo_ros_diff_drive",
@@ -154,7 +154,7 @@ generator.add_gazebo_plugin(
 )
 ```
 
-## 命令行工具
+## 命令行工�?
 
 ### 转换单个文件
 
@@ -163,7 +163,7 @@ python -m agi_walker.skills.urdf_generator.convert \
     --input configs/robot.json \
     --output exports/robot.urdf \
     --format urdf \
-    --validate  # 验证URDF有效性
+    --validate  # 验证URDF有效�?
 ```
 
 ### 查看转换预览
@@ -171,7 +171,7 @@ python -m agi_walker.skills.urdf_generator.convert \
 ```bash
 python -m agi_walker.skills.urdf_generator.preview \
     --input configs/robot.json \
-    --viewer rviz  # 或 meshlab
+    --viewer rviz  # �?meshlab
 ```
 
 ### 验证URDF
@@ -179,12 +179,12 @@ python -m agi_walker.skills.urdf_generator.preview \
 ```bash
 python -m agi_walker.skills.urdf_generator.validate \
     --file exports/robot.urdf \
-    --check-tf  # 检查坐标变换
+    --check-tf  # 检查坐标变�?
 ```
 
 ## 高级用法
 
-### 自定义转换规则
+### 自定义转换规�?
 
 创建 `conversion_rules.yaml`:
 
@@ -229,7 +229,7 @@ from agi_walker.skills.urdf_generator import generate_ros2_package
 generate_ros2_package(
     robot_config="configs/robot.json",
     package_name="my_robot_description",
-    output_dir="ros2_ws/src/",
+    output_dir="hardware/hardware/hardware/ros2_ws/src/",
     include_launch_files=True,
     include_rviz_config=True
 )
@@ -239,19 +239,19 @@ generate_ros2_package(
 ```
 my_robot_description/
 ├── urdf/
-│   └── robot.urdf
+�?  └── robot.urdf
 ├── meshes/
-│   └── *.stl
+�?  └── *.stl
 ├── launch/
-│   ├── display.launch.py
-│   └── gazebo.launch.py
+�?  ├── display.launch.py
+�?  └── gazebo.launch.py
 ├── rviz/
-│   └── robot.rviz
+�?  └── robot.rviz
 ├── package.xml
 └── CMakeLists.txt
 ```
 
-## 示例: 完整工作流
+## 示例: 完整工作�?
 
 ```python
 from agi_walker.skills.robot_modeling import load_template
@@ -278,13 +278,13 @@ generator.generate_collision_geometry()
 generator.add_sensor("imu", "imu", "torso")
 generator.export_urdf("exports/optimized_biped.urdf")
 
-# 4. 在Gazebo中测试
+# 4. 在Gazebo中测�?
 generator.launch_gazebo("exports/optimized_biped.urdf")
 ```
 
-## 可视化工具
+## 可视化工�?
 
-### RViz可视化
+### RViz可视�?
 
 ```bash
 # 生成RViz配置
@@ -299,27 +299,27 @@ ros2 run rviz2 rviz2 -d exports/robot.rviz
 ### Gazebo预览
 
 ```bash
-# 快速预览
+# 快速预�?
 python -m agi_walker.skills.urdf_generator.gazebo_preview \
     --urdf exports/robot.urdf \
-    --world empty  # 或 custom.world
+    --world empty  # �?custom.world
 ```
 
 ## 常见问题
 
 **Q: 生成的URDF在RViz中显示不正确?**
 A: 
-1. 检查坐标变换: `ros2 run tf2_tools view_frames`
+1. 检查坐标变�? `ros2 run tf2_tools view_frames`
 2. 验证URDF: `check_urdf robot.urdf`
-3. 查看joint状态: 确保所有joint有正确的父子关系
+3. 查看joint状�? 确保所有joint有正确的父子关系
 
-**Q: Gazebo中机器人掉落或抖动?**
+**Q: Gazebo中机器人掉落或抖�?**
 A:
-1. 检查质量和惯性张量
+1. 检查质量和惯性张�?
 2. 调整接触参数 (kp/kd)
 3. 减小仿真步长
 
-**Q: 如何添加自定义网格?**
+**Q: 如何添加自定义网�?**
 A:
 ```python
 generator.set_visual_mesh(
@@ -329,15 +329,15 @@ generator.set_visual_mesh(
 )
 ```
 
-## 最佳实践
+## 最佳实�?
 
-1. **命名规范**: 使用描述性名称,避免特殊字符
-2. **坐标系**: 遵循ROS标准 (x前 y左 z上)
-3. **单位**: 使用SI单位 (米/千克/秒)
-4. **惯性**: 使用realistic的惯性张量,避免数值问题
+1. **命名规范**: 使用描述性名�?避免特殊字符
+2. **坐标�?*: 遵循ROS标准 (x�?y�?z�?
+3. **单位**: 使用SI单位 (�?千克/�?
+4. **惯�?*: 使用realistic的惯性张�?避免数值问�?
 5. **碰撞几何**: 保持简单以提高性能
 
-## 调试技巧
+## 调试技�?
 
 ### 可视化坐标系
 
@@ -352,17 +352,17 @@ generator.visualize_frames(
 
 ```python
 generator.export_debug_info("exports/debug.txt")
-# 包含: 质量分布/惯性/关节树/碰撞对
+# 包含: 质量分布/惯�?关节�?碰撞�?
 ```
 
-## 下一步
+## 下一�?
 
-转换完成后,可以:
+转换完成�?可以:
 
 1. **ROS 2集成**: 创建描述包并启动节点
-2. **Gazebo仿真**: 测试物理行为和控制
+2. **Gazebo仿真**: 测试物理行为和控�?
 3. **MuJoCo训练**: 用于强化学习训练
-4. **硬件部署**: 验证运动学正确性
+4. **硬件部署**: 验证运动学正确�?
 
 ---
 

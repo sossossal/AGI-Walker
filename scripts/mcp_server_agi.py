@@ -2,7 +2,7 @@ import asyncio
 import sys
 import logging
 from mcp.server.models import InitializationOptions
-from mcp.server import Notification, Server
+from mcp.server import Server
 from mcp.server.stdio import stdio_server
 import mcp.types as types
 
@@ -83,7 +83,10 @@ async def main():
             InitializationOptions(
                 server_name="agi-walker-control",
                 server_version="3.0.0",
-                capabilities=server.get_capabilities(),
+                capabilities=server.get_capabilities(
+                    notification_options=types.ServerNotificationOptions(),
+                    experimental_capabilities={}
+                ),
             ),
         )
 

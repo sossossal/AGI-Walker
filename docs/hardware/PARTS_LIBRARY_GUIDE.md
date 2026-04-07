@@ -1,45 +1,45 @@
 # 机器人零件库使用指南
 
-## 📦 简介
+## 📦 简�?
 
-机器人零件库是 AGI-Walker 项目的扩展功能，提供了基于真实硬件规格的数字零件库系统。您可以使用这些零件来构建精确的机器人仿真模型。
+机器人零件库�?AGI-Walker 项目的扩展功能，提供了基于真实硬件规格的数字零件库系统。您可以使用这些零件来构建精确的机器人仿真模型�?
 
-## 🎯 功能特性
+## 🎯 功能特�?
 
-- ✅ **真实规格数据**：基于实际供应商数据手册的参数
-- ✅ **标准化格式**：JSON Schema 验证，确保数据一致性
-- ✅ **即插即用**：通过 API 快速创建零件实例
-- ✅ **物理精确**：包含质量、惯量、摩擦、热特性等参数
-- ✅ **易于扩展**：按照 Schema 添加新零件
+- �?**真实规格数据**：基于实际供应商数据手册的参�?
+- �?**标准化格�?*：JSON Schema 验证，确保数据一致�?
+- �?**即插即用**：通过 API 快速创建零件实�?
+- �?**物理精确**：包含质量、惯量、摩擦、热特性等参数
+- �?**易于扩展**：按�?Schema 添加新零�?
 
 ## 📂 目录结构
 
 ```
 parts_library/
 ├── schema/                    # JSON Schema 定义
-│   ├── motor.schema.json      # 电机规格 Schema
-│   └── sensor_imu.schema.json # IMU 传感器 Schema
-│
+�?  ├── motor.schema.json      # 电机规格 Schema
+�?  └── sensor_imu.schema.json # IMU 传感�?Schema
+�?
 ├── motors/                    # 电机零件
-│   └── dynamixel/
-│       ├── xl430_w250.json    # Dynamixel XL430-W250
-│       └── mx106.json         # Dynamixel MX-106
-│
-└── sensors/                   # 传感器零件
+�?  └── dynamixel/
+�?      ├── xl430_w250.json    # Dynamixel XL430-W250
+�?      └── mx106.json         # Dynamixel MX-106
+�?
+└── sensors/                   # 传感器零�?
     └── imu/
         └── bno055.json        # Bosch BNO055 IMU
 ```
 
-## 🚀 快速开始
+## 🚀 快速开�?
 
 ### 1. 启用插件
 
-在 Godot 编辑器中：
+�?Godot 编辑器中�?
 1. 打开 `项目` -> `项目设置` -> `插件`
 2. 找到 "Robot Simulation Toolkit"
-3. 勾选启用
+3. 勾选启�?
 
-### 2. 在场景中使用零件库
+### 2. 在场景中使用零件�?
 
 ```gdscript
 # 在您的脚本中
@@ -55,7 +55,7 @@ func _ready():
     # 等待加载完成
     await get_tree().process_frame
     
-    # 使用零件库
+    # 使用零件�?
     create_robot_arm()
 
 func create_robot_arm():
@@ -75,16 +75,16 @@ func create_robot_arm():
 
 ```gdscript
 func create_joint_with_motor():
-    # 假设已有两个刚体：upper_arm 和 forearm
+    # 假设已有两个刚体：upper_arm �?forearm
     var upper_arm = $UpperArm  # RigidBody3D
     var forearm = $Forearm     # RigidBody3D
     
-    # 使用 Dynamixel MX-106 创建肘关节
+    # 使用 Dynamixel MX-106 创建肘关�?
     var elbow_joint = parts_lib.create_motor_joint(
         "dynamixel_mx106",        # 零件 ID
-        upper_arm,                 # 父刚体
-        forearm,                   # 子刚体
-        Vector3.RIGHT,             # 旋转轴
+        upper_arm,                 # 父刚�?
+        forearm,                   # 子刚�?
+        Vector3.RIGHT,             # 旋转�?
         Vector3(0, -0.2, 0),      # 父刚体连接点
         Vector3(0, 0.2, 0)        # 子刚体连接点
     )
@@ -97,9 +97,9 @@ func create_joint_with_motor():
     elbow_joint.set_param(HingeJoint3D.PARAM_MOTOR_TARGET_VELOCITY, 2.0)
 ```
 
-## 🔍 API 参考
+## 🔍 API 参�?
 
-### RobotPartsLibrary 类
+### RobotPartsLibrary �?
 
 #### 核心方法
 
@@ -107,10 +107,10 @@ func create_joint_with_motor():
 # 获取零件数据
 func get_part(part_id: String) -> Dictionary
 
-# 按类别筛选
+# 按类别筛�?
 func get_parts_by_category(category: String) -> Array[Dictionary]
 
-# 按制造商筛选
+# 按制造商筛�?
 func get_parts_by_manufacturer(manufacturer: String) -> Array[Dictionary]
 
 # 创建电机实例
@@ -129,14 +129,14 @@ func create_motor_joint(
 # 验证零件数据
 func validate_part(part_id: String) -> bool
 
-# 列出所有零件
+# 列出所有零�?
 func list_all_parts() -> Array[String]
 
 # 打印统计信息
 func print_statistics() -> void
 ```
 
-## 📊 当前零件库
+## 📊 当前零件�?
 
 ### 电机/舵机
 
@@ -145,17 +145,17 @@ func print_statistics() -> void
 | `dynamixel_xl430_w250` | XL430-W250-T | 1.4 N·m | 50 RPM | $69.90 |
 | `dynamixel_mx106` | MX-106T | 8.4 N·m | 45 RPM | $459.90 |
 
-### 传感器
+### 传感�?
 
-| Part ID | 型号 | 类型 | 更新率 | 价格 |
+| Part ID | 型号 | 类型 | 更新�?| 价格 |
 |---------|------|------|--------|------|
 | `bosch_bno055` | BNO055 | 9轴IMU | 100 Hz | $34.95 |
 
-## ➕ 添加新零件
+## �?添加新零�?
 
 ### 步骤 1: 创建 JSON 文件
 
-在相应类别目录下创建新的 JSON 文件，例如 `parts_library/motors/maxon/ec45.json`:
+在相应类别目录下创建新的 JSON 文件，例�?`parts_library/motors/maxon/ec45.json`:
 
 ```json
 {
@@ -188,12 +188,12 @@ func print_statistics() -> void
 
 ### 步骤 2: 验证数据
 
-使用在线 JSON Schema 验证器或运行：
+使用在线 JSON Schema 验证器或运行�?
 
 ```gdscript
 var is_valid = parts_lib.validate_part("maxon_ec45_flat")
 if is_valid:
-    print("✓ 零件数据有效")
+    print("�?零件数据有效")
 ```
 
 ### 步骤 3: 重新加载
@@ -206,9 +206,9 @@ parts_lib.load_parts_database()
 
 ## 🔧 高级用法
 
-### 访问零件元数据
+### 访问零件元数�?
 
-电机实例和关节都包含原始零件数据：
+电机实例和关节都包含原始零件数据�?
 
 ```gdscript
 var motor = parts_lib.create_motor_instance("dynamixel_xl430_w250", self)
@@ -221,15 +221,15 @@ print("数据手册: ", part_data.get("datasheet_url"))
 # 获取特定参数
 var stall_torque = motor.get_meta("stall_torque")
 var friction = motor.get_meta("friction_params")
-print("静摩擦: ", friction.get("static"), " N·m")
+print("静摩�? ", friction.get("static"), " N·m")
 ```
 
-### 运行时调整参数
+### 运行时调整参�?
 
 ```gdscript
 # 修改关节扭矩限制
 var joint = parts_lib.create_motor_joint(...)
-joint.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, 2.0)  # 自定义扭矩
+joint.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, 2.0)  # 自定义扭�?
 
 # 模拟电机过载降额
 var normal_torque = joint.get_meta("part_data")["specifications"]["stall_torque"]
@@ -239,22 +239,22 @@ joint.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, derated_torque)
 
 ## 🧪 测试示例
 
-运行测试场景：
+运行测试场景�?
 
-1. 在 Godot 编辑器中创建新场景
-2. 添加 `Node3D` 根节点
+1. �?Godot 编辑器中创建新场�?
+2. 添加 `Node3D` 根节�?
 3. 附加脚本 `res://scripts/test_parts_library.gd`
 4. 运行场景 (F5)
 
-预期输出：
+预期输出�?
 ```
 🔧 开始加载零件库...
-  ✓ 加载零件: dynamixel_xl430_w250 (XL430-W250-T)
-  ✓ 加载零件: dynamixel_mx106 (MX-106T)
-  ✓ 加载零件: bosch_bno055 (BNO055)
-✅ 零件库加载完成，共 3 个零件
+  �?加载零件: dynamixel_xl430_w250 (XL430-W250-T)
+  �?加载零件: dynamixel_mx106 (MX-106T)
+  �?加载零件: bosch_bno055 (BNO055)
+�?零件库加载完成，�?3 个零�?
 
-=== 零件库统计 ===
+=== 零件库统�?===
 总零件数: 3
 分类统计:
   - actuator_servo: 2
@@ -266,11 +266,11 @@ joint.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, derated_torque)
 
 ### 问题 1: 零件加载失败
 
-**症状**: 控制台显示 "目录不存在" 警告
+**症状**: 控制台显�?"目录不存�? 警告
 
 **解决**:
-- 检查文件路径是否正确
-- 确认 JSON 文件在正确的目录下
+- 检查文件路径是否正�?
+- 确认 JSON 文件在正确的目录�?
 - 验证 `PARTS_ROOT` 常量指向 `res://parts_library/`
 
 ### 问题 2: JSON 解析错误
@@ -278,9 +278,9 @@ joint.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, derated_torque)
 **症状**: "JSON 解析失败" 错误
 
 **解决**:
-- 使用 JSON 验证工具检查语法
+- 使用 JSON 验证工具检查语�?
 - 确保没有多余的逗号
-- 检查引号是否正确闭合
+- 检查引号是否正确闭�?
 
 ### 问题 3: 零件实例没有物理效果
 
@@ -291,7 +291,7 @@ joint.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, derated_torque)
 - 检查碰撞层设置
 - 验证 RigidBody3D 没有被设置为 `freeze`
 
-## 📚 参考资源
+## 📚 参考资�?
 
 - [Dynamixel 官方文档](https://emanual.robotis.com/)
 - [Godot 物理引擎文档](https://docs.godotengine.org/en/stable/tutorials/physics/index.html)
@@ -299,14 +299,14 @@ joint.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, derated_torque)
 
 ## 🔮 未来计划
 
-- [ ] 添加更多品牌的电机（Faulhaber、Maxon、RoboMaster）
-- [ ] 支持力/扭矩传感器
+- [ ] 添加更多品牌的电机（Faulhaber、Maxon、RoboMaster�?
+- [ ] 支持�?扭矩传感�?
 - [ ] 支持 LiDAR 和相机传感器
-- [ ] 3D 模型库（GLB 格式）
-- [ ] 在线零件数据库
-- [ ] 可视化零件选择器 UI
+- [ ] 3D 模型库（GLB 格式�?
+- [ ] 在线零件数据�?
+- [ ] 可视化零件选择�?UI
 
 ---
 
 **版本**: 0.1.0  
-**最后更新**: 2026-01-13
+**最后更�?*: 2026-01-13

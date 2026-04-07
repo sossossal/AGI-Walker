@@ -2,7 +2,7 @@
 
 **版本**: 1.0  
 **日期**: 2026-01-18  
-**状态**: 设计阶段
+**状�?*: 设计阶段
 
 ---
 
@@ -11,7 +11,7 @@
 1. [概述](#概述)
 2. [架构设计](#架构设计)
 3. [接口定义](#接口定义)
-4. [技术实现](#技术实现)
+4. [技术实现](#技术实�?
 5. [实施步骤](#实施步骤)
 6. [使用场景](#使用场景)
 7. [测试计划](#测试计划)
@@ -23,18 +23,18 @@
 
 ### 目标
 
-将AGI-Walker仿真平台与ROS 2生态系统集成，实现：
-- 标准化的机器人接口
+将AGI-Walker仿真平台与ROS 2生态系统集成，实现�?
+- 标准化的机器人接�?
 - 与ROS 2工具链的无缝集成
 - 支持真实硬件部署
-- 利用ROS 2丰富的package生态
+- 利用ROS 2丰富的package生�?
 
-### 核心价值
+### 核心价�?
 
-1. **标准化**: 使用ROS 2标准接口，便于与其他系统集成
-2. **可视化**: 利用RViz进行3D可视化
+1. **标准�?*: 使用ROS 2标准接口，便于与其他系统集成
+2. **可视�?*: 利用RViz进行3D可视�?
 3. **硬件支持**: 统一的接口支持仿真和真实硬件
-4. **生态系统**: 访问MoveIt、Nav2等成熟工具
+4. **生态系�?*: 访问MoveIt、Nav2等成熟工�?
 
 ### 目标ROS版本
 
@@ -49,63 +49,63 @@
 ### 系统架构
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         GUI应用                             │
-│  (robot_configurator_gui.py)                               │
-└───────────────┬─────────────────────────────────────────────┘
-                │
-                ↓
-┌───────────────────────────────────────────────────────────┐
-│                    ROS 2 桥接节点                         │
-│         (agi_walker_ros2_bridge.py)                       │
-│  ┌─────────────────────────────────────────────────┐      │
-│  │  Publishers:                                    │      │
-│  │  - /joint_states      (JointState)             │      │
-│  │  - /robot_state       (RobotState)             │      │
-│  │  - /battery           (Float64)                │      │
-│  │  - /imu               (Imu)                    │      │
-│  │                                                 │      │
-│  │  Subscribers:                                   │      │
-│  │  - /cmd_vel           (Twist)                  │      │
-│  │  - /joint_cmd         (JointTrajectory)        │      │
-│  │                                                 │      │
-│  │  Services:                                      │      │
-│  │  - /start_simulation  (Trigger)                │      │
-│  │  - /stop_simulation   (Trigger)                │      │
-│  │  - /load_robot        (LoadRobot)              │      │
-│  │  - /update_params     (SetParameters)          │      │
-│  └─────────────────────────────────────────────────┘      │
-└───────────────┬───────────────────────────────────────────┘
-                │
-                ↓
-┌───────────────────────────────────────────────────────────┐
-│              Godot TCP客户端                              │
-│         (godot_client.py)                                 │
-└───────────────┬───────────────────────────────────────────┘
-                │
-                ↓
-┌───────────────────────────────────────────────────────────┐
-│              Godot仿真引擎                                │
-│         (TCPSimulationServer.gd)                          │
-└───────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────�?
+�?                        GUI应用                             �?
+�? (robot_configurator_gui.py)                               �?
+└───────────────┬─────────────────────────────────────────────�?
+                �?
+                �?
+┌───────────────────────────────────────────────────────────�?
+�?                   ROS 2 桥接节点                         �?
+�?        (agi_walker_ros2_bridge.py)                       �?
+�? ┌─────────────────────────────────────────────────�?     �?
+�? �? Publishers:                                    �?     �?
+�? �? - /joint_states      (JointState)             �?     �?
+�? �? - /robot_state       (RobotState)             �?     �?
+�? �? - /battery           (Float64)                �?     �?
+�? �? - /imu               (Imu)                    �?     �?
+�? �?                                                �?     �?
+�? �? Subscribers:                                   �?     �?
+�? �? - /cmd_vel           (Twist)                  �?     �?
+�? �? - /joint_cmd         (JointTrajectory)        �?     �?
+�? �?                                                �?     �?
+�? �? Services:                                      �?     �?
+�? �? - /start_simulation  (Trigger)                �?     �?
+�? �? - /stop_simulation   (Trigger)                �?     �?
+�? �? - /load_robot        (LoadRobot)              �?     �?
+�? �? - /update_params     (SetParameters)          �?     �?
+�? └─────────────────────────────────────────────────�?     �?
+└───────────────┬───────────────────────────────────────────�?
+                �?
+                �?
+┌───────────────────────────────────────────────────────────�?
+�?             Godot TCP客户�?                             �?
+�?        (godot_client.py)                                 �?
+└───────────────┬───────────────────────────────────────────�?
+                �?
+                �?
+┌───────────────────────────────────────────────────────────�?
+�?             Godot仿真引擎                                �?
+�?        (TCPSimulationServer.gd)                          �?
+└───────────────────────────────────────────────────────────�?
 ```
 
 ### 通信流程
 
 #### 1. 启动仿真流程
 ```
-GUI → ROS 2 Service Call → Bridge → Godot Client → Godot
-                                ←     Ack         ←
+GUI �?ROS 2 Service Call �?Bridge �?Godot Client �?Godot
+                                �?    Ack         �?
 ```
 
-#### 2. 实时数据流
+#### 2. 实时数据�?
 ```
-Godot → TCP → Godot Client → Bridge → ROS 2 Topics → RViz/其他节点
+Godot �?TCP �?Godot Client �?Bridge �?ROS 2 Topics �?RViz/其他节点
 ```
 
-#### 3. 命令控制流
+#### 3. 命令控制�?
 ```
-ROS 2 Topics → Bridge → Godot Client → Godot
+ROS 2 Topics �?Bridge �?Godot Client �?Godot
 ```
 
 ---
@@ -116,7 +116,7 @@ ROS 2 Topics → Bridge → Godot Client → Godot
 
 #### 发布话题 (Publishers)
 
-##### 1. `/joint_states` - 关节状态
+##### 1. `/joint_states` - 关节状�?
 
 **消息类型**: `sensor_msgs/msg/JointState`
 
@@ -133,9 +133,9 @@ velocity: [0.0, 0.0, 0.0, 0.0]  # rad/s
 effort: [0.5, 0.3, 0.5, 0.3]    # Nm
 ```
 
-##### 2. `/robot_state` - 机器人整体状态
+##### 2. `/robot_state` - 机器人整体状�?
 
-**消息类型**: `agi_walker_msgs/msg/RobotState` (自定义)
+**消息类型**: `agi_walker_msgs/msg/RobotState` (自定�?
 
 **频率**: 20 Hz
 
@@ -143,15 +143,15 @@ effort: [0.5, 0.3, 0.5, 0.3]    # Nm
 ```
 # RobotState.msg
 std_msgs/Header header
-geometry_msgs/Pose pose           # 机器人位姿
+geometry_msgs/Pose pose           # 机器人位�?
 geometry_msgs/Twist twist         # 速度
 float64 battery_level             # 电池电量 (0-100)
-float64 cpu_usage                 # CPU使用率
+float64 cpu_usage                 # CPU使用�?
 float64 temperature               # 温度
-string status                     # 状态: IDLE, RUNNING, ERROR
+string status                     # 状�? IDLE, RUNNING, ERROR
 ```
 
-##### 3. `/battery` - 电池状态
+##### 3. `/battery` - 电池状�?
 
 **消息类型**: `sensor_msgs/msg/BatteryState`
 
@@ -169,10 +169,10 @@ string status                     # 状态: IDLE, RUNNING, ERROR
 
 **频率**: 50 Hz
 
-**发布的变换**:
-- `world` → `base_link`
-- `base_link` → `left_hip`
-- `base_link` → `right_hip`
+**发布的变�?*:
+- `world` �?`base_link`
+- `base_link` �?`left_hip`
+- `base_link` �?`right_hip`
 - (其他关节...)
 
 #### 订阅话题 (Subscribers)
@@ -181,7 +181,7 @@ string status                     # 状态: IDLE, RUNNING, ERROR
 
 **消息类型**: `geometry_msgs/msg/Twist`
 
-**用途**: 控制机器人移动
+**用�?*: 控制机器人移�?
 
 **示例**:
 ```yaml
@@ -199,7 +199,7 @@ angular:
 
 **消息类型**: `trajectory_msgs/msg/JointTrajectory`
 
-**用途**: 精确控制关节运动
+**用�?*: 精确控制关节运动
 
 ---
 
@@ -209,7 +209,7 @@ angular:
 
 **类型**: `std_srvs/srv/Trigger`
 
-**请求**: 空
+**请求**: �?
 
 **响应**:
 ```yaml
@@ -221,9 +221,9 @@ message: "Simulation started successfully"
 
 **类型**: `std_srvs/srv/Trigger`
 
-#### 3. `/load_robot` - 加载机器人配置
+#### 3. `/load_robot` - 加载机器人配�?
 
-**类型**: `agi_walker_msgs/srv/LoadRobot` (自定义)
+**类型**: `agi_walker_msgs/srv/LoadRobot` (自定�?
 
 **请求**:
 ```
@@ -243,7 +243,7 @@ string message
 
 **类型**: `rcl_interfaces/srv/SetParameters`
 
-**可设置参数**:
+**可设置参�?*:
 - `motor_power_multiplier` (double, 0.5-2.0)
 - `joint_stiffness` (double, 0.5-3.0)
 - `joint_damping` (double, 0.1-1.0)
@@ -256,7 +256,7 @@ string message
 
 ### ROS 2 参数 (Parameters)
 
-所有参数存储在参数服务器中，可通过`ros2 param`命令访问。
+所有参数存储在参数服务器中，可通过`ros2 param`命令访问�?
 
 **参数列表**:
 ```yaml
@@ -286,7 +286,7 @@ string message
 
 ---
 
-### 自定义消息定义
+### 自定义消息定�?
 
 #### 目录结构
 ```
@@ -294,9 +294,9 @@ agi_walker_msgs/
 ├── CMakeLists.txt
 ├── package.xml
 ├── msg/
-│   ├── Part.msg
-│   ├── Connection.msg
-│   └── RobotState.msg
+�?  ├── Part.msg
+�?  ├── Connection.msg
+�?  └── RobotState.msg
 └── srv/
     └── LoadRobot.srv
 ```
@@ -343,7 +343,7 @@ string message
 
 ---
 
-## 技术实现
+## 技术实�?
 
 ### 1. ROS 2 桥接节点
 
@@ -354,7 +354,7 @@ string message
 """
 AGI-Walker ROS 2 桥接节点
 
-连接AGI-Walker仿真平台与ROS 2生态系统
+连接AGI-Walker仿真平台与ROS 2生态系�?
 """
 
 import rclpy
@@ -384,7 +384,7 @@ class AGIWalkerROS2Bridge(Node):
         # 声明参数
         self.declare_parameters()
         
-        # Godot客户端
+        # Godot客户�?
         self.godot_client = None
         self.connect_to_godot()
         
@@ -395,19 +395,19 @@ class AGIWalkerROS2Bridge(Node):
             depth=10
         )
         
-        # 发布器
+        # 发布�?
         self.setup_publishers()
         
-        # 订阅器
+        # 订阅�?
         self.setup_subscribers()
         
         # 服务
         self.setup_services()
         
-        # TF广播器
+        # TF广播�?
         self.tf_broadcaster = TransformBroadcaster(self)
         
-        # 定时器
+        # 定时�?
         self.setup_timers()
         
         self.get_logger().info('AGI-Walker ROS 2 Bridge initialized')
@@ -426,7 +426,7 @@ class AGIWalkerROS2Bridge(Node):
         self.declare_parameter('joint_damping', 0.5)
         
     def connect_to_godot(self):
-        """连接到Godot仿真服务器"""
+        """连接到Godot仿真服务�?""
         host = self.get_parameter('godot_host').value
         port = self.get_parameter('godot_port').value
         
@@ -464,7 +464,7 @@ class AGIWalkerROS2Bridge(Node):
         )
         
     def setup_services(self):
-        """设置所有服务"""
+        """设置所有服�?""
         self.start_sim_srv = self.create_service(
             Trigger, '/start_simulation',
             self.start_simulation_callback
@@ -481,7 +481,7 @@ class AGIWalkerROS2Bridge(Node):
         )
         
     def setup_timers(self):
-        """设置定时发布器"""
+        """设置定时发布�?""
         joint_rate = self.get_parameter('joint_state_rate').value
         self.joint_timer = self.create_timer(
             1.0 / joint_rate, self.publish_joint_states
@@ -498,7 +498,7 @@ class AGIWalkerROS2Bridge(Node):
         self.latest_data = data
         
     def publish_joint_states(self):
-        """发布关节状态"""
+        """发布关节状�?""
         if not hasattr(self, 'latest_data'):
             return
             
@@ -515,14 +515,14 @@ class AGIWalkerROS2Bridge(Node):
         self.joint_state_pub.publish(msg)
         
     def publish_robot_state(self):
-        """发布机器人整体状态"""
+        """发布机器人整体状�?""
         if not hasattr(self, 'latest_data'):
             return
             
         msg = RobotState()
         msg.header.stamp = self.get_clock().now().to_msg()
         
-        # 填充状态数据
+        # 填充状态数�?
         # ... (从latest_data提取)
         
         self.robot_state_pub.publish(msg)
@@ -561,7 +561,7 @@ class AGIWalkerROS2Bridge(Node):
         return response
         
     def load_robot_callback(self, request, response):
-        """加载机器人服务"""
+        """加载机器人服�?""
         # 转换ROS消息为Godot格式
         parts = [
             {
@@ -650,13 +650,13 @@ def generate_launch_description():
             }]
         ),
         
-        # Robot State Publisher (可选)
+        # Robot State Publisher (可�?
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
             name='robot_state_publisher',
             parameters=[{
-                'robot_description': 'robot.urdf'  # 从文件加载
+                'robot_description': 'robot.urdf'  # 从文件加�?
             }]
         ),
     ])
@@ -676,7 +676,7 @@ def export_to_urdf(robot_config, output_path):
     导出机器人配置到URDF
     
     Args:
-        robot_config: 机器人配置字典
+        robot_config: 机器人配置字�?
         output_path: 输出URDF文件路径
     """
     urdf_template = """<?xml version="1.0"?>
@@ -695,7 +695,7 @@ def export_to_urdf(robot_config, output_path):
 </robot>
 """
     
-    # 生成关节和连杆
+    # 生成关节和连�?
     joints_links = generate_joints_and_links(robot_config)
     
     # 填充模板
@@ -715,7 +715,7 @@ def export_to_urdf(robot_config, output_path):
 
 ## 实施步骤
 
-### Phase 1: 环境准备（1天）
+### Phase 1: 环境准备�?天）
 
 #### 1.1 安装ROS 2
 ```bash
@@ -743,29 +743,29 @@ ros2 pkg create agi_walker_msgs \
     --dependencies std_msgs sensor_msgs geometry_msgs
 ```
 
-### Phase 2: 基础集成（2-3天）
+### Phase 2: 基础集成�?-3天）
 
-#### 2.1 实现自定义消息
+#### 2.1 实现自定义消�?
 - [ ] Part.msg
 - [ ] Connection.msg
 - [ ] RobotState.msg
 - [ ] LoadRobot.srv
 
 #### 2.2 实现桥接节点
-- [ ] 基础Node类
-- [ ] Godot客户端集成
+- [ ] 基础Node�?
+- [ ] Godot客户端集�?
 - [ ] 参数声明
 - [ ] 日志系统
 
-#### 2.3 实现发布器
+#### 2.3 实现发布�?
 - [ ] /joint_states
 - [ ] /robot_state
 - [ ] /battery
 - [ ] /tf
 
-### Phase 3: 高级功能（2-3天）
+### Phase 3: 高级功能�?-3天）
 
-#### 3.1 实现订阅器
+#### 3.1 实现订阅�?
 - [ ] /cmd_vel处理
 - [ ] /joint_cmd处理
 
@@ -773,15 +773,15 @@ ros2 pkg create agi_walker_msgs \
 - [ ] /start_simulation
 - [ ] /stop_simulation
 - [ ] /load_robot
-- [ ] 参数服务器
+- [ ] 参数服务�?
 
 #### 3.3 TF系统
 - [ ] 坐标变换发布
-- [ ] TF树构建
+- [ ] TF树构�?
 
 ### Phase 4: 工具和文档（2-3天）
 
-#### 4.1 工具开发
+#### 4.1 工具开�?
 - [ ] URDF导出工具
 - [ ] Launch文件
 - [ ] RViz配置文件
@@ -789,12 +789,12 @@ ros2 pkg create agi_walker_msgs \
 #### 4.2 文档编写
 - [ ] 安装指南
 - [ ] 使用教程
-- [ ] API参考
+- [ ] API参�?
 - [ ] 故障排查
 
 #### 4.3 示例程序
 - [ ] 基础控制示例
-- [ ] RViz可视化示例
+- [ ] RViz可视化示�?
 - [ ] MoveIt集成示例
 
 ### Phase 5: 测试和优化（1-2天）
@@ -807,20 +807,20 @@ ros2 pkg create agi_walker_msgs \
 #### 5.2 集成测试
 - [ ] 端到端通信测试
 - [ ] 性能测试
-- [ ] 稳定性测试
+- [ ] 稳定性测�?
 
 #### 5.3 优化
 - [ ] 延迟优化
 - [ ] CPU使用优化
 - [ ] 内存优化
 
-**总时间**: 8-12天
+**总时�?*: 8-12�?
 
 ---
 
 ## 使用场景
 
-### 场景1: RViz可视化
+### 场景1: RViz可视�?
 
 ```bash
 # 终端1: 启动Godot仿真
@@ -836,7 +836,7 @@ ros2 launch agi_walker_ros2 agi_walker.launch.py
 rviz2 -d config/agi_walker.rviz
 ```
 
-### 场景2: 命令行控制
+### 场景2: 命令行控�?
 
 ```bash
 # 启动仿真
@@ -846,7 +846,7 @@ ros2 service call /start_simulation std_srvs/srv/Trigger
 ros2 topic pub /cmd_vel geometry_msgs/msg/Twist \
   "{linear: {x: 0.5}, angular: {z: 0.3}}"
 
-# 查看关节状态
+# 查看关节状�?
 ros2 topic echo /joint_states
 
 # 更新参数
@@ -885,12 +885,12 @@ if __name__ == '__main__':
 ```python
 import moveit_commander
 
-# 初始化
+# 初始�?
 moveit_commander.roscpp_initialize(sys.argv)
 robot = moveit_commander.RobotCommander()
 arm = moveit_commander.MoveGroupCommander("arm")
 
-# 规划并执行
+# 规划并执�?
 arm.set_pose_target([0.3, 0.0, 0.3])
 plan = arm.plan()
 arm.execute(plan[1])
@@ -943,17 +943,17 @@ pytest tests/test_performance.py::test_latency
 
 | 指标 | 目标 | 测试方法 |
 |------|------|----------|
-| 关节状态延迟 | <20ms | timestamp对比 |
-| CPU使用率 | <30% | top/htop |
+| 关节状态延�?| <20ms | timestamp对比 |
+| CPU使用�?| <30% | top/htop |
 | 内存占用 | <500MB | ps/top |
-| 消息丢失率 | <0.1% | 计数器 |
-| 吞吐量 | >1000msg/s | rosbag |
+| 消息丢失�?| <0.1% | 计数�?|
+| 吞吐�?| >1000msg/s | rosbag |
 
 ---
 
 ## 风险评估
 
-### 技术风险
+### 技术风�?
 
 #### 1. 性能风险 ⚠️ 中等
 
@@ -964,13 +964,13 @@ pytest tests/test_performance.py::test_latency
 **缓解措施**:
 - 使用DDS的RELIABLE QoS
 - 优化消息大小
-- 使用shared memory传输（同机器）
+- 使用shared memory传输（同机器�?
 
-#### 2. 兼容性风险 ⚠️ 低
+#### 2. 兼容性风�?⚠️ �?
 
 **风险**: 不同ROS 2版本API变化
 
-**影响**: 代码需要调整
+**影响**: 代码需要调�?
 
 **缓解措施**:
 - 支持主流LTS版本
@@ -980,7 +980,7 @@ pytest tests/test_performance.py::test_latency
 
 **风险**: Windows/macOS上ROS 2支持有限
 
-**影响**: 跨平台使用受限
+**影响**: 跨平台使用受�?
 
 **缓解措施**:
 - 优先支持Linux
@@ -989,13 +989,13 @@ pytest tests/test_performance.py::test_latency
 
 ### 项目风险
 
-#### 1. 时间风险 ⚠️ 低
+#### 1. 时间风险 ⚠️ �?
 
-**估算**: 8-12天
+**估算**: 8-12�?
 
 **缓解**: 分阶段实施，核心功能优先
 
-#### 2. 维护风险 ⚠️ 低
+#### 2. 维护风险 ⚠️ �?
 
 **长期维护成本**
 
@@ -1003,7 +1003,7 @@ pytest tests/test_performance.py::test_latency
 
 ---
 
-## 依赖项
+## 依赖�?
 
 ### 系统依赖
 
@@ -1016,7 +1016,7 @@ ros-humble-tf2-ros
 ros-humble-geometry-msgs
 ros-humble-sensor-msgs
 
-# 可选 - 高级功能
+# 可�?- 高级功能
 ros-humble-moveit
 ros-humble-navigation2
 ros-humble-rviz2
@@ -1040,16 +1040,16 @@ agi_walker_ros2/
 ├── setup.cfg
 ├── resource/
 ├── agi_walker_ros2/
-│   ├── __init__.py
-│   ├── bridge_node.py          # 桥接节点
-│   ├── godot_interface.py      # Godot接口包装
-│   └── utils.py                # 工具函数
+�?  ├── __init__.py
+�?  ├── bridge_node.py          # 桥接节点
+�?  ├── godot_interface.py      # Godot接口包装
+�?  └── utils.py                # 工具函数
 ├── launch/
-│   ├── agi_walker.launch.py    # 主launch文件
-│   └── rviz.launch.py          # RViz launch
+�?  ├── agi_walker.launch.py    # 主launch文件
+�?  └── rviz.launch.py          # RViz launch
 ├── config/
-│   ├── params.yaml             # 参数配置
-│   └── agi_walker.rviz         # RViz配置
+�?  ├── params.yaml             # 参数配置
+�?  └── agi_walker.rviz         # RViz配置
 └── test/
     ├── test_messages.py
     ├── test_services.py
@@ -1059,9 +1059,9 @@ agi_walker_msgs/
 ├── CMakeLists.txt
 ├── package.xml
 ├── msg/
-│   ├── Part.msg
-│   ├── Connection.msg
-│   └── RobotState.msg
+�?  ├── Part.msg
+�?  ├── Connection.msg
+�?  └── RobotState.msg
 └── srv/
     └── LoadRobot.srv
 ```
@@ -1070,24 +1070,24 @@ agi_walker_msgs/
 
 ## 后续扩展
 
-### 短期（1-2月）
-- [ ] MoveIt配置包
+### 短期�?-2月）
+- [ ] MoveIt配置�?
 - [ ] Nav2集成
 - [ ] Gazebo仿真支持
 
-### 中期（3-6月）
-- [ ] 硬件接口标准化
+### 中期�?-6月）
+- [ ] 硬件接口标准�?
 - [ ] ROS 2 Control集成
-- [ ] 分布式仿真支持
+- [ ] 分布式仿真支�?
 
-### 长期（6-12月）
+### 长期�?-12月）
 - [ ] ROS Industrial集成
 - [ ] 云端ROS支持
 - [ ] 多机器人协同
 
 ---
 
-## 参考资料
+## 参考资�?
 
 ### ROS 2 文档
 - [ROS 2 Humble文档](https://docs.ros.org/en/humble/)
@@ -1102,7 +1102,7 @@ agi_walker_msgs/
 ---
 
 **文档版本**: 1.0  
-**最后更新**: 2026-01-18  
-**审核状态**: 待审核
+**最后更�?*: 2026-01-18  
+**审核状�?*: 待审�?
 
 **联系方式**: 如有问题，请参考项目README或提交Issue

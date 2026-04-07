@@ -1,25 +1,25 @@
-# 硬件集成指南：从 AGI-Walker 仿真到 IMC-22 部署
+# 硬件集成指南：从 AGI-Walker 仿真�?IMC-22 部署
 
 ## 📋 概述
 
-本指南介绍如何将在 AGI-Walker 中训练的控制策略部署到基于 IMC-22 芯片的真实硬件。
+本指南介绍如何将�?AGI-Walker 中训练的控制策略部署到基�?IMC-22 芯片的真实硬件�?
 
 ---
 
-## 🔄 Sim-to-Real 工作流
+## 🔄 Sim-to-Real 工作�?
 
 ```
-1. 仿真训练 (AGI-Walker) → 2. 策略导出 (ONNX) → 3. 模型量化 (INT8) → 4. 硬件部署 (IMC-22)
+1. 仿真训练 (AGI-Walker) �?2. 策略导出 (ONNX) �?3. 模型量化 (INT8) �?4. 硬件部署 (IMC-22)
 ```
 
-### 完整流程图
+### 完整流程�?
 
 ```mermaid
 graph LR
     A[AGI-Walker 仿真] --> B[训练 PPO 策略]
     B --> C[导出 ONNX 模型]
-    C --> D[量化为 INT8]
-    D --> E[烧录到 IMC-22]
+    C --> D[量化�?INT8]
+    D --> E[烧录�?IMC-22]
     E --> F[真实机器人测试]
     F --> G{性能满足要求?}
     G -->|否| H[调整仿真参数]
@@ -41,10 +41,10 @@ pip install gymnasium numpy stable-baselines3
 pip install python-can onnx torch
 ```
 
-### 1.2 工具链安装
+### 1.2 工具链安�?
 
 ```bash
-# RISC-V 工具链
+# RISC-V 工具�?
 # Ubuntu/Debian:
 sudo apt-get install gcc-riscv32-unknown-elf
 
@@ -52,17 +52,17 @@ sudo apt-get install gcc-riscv32-unknown-elf
 brew install riscv-gnu-toolchain
 
 # Windows:
-# 下载预编译版本: https://github.com/riscv/riscv-gnu-toolchain/releases
+# 下载预编译版�? https://github.com/riscv/riscv-gnu-toolchain/releases
 ```
 
 ### 1.3 硬件准备
 
 | 组件 | 数量 | 说明 |
 |------|------|------|
-| IMC-22 开发板 | N 个 | N = 关节数量 |
-| CAN 适配器 | 1 个 | USB-CAN 或 SPI-CAN |
-| 电源 | 1 个 | 5V 供电 |
-| J-Link 调试器 | 1 个 | （可选）用于调试 |
+| IMC-22 开发板 | N �?| N = 关节数量 |
+| CAN 适配�?| 1 �?| USB-CAN �?SPI-CAN |
+| 电源 | 1 �?| 5V 供电 |
+| J-Link 调试�?| 1 �?| （可选）用于调试 |
 
 ---
 
@@ -77,7 +77,7 @@ from stable_baselines3 import PPO
 # 创建环境
 env = GodotRobotEnv(
     env_preset="earth",      # 使用地球重力
-    ground_material="concrete"  # 混凝土地面
+    ground_material="concrete"  # 混凝土地�?
 )
 
 # 训练策略
@@ -112,7 +112,7 @@ import torch
 # 提取策略网络
 policy_net = model.policy.mlp_extractor
 
-# 导出为 ONNX
+# 导出�?ONNX
 dummy_input = torch.randn(1, env.observation_space.shape[0])
 torch.onnx.export(
     policy_net,
@@ -123,7 +123,7 @@ torch.onnx.export(
     opset_version=11
 )
 
-print(f"模型已导出: walker_policy.onnx")
+print(f"模型已导�? walker_policy.onnx")
 ```
 
 ### 3.2 模型量化
@@ -139,7 +139,7 @@ quantize_dynamic(
     weight_type=QuantType.QInt8
 )
 
-# 检查模型大小
+# 检查模型大�?
 import os
 fp32_size = os.path.getsize("walker_policy.onnx") / 1024
 int8_size = os.path.getsize("walker_policy_int8.onnx") / 1024
@@ -156,20 +156,20 @@ print(f"INT8: {int8_size:.2f} KB (压缩 {(1-int8_size/fp32_size)*100:.1f}%)")
 ```bash
 cd hive-reflex
 
-# 复制模型权重（需要转换为 C 数组）
+# 复制模型权重（需要转换为 C 数组�?
 python tools/onnx_to_c_array.py walker_policy_int8.onnx > reflex_weights.c
 
 # 编译固件
 make APP_SRCS=examples/example_reflex_node.c
 ```
 
-### 4.2 烧录到硬件
+### 4.2 烧录到硬�?
 
 ```bash
 # 使用 OpenOCD 烧录
 make flash
 
-# 或手动烧录
+# 或手动烧�?
 openocd -f interface/jlink.cfg -f target/riscv.cfg \
         -c "program build/hive_node.bin verify reset exit"
 ```
@@ -181,7 +181,7 @@ openocd -f interface/jlink.cfg -f target/riscv.cfg \
 ### 5.1 网络拓扑
 
 ```
-主控 PC (Python)  ←→  CAN 适配器  ←→  IMC-22 节点 1 (ID=1)
+主控 PC (Python)  ←→  CAN 适配�? ←→  IMC-22 节点 1 (ID=1)
                                    ←→  IMC-22 节点 2 (ID=2)
                                    ←→  ...
                                    ←→  IMC-22 节点 N (ID=N)
@@ -192,7 +192,7 @@ openocd -f interface/jlink.cfg -f target/riscv.cfg \
 ```python
 import can
 
-# 初始化 CAN 总线
+# 初始�?CAN 总线
 bus = can.interface.Bus(
     channel='can0',          # Linux: can0, Windows: PCAN_USBBUS1
     bustype='socketcan',     # Linux: socketcan, Windows: pcan
@@ -201,7 +201,7 @@ bus = can.interface.Bus(
 
 # 发送命令到节点 1
 def send_command(node_id, target_angle, compliance):
-    # 将角度转换为 int16 (单位: 0.01度)
+    # 将角度转换为 int16 (单位: 0.01�?
     angle_int16 = int(target_angle * 100)
     
     msg = can.Message(
@@ -215,14 +215,14 @@ def send_command(node_id, target_angle, compliance):
     )
     bus.send(msg)
 
-# 示例：设置节点 1 目标角度为 45度，柔顺度 0.5
+# 示例：设置节�?1 目标角度�?45度，柔顺�?0.5
 send_command(node_id=1, target_angle=45.0, compliance=0.5)
 ```
 
-### 5.3 接收状态反馈
+### 5.3 接收状态反�?
 
 ```python
-# 读取节点状态
+# 读取节点状�?
 msg = bus.recv(timeout=0.1)
 if msg and msg.arbitration_id >= 0x100 and msg.arbitration_id < 0x200:
     node_id = msg.arbitration_id - 0x100
@@ -246,9 +246,9 @@ def hardware_control_loop():
     while True:
         start_time = time.time()
         
-        # 1. 读取所有节点状态
+        # 1. 读取所有节点状�?
         states = {}
-        for node_id in range(1, 13):  # 假设 12 个关节
+        for node_id in range(1, 13):  # 假设 12 个关�?
             msg = bus.recv(timeout=0.001)
             if msg:
                 states[node_id] = parse_status(msg)
@@ -258,7 +258,7 @@ def hardware_control_loop():
         observation = build_observation(states)
         action = model.predict(observation)[0]
         
-        # 3. 发送命令到各节点
+        # 3. 发送命令到各节�?
         for node_id, target in enumerate(action, start=1):
             send_command(node_id, target, compliance=0.5)
         
@@ -273,11 +273,11 @@ hardware_control_loop()
 
 ---
 
-## ⚠️ 常见问题和调试
+## ⚠️ 常见问题和调�?
 
-### Q1: 仿真策略在真实硬件上表现不佳？
+### Q1: 仿真策略在真实硬件上表现不佳�?
 
-**原因**: Sim-to-Real Gap（仿真与现实差距）
+**原因**: Sim-to-Real Gap（仿真与现实差距�?
 
 **解决方案**:
 1. **域随机化训练**
@@ -287,8 +287,8 @@ hardware_control_loop()
    ```
 
 2. **调整物理参数**
-   - 增加仿真中的摩擦力
-   - 添加传感器噪声
+   - 增加仿真中的摩擦�?
+   - 添加传感器噪�?
    - 模拟电机延迟
 
 3. **在硬件上微调**
@@ -297,18 +297,18 @@ hardware_control_loop()
 
 ### Q2: CAN 通信不稳定？
 
-**检查清单**:
-- [ ] CAN 总线终端电阻（120Ω）
-- [ ] 波特率是否匹配（1 Mbps）
-- [ ] 线缆长度（建议 < 5m）
-- [ ] 电源地是否共地
+**检查清�?*:
+- [ ] CAN 总线终端电阻�?20Ω�?
+- [ ] 波特率是否匹配（1 Mbps�?
+- [ ] 线缆长度（建�?< 5m�?
+- [ ] 电源地是否共�?
 
 ### Q3: IMC-22 推理速度慢？
 
 **优化方案**:
-- 使用 INT8 量化（已完成）
+- 使用 INT8 量化（已完成�?
 - 简化模型（减少隐藏层）
-- 提高控制频率到 NPU 内部运行
+- 提高控制频率�?NPU 内部运行
 
 ---
 
@@ -318,34 +318,34 @@ hardware_control_loop()
 |------|------------------|------------------|
 | 控制频率 | 60 Hz (Godot) | 1000 Hz |
 | 延迟 | 16 ms | < 0.1 ms |
-| 传感器噪声 | 可配置 | 真实噪声 |
-| 功耗 | - | ~6 W (12 节点) |
+| 传感器噪�?| 可配�?| 真实噪声 |
+| 功�?| - | ~6 W (12 节点) |
 
 ---
 
-## 🎯 最佳实践
+## 🎯 最佳实�?
 
-1. **渐进式部署**
-   - 先在单个关节上测试
+1. **渐进式部�?*
+   - 先在单个关节上测�?
    - 逐步增加节点数量
    - 最后测试完整机器人
 
 2. **安全措施**
    - 设置力矩限制
-   - 实现紧急停止
-   - 软启动和软停止
+   - 实现紧急停�?
+   - 软启动和软停�?
 
 3. **数据记录**
    - 记录所有传感器数据
-   - 用于分析和改进
+   - 用于分析和改�?
 
 4. **版本控制**
-   - 保存每个版本的固件
+   - 保存每个版本的固�?
    - 记录部署配置
 
 ---
 
-## 📚 参考资源
+## 📚 参考资�?
 
 - [IMC-22 硬件规格](../hardware/HARDWARE_SPEC.md)
 - [Hive-Reflex SDK 指南](../hive-reflex/SDK_GUIDE.md)
@@ -354,5 +354,5 @@ hardware_control_loop()
 ---
 
 **文档版本**: 1.0  
-**最后更新**: 2026-01-16  
-**维护者**: AGI-Walker Team
+**最后更�?*: 2026-01-16  
+**维护�?*: AGI-Walker Team

@@ -56,6 +56,8 @@ coverage.xml
 *.xml
 test_session.json
 .pytest_cache/
+.pytest_tmp/
+pytest-cache-files-*/
 .ruff_cache/
 
 # 生成产物

@@ -1,6 +1,6 @@
-# 开发者指南
+# 开发者指�?
 
-本指南帮助开发者快速上手 AGI-Walker 的开发。
+本指南帮助开发者快速上�?AGI-Walker 的开发�?
 
 ## 环境设置
 
@@ -12,12 +12,12 @@ cd AGI-Walker
 
 ### 2. 安装依赖
 ```bash
-# 使用一键安装脚本
+# 使用一键安装脚�?
 ./install.sh  # Linux/Mac
-# 或
+# �?
 install.bat   # Windows
 
-# 或手动安装
+# 或手动安�?
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # venv\Scripts\activate.bat  # Windows
@@ -35,11 +35,11 @@ python tests/test_extended.py
 ### Python 风格
 遵循 PEP 8:
 - 使用 4 空格缩进
-- 行长度 ≤ 100 字符
-- 使用 `black` 格式化
+- 行长�?�?100 字符
+- 使用 `black` 格式�?
 
 ### 类型注解
-所有公共 API 必须有类型注解:
+所有公�?API 必须有类型注�?
 ```python
 from typing import List, Dict, Optional
 
@@ -51,7 +51,7 @@ def process_data(
     ...
 ```
 
-### 文档字符串
+### 文档字符�?
 使用 Google 风格:
 ```python
 def train_model(env, algorithm="PPO"):
@@ -76,20 +76,20 @@ def train_model(env, algorithm="PPO"):
 ```
 AGI-Walker/
 ├── python_api/          # Python 接口
-│   ├── zenoh_interface.py
-│   ├── task_editor.py
-│   └── mujoco_backend.py
-├── python_controller/   # 控制器
-│   ├── evolution_manager.py
-│   └── rl_optimizer.py
+�?  ├── zenoh_interface.py
+�?  ├── task_editor.py
+�?  └── mujoco_backend.py
+├── python_controller/   # 控制�?
+�?  ├── evolution_manager.py
+�?  └── rl_optimizer.py
 ├── examples/            # 示例代码
-│   └── tasks/          # 任务环境
+�?  └── tasks/          # 任务环境
 ├── tests/              # 测试
 ├── docs/               # 文档
 └── godot_project/      # Godot 仿真
 ```
 
-## 添加新任务
+## 添加新任�?
 
 ### 1. 创建环境文件
 ```python
@@ -99,7 +99,7 @@ import gymnasium as gym
 class MyTaskEnv(gym.Env):
     def __init__(self):
         super().__init__()
-        # 定义观测和动作空间
+        # 定义观测和动作空�?
         ...
     
     def reset(self, seed=None, options=None):
@@ -132,12 +132,12 @@ def test_my_task():
 git checkout -b feature/my-feature
 ```
 
-### 2. 编写代码和测试
+### 2. 编写代码和测�?
 ```bash
 # 运行测试
 python tests/test_extended.py
 
-# 格式化代码
+# 格式化代�?
 black python_api/ python_controller/
 ```
 
@@ -149,11 +149,11 @@ git push origin feature/my-feature
 ```
 
 ### 4. 创建 Pull Request
-在 GitHub 上创建 PR,等待审核。
+�?GitHub 上创�?PR,等待审核�?
 
-## 调试技巧
+## 调试技�?
 
-### 1. 使用 Python 调试器
+### 1. 使用 Python 调试�?
 ```python
 import pdb; pdb.set_trace()
 ```
@@ -167,19 +167,19 @@ python your_script.py
 
 ### 3. 查看 Godot 日志
 ```bash
-# 在 Godot 编辑器中查看输出面板
+# �?Godot 编辑器中查看输出面板
 ```
 
 ## 常见问题
 
 ### Q: Zenoh 连接失败?
-A: 检查防火墙设置,确保端口 7447 开放。
+A: 检查防火墙设置,确保端口 7447 开放�?
 
 ### Q: MuJoCo 安装失败?
-A: 确保有 C++ 编译器 (Linux: gcc, Windows: MSVC)。
+A: 确保�?C++ 编译�?(Linux: gcc, Windows: MSVC)�?
 
 ### Q: 测试失败?
-A: 运行 `pip install -r requirements.txt` 确保依赖完整。
+A: 运行 `pip install -r requirements.txt` 确保依赖完整�?
 
 ## 资源链接
 

@@ -1,24 +1,24 @@
 # AGI-Walker ROS 2 Integration
 
-AGI-Walker与ROS 2生态系统的集成包。
+AGI-Walker与ROS 2生态系统的集成包�?
 
 ## 📦 Packages
 
 ### agi_walker_msgs
 自定义ROS 2消息和服务定义：
-- `Part.msg` - 机器人零件定义
+- `Part.msg` - 机器人零件定�?
 - `Connection.msg` - 零件连接关系
-- `RobotState.msg` - 机器人整体状态
-- `LoadRobot.srv` - 加载机器人配置服务
+- `RobotState.msg` - 机器人整体状�?
+- `LoadRobot.srv` - 加载机器人配置服�?
 
 ### agi_walker_ros2
-ROS 2桥接节点，连接AGI-Walker仿真与ROS 2：
+ROS 2桥接节点，连接AGI-Walker仿真与ROS 2�?
 - 发布关节状态、机器人状态等
-- 接收速度命令、关节命令
+- 接收速度命令、关节命�?
 - 提供启动/停止仿真服务
-- 参数服务器集成
+- 参数服务器集�?
 
-## 🚀 快速开始
+## 🚀 快速开�?
 
 ### 安装依赖
 
@@ -43,7 +43,7 @@ source install/setup.bash
 ### 运行桥接节点
 
 ```bash
-# 终端1: 启动Godot仿真（可选，如未启动则桥接节点会等待连接）
+# 终端1: 启动Godot仿真（可选，如未启动则桥接节点会等待连接�?
 cd ../godot_project
 godot --headless
 
@@ -57,7 +57,7 @@ ros2 run agi_walker_ros2 bridge_node
 # 启动仿真
 ros2 service call /start_simulation std_srvs/srv/Trigger
 
-# 查看关节状态
+# 查看关节状�?
 ros2 topic echo /joint_states
 
 # 发送速度命令
@@ -74,7 +74,7 @@ ros2 service call /stop_simulation std_srvs/srv/Trigger
 
 ## ⚙️ 参数
 
-桥接节点支持以下参数：
+桥接节点支持以下参数�?
 
 ```yaml
 /agi_walker_bridge:
@@ -101,15 +101,15 @@ ros2 service call /stop_simulation std_srvs/srv/Trigger
 - `/cmd_vel` (geometry_msgs/Twist)
 - `/joint_cmd` (trajectory_msgs/JointTrajectory)
 
-## 🛠️ Services
+## 🛠�?Services
 - `/start_simulation` (std_srvs/Trigger)
 - `/stop_simulation` (std_srvs/Trigger)
 - `/load_robot` (agi_walker_msgs/LoadRobot)
 
-## 📝 许可证
+## 📝 许可�?
 
 MIT License - 详见主项目LICENSE文件
 
 ## 🤝 贡献
 
-欢迎提交Issue和Pull Request！
+欢迎提交Issue和Pull Request�?

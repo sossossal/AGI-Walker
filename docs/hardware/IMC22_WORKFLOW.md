@@ -1,4 +1,4 @@
-# AGI-Walker → IMC-22 完整工作流程
+# AGI-Walker �?IMC-22 完整工作流程
 
 本文档描述如何使用AGI-Walker生成的数据训练并部署到IMC-22 NPU芯片
 
@@ -6,19 +6,19 @@
 
 ```
 1. 生成数据 (AGI-Walker)
-   ↓
+   �?
 2. 数据准备 (imc22_data_preparer.py)
-   ↓
+   �?
 3. 模型训练 (train_imc22_model.py)
-   ↓
+   �?
 4. INT8量化 (imc22_quantizer.py)
-   ↓
+   �?
 5. 导出C代码
-   ↓
+   �?
 6. IMC-22部署
-   ↓
+   �?
 7. 性能验证
-   ↓
+   �?
 8. 迭代优化
 ```
 
@@ -29,11 +29,11 @@
 使用AGI-Walker批量生成器生成机器人运动数据
 
 ```bash
-# 生成5000个episodes的训练数据
+# 生成5000个episodes的训练数�?
 python examples/batch_data_generation_demo.py
-# 选择: 2 (中等规模数据集)
+# 选择: 2 (中等规模数据�?
 
-# 或手动配置
+# 或手动配�?
 python -c "
 from python_api.batch_generator import BatchDataGenerator, GenerationConfig
 
@@ -52,12 +52,12 @@ generator.generate()
 
 **输出**:
 - 目录: `data/imc22_source_data/`
-- 文件: `episode_*.pkl` (5000个)
-- 包含: 状态、动作、奖励序列
+- 文件: `episode_*.pkl` (5000�?
+- 包含: 状态、动作、奖励序�?
 
 ---
 
-## 📋 步骤2: 准备IMC-22数据集
+## 📋 步骤2: 准备IMC-22数据�?
 
 提取并简化数据，使其适合NPU训练
 
@@ -66,22 +66,22 @@ python tools/imc22_data_preparer.py data/imc22_source_data data/imc22_dataset
 ```
 
 **处理流程**:
-1. 从完整状态提取关键特征 (位置、速度、稳定性)
-2. 简化动作参数 (功率、刚度、阻尼)
-3. 归一化数据
-4. 分割数据集 (train/val/test = 70/15/15)
+1. 从完整状态提取关键特�?(位置、速度、稳定�?
+2. 简化动作参�?(功率、刚度、阻�?
+3. 归一化数�?
+4. 分割数据�?(train/val/test = 70/15/15)
 
 **输出**:
 ```
 data/imc22_dataset/
 ├── train/
-│   ├── states.npy
-│   ├── actions.npy
-│   └── rewards.npy
+�?  ├── states.npy
+�?  ├── actions.npy
+�?  └── rewards.npy
 ├── val/
-│   └── ...
+�?  └── ...
 ├── test/
-│   └── ...
+�?  └── ...
 ├── dataset_stats.json
 └── dataset_report.txt
 ```
@@ -97,10 +97,10 @@ python examples/train_imc22_model.py
 ```
 
 **模型规格**:
-- 输入: 3维 (状态)
-- 隐藏层: 16神经元 × 2层
-- 输出: 3维 (动作)
-- 参数量: ~300个 (~1.2KB FP32, ~300B INT8)
+- 输入: 3�?(状�?
+- 隐藏�? 16神经�?× 2�?
+- 输出: 3�?(动作)
+- 参数�? ~300�?(~1.2KB FP32, ~300B INT8)
 
 **训练配置**:
 - Epochs: 100
@@ -109,8 +109,8 @@ python examples/train_imc22_model.py
 - Loss: MSE
 
 **输出**:
-- `models/imc22_control_net_best.pth` (最佳模型)
-- `models/imc22_control_net_final.pth` (最终模型)
+- `weights/imc22_control_net_best.pth` (最佳模�?
+- `weights/imc22_control_net_final.pth` (最终模�?
 
 ---
 
@@ -126,42 +126,42 @@ import torch
 
 # 加载训练好的模型
 model = IMC22ControlNet()
-checkpoint = torch.load('models/imc22_control_net_best.pth')
+checkpoint = torch.load('weights/imc22_control_net_best.pth')
 model.load_state_dict(checkpoint['model_state_dict'])
 
-# 创建量化器
+# 创建量化�?
 quantizer = IMC22Quantizer(model)
 
 # 量化
 quantizer.quantize_dynamic()
 
 # 导出
-quantizer.save_quantized_weights('models/imc22_weights.npz')
+quantizer.save_quantized_weights('weights/imc22_weights.npz')
 quantizer.export_to_c_header('imc22_firmware/imc22_weights.h')
 quantizer.export_to_c_source('imc22_firmware/imc22_inference.c')
 ```
 
 **输出**:
-- `models/imc22_weights.npz` (INT8权重, ~300B)
-- `imc22_firmware/imc22_weights.h` (C头文件)
+- `weights/imc22_weights.npz` (INT8权重, ~300B)
+- `imc22_firmware/imc22_weights.h` (C头文�?
 - `imc22_firmware/imc22_inference.c` (C推理代码)
 
 ---
 
-## 📋 步骤5: IMC-22固件开发
+## 📋 步骤5: IMC-22固件开�?
 
 ### 5.1 项目结构
 
 ```
 imc22_firmware/
-├── imc22_weights.h          # 自动生成的权重
-├── imc22_inference.c        # 自动生成的推理代码
-├── main.c                   # 主程序
-├── imc22_hal.c              # 硬件抽象层
+├── imc22_weights.h          # 自动生成的权�?
+├── imc22_inference.c        # 自动生成的推理代�?
+├── main.c                   # 主程�?
+├── imc22_hal.c              # 硬件抽象�?
 └── Makefile                 # 编译配置
 ```
 
-### 5.2 主程序示例
+### 5.2 主程序示�?
 
 ```c
 // imc22_firmware/main.c
@@ -178,7 +178,7 @@ int main() {
     
     // 控制循环
     while (1) {
-        // 1. 读取传感器
+        // 1. 读取传感�?
         float position = read_encoder();
         float velocity = read_imu();
         int stable = check_balance();
@@ -197,7 +197,7 @@ int main() {
         
         uint32_t cycles = get_cycles() - start_cycles;
         
-        // 4. 转换回浮点
+        // 4. 转换回浮�?
         float motor_power = int8_to_float(action[0], 0.01f);
         float stiffness = int8_to_float(action[1], 0.01f);
         float damping = int8_to_float(action[2], 0.01f);
@@ -221,7 +221,7 @@ int main() {
 }
 ```
 
-### 5.3 编译和烧录
+### 5.3 编译和烧�?
 
 ```bash
 # 编译
@@ -241,14 +241,14 @@ make monitor
 
 ### 6.1 关键指标
 
-测量并记录以下指标:
+测量并记录以下指�?
 
-| 指标 | 目标值 | 测量方法 |
+| 指标 | 目标�?| 测量方法 |
 |------|--------|----------|
 | 推理延迟 | <2ms | 周期计数 |
-| 功耗 | <30mW | 电流表 |
-| 准确率 | >90% | 对比真实数据 |
-| 吞吐量 | >500 FPS | 1000/延迟 |
+| 功�?| <30mW | 电流�?|
+| 准确�?| >90% | 对比真实数据 |
+| 吞吐�?| >500 FPS | 1000/延迟 |
 
 ### 6.2 性能测试脚本
 
@@ -262,7 +262,7 @@ ser = serial.Serial('COM3', 115200)
 
 metrics = []
 
-print("收集性能数据 (60秒)...")
+print("收集性能数据 (60�?...")
 
 start_time = time.time()
 while time.time() - start_time < 60:
@@ -271,7 +271,7 @@ while time.time() - start_time < 60:
     if line.startswith('METRICS:'):
         data = json.loads(line[8:])
         metrics.append(data)
-        print(f"  延迟: {data['latency_ms']:.2f}ms, 功耗: {data['power_mw']:.1f}mW")
+        print(f"  延迟: {data['latency_ms']:.2f}ms, 功�? {data['power_mw']:.1f}mW")
 
 # 分析
 import numpy as np
@@ -281,9 +281,9 @@ powers = [m['power_mw'] for m in metrics]
 
 print(f"\n性能统计:")
 print(f"  平均延迟: {np.mean(latencies):.2f} ms")
-print(f"  最大延迟: {np.max(latencies):.2f} ms")
-print(f"  平均功耗: {np.mean(powers):.1f} mW")
-print(f"  吞吐量: {1000/np.mean(latencies):.0f} FPS")
+print(f"  最大延�? {np.max(latencies):.2f} ms")
+print(f"  平均功�? {np.mean(powers):.1f} mW")
+print(f"  吞吐�? {1000/np.mean(latencies):.0f} FPS")
 ```
 
 ---
@@ -296,10 +296,10 @@ print(f"  吞吐量: {1000/np.mean(latencies):.0f} FPS")
 
 **如果延迟过高**:
 - 减少网络层数
-- 降低隐藏层维度
+- 降低隐藏层维�?
 - 优化NPU指令
 
-**如果功耗过高**:
+**如果功耗过�?*:
 - 降低推理频率
 - 使用更激进的量化
 - 优化算子融合
@@ -319,10 +319,10 @@ iteration = 0
 while not满意:
     print(f"\n迭代 {iteration + 1}")
     
-    # 1. 生成新数据（可能调整参数）
+    # 1. 生成新数据（可能调整参数�?
     generate_data()
     
-    # 2. 训练新模型
+    # 2. 训练新模�?
     train_model()
     
     # 3. 量化
@@ -350,14 +350,14 @@ while not满意:
 | 指标 | 目标 | 实际 |
 |------|------|------|
 | 推理延迟 | <2ms | ~1.5ms |
-| 功耗 | <30mW | ~25mW |
-| 准确率 | >90% | ~95% |
-| 参数量 | <1KB | ~300B |
+| 功�?| <30mW | ~25mW |
+| 准确�?| >90% | ~95% |
+| 参数�?| <1KB | ~300B |
 | SRAM使用 | <10KB | ~5KB |
 
 ### 能效比较
 
-| 平台 | 延迟 | 功耗 | 能效 |
+| 平台 | 延迟 | 功�?| 能效 |
 |------|------|------|------|
 | CPU (ARM M4) | 5ms | 100mW | 2 TOPs/W |
 | GPU (小型) | 2ms | 500mW | 1 TOPs/W |
@@ -365,18 +365,18 @@ while not满意:
 
 ---
 
-## ✅ 总结
+## �?总结
 
-使用AGI-Walker和IMC-22的完整流程:
+使用AGI-Walker和IMC-22的完整流�?
 
-1. ✅ **数据生成**: AGI-Walker批量生成5000+ episodes
-2. ✅ **数据准备**: 简化特征，INT8友好格式
-3. ✅ **模型训练**: 轻量级网络 (~300参数)
-4. ✅ **INT8量化**: 动态/静态量化
-5. ✅ **代码生成**: 自动生成C代码
-6. ✅ **芯片部署**: IMC-22固件集成
-7. ✅ **性能验证**: <2ms, <30mW
-8. ✅ **迭代优化**: 持续改进
+1. �?**数据生成**: AGI-Walker批量生成5000+ episodes
+2. �?**数据准备**: 简化特征，INT8友好格式
+3. �?**模型训练**: 轻量级网�?(~300参数)
+4. �?**INT8量化**: 动�?静态量�?
+5. �?**代码生成**: 自动生成C代码
+6. �?**芯片部署**: IMC-22固件集成
+7. �?**性能验证**: <2ms, <30mW
+8. �?**迭代优化**: 持续改进
 
 **这是一个完整的AI芯片敏捷开发流程！** 🚀
 

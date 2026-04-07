@@ -1,38 +1,38 @@
 # 🎯 阶段2 任务计划: Workflow 闭环修复
 
 **启动日期:** 2026-03-24  
-**状态:** 📋 **任务分析中** → **立即实施**
+**状�?** 📋 **任务分析�?* �?**立即实施**
 
 ---
 
 ## 📊 现状分析
 
 ### 已就位的基础设施
-✅ workflow_orchestrator.py:
+�?workflow_orchestrator.py:
 - WorkflowStatus, StepStatus 枚举定义完整
 - WorkflowOrchestrator 类有workflow注册机制
-- 定义了2个builtin workflow:  
-  - robot_creation_pipeline (Model → Optimize → Export)
-  - simulation_ready_robot (Load → Validate → Export)
+- 定义�?个builtin workflow:  
+  - robot_creation_pipeline (Model �?Optimize �?Export)
+  - simulation_ready_robot (Load �?Validate �?Export)
 
-✅ skill_executors.py:
+�?skill_executors.py:
 - SkillExecutor 基类定义完整
-- RobotModelingExecutor/ParameterOptimizerExecutor/UrdfGeneratorExecutor已定义
-- 基本action处理已实现
+- RobotModelingExecutor/ParameterOptimizerExecutor/UrdfGeneratorExecutor已定�?
+- 基本action处理已实�?
 
-### 存在的问题
+### 存在的问�?
 
-❌ **问题1: Mock vs Real 混乱**
+�?**问题1: Mock vs Real 混乱**
 - 当前所有executor都是mock实现（只返回硬编码数据）
 - 没有真正调用actual skill模块
-- API看起来完整但实际不工作
+- API看起来完整但实际不工�?
 
-❌ **问题2: 无法真正运行Workflow**
-- cmd_workflows_run 在skills_cli.py中存在但没有结构化输出
+�?**问题2: 无法真正运行Workflow**
+- cmd_workflows_run 在skills_cli.py中存在但没有结构化输�?
 - workflow没有真正的end-to-end验证
-- 失败路径不清晰
+- 失败路径不清�?
 
-❌ **问题3: Skills 兼容层不完整**
+�?**问题3: Skills 兼容层不完整**
 - robot_modeling.py 只是wrapper，没有exposed出execution接口
 - parameter_optimizer.py 没有暴露optimize接口
 - urdf_generator.py 没有暴露export接口
@@ -44,7 +44,7 @@
 ### 目标1: Real Executor 实现
 **范围:** skill_executors.py
 
-创建真实执行器替代mock，直接调用skill API：
+创建真实执行器替代mock，直接调用skill API�?
 ```python
 class RealRobotModelingExecutor(SkillExecutor):
     def execute(self, action, inputs):
@@ -52,7 +52,7 @@ class RealRobotModelingExecutor(SkillExecutor):
             # 真正调用
             from agi_walker.skills.robot_modeling import load_template
             config = load_template(inputs['template'])
-            # 保存到输出文件
+            # 保存到输出文�?
             config.save(inputs['output_file'])
             return {'status': 'success', 'output_file': inputs['output_file']}
 ```
@@ -69,7 +69,7 @@ get_skill_executor(name, use_mock=False)
 **范围:** workflow_orchestrator.py + skills_cli.py
 
 完整的workflow执行链：
-1. 从CLI启动 → python -m agi_walker.cli skills workflows run robot_creation_pipeline
+1. 从CLI启动 �?python -m agi_walker.cli skills workflows run robot_creation_pipeline
 2. Orchestrator 按序执行步骤
 3. 返回结构化的WorkflowResult
 4. 显示清晰的进度和结果
@@ -77,7 +77,7 @@ get_skill_executor(name, use_mock=False)
 ### 目标4: Skills 导出接口完善
 **范围:** agi_walker/skills/*.py
 
-为skill暴露execution接口：
+为skill暴露execution接口�?
 - robot_modeling.py: `create_from_template()`, `load_config()`, `save()`
 - parameter_optimizer.py: `optimize_mass()`, `validate_physics()`
 - urdf_generator.py: `export_to_format()`
@@ -98,7 +98,7 @@ class SkillExecutor(ABC):
 
 # 创建Mock基类（当前实现）
 class MockExecutor(SkillExecutor):
-    """用于测试的Mock执行器"""
+    """用于测试的Mock执行�?""
     pass
 
 # 创建Real实现
@@ -119,7 +119,7 @@ def get_skill_executor(name, use_mock=False):
 ### 步骤2: 改进Skills导出接口  
 **文件:** agi_walker/skills/robot_modeling.py
 
-从:
+�?
 ```python
 export load_template, list_templates
 ```
@@ -165,11 +165,11 @@ def cmd_workflows_run(args):
     try:
         result = orchestrator.run_workflow(args.name, use_mock=use_mock)
         
-        print(f"\n工作流执行: {result.workflow_name}")
-        print(f"状态: {result.status}")
+        print(f"\n工作流执�? {result.workflow_name}")
+        print(f"状�? {result.status}")
         print(f"\n步骤执行:")
         for step in result.steps:
-            status_mark = "✅" if step['status'] == 'success' else "❌"
+            status_mark = "�? if step['status'] == 'success' else "�?
             print(f"  {status_mark} {step['name']}: {step['status']}")
             if 'output_file' in step['output']:
                 print(f"      输出: {step['output']['output_file']}")
@@ -182,7 +182,7 @@ def cmd_workflows_run(args):
 
 ---
 
-## ✅ 验收标准
+## �?验收标准
 
 ### 验证1: Real Executor 工作
 ```bash
@@ -194,7 +194,7 @@ result = exec.execute('create_from_template', {
     'output_file': 'test_output.json'
 })
 assert result['status'] == 'success'
-print('✅ Real executor works')
+print('�?Real executor works')
 "
 ```
 
@@ -205,7 +205,7 @@ from agi_walker.skill_executors import get_skill_executor
 exec = get_skill_executor('robot_modeling', use_mock=True)
 result = exec.execute('create_from_template', {...})
 assert result['status'] == 'success'
-print('✅ Mock executor still works')
+print('�?Mock executor still works')
 "
 ```
 
@@ -216,15 +216,15 @@ $ python -m agi_walker.cli skills workflows run robot_creation_pipeline --mock
 
 **预期输出:**
 ```
-工作流执行: robot_creation_pipeline
-状态: success
+工作流执�? robot_creation_pipeline
+状�? success
 
 步骤执行:
-  ✅ create_model: success
-      输出: models/created_robot.json
-  ✅ optimize_params: success
-      输出: models/optimized_robot.json
-  ✅ export_urdf: success
+  �?create_model: success
+      输出: weights/created_robot.json
+  �?optimize_params: success
+      输出: weights/optimized_robot.json
+  �?export_urdf: success
       输出: exports/robot.urdf
 ```
 
@@ -235,21 +235,21 @@ $ python -m agi_walker.cli skills workflows run robot_creation_pipeline --mock -
 
 **预期输出:**
 ```
-工作流执行: robot_creation_pipeline
-状态: failed
+工作流执�? robot_creation_pipeline
+状�? failed
 
 步骤执行:
-  ✅ create_model: success
-  ❌ optimize_params: failed
+  �?create_model: success
+  �?optimize_params: failed
       错误: Simulated failure
-  ⊘  export_urdf: skipped
+  �? export_urdf: skipped
 ```
 
 ---
 
 ## 📊 修改范围
 
-| 文件 | 改动 | 优先级 |
+| 文件 | 改动 | 优先�?|
 |------|------|--------|
 | skill_executors.py | +Real实现, +Mock分类 | P0 |
 | workflow_orchestrator.py | +WorkflowResult完善 | P0 |
@@ -264,11 +264,11 @@ $ python -m agi_walker.cli skills workflows run robot_creation_pipeline --mock -
 
 1. **准备** (5min) - 分析现有代码
 2. **实施** (30min) - 创建Real executor + 改进orchestrator
-3. **验证** (10min) - 运行4个验收标准
-4. **优化** (10min) - 改进错误提示和状态展示
+3. **验证** (10min) - 运行4个验收标�?
+4. **优化** (10min) - 改进错误提示和状态展�?
 
 ---
 
 **预计完成时间:** 1小时  
-**关键依赖:** 无  
-**风险:** 低（测试覆盖完整）
+**关键依赖:** �? 
+**风险:** 低（测试覆盖完整�?

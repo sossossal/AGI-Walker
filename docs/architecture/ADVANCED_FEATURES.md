@@ -1,72 +1,72 @@
 # AGI-Walker 高级功能扩展指南
 
-本文档说明如何为AGI-Walker项目添加高级功能，包括更多机器人参数、运动路径规划、障碍物识别和平衡控制。
+本文档说明如何为AGI-Walker项目添加高级功能，包括更多机器人参数、运动路径规划、障碍物识别和平衡控制�?
 
 ---
 
 ## 📋 目录
 
-1. [扩展机器人参数](#1-扩展机器人参数)
+1. [扩展机器人参数](#1-扩展机器人参�?
 2. [运动路径规划](#2-运动路径规划)
-3. [障碍物识别](#3-障碍物识别)
+3. [障碍物识别](#3-障碍物识�?
 4. [平衡控制算法](#4-平衡控制算法)
 5. [集成示例](#5-集成示例)
 
 ---
 
-## 1. 扩展机器人参数
+## 1. 扩展机器人参�?
 
 ### 1.1 添加更多关节
 
-#### 当前结构（2自由度）
+#### 当前结构�?自由度）
 ```
 Robot
 ├── Torso
-├── LeftLeg (髋关节)
-└── RightLeg (髋关节)
+├── LeftLeg (髋关�?
+└── RightLeg (髋关�?
 ```
 
-#### 扩展为4自由度（添加膝关节）
+#### 扩展�?自由度（添加膝关节）
 ```
 Robot
 ├── Torso
-├── LeftThigh (髋关节)
-├── LeftCalf (膝关节)
-├── RightThigh (髋关节)
-└── RightCalf (膝关节)
+├── LeftThigh (髋关�?
+├── LeftCalf (膝关�?
+├── RightThigh (髋关�?
+└── RightCalf (膝关�?
 ```
 
 #### Godot场景创建步骤
 
 1. **添加大腿节点**
 ```
-# LeftThigh 和 RightThigh (RigidBody3D)
+# LeftThigh �?RightThigh (RigidBody3D)
 尺寸: 0.2 x 0.4 x 0.2
 质量: 2kg
 ```
 
 2. **添加小腿节点**
 ```
-# LeftCalf 和 RightCalf (RigidBody3D)
+# LeftCalf �?RightCalf (RigidBody3D)
 尺寸: 0.2 x 0.4 x 0.2
 质量: 1.5kg
 ```
 
 3. **配置关节**
 ```gdscript
-# 髋关节 (连接 Torso 和 Thigh)
+# 髋关�?(连接 Torso �?Thigh)
 HipLeft/HipRight (HingeJoint3D)
-- 限位: -45° 到 90°
+- 限位: -45° �?90°
 
-# 膝关节 (连接 Thigh 和 Calf)
+# 膝关�?(连接 Thigh �?Calf)
 KneeLeft/KneeRight (HingeJoint3D)
-- 限位: -120° 到 0° (只能向后弯)
+- 限位: -120° �?0° (只能向后�?
 ```
 
 #### 修改GDScript
 
 ```gdscript
-# box_robot.gd 扩展版
+# box_robot.gd 扩展�?
 extends Node3D
 
 # 新增关节引用
@@ -92,7 +92,7 @@ var target_angles := {
 }
 ```
 
-### 1.2 添加脚踝关节（6自由度）
+### 1.2 添加脚踝关节�?自由度）
 
 继续扩展可添加：
 - **AnkleLeft/AnkleRight**: 脚踝俯仰
@@ -111,11 +111,11 @@ var target_angles := {
 # path_manager.gd
 extends Node3D
 
-# 路径点列表
+# 路径点列�?
 var waypoints: Array[Vector3] = []
 var current_waypoint_index := 0
 
-# 路径可视化
+# 路径可视�?
 @onready var path_line: MeshInstance3D
 
 
@@ -132,7 +132,7 @@ func _ready():
 
 
 func get_current_target() -> Vector3:
-    """获取当前目标点"""
+    """获取当前目标�?""
     if current_waypoint_index < waypoints.size():
         return waypoints[current_waypoint_index]
     return Vector3.ZERO
@@ -142,7 +142,7 @@ func advance_waypoint():
     """前进到下一个路径点"""
     current_waypoint_index += 1
     if current_waypoint_index >= waypoints.size():
-        print("✅ 路径完成!")
+        print("�?路径完成!")
 
 
 func is_near_target(robot_pos: Vector3, threshold: float = 0.5) -> bool:
@@ -152,7 +152,7 @@ func is_near_target(robot_pos: Vector3, threshold: float = 0.5) -> bool:
 
 
 func _draw_path():
-    """可视化路径"""
+    """可视化路�?""
     # 使用ImmediateMesh绘制线条
     var mesh = ImmediateMesh.new()
     mesh.surface_begin(Mesh.PRIMITIVE_LINE_STRIP)
@@ -166,7 +166,7 @@ func _draw_path():
         path_line.mesh = mesh
 ```
 
-### 2.2 导航控制器
+### 2.2 导航控制�?
 
 ```python
 # navigation_controller.py
@@ -174,7 +174,7 @@ import math
 from tcp_client import GodotClient
 
 class NavigationController:
-    """路径跟随控制器"""
+    """路径跟随控制�?""
     
     def __init__(self, client: GodotClient):
         self.client = client
@@ -198,21 +198,21 @@ class NavigationController:
         robot_x = sensor_data.get('position_x', 0)
         robot_z = sensor_data.get('position_z', 0)
         
-        # 当前目标点
+        # 当前目标�?
         target = self.waypoints[self.current_waypoint]
         
         # 计算距离
         dist = math.sqrt((target[0] - robot_x)**2 + (target[1] - robot_z)**2)
         
-        # 到达目标点，切换下一个
+        # 到达目标点，切换下一�?
         if dist < 0.5:
             self.current_waypoint = (self.current_waypoint + 1) % len(self.waypoints)
-            print(f"✅ 到达路径点 {self.current_waypoint}")
+            print(f"�?到达路径�?{self.current_waypoint}")
         
         # 计算转向
         heading = self.calculate_heading_angle((robot_x, robot_z), target)
         
-        # 简单的差速驱动（左右腿不同步）
+        # 简单的差速驱动（左右腿不同步�?
         turn_gain = 10  # 转向增益
         return {
             "motors": {
@@ -224,27 +224,27 @@ class NavigationController:
 
 ---
 
-## 3. 障碍物识别
+## 3. 障碍物识�?
 
-### 3.1 距离传感器
+### 3.1 距离传感�?
 
-#### Godot端 - 射线检测
+#### Godot�?- 射线检�?
 
 ```gdscript
 # obstacle_detector.gd
 extends Node3D
 
-# 射线传感器数组
+# 射线传感器数�?
 var ray_sensors: Array[RayCast3D] = []
-const NUM_RAYS = 5  # 5个方向
-const RAY_LENGTH = 3.0  # 3米检测距离
+const NUM_RAYS = 5  # 5个方�?
+const RAY_LENGTH = 3.0  # 3米检测距�?
 
 func _ready():
     _create_ray_sensors()
 
 func _create_ray_sensors():
     """创建多方向射线传感器"""
-    var angles = [-45, -22.5, 0, 22.5, 45]  # 度
+    var angles = [-45, -22.5, 0, 22.5, 45]  # �?
     
     for i in range(NUM_RAYS):
         var ray = RayCast3D.new()
@@ -262,7 +262,7 @@ func _create_ray_sensors():
         ray_sensors.append(ray)
 
 func get_obstacle_distances() -> Array[float]:
-    """获取各方向的障碍物距离"""
+    """获取各方向的障碍物距�?""
     var distances: Array[float] = []
     
     for ray in ray_sensors:
@@ -271,7 +271,7 @@ func get_obstacle_distances() -> Array[float]:
             var dist = global_position.distance_to(collision_point)
             distances.append(dist)
         else:
-            distances.append(RAY_LENGTH)  # 无障碍
+            distances.append(RAY_LENGTH)  # 无障�?
     
     return distances
 
@@ -281,7 +281,7 @@ func get_sensor_data() -> Dictionary:
     return {
         "obstacle_distances": distances,
         "closest_obstacle": distances.min(),
-        "has_obstacle": distances.min() < 1.0  # 1米内有障碍
+        "has_obstacle": distances.min() < 1.0  # 1米内有障�?
     }
 ```
 
@@ -305,7 +305,7 @@ func get_sensor_data() -> Dictionary:
     }
 ```
 
-### 3.2 视觉传感器（Camera）
+### 3.2 视觉传感器（Camera�?
 
 ```gdscript
 # vision_sensor.gd
@@ -325,11 +325,11 @@ func capture_image() -> Image:
     return viewport.get_texture().get_image()
 
 func detect_objects() -> Array:
-    """简单的物体检测（颜色识别）"""
+    """简单的物体检测（颜色识别�?""
     var image = capture_image()
     var objects = []
     
-    # 示例：检测红色物体
+    # 示例：检测红色物�?
     # 实际应用中可以集成计算机视觉算法
     
     return objects
@@ -339,7 +339,7 @@ func detect_objects() -> Array:
 
 ## 4. 平衡控制算法
 
-### 4.1 PID控制器
+### 4.1 PID控制�?
 
 ```gdscript
 # pid_controller.gd
@@ -359,10 +359,10 @@ func _init(p: float, i: float, d: float):
 
 func compute(error: float, dt: float) -> float:
     """计算PID输出"""
-    # 积分项
+    # 积分�?
     integral += error * dt
     
-    # 微分项
+    # 微分�?
     var derivative = (error - last_error) / dt if dt > 0 else 0.0
     
     # PID公式
@@ -372,12 +372,12 @@ func compute(error: float, dt: float) -> float:
     return output
 
 func reset():
-    """重置状态"""
+    """重置状�?""
     integral = 0.0
     last_error = 0.0
 ```
 
-### 4.2 姿态平衡控制
+### 4.2 姿态平衡控�?
 
 ```gdscript
 # balance_controller.gd
@@ -385,7 +385,7 @@ extends Node
 
 @onready var robot = get_node("/root/Main/Robot")
 
-# PID控制器
+# PID控制�?
 var roll_pid: PIDController
 var pitch_pid: PIDController
 
@@ -400,7 +400,7 @@ func compute_balance_commands(sensor_data: Dictionary, dt: float) -> Dictionary:
     var roll = orient[0]
     var pitch = orient[1]
     
-    # 目标姿态：直立（0度）
+    # 目标姿态：直立�?度）
     var roll_error = 0.0 - roll
     var pitch_error = 0.0 - pitch
     
@@ -408,7 +408,7 @@ func compute_balance_commands(sensor_data: Dictionary, dt: float) -> Dictionary:
     var roll_correction = roll_pid.compute(roll_error, dt)
     var pitch_correction = pitch_pid.compute(pitch_error, dt)
     
-    # 转换为电机指令（简化版）
+    # 转换为电机指令（简化版�?
     return {
         "motors": {
             "hip_left": pitch_correction + roll_correction,
@@ -424,7 +424,7 @@ func compute_balance_commands(sensor_data: Dictionary, dt: float) -> Dictionary:
 import numpy as np
 
 class ZMPController:
-    """零力矩点平衡控制器"""
+    """零力矩点平衡控制�?""
     
     def __init__(self, robot_height=1.0, gravity=9.8):
         self.height = robot_height
@@ -447,11 +447,11 @@ class ZMPController:
     
     def is_stable(self, zmp, support_polygon):
         """
-        检查ZMP是否在支撑多边形内
+        检查ZMP是否在支撑多边形�?
         zmp: [x, y]
         support_polygon: [(x1,y1), (x2,y2), ...]
         """
-        # 使用射线法判断点是否在多边形内
+        # 使用射线法判断点是否在多边形�?
         # 简化版本：假设支撑多边形是矩形
         x, y = zmp
         min_x = min(p[0] for p in support_polygon)
@@ -466,7 +466,7 @@ class ZMPController:
         error_x = support_center[0] - zmp[0]
         error_y = support_center[1] - zmp[1]
         
-        # 简单比例控制
+        # 简单比例控�?
         gain = 2.0
         return [error_x * gain, error_y * gain]
 ```
@@ -494,8 +494,8 @@ func calculate_com(bodies: Array[RigidBody3D]) -> Vector3:
     return Vector3.ZERO
 
 func calculate_support_polygon(contact_points: Array[Vector3]) -> Array:
-    """计算支撑多边形"""
-    # 返回脚底接触点围成的多边形
+    """计算支撑多边�?""
+    # 返回脚底接触点围成的多边�?
     return contact_points
 ```
 
@@ -513,7 +513,7 @@ from navigation_controller import NavigationController
 from zmp_controller import ZMPController
 
 class AdvancedController:
-    """集成所有高级功能的控制器"""
+    """集成所有高级功能的控制�?""
     
     def __init__(self, model_path: str):
         self.client = GodotClient()
@@ -530,12 +530,12 @@ class AdvancedController:
         start_time = time.time()
         
         while time.time() - start_time < duration:
-            # 1. 获取传感器数据
+            # 1. 获取传感器数�?
             sensor_data = self.client.get_latest_sensors()
             if not sensor_data:
                 continue
             
-            # 2. 障碍物检测
+            # 2. 障碍物检�?
             if 'obstacles' in sensor_data['sensors']:
                 obstacles = sensor_data['sensors']['obstacles']
                 if obstacles['has_obstacle']:
@@ -547,7 +547,7 @@ class AdvancedController:
             roll, pitch = orient[0], orient[1]
             
             if abs(roll) > 30 or abs(pitch) > 30:
-                print("⚠️ 姿态不稳定，执行平衡恢复")
+                print("⚠️ 姿态不稳定，执行平衡恢�?)
                 # 平衡恢复逻辑
             
             # 4. 路径导航
@@ -556,7 +556,7 @@ class AdvancedController:
             # 5. AI推理（如果启用）
             # ai_commands = self.ai_model.predict(sensor_data)
             
-            # 6. 融合指令并发送
+            # 6. 融合指令并发�?
             self.client.send_motor_commands(nav_commands)
             
             time.sleep(0.033)  # 30Hz
@@ -580,9 +580,9 @@ PATH_WAYPOINTS = [
     (0, 5)
 ]
 
-# 障碍物检测
-OBSTACLE_DETECTION_RANGE = 3.0  # 米
-OBSTACLE_AVOIDANCE_DISTANCE = 1.0  # 米
+# 障碍物检�?
+OBSTACLE_DETECTION_RANGE = 3.0  # �?
+OBSTACLE_AVOIDANCE_DISTANCE = 1.0  # �?
 NUM_DISTANCE_SENSORS = 5
 
 # 平衡控制
@@ -592,7 +592,7 @@ PID_PITCH = {"kp": 5.0, "ki": 0.1, "kd": 2.0}
 # ZMP
 ROBOT_HEIGHT = 1.0
 GRAVITY = 9.8
-STABILITY_MARGIN = 0.05  # 米
+STABILITY_MARGIN = 0.05  # �?
 
 # 关节限位
 JOINT_LIMITS = {
@@ -604,30 +604,30 @@ JOINT_LIMITS = {
 
 ---
 
-## 6. 实施路线图
+## 6. 实施路线�?
 
-### 阶段1: 扩展关节（1周）
+### 阶段1: 扩展关节�?周）
 - [ ] 添加膝关节和脚踝
-- [ ] 更新传感器数据结构
-- [ ] 测试新关节控制
+- [ ] 更新传感器数据结�?
+- [ ] 测试新关节控�?
 
 ### 阶段2: 障碍物检测（1周）
-- [ ] 实现射线传感器
-- [ ] 集成到传感器数据流
+- [ ] 实现射线传感�?
+- [ ] 集成到传感器数据�?
 - [ ] Python端解析障碍物信息
 
-### 阶段3: 路径规划（1周）
-- [ ] 创建路径管理器
+### 阶段3: 路径规划�?周）
+- [ ] 创建路径管理�?
 - [ ] 实现路径跟随算法
-- [ ] 可视化路径
+- [ ] 可视化路�?
 
-### 阶段4: 平衡控制（2周）
-- [ ] 实现PID控制器
+### 阶段4: 平衡控制�?周）
+- [ ] 实现PID控制�?
 - [ ] 集成ZMP算法
 - [ ] 调优参数
 
-### 阶段5: 集成测试（1周）
-- [ ] 联合测试所有功能
+### 阶段5: 集成测试�?周）
+- [ ] 联合测试所有功�?
 - [ ] 性能优化
 - [ ] 文档完善
 
@@ -649,14 +649,14 @@ func _process(_delta):
         var sensor_data = robot.get_sensor_data()
         
         var text = "=== 调试信息 ===\n"
-        text += "姿态: Roll=%.1f° Pitch=%.1f°\n" % [
+        text += "姿�? Roll=%.1f° Pitch=%.1f°\n" % [
             sensor_data['sensors']['imu']['orient'][0],
             sensor_data['sensors']['imu']['orient'][1]
         ]
         text += "高度: %.2fm\n" % sensor_data['torso_height']
         text += "接地: L=%s R=%s\n" % [
-            "✓" if sensor_data['sensors']['contacts']['foot_left'] else "✗",
-            "✓" if sensor_data['sensors']['contacts']['foot_right'] else "✗"
+            "�? if sensor_data['sensors']['contacts']['foot_left'] else "�?,
+            "�? if sensor_data['sensors']['contacts']['foot_right'] else "�?
         ]
         
         label.text = text
@@ -664,13 +664,13 @@ func _process(_delta):
 
 ---
 
-## 8. 参考资源
+## 8. 参考资�?
 
-- **机器人学**: 《Modern Robotics》- Kevin Lynch
-- **步态规划**: 《Biped Locomotion》
+- **机器人学**: 《Modern Robotics�? Kevin Lynch
+- **步态规�?*: 《Biped Locomotion�?
 - **ZMP理论**: Vukobratović, M. (1972)
 - **PID调优**: Ziegler-Nichols方法
 
 ---
 
-> 💡 **建议**: 从简单开始，先完善2自由度模型的平衡控制，再逐步增加关节和传感器。每添加一个功能都要充分测试。
+> 💡 **建议**: 从简单开始，先完�?自由度模型的平衡控制，再逐步增加关节和传感器。每添加一个功能都要充分测试�?

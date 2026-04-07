@@ -1,17 +1,17 @@
-# Robot Modeling Skill - API 参考
+# Robot Modeling Skill - API 参�?
 
-## RobotBuilder 类
+## RobotBuilder �?
 
-### 构造函数
+### 构造函�?
 
 ```python
 RobotBuilder(name: str)
 ```
 
-创建新的机器人构建器。
+创建新的机器人构建器�?
 
 **参数:**
-- `name` (str): 机器人名称
+- `name` (str): 机器人名�?
 
 ---
 
@@ -23,12 +23,12 @@ RobotBuilder(name: str)
 add_torso(height: float = 0.5, mass: float = 5.0, **kwargs) -> RobotBuilder
 ```
 
-添加躯干部件。
+添加躯干部件�?
 
 **参数:**
-- `height` (float): 躯干高度 (米), 默认 0.5
+- `height` (float): 躯干高度 (�?, 默认 0.5
 - `mass` (float): 质量 (千克), 默认 5.0
-- `**kwargs`: 其他自定义参数
+- `**kwargs`: 其他自定义参�?
 
 **返回:** RobotBuilder 实例 (支持链式调用)
 
@@ -46,18 +46,18 @@ add_leg_pair(
 ) -> RobotBuilder
 ```
 
-添加一对腿 (左右)。
+添加一对腿 (左右)�?
 
 **参数:**
-- `thigh_length` (float): 大腿长度 (米)
-- `shin_length` (float): 小腿长度 (米)
-- `hip_joint` (str): 髋关节类型 ("revolute" | "prismatic" | "fixed")
-- `knee_joint` (str): 膝关节类型
+- `thigh_length` (float): 大腿长度 (�?
+- `shin_length` (float): 小腿长度 (�?
+- `hip_joint` (str): 髋关节类�?("revolute" | "prismatic" | "fixed")
+- `knee_joint` (str): 膝关节类�?
 - `**kwargs`: 其他参数
 
 **返回:** RobotBuilder 实例
 
-**注意:** 如果已添加躯干,将自动创建连接关系。
+**注意:** 如果已添加躯�?将自动创建连接关系�?
 
 ---
 
@@ -72,12 +72,12 @@ add_arm_pair(
 ) -> RobotBuilder
 ```
 
-添加一对手臂 (左右)。
+添加一对手�?(左右)�?
 
 **参数:**
-- `upper_arm_length` (float): 上臂长度 (米)
-- `forearm_length` (float): 前臂长度 (米)
-- `shoulder_joint` (str): 肩关节类型
+- `upper_arm_length` (float): 上臂长度 (�?
+- `forearm_length` (float): 前臂长度 (�?
+- `shoulder_joint` (str): 肩关节类�?
 - `**kwargs`: 其他参数
 
 **返回:** RobotBuilder 实例
@@ -92,7 +92,7 @@ add_arm_pair(
 set_joint_damping(damping: float) -> RobotBuilder
 ```
 
-设置全局关节阻尼系数。
+设置全局关节阻尼系数�?
 
 **参数:**
 - `damping` (float): 阻尼系数 (推荐范围: 0.1 - 1.0)
@@ -105,12 +105,12 @@ set_joint_damping(damping: float) -> RobotBuilder
 set_joint_limits(joint_name: str, min_angle: float, max_angle: float) -> RobotBuilder
 ```
 
-设置特定关节的角度限位。
+设置特定关节的角度限位�?
 
 **参数:**
 - `joint_name` (str): 关节名称
-- `min_angle` (float): 最小角度 (弧度)
-- `max_angle` (float): 最大角度 (弧度)
+- `min_angle` (float): 最小角�?(弧度)
+- `max_angle` (float): 最大角�?(弧度)
 
 ---
 
@@ -120,7 +120,7 @@ set_joint_limits(joint_name: str, min_angle: float, max_angle: float) -> RobotBu
 customize(**params) -> RobotBuilder
 ```
 
-添加自定义元数据参数。
+添加自定义元数据参数�?
 
 **参数:**
 - `**params`: 任意键值对参数
@@ -142,20 +142,20 @@ robot.customize(
 build() -> RobotConfig
 ```
 
-完成构建,返回机器人配置对象。
+完成构建,返回机器人配置对象�?
 
 **返回:** `RobotConfig` 实例
 
 ---
 
-## RobotConfig 类
+## RobotConfig �?
 
-### 属性
+### 属�?
 
-- `name` (str): 机器人名称
+- `name` (str): 机器人名�?
 - `parts` (List[Dict]): 部件列表
 - `connections` (List[Dict]): 连接关系列表
-- `metadata` (Dict): 元数据
+- `metadata` (Dict): 元数�?
 
 ### 方法
 
@@ -165,7 +165,7 @@ build() -> RobotConfig
 save(filepath: str) -> None
 ```
 
-保存配置到 JSON 文件。
+保存配置�?JSON 文件�?
 
 **参数:**
 - `filepath` (str): 输出文件路径
@@ -185,16 +185,16 @@ robot.save("configs/my_robot.json")
 load_template(template_name: str) -> RobotConfig
 ```
 
-加载预设模板。
+加载预设模板�?
 
 **参数:**
 - `template_name` (str): 模板名称
 
 **可用模板:**
-- `biped_basic`: 基础双足机器人
-- `quadruped_dog`: 四足犬形机器人
+- `biped_basic`: 基础双足机器�?
+- `quadruped_dog`: 四足犬形机器�?
 - `wheeled_base`: 轮式底盘
-- `humanoid_upper`: 类人上半身
+- `humanoid_upper`: 类人上半�?
 
 **返回:** `RobotConfig` 实例
 
@@ -215,7 +215,7 @@ robot.save("configs/custom_biped.json")
 list_templates() -> List[str]
 ```
 
-列出所有可用模板名称。
+列出所有可用模板名称�?
 
 **返回:** 模板名称列表
 
@@ -291,12 +291,12 @@ for leg_length in [0.25, 0.30, 0.35, 0.40]:
 
 ```json
 {
-  "name": "机器人名称",
+  "name": "机器人名�?,
   "parts": [
     {
       "id": "part_1",
       "type": "torso|leg|arm|wheel",
-      "side": "left|right|front_left|...",  // 可选
+      "side": "left|right|front_left|...",  // 可�?
       "params": {
         // 部件特定参数
       }
@@ -307,7 +307,7 @@ for leg_length in [0.25, 0.30, 0.35, 0.40]:
       "from": "parent_part_id",
       "to": "child_part_id",
       "joint_type": "revolute|prismatic|fixed",
-      "offset": [x, y, z]  // 可选
+      "offset": [x, y, z]  // 可�?
     }
   ],
   "metadata": {
@@ -318,10 +318,10 @@ for leg_length in [0.25, 0.30, 0.35, 0.40]:
 
 ---
 
-## 最佳实践
+## 最佳实�?
 
-1. **命名规范**: 使用描述性名称,如 `fast_biped` 而非 `robot1`
-2. **质量分布**: 保持重心低且居中以提高稳定性
+1. **命名规范**: 使用描述性名�?�?`fast_biped` 而非 `robot1`
+2. **质量分布**: 保持重心低且居中以提高稳定�?
 3. **关节限位**: 始终设置合理的关节限位避免非物理运动
-4. **阻尼系数**: 从 0.5 开始,根据仿真效果调整
-5. **模板优先**: 尽可能从模板开始,减少错误
+4. **阻尼系数**: �?0.5 开�?根据仿真效果调整
+5. **模板优先**: 尽可能从模板开�?减少错误

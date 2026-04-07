@@ -75,13 +75,13 @@ model.save("walker_ppo")
 
 ## Features
 
-- âœ… OpenAI Gym/Gymnasium compatible
-- âœ… Dict observation space (IMU, joints, contacts)
-- âœ… Box action space (motor targets)
-- âœ… Customizable reward function
-- âœ… Physics parameter modification
-- âœ… Robot parts library integration
-- âœ… Real-time communication with Godot
+- âœ?OpenAI Gym/Gymnasium compatible
+- âœ?Dict observation space (IMU, joints, contacts)
+- âœ?Box action space (motor targets)
+- âœ?Customizable reward function
+- âœ?Physics parameter modification
+- âœ?Robot parts library integration
+- âœ?Real-time communication with Godot
 
 ## Documentation
 

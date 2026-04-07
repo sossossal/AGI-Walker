@@ -1,0 +1,11 @@
+{
+  "mass_distribution": {
+    "torso_1": 5.088101777125528,
+    "leg_left_1": 0.1,
+    "leg_right_1": 0.1
+  },
+  "com_position": "[ 0.          0.         -0.01134623]",
+  "com_error": 0.411346226401984,
+  "iterations": 4,
+  "success": true
+}

@@ -1,6 +1,6 @@
-# AGI-Walker ROS 2 集成快速入门指南
+# AGI-Walker ROS 2 集成快速入门指�?
 
-本指南帮助您快速开始使用AGI-Walker的ROS 2集成功能。
+本指南帮助您快速开始使用AGI-Walker的ROS 2集成功能�?
 
 ---
 
@@ -10,7 +10,7 @@
 - **操作系统**: Ubuntu 22.04 LTS（推荐）
 - **ROS 2**: Humble Hawksbill
 - **Python**: 3.10+
-- **Godot**: 4.x（可选，用于3D仿真）
+- **Godot**: 4.x（可选，用于3D仿真�?
 
 ### 安装ROS 2
 
@@ -21,7 +21,7 @@ sudo locale-gen en_US en_US.UTF-8
 sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 export LANG=en_US.UTF-8
 
-# 添加ROS 2 apt源
+# 添加ROS 2 apt�?
 sudo apt install software-properties-common
 sudo add-apt-repository universe
 sudo apt update && sudo apt install curl -y
@@ -36,7 +36,7 @@ sudo apt install python3-colcon-common-extensions
 
 ---
 
-## 🚀 快速开始
+## 🚀 快速开�?
 
 ### 步骤1: 克隆仓库
 
@@ -55,7 +55,7 @@ pip install matplotlib pillow  # GUI依赖
 ### 步骤3: 编译ROS 2 Packages
 
 ```bash
-cd ros2_ws
+cd hardware/ros2_ws
 
 # Source ROS 2环境
 source /opt/ros/humble/setup.bash
@@ -87,10 +87,10 @@ ros2 run agi_walker_ros2 bridge_node
 # 列出所有topics
 ros2 topic list
 
-# 查看关节状态
+# 查看关节状�?
 ros2 topic echo /joint_states
 
-# 查看机器人状态
+# 查看机器人状�?
 ros2 topic echo /robot_state
 ```
 
@@ -104,7 +104,7 @@ ros2 service call /start_simulation std_srvs/srv/Trigger
 ros2 service call /stop_simulation std_srvs/srv/Trigger
 ```
 
-### 3. 发送命令
+### 3. 发送命�?
 
 ```bash
 # 发送速度命令
@@ -112,24 +112,24 @@ ros2 topic pub /cmd_vel geometry_msgs/msg/Twist \
   "{linear: {x: 0.5, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.3}}" \
   --once
 
-# 或者持续发送
+# 或者持续发�?
 ros2 topic pub /cmd_vel geometry_msgs/msg/Twist \
   "{linear: {x: 0.5}, angular: {z: 0.3}}"
 ```
 
-### 4. 查看和修改参数
+### 4. 查看和修改参�?
 
 ```bash
-# 列出所有参数
+# 列出所有参�?
 ros2 param list /agi_walker_bridge
 
-# 查看参数值
+# 查看参数�?
 ros2 param get /agi_walker_bridge motor_power_multiplier
 
 # 修改参数
 ros2 param set /agi_walker_bridge motor_power_multiplier 1.5
 
-# 从文件加载参数
+# 从文件加载参�?
 ros2 param load /agi_walker_bridge src/agi_walker_ros2/config/params.yaml
 ```
 
@@ -137,29 +137,29 @@ ros2 param load /agi_walker_bridge src/agi_walker_ros2/config/params.yaml
 
 ## 🎮 完整使用流程
 
-### 场景1: 纯模拟（无Godot）
+### 场景1: 纯模拟（无Godot�?
 
 ```bash
 # 终端1: 启动桥接节点
-cd AGI-Walker/ros2_ws
+cd AGI-Walker/hardware/ros2_ws
 source install/setup.bash
 ros2 launch agi_walker_ros2 agi_walker.launch.py
 
-# 终端2: 发送命令
+# 终端2: 发送命�?
 ros2 topic pub /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.5}}"
 ```
 
-桥接节点会等待Godot连接，但仍可接收ROS命令。
+桥接节点会等待Godot连接，但仍可接收ROS命令�?
 
 ### 场景2: 与Godot仿真集成
 
 ```bash
-# 终端1: 启动Godot仿真（在AGI-Walker目录）
+# 终端1: 启动Godot仿真（在AGI-Walker目录�?
 cd AGI-Walker/godot_project
 godot --headless  # 或者用GUI启动
 
 # 终端2: 启动ROS 2桥接
-cd AGI-Walker/ros2_ws
+cd AGI-Walker/hardware/ros2_ws
 source install/setup.bash
 ros2 launch agi_walker_ros2 agi_walker.launch.py
 
@@ -238,24 +238,24 @@ python3 test_control.py
 
 ## 🔧 参数配置
 
-编辑 `ros2_ws/src/agi_walker_ros2/config/params.yaml`:
+编辑 `hardware/hardware/hardware/ros2_ws/src/agi_walker_ros2/config/params.yaml`:
 
 ```yaml
 /agi_walker_bridge:
   ros__parameters:
     # 修改Godot连接
-    godot_host: "192.168.1.100"  # 远程Godot服务器
+    godot_host: "192.168.1.100"  # 远程Godot服务�?
     godot_port: 9999
     
     # 调整发布频率
-    joint_state_rate: 100.0  # 提高到100Hz
+    joint_state_rate: 100.0  # 提高�?00Hz
     
     # 调整控制参数
     motor_power_multiplier: 1.5
     joint_stiffness: 2.0
 ```
 
-重新启动节点以应用更改。
+重新启动节点以应用更改�?
 
 ---
 
@@ -267,7 +267,7 @@ python3 test_control.py
 
 **解决**:
 ```bash
-cd ros2_ws
+cd hardware/ros2_ws
 colcon build
 source install/setup.bash
 ```
@@ -276,8 +276,8 @@ source install/setup.bash
 
 **错误**: `Failed to connect to Godot`
 
-**检查**:
-1. Godot是否运行？
+**检�?*:
+1. Godot是否运行�?
 2. TCP服务器是否启动（端口9999）？
 3. 防火墙是否阻止连接？
 
@@ -293,7 +293,7 @@ telnet 127.0.0.1 9999
 **解决**:
 ```bash
 # 确保编译了消息package
-cd ros2_ws
+cd hardware/ros2_ws
 colcon build --packages-select agi_walker_msgs
 source install/setup.bash
 ```
@@ -304,13 +304,13 @@ source install/setup.bash
 
 **解决**:
 ```bash
-# 确保AGI-Walker在Python路径中
+# 确保AGI-Walker在Python路径�?
 export PYTHONPATH=$PYTHONPATH:/path/to/AGI-Walker
 ```
 
 ---
 
-## 📊 可视化
+## 📊 可视�?
 
 ### 使用rqt查看数据
 
@@ -322,10 +322,10 @@ sudo apt install ros-humble-rqt ros-humble-rqt-common-plugins
 rqt
 ```
 
-在rqt中:
-- Plugins → Topics → Topic Monitor - 查看所有topics
-- Plugins → Visualization → Plot - 绘制数据曲线
-- Plugins → Services → Service Caller - 调用服务
+在rqt�?
+- Plugins �?Topics �?Topic Monitor - 查看所有topics
+- Plugins �?Visualization �?Plot - 绘制数据曲线
+- Plugins �?Services �?Service Caller - 调用服务
 
 ### 使用Plotjuggler
 
@@ -339,9 +339,9 @@ ros2 run plotjuggler plotjuggler
 
 ---
 
-## 🎯 下一步
+## 🎯 下一�?
 
-1. **尝试RViz可视化** (需要TF系统，Phase 2)
+1. **尝试RViz可视�?* (需要TF系统，Phase 2)
 2. **集成MoveIt运动规划** (未来功能)
 3. **创建自定义控制器**
 4. **连接真实硬件**
@@ -356,4 +356,4 @@ ros2 run plotjuggler plotjuggler
 
 ---
 
-**遇到问题？** 请在GitHub上提交Issue！
+**遇到问题�?* 请在GitHub上提交Issue�?

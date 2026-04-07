@@ -1,24 +1,24 @@
 # 🎓 进阶使用指南
 
-本指南将帮助您深入使用 Godot 机器人模拟套件，创建自己的机器人、添加新零件、进行高级训练。
+本指南将帮助您深入使�?Godot 机器人模拟套件，创建自己的机器人、添加新零件、进行高级训练�?
 
 ---
 
 ## 📋 目录
 
 1. [创建自定义机器人](#1-创建自定义机器人)
-2. [添加新零件到零件库](#2-添加新零件到零件库)
+2. [添加新零件到零件库](#2-添加新零件到零件�?
 3. [高级环境配置](#3-高级环境配置)
 4. [域随机化训练](#4-域随机化训练)
-5. [性能优化技巧](#5-性能优化技巧)
+5. [性能优化技巧](#5-性能优化技�?
 
 ---
 
 ## 1. 创建自定义机器人
 
-### 1.1 设计机器人结构
+### 1.1 设计机器人结�?
 
-假设我们要创建一个 6-DOF 双足机器人（每条腿3个关节）。
+假设我们要创建一�?6-DOF 双足机器人（每条�?个关节）�?
 
 **步骤**:
 
@@ -29,20 +29,20 @@ from godot_robot_env import PartsDatabase
 
 db = PartsDatabase()
 
-# 为髋关节选择大扭矩电机
+# 为髋关节选择大扭矩电�?
 hip_motor = db.get_part("dynamixel_mx106")  # 8.4 N·m
-print(f"髋关节电机: {hip_motor['model']}, {hip_motor['specifications']['stall_torque']} N·m")
+print(f"髋关节电�? {hip_motor['model']}, {hip_motor['specifications']['stall_torque']} N·m")
 
 # 为膝盖和踝关节选择中等扭矩电机
 knee_motor = db.get_part("dynamixel_xl430_w250")  # 1.4 N·m
-print(f"膝盖/踝关节电机: {knee_motor['model']}, {knee_motor['specifications']['stall_torque']} N·m")
+print(f"膝盖/踝关节电�? {knee_motor['model']}, {knee_motor['specifications']['stall_torque']} N·m")
 
 # 选择 IMU
 imu = db.get_part("bosch_bno055")
 print(f"IMU: {imu['model']}")
 ```
 
-#### B. 定义机器人配置
+#### B. 定义机器人配�?
 
 创建文件 `custom_robots/walker_6dof.json`:
 
@@ -70,7 +70,7 @@ print(f"IMU: {imu['model']}")
 }
 ```
 
-#### C. 在 Python 中加载配置
+#### C. �?Python 中加载配�?
 
 ```python
 import json
@@ -79,51 +79,51 @@ import json
 with open("custom_robots/walker_6dof.json") as f:
     robot_config = json.load(f)
 
-# 使用零件库扩展配置
+# 使用零件库扩展配�?
 db = PartsDatabase()
 extended_config = db.create_robot_config(robot_config["parts"])
 
-# 计算总成本
+# 计算总成�?
 total_cost = sum(
     db.get_part(part["part_id"])["price_usd"]
     for part in robot_config["parts"]
     if db.get_part(part["part_id"])
 )
-print(f"总成本: ${total_cost:.2f}")
+print(f"总成�? ${total_cost:.2f}")
 
-# 计算总质量
+# 计算总质�?
 total_mass = sum(
     db.get_part(part["part_id"])["specifications"]["weight"]
     for part in robot_config["parts"]
     if db.get_part(part["part_id"]) and "weight" in db.get_part(part["part_id"])["specifications"]
 )
-print(f"零件总质量: {total_mass:.3f} kg")
+print(f"零件总质�? {total_mass:.3f} kg")
 ```
 
-### 1.2 在 Godot 中构建机器人
+### 1.2 �?Godot 中构建机器人
 
-在 Godot 中创建场景 `custom_walker.tscn`:
+�?Godot 中创建场�?`custom_walker.tscn`:
 
 ```
 Walker6DOF (Node3D)
 ├── Torso (RigidBody3D)
-│   ├── CollisionShape3D (BoxShape3D: 0.2x0.4x0.15)
-│   └── MeshInstance3D
-│
+�?  ├── CollisionShape3D (BoxShape3D: 0.2x0.4x0.15)
+�?  └── MeshInstance3D
+�?
 ├── LeftThigh (RigidBody3D)
-│   ├── CollisionShape3D (CapsuleShape3D)
-│   └── MeshInstance3D
-│
+�?  ├── CollisionShape3D (CapsuleShape3D)
+�?  └── MeshInstance3D
+�?
 ├── LeftCalf (RigidBody3D)
-│   ├── CollisionShape3D (CapsuleShape3D)
-│   └── MeshInstance3D
-│
+�?  ├── CollisionShape3D (CapsuleShape3D)
+�?  └── MeshInstance3D
+�?
 ├── LeftFoot (RigidBody3D)
-│   ├── CollisionShape3D (BoxShape3D)
-│   └── MeshInstance3D
-│
+�?  ├── CollisionShape3D (BoxShape3D)
+�?  └── MeshInstance3D
+�?
 ├── (右腿类似...)
-│
+�?
 ├── HipLeft (HingeJoint3D)
 ├── KneeLeft (HingeJoint3D)
 ├── AnkleLeft (HingeJoint3D)
@@ -143,7 +143,7 @@ func _ready():
 	apply_part_specs()
 
 func apply_part_specs():
-	# 髋关节 - 使用 MX-106
+	# 髋关�?- 使用 MX-106
 	var mx106 = parts_lib.get_part("dynamixel_mx106")
 	if mx106:
 		apply_motor_to_joint($HipLeft, mx106)
@@ -162,26 +162,26 @@ func apply_motor_to_joint(joint: HingeJoint3D, motor_data: Dictionary):
 	joint.set_param(HingeJoint3D.PARAM_MOTOR_MAX_IMPULSE, specs["stall_torque"])
 	joint.set_meta("part_id", motor_data["part_id"])
 	joint.set_meta("stall_torque", specs["stall_torque"])
-	print("✅ Applied ", motor_data["model"], " to ", joint.name)
+	print("�?Applied ", motor_data["model"], " to ", joint.name)
 ```
 
 ---
 
-## 2. 添加新零件到零件库
+## 2. 添加新零件到零件�?
 
 ### 2.1 寻找零件规格
 
-以添加 **Faulhaber 2657 CR** 电机为例。
+以添�?**Faulhaber 2657 CR** 电机为例�?
 
 #### A. 收集数据
 
-从制造商数据手册收集：
+从制造商数据手册收集�?
 - 堵转扭矩: 0.134 N·m (at 24V)
 - 空载速度: 7200 RPM
 - 重量: 126 g
 - 尺寸: Ø26 × 57 mm
 - 电压范围: 6-24 V
-- 最大电流: 4.23 A
+- 最大电�? 4.23 A
 - 价格: ~$180 USD
 
 #### B. 创建 JSON 文件
@@ -194,7 +194,7 @@ func apply_motor_to_joint(joint: HingeJoint3D, motor_data: Dictionary):
   "category": "actuator_motor",
   "manufacturer": "Faulhaber",
   "model": "2657 CR",
-  "description": "精密无刷直流电机，带霍尔传感器",
+  "description": "精密无刷直流电机，带霍尔传感�?,
   "datasheet_url": "https://www.faulhaber.com/en/products/series/2657cr/",
   
   "specifications": {
@@ -238,28 +238,28 @@ func apply_motor_to_joint(joint: HingeJoint3D, motor_data: Dictionary):
 #### C. 验证数据
 
 ```python
-# 验证新零件
+# 验证新零�?
 from godot_robot_env import PartsDatabase
 
 db = PartsDatabase()
 db.print_statistics()
 
-# 获取新零件
+# 获取新零�?
 faulhaber = db.get_part("faulhaber_2657cr")
 if faulhaber:
-    print("\n✅ 新零件加载成功!")
+    print("\n�?新零件加载成�?")
     print(f"型号: {faulhaber['model']}")
     print(f"扭矩: {faulhaber['specifications']['stall_torque']} N·m")
     print(f"速度: {faulhaber['specifications']['no_load_speed']} RPM")
 else:
-    print("❌ 零件加载失败")
+    print("�?零件加载失败")
 ```
 
-### 2.2 添加传感器
+### 2.2 添加传感�?
 
-以添加 **Livox Mid-40 激光雷达**为例。
+以添�?**Livox Mid-40 激光雷�?*为例�?
 
-#### A. 创建传感器 Schema
+#### A. 创建传感�?Schema
 
 `parts_library/schema/sensor_lidar.schema.json`:
 
@@ -346,7 +346,7 @@ else:
 
 ## 3. 高级环境配置
 
-### 3.1 创建自定义环境预设
+### 3.1 创建自定义环境预�?
 
 ```gdscript
 # custom_environments.gd
@@ -355,15 +355,15 @@ extends Node
 const CUSTOM_PRESETS = {
 	"underwater": {
 		"gravity": 9.81 * 0.85,  # 水中浮力
-		"air_density": 1000.0,  # 水密度
+		"air_density": 1000.0,  # 水密�?
 		"temperature": 10.0,
 		"name": "水下环境"
 	},
 	"high_altitude": {
 		"gravity": 9.81,
-		"air_density": 0.4,  # 高海拔稀薄空气
+		"air_density": 0.4,  # 高海拔稀薄空�?
 		"temperature": -20.0,
-		"name": "高海拔"
+		"name": "高海�?
 	},
 	"low_gravity_high_friction": {
 		"gravity": 3.0,
@@ -378,10 +378,10 @@ func apply_custom_preset(env_controller, preset_name: String):
 	if CUSTOM_PRESETS.has(preset_name):
 		var preset = CUSTOM_PRESETS[preset_name]
 		env_controller.from_dict(preset)
-		print("✅ Applied custom preset: ", preset["name"])
+		print("�?Applied custom preset: ", preset["name"])
 ```
 
-### 3.2 动态地形生成
+### 3.2 动态地形生�?
 
 ```gdscript
 # terrain_generator.gd
@@ -424,7 +424,7 @@ func create_ground_tile(position: Vector3, size: float) -> StaticBody3D:
 
 ## 4. 域随机化训练
 
-### 4.1 Python 端实现
+### 4.1 Python 端实�?
 
 创建文件 `python_api/examples/domain_randomization_training.py`:
 
@@ -435,7 +435,7 @@ from stable_baselines3 import PPO
 from godot_robot_env import GodotRobotEnv
 
 class DomainRandomizationWrapper(gym.Wrapper):
-    """域随机化包装器"""
+    """域随机化包装�?""
     
     def __init__(self, env, randomize_params=None):
         super().__init__(env)
@@ -447,12 +447,12 @@ class DomainRandomizationWrapper(gym.Wrapper):
         }
     
     def reset(self, **kwargs):
-        # 每个 episode 开始时随机化环境
+        # 每个 episode 开始时随机化环�?
         self._randomize_environment()
         return self.env.reset(**kwargs)
     
     def _randomize_environment():
-        """随机化环境参数"""
+        """随机化环境参�?""
         params = {}
         
         # 随机重力
@@ -475,7 +475,7 @@ class DomainRandomizationWrapper(gym.Wrapper):
             materials = self.randomize_params["ground_materials"]
             params["ground_material"] = np.random.choice(materials)
         
-        # 应用到环境
+        # 应用到环�?
         self.env.set_physics_params(params)
         
         print(f"🎲 Randomized: g={params.get('gravity', 9.81):.2f}, "
@@ -496,7 +496,7 @@ model.save("walker_domain_randomized")
 ```python
 # evaluate_robustness.py
 def evaluate_on_varied_environments(model, env, num_episodes=10):
-    """在不同环境中评估策略鲁棒性"""
+    """在不同环境中评估策略鲁棒�?""
     
     test_envs = [
         {"name": "Earth", "gravity": 9.81, "ground_material": "concrete"},
@@ -534,19 +534,19 @@ def evaluate_on_varied_environments(model, env, num_episodes=10):
 # 运行评估
 results = evaluate_on_varied_environments(model, env)
 
-print("\n=== 鲁棒性评估结果 ===")
+print("\n=== 鲁棒性评估结�?===")
 for env_name, stats in results.items():
     print(f"{env_name:12s}: {stats['mean']:7.2f} ± {stats['std']:.2f}")
 ```
 
 ---
 
-## 5. 性能优化技巧
+## 5. 性能优化技�?
 
 ### 5.1 减少物理计算开销
 
 ```gdscript
-# 对于静态或远离的机器人部件，降低更新频率
+# 对于静态或远离的机器人部件，降低更新频�?
 func optimize_physics_update(body: RigidBody3D, distance_to_camera: float):
 	if distance_to_camera > 20.0:
 		# 远处物体降低物理更新频率
@@ -568,12 +568,12 @@ def make_env(rank, seed=0):
         return env
     return _init
 
-# 创建 4 个并行环境
+# 创建 4 个并行环�?
 num_envs = 4
 env = SubprocVecEnv([make_env(i) for i in range(num_envs)])
 
 model = PPO("MultiInputPolicy", env, verbose=1)
-model.learn(total_timesteps=500000)  # 实际训练 4 倍步数
+model.learn(total_timesteps=500000)  # 实际训练 4 倍步�?
 ```
 
 ### 5.3 数据记录优化
@@ -622,7 +622,7 @@ for config in configs:
     model.learn(10000)
     
     success_rate = evaluate(model, env)
-    print(f"{config['name']}: {success_rate:.1%} 成功率, ${config['cost']}")
+    print(f"{config['name']}: {success_rate:.1%} 成功�? ${config['cost']}")
 ```
 
 ### 示例 2: 自适应难度训练
@@ -665,27 +665,27 @@ class CurriculumEnv(gym.Wrapper):
 
 ---
 
-## 🎯 下一步
+## 🎯 下一�?
 
-现在您已经掌握了进阶技巧，可以：
+现在您已经掌握了进阶技巧，可以�?
 
-1. **创建您的机器人**
-   - 设计独特的结构
+1. **创建您的机器�?*
+   - 设计独特的结�?
    - 选择合适的零件
    - 优化成本和性能
 
-2. **扩展零件库**
+2. **扩展零件�?*
    - 添加您使用的真实硬件
    - 建立自己的零件数据库
 
 3. **高级训练**
-   - 域随机化提高鲁棒性
-   - 课程学习加速训练
-   - 多环境并行训练
+   - 域随机化提高鲁棒�?
+   - 课程学习加速训�?
+   - 多环境并行训�?
 
 4. **Sim-to-Real 迁移**
    - 在仿真中训练
-   - 在真实机器人上测试
+   - 在真实机器人上测�?
    - 迭代优化
 
 ---
@@ -695,4 +695,4 @@ class CurriculumEnv(gym.Wrapper):
 ---
 
 **版本**: 1.0  
-**最后更新**: 2026-01-14
+**最后更�?*: 2026-01-14

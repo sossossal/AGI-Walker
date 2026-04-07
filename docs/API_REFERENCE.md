@@ -1,4 +1,4 @@
-# 📚 完整 API 参考文档
+# 📚 完整 API 参考文�?
 
 ## 目录
 
@@ -13,9 +13,9 @@
 
 ### PartsDatabase
 
-零件数据库接口。
+零件数据库接口�?
 
-#### 初始化
+#### 初始�?
 
 ```python
 from godot_robot_env import PartsDatabase
@@ -24,13 +24,13 @@ db = PartsDatabase(parts_library_path=None)
 ```
 
 **参数**:
-- `parts_library_path` (str, optional): 零件库路径，默认为项目中的 `parts_library` 目录
+- `parts_library_path` (str, optional): 零件库路径，默认为项目中�?`parts_library` 目录
 
 #### 方法
 
-##### get_part(part_id: str) → Dict
+##### get_part(part_id: str) �?Dict
 
-获取零件数据。
+获取零件数据�?
 
 **参数**:
 - `part_id` (str): 零件ID
@@ -43,12 +43,12 @@ motor = db.get_part("dynamixel_xl430_w250")
 print(motor['specifications']['stall_torque'])  # 1.4
 ```
 
-##### get_parts_by_category(category: str) → List[Dict]
+##### get_parts_by_category(category: str) �?List[Dict]
 
-按类别获取零件列表。
+按类别获取零件列表�?
 
 **参数**:
-- `category` (str): 类别名称（如 `"actuator_servo"）
+- `category` (str): 类别名称（如 `"actuator_servo"�?
 
 **返回**: 零件列表
 
@@ -59,21 +59,21 @@ for servo in servos:
     print(servo['model'])
 ```
 
-##### list_all_parts() → List[str]
+##### list_all_parts() �?List[str]
 
-列出所有零件ID。
+列出所有零件ID�?
 
 **返回**: 零件ID列表
 
-##### validate_part(part_id: str) → bool
+##### validate_part(part_id: str) �?bool
 
-验证零件数据完整性。
+验证零件数据完整性�?
 
 **返回**: 是否有效
 
-##### create_robot_config(parts_spec: List[Dict]) → Dict
+##### create_robot_config(parts_spec: List[Dict]) �?Dict
 
-从零件列表创建机器人配置。
+从零件列表创建机器人配置�?
 
 **参数**:
 - `parts_spec` (list): 零件规格列表
@@ -90,9 +90,9 @@ config = db.create_robot_config([
 
 ### GodotRobotEnv
 
-Gymnasium 兼容的机器人仿真环境。
+Gymnasium 兼容的机器人仿真环境�?
 
-#### 初始化
+#### 初始�?
 
 ```python
 from godot_robot_env import GodotRobotEnv
@@ -107,22 +107,22 @@ env = GodotRobotEnv(
 ```
 
 **参数**:
-- `robot_config` (dict, optional): 机器人配置
+- `robot_config` (dict, optional): 机器人配�?
 - `physics_config` (dict, optional): 物理参数配置
 - `host` (str): Godot 服务器地址
-- `port` (int): 端口号
-- `timeout` (float): 连接超时（秒）
+- `port` (int): 端口�?
+- `timeout` (float): 连接超时（秒�?
 
-#### 属性
+#### 属�?
 
 ##### observation_space
 
-观察空间（Gymnasium Dict）。
+观察空间（Gymnasium Dict）�?
 
 **结构**:
 ```python
 {
-    'imu_orient': Box(3,),        # 姿态 (roll, pitch, yaw)
+    'imu_orient': Box(3,),        # 姿�?(roll, pitch, yaw)
     'imu_angular_vel': Box(3,),   # 角速度
     'imu_linear_acc': Box(3,),    # 线性加速度
     'joint_angles': Box(4,),      # 关节角度
@@ -135,16 +135,16 @@ env = GodotRobotEnv(
 
 ##### action_space
 
-动作空间（Gymnasium Box）。
+动作空间（Gymnasium Box）�?
 
-**形状**: (4,) - 4个关节的目标角度（度）  
-**范围**: 见文档说明
+**形状**: (4,) - 4个关节的目标角度（度�? 
+**范围**: 见文档说�?
 
 #### 方法
 
-##### reset() → Tuple[Dict, Dict]
+##### reset() �?Tuple[Dict, Dict]
 
-重置环境。
+重置环境�?
 
 **返回**: `(observation, info)`
 
@@ -153,12 +153,12 @@ env = GodotRobotEnv(
 obs, info = env.reset()
 ```
 
-##### step(action) → Tuple[Dict, float, bool, bool, Dict]
+##### step(action) �?Tuple[Dict, float, bool, bool, Dict]
 
-执行一步。
+执行一步�?
 
 **参数**:
-- `action` (np.ndarray): 动作（4个关节角度）
+- `action` (np.ndarray): 动作�?个关节角度）
 
 **返回**: `(observation, reward, terminated, truncated, info)`
 
@@ -170,7 +170,7 @@ obs, reward, terminated, truncated, info = env.step(action)
 
 ##### set_physics_params(params: Dict)
 
-动态修改物理参数。
+动态修改物理参数�?
 
 **参数**:
 - `params` (dict): 参数字典
@@ -185,7 +185,7 @@ env.set_physics_params({
 
 ##### close()
 
-关闭环境。
+关闭环境�?
 
 ---
 
@@ -193,16 +193,16 @@ env.set_physics_params({
 
 ### EnvironmentController
 
-环境参数控制器。
+环境参数控制器�?
 
 #### 方法
 
 ##### load_preset(preset_name: String)
 
-加载环境预设。
+加载环境预设�?
 
 **参数**:
-- `preset_name`: 预设名称（`"earth"`, `"moon"`, `"mars"`, `"jupiter"`）
+- `preset_name`: 预设名称（`"earth"`, `"moon"`, `"mars"`, `"jupiter"`�?
 
 **示例**:
 ```gdscript
@@ -211,34 +211,34 @@ $EnvironmentController.load_preset("moon")
 
 ##### set_gravity(value: float)
 
-设置重力。
+设置重力�?
 
 **参数**:
-- `value`: 重力值（m/s²）
+- `value`: 重力值（m/s²�?
 
 ##### set_air_density(value: float)
 
-设置空气密度。
+设置空气密度�?
 
 **参数**:
-- `value`: 空气密度（kg/m³）
+- `value`: 空气密度（kg/m³�?
 
 ##### set_temperature(value: float)
 
-设置温度。
+设置温度�?
 
 **参数**:
-- `value`: 温度（°C）
+- `value`: 温度（°C�?
 
-##### calculate_air_drag(velocity: Vector3, cross_section: float, drag_coef: float = 0.47) → Vector3
+##### calculate_air_drag(velocity: Vector3, cross_section: float, drag_coef: float = 0.47) �?Vector3
 
-计算空气阻力。
+计算空气阻力�?
 
-**返回**: 阻力向量（N）
+**返回**: 阻力向量（N�?
 
-##### get_environment_info() → Dictionary
+##### get_environment_info() �?Dictionary
 
-获取当前环境信息。
+获取当前环境信息�?
 
 **返回**: 包含所有参数的字典
 
@@ -246,20 +246,20 @@ $EnvironmentController.load_preset("moon")
 
 ### GroundMaterialLibrary
 
-地面材质库。
+地面材质库�?
 
 #### 方法
 
 ##### apply_material(ground: StaticBody3D, material_name: String)
 
-应用材质到地面。
+应用材质到地面�?
 
 **参数**:
 - `ground`: 地面物体
 - `material_name`: 材质名称
 
 **可用材质**:
-- `"concrete"` - 混凝土
+- `"concrete"` - 混凝�?
 - `"wood"` - 木板
 - `"carpet"` - 地毯
 - `"ice"` - 冰面
@@ -273,13 +273,13 @@ $EnvironmentController.load_preset("moon")
 $GroundMaterialLibrary.apply_material($Ground, "ice")
 ```
 
-##### get_material(material_name: String) → GroundMaterial
+##### get_material(material_name: String) �?GroundMaterial
 
-获取材质对象。
+获取材质对象�?
 
-##### list_materials() → Array[String]
+##### list_materials() �?Array[String]
 
-列出所有材质名称。
+列出所有材质名称�?
 
 ---
 
@@ -314,7 +314,7 @@ $GroundMaterialLibrary.apply_material($Ground, "ice")
 }
 ```
 
-### IMU 传感器
+### IMU 传感�?
 
 ```json
 {
@@ -367,11 +367,11 @@ physics_config = {
 
 ---
 
-## 常量和枚举
+## 常量和枚�?
 
 ### 材质摩擦系数
 
-| 材质 | 摩擦系数 | 弹性 |
+| 材质 | 摩擦系数 | 弹�?|
 |------|----------|------|
 | concrete | 0.9 | 0.1 |
 | wood | 0.6 | 0.2 |
@@ -392,14 +392,14 @@ physics_config = {
 # 连接失败
 RuntimeError: "Not connected to Godot simulator"
 
-# 零件未找到
+# 零件未找�?
 返回 None（不抛异常）
 
 # 无效参数
-参数被 clamp 到有效范围
+参数�?clamp 到有效范�?
 ```
 
 ---
 
 **文档版本**: 1.0  
-**最后更新**: 2026-01-15
+**最后更�?*: 2026-01-15

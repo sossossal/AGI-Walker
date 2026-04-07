@@ -1,23 +1,23 @@
-# Git 提交和发布脚本
+# Git 提交和发布脚�?
 
-本脚本包含了提交到GitHub的完整命令。
+本脚本包含了提交到GitHub的完整命令�?
 
 ## 📊 本次提交统计
 
 **新增文件:**
 - Skills系统: 3个完整skills
 - 工具: CLI + GUI
-- 文档: 4个完整指南
-- 示例: 5个教程脚本
-- 测试: 3个测试文件
+- 文档: 4个完整指�?
+- 示例: 5个教程脚�?
+- 测试: 3个测试文�?
 
 **修改文件:**
 - README.md - 添加Skills介绍
 - requirements.txt - 添加依赖
 
-## 🚀 下一步操作
+## 🚀 下一步操�?
 
-### 1. 查看提交状态
+### 1. 查看提交状�?
 
 ```bash
 git status
@@ -38,9 +38,9 @@ git tag -a v0.2.0 -m "Skills系统集成版本
 - Moltbot Skills架构  
 - 3个生产级Skills
 - CLI和GUI工具
-- 完整文档和教程
+- 完整文档和教�?
 
-测试状态: 15/15通过
+测试状�? 15/15通过
 "
 
 git push origin v0.2.0
@@ -54,9 +54,9 @@ git push origin v0.2.0
 **Title:** AGI-Walker v0.2.0 - Skills System Integration  
 **Description:** 参见 GITHUB_UPDATE_GUIDE.md 中的Release描述
 
-## ✅ 完成检查
+## �?完成检�?
 
-- [x] 代码已提交
+- [x] 代码已提�?
 - [ ] 推送到GitHub
 - [ ] 创建Release
 - [ ] 更新文档链接
@@ -71,7 +71,7 @@ cd d:\新建文件夹\AGI-Walker
 # 推送主分支
 git push origin main
 
-# 创建并推送标签
+# 创建并推送标�?
 git tag -a v0.2.0 -m "Skills系统集成版本"
 git push origin v0.2.0
 ```

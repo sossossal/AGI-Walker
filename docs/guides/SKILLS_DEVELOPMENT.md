@@ -1,10 +1,10 @@
-# Skills 开发指南
+# Skills 开发指�?
 
-本指南将帮助你为AGI-Walker开发新的Skills。
+本指南将帮助你为AGI-Walker开发新的Skills�?
 
 ---
 
-## 快速开始
+## 快速开�?
 
 ### 1. 创建Skill目录
 
@@ -31,13 +31,13 @@ metadata:
 
 # My Skill
 
-详细的使用文档...
+详细的使用文�?..
 
-## 快速开始
+## 快速开�?
 
 ...
 
-## API参考
+## API参�?
 
 ...
 ```
@@ -72,10 +72,10 @@ python -m agi_walker.cli skills info my-skill
 
 ```yaml
 name: skill-name          # Skill名称 (kebab-case)
-description: "描述..."    # 简短描述 (一句话)
+description: "描述..."    # 简短描�?(一句话)
 ```
 
-#### 可选字段
+#### 可选字�?
 
 ```yaml
 metadata:
@@ -86,9 +86,9 @@ metadata:
       python_modules:      # Python依赖
         - numpy
         - scipy
-      bins:                # 命令行工具依赖
+      bins:                # 命令行工具依�?
         - ffmpeg
-      system_packages:     # 系统包依赖
+      system_packages:     # 系统包依�?
         - libopencv-dev
 ```
 
@@ -99,18 +99,18 @@ metadata:
 ```markdown
 # Skill名称
 
-简介 (1-2段)
+简�?(1-2�?
 
-## 快速开始
+## 快速开�?
 
-最简单的使用示例 (代码块)
+最简单的使用示例 (代码�?
 
-## 功能特性
+## 功能特�?
 
-- 特性1
-- 特性2
+- 特�?
+- 特�?
 
-## API参考
+## API参�?
 
 详细API说明 (或链接到 references/api.md)
 
@@ -122,7 +122,7 @@ metadata:
 
 Q&A
 
-## 下一步
+## 下一�?
 
 相关Skill推荐
 ```
@@ -131,7 +131,7 @@ Q&A
 
 ## 目录结构
 
-### 最小结构
+### 最小结�?
 
 ```
 my-skill/
@@ -145,16 +145,16 @@ my-skill/
 my-skill/
 ├── SKILL.md                  # Skill文档
 ├── __init__.py              # 核心实现
-├── scripts/                 # 可选: 命令行工具
-│   ├── tool1.py
-│   └── tool2.py
-├── references/              # 可选: 参考文档
-│   ├── api.md
-│   └── algorithms.md
-├── assets/                  # 可选: 资源文件
-│   ├── templates/
-│   └── examples/
-└── tests/                   # 可选: 测试
+├── scripts/                 # 可�? 命令行工�?
+�?  ├── tool1.py
+�?  └── tool2.py
+├── references/              # 可�? 参考文�?
+�?  ├── api.md
+�?  └── algorithms.md
+├── assets/                  # 可�? 资源文件
+�?  ├── templates/
+�?  └── examples/
+└── tests/                   # 可�? 测试
     └── test_my_skill.py
 ```
 
@@ -164,7 +164,7 @@ my-skill/
 
 ### 导出接口
 
-在 `__init__.py` 中明确导出:
+�?`__init__.py` 中明确导�?
 
 ```python
 """
@@ -216,11 +216,11 @@ def process_data(
 
 ---
 
-## 命令行工具
+## 命令行工�?
 
 ### 创建CLI脚本
 
-在 `scripts/` 目录创建:
+�?`scripts/` 目录创建:
 
 ```python
 #!/usr/bin/env python
@@ -247,10 +247,10 @@ def main():
     result = do_something(args.input, args.output)
     
     if result.success:
-        print(f"✓ 成功")
+        print(f"�?成功")
         return 0
     else:
-        print(f"✗ 失败: {result.error}")
+        print(f"�?失败: {result.error}")
         return 1
 
 
@@ -260,14 +260,14 @@ if __name__ == '__main__':
 
 ---
 
-## 参考文档
+## 参考文�?
 
 ### API文档模板
 
-在 `references/api.md`:
+�?`references/api.md`:
 
 ```markdown
-# My Skill API 参考
+# My Skill API 参�?
 
 ## 函数
 
@@ -291,7 +291,7 @@ do_something(input_file: str, output_file: str) -> Result
 result = do_something("in.json", "out.json")
 \`\`\`
 
-## 类
+## �?
 
 ### MyClass
 
@@ -300,25 +300,25 @@ result = do_something("in.json", "out.json")
 
 ---
 
-## 最佳实践
+## 最佳实�?
 
-### 1. 渐进式披露
+### 1. 渐进式披�?
 
 遵循Moltbot的渐进式披露原则:
 
 - **Level 1 (Metadata)**: 简短的name和description
 - **Level 2 (SKILL.md)**: 快速开始和核心功能
-- **Level 3 (References)**: 详细API和算法文档
+- **Level 3 (References)**: 详细API和算法文�?
 
 ### 2. 示例优先
 
 提供可运行的示例:
 
 ```python
-# ❌ 不好
+# �?不好
 def process(data): ...
 
-# ✅ 好
+# �?�?
 def process(data):
     """
     Example:
@@ -332,25 +332,25 @@ def process(data):
 
 ### 3. 错误处理
 
-提供清晰的错误信息:
+提供清晰的错误信�?
 
 ```python
 if not input_path.exists():
     raise FileNotFoundError(
-        f"输入文件不存在: {input_path}\n"
-        f"请检查路径是否正确"
+        f"输入文件不存�? {input_path}\n"
+        f"请检查路径是否正�?
     )
 ```
 
-### 4. 文档字符串
+### 4. 文档字符�?
 
 使用Google风格docstring:
 
 ```python
 def my_function(param1: str, param2: int = 0) -> bool:
-    """简短描述
+    """简短描�?
     
-    详细说明 (可选)
+    详细说明 (可�?
     
     Args:
         param1: 参数1说明
@@ -373,9 +373,9 @@ def my_function(param1: str, param2: int = 0) -> bool:
 
 ## 分类指南
 
-### 建议的分类
+### 建议的分�?
 
-- **建模** - 机器人建模相关
+- **建模** - 机器人建模相�?
 - **优化** - 参数优化相关
 - **转换** - 格式转换相关
 - **仿真** - 仿真执行相关
@@ -387,7 +387,7 @@ def my_function(param1: str, param2: int = 0) -> bool:
 ### 选择分类
 
 根据Skill的主要用途选择:
-- 如果Skill有多个用途,选择最主要的
+- 如果Skill有多个用�?选择最主要�?
 - 尽量使用已有分类
 - 必要时可以创建新分类
 
@@ -397,7 +397,7 @@ def my_function(param1: str, param2: int = 0) -> bool:
 
 ### 声明依赖
 
-在SKILL.md frontmatter中声明:
+在SKILL.md frontmatter中声�?
 
 ```yaml
 metadata:
@@ -410,9 +410,9 @@ metadata:
         - ffmpeg
 ```
 
-### 检查依赖
+### 检查依�?
 
-在代码中检查:
+在代码中检�?
 
 ```python
 def __init__(self):
@@ -460,14 +460,14 @@ pytest tests/test_my_skill.py -v
 
 ## 发布清单
 
-提交新Skill前检查:
+提交新Skill前检�?
 
 - [ ] SKILL.md包含完整frontmatter
-- [ ] 有快速开始示例
-- [ ] 代码有类型注解
+- [ ] 有快速开始示�?
+- [ ] 代码有类型注�?
 - [ ] 主要函数有docstring
-- [ ] 有使用示例
-- [ ] 声明了所有依赖
+- [ ] 有使用示�?
+- [ ] 声明了所有依�?
 - [ ] 通过 `agi_walker skills validate`
 - [ ] 在CLI和GUI中测试过
 
@@ -486,9 +486,9 @@ pytest tests/test_my_skill.py -v
 ## 获取帮助
 
 - 查看 `.agent/AGENTS.md` - 项目规范
-- 阅读现有Skills的源码
+- 阅读现有Skills的源�?
 - 使用 `agi_walker skills info <name> -d` 查看文档
 
 ---
 
-**记住**: Skills应该简洁、实用、文档齐全。优先提供可用的工具,而非复杂的抽象。
+**记住**: Skills应该简洁、实用、文档齐全。优先提供可用的工具,而非复杂的抽象�?

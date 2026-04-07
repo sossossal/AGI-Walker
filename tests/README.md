@@ -2,7 +2,7 @@
 
 ## 运行测试
 
-### 运行所有测试
+### 运行所有测�?
 ```bash
 pytest
 ```
@@ -27,9 +27,9 @@ pytest -v
 pytest -s
 ```
 
-## 覆盖率报告
+## 覆盖率报�?
 
-### 生成覆盖率报告
+### 生成覆盖率报�?
 ```bash
 pytest --cov=python_api --cov-report=html
 ```
@@ -43,19 +43,19 @@ open htmlcov/index.html
 start htmlcov/index.html
 ```
 
-### 覆盖率要求
-- 目标覆盖率: 60%+
+### 覆盖率要�?
+- 目标覆盖�? 60%+
 - 核心模块: 80%+
 - 工具函数: 50%+
 
 ## 测试标记
 
-### 跳过慢速测试
+### 跳过慢速测�?
 ```bash
 pytest -m "not slow"
 ```
 
-### 仅运行集成测试
+### 仅运行集成测�?
 ```bash
 pytest -m integration
 ```
@@ -67,16 +67,16 @@ pytest -m "not hardware"
 
 ## 持续集成
 
-GitHub Actions 会在每次 push 和 PR 时自动运行测试。
+GitHub Actions 会在每次 push �?PR 时自动运行测试�?
 
 查看测试状态：
 - GitHub Actions 页面
 - README 中的徽章
 
-## 添加新测试
+## 添加新测�?
 
-1. 在 `tests/` 目录创建 `test_*.py` 文件
-2. 创建测试类 `Test*`
+1. �?`tests/` 目录创建 `test_*.py` 文件
+2. 创建测试�?`Test*`
 3. 编写测试函数 `test_*()`
 4. 使用 fixtures 共享设置
 5. 使用 marks 标记特殊测试
@@ -96,7 +96,7 @@ class TestExample:
     
     @pytest.mark.slow
     def test_slow_operation(self):
-        # 慢速测试
+        # 慢速测�?
         pass
 ```
 
@@ -107,12 +107,12 @@ class TestExample:
 pytest --pdb
 ```
 
-### 在失败时进入调试器
+### 在失败时进入调试�?
 ```bash
 pytest --pdb --maxfail=1
 ```
 
-### 显示最后 N 个失败
+### 显示最�?N 个失�?
 ```bash
 pytest --lf  # last-failed
 pytest --ff  # failed-first
@@ -127,11 +127,11 @@ def test_performance(benchmark):
     assert result is not None
 ```
 
-## 最佳实践
+## 最佳实�?
 
 1. **测试命名**: 清晰描述测试目的
-2. **独立性**: 测试之间相互独立
-3. **可重复**: 结果确定性
-4. **快速**: 单元测试应快速执行
+2. **独立�?*: 测试之间相互独立
+3. **可重�?*: 结果确定�?
+4. **快�?*: 单元测试应快速执�?
 5. **覆盖边界**: 测试边界条件
 6. **Mock 外部依赖**: 使用 mock 隔离

@@ -5,16 +5,16 @@
 物理环境增强系统允许您动态调节仿真环境的物理参数，包括重力、空气密度、温度、地面材质等，用于：
 - 测试机器人在不同环境下的表现
 - 域随机化训练（提高泛化能力）
-- 模拟极端环境（月球、火星等）
+- 模拟极端环境（月球、火星等�?
 
 ---
 
-## 🌍 环境控制器 (EnvironmentController)
+## 🌍 环境控制�?(EnvironmentController)
 
 ### 基本使用
 
 ```gdscript
-# 添加到场景
+# 添加到场�?
 var env_controller = EnvironmentController.new()
 add_child(env_controller)
 
@@ -39,13 +39,13 @@ env_controller.set_wind(Vector3(5, 0, 0))  # 5m/s 东风
 # 地球环境（默认）
 env_controller.load_preset("earth")
 
-# 月球环境（低重力，无大气）
+# 月球环境（低重力，无大气�?
 env_controller.load_preset("moon")
 
 # 火星环境
 env_controller.load_preset("mars")
 
-# 木星环境（高重力）
+# 木星环境（高重力�?
 env_controller.load_preset("jupiter")
 ```
 
@@ -64,7 +64,7 @@ env_controller.load_preset("jupiter")
 # 在刚体的 _physics_process 中：
 func _physics_process(delta):
     var velocity = linear_velocity
-    var cross_section = 0.5  # m² (机器人横截面积)
+    var cross_section = 0.5  # m² (机器人横截面�?
     var drag_coef = 0.47  # 球体阻力系数
     
     var air_drag = env_controller.calculate_air_drag(
@@ -79,7 +79,7 @@ func _physics_process(delta):
 ### 温度影响
 
 ```gdscript
-# 获取温度影响因子（影响摩擦等）
+# 获取温度影响因子（影响摩擦等�?
 var temp_factor = env_controller.get_temperature_factor()
 var adjusted_friction = base_friction * temp_factor
 ```
@@ -87,19 +87,19 @@ var adjusted_friction = base_friction * temp_factor
 ### 随机扰动（域随机化）
 
 ```gdscript
-# 每隔一段时间施加随机扰动
+# 每隔一段时间施加随机扰�?
 func apply_domain_randomization():
     env_controller.apply_random_disturbance(robot_body, 10.0)
 ```
 
 ---
 
-## 🏗️ 地面材质系统
+## 🏗�?地面材质系统
 
-### 使用材质库
+### 使用材质�?
 
 ```gdscript
-# 添加材质库
+# 添加材质�?
 var material_lib = GroundMaterialLibrary.new()
 add_child(material_lib)
 
@@ -107,28 +107,28 @@ add_child(material_lib)
 var ground = $Ground
 
 # 应用材质
-material_lib.apply_material(ground, "concrete")  # 混凝土
+material_lib.apply_material(ground, "concrete")  # 混凝�?
 material_lib.apply_material(ground, "ice")       # 冰面
 material_lib.apply_material(ground, "sand")      # 沙地
 ```
 
 ### 可用材质
 
-| 材质 | 摩擦系数 | 弹性 | 滚动摩擦 | 特点 |
+| 材质 | 摩擦系数 | 弹�?| 滚动摩擦 | 特点 |
 |------|----------|------|----------|------|
 | **concrete** | 0.9 | 0.1 | 0.005 | 硬质，高摩擦 |
 | **wood** | 0.6 | 0.2 | 0.01 | 中等硬度 |
-| **carpet** | 1.0 | 0.05 | 0.03 | 高摩擦，高阻尼 |
+| **carpet** | 1.0 | 0.05 | 0.03 | 高摩擦，高阻�?|
 | **ice** | 0.1 | 0.3 | 0.001 | 极低摩擦 |
-| **metal** | 0.4 | 0.4 | 0.005 | 低摩擦，高弹性 |
-| **sand** | 0.7 | 0.0 | 0.05 | 可变形 |
+| **metal** | 0.4 | 0.4 | 0.005 | 低摩擦，高弹�?|
+| **sand** | 0.7 | 0.0 | 0.05 | 可变�?|
 | **grass** | 0.75 | 0.1 | 0.02 | 自然地形 |
-| **mud** | 0.85 | 0.0 | 0.08 | 可变形，高阻力 |
+| **mud** | 0.85 | 0.0 | 0.08 | 可变形，高阻�?|
 
-### 自定义材质
+### 自定义材�?
 
 ```gdscript
-# 创建自定义材质
+# 创建自定义材�?
 var custom_mat = GroundMaterial.new("Rubber", 1.2, 0.8)
 custom_mat.roughness = 0.9
 custom_mat.color = Color(0.2, 0.2, 0.2)
@@ -145,7 +145,7 @@ material_lib.apply_material(ground, "Rubber")
 
 ## 🎮 实时控制
 
-### 键盘快捷键示例
+### 键盘快捷键示�?
 
 ```gdscript
 func _input(event):
@@ -168,14 +168,14 @@ func _input(event):
 
 ---
 
-## 🔗 与 Python API 集成
+## 🔗 �?Python API 集成
 
-### Python 端调用
+### Python 端调�?
 
 ```python
 from godot_robot_env import GodotRobotEnv
 
-# 创建环境时指定物理参数
+# 创建环境时指定物理参�?
 env = GodotRobotEnv(
     physics_config={
         "gravity": 3.71,  # 火星重力
@@ -185,7 +185,7 @@ env = GodotRobotEnv(
     }
 )
 
-# 运行时动态修改
+# 运行时动态修�?
 env.set_physics_params({
     "gravity": 9.81,
     "ground_material": "ice"
@@ -198,7 +198,7 @@ env.set_physics_params({
 import random
 
 def domain_randomization_callback():
-    """每个 episode 随机化环境参数"""
+    """每个 episode 随机化环境参�?""
     env.set_physics_params({
         "gravity": random.uniform(5.0, 15.0),
         "air_density": random.uniform(0.5, 2.0),
@@ -216,20 +216,20 @@ for episode in range(1000):
 
 ---
 
-## 📊 监控环境状态
+## 📊 监控环境状�?
 
 ```gdscript
 # 获取当前环境信息
 var env_info = env_controller.get_environment_info()
 print("重力: ", env_info["gravity"])
 print("温度: ", env_info["temperature"])
-print("风速: ", env_info["wind_velocity"])
+print("风�? ", env_info["wind_velocity"])
 
 # 导出配置
 var config = env_controller.to_dict()
 # 保存到文件或发送到 Python
 
-# 从配置加载
+# 从配置加�?
 env_controller.from_dict(saved_config)
 ```
 
@@ -240,40 +240,40 @@ env_controller.from_dict(saved_config)
 创建测试场景 `test_environment.tscn`:
 
 ```
-根节点 (Node3D)
+根节�?(Node3D)
 ├── EnvironmentController
 ├── GroundMaterialLibrary
 ├── Ground (StaticBody3D)
-│   └── CollisionShape3D (BoxShape3D)
+�?  └── CollisionShape3D (BoxShape3D)
 ├── Robot (RigidBody3D)
 └── Test Script (test_environment.gd)
 ```
 
 运行场景后：
-- 按 `1-3` 切换环境预设
-- 按 `C/I/S` 切换地面材质
-- 按 `↑/↓` 调节重力
+- �?`1-3` 切换环境预设
+- �?`C/I/S` 切换地面材质
+- �?`�?↓` 调节重力
 
 ---
 
 ## 🎯 应用场景
 
-### 1. 鲁棒性测试
+### 1. 鲁棒性测�?
 测试机器人在各种环境下的稳定性：
-- 月球低重力环境
-- 冰面低摩擦环境
+- 月球低重力环�?
+- 冰面低摩擦环�?
 - 强风干扰环境
 
 ### 2. 域随机化训练
-提高 Sim-to-Real 迁移能力：
-- 随机化重力 (±20%)
-- 随机化摩擦系数 (±30%)
+提高 Sim-to-Real 迁移能力�?
+- 随机化重�?(±20%)
+- 随机化摩擦系�?(±30%)
 - 随机化扰动力
 
-### 3. 环境适应性研究
+### 3. 环境适应性研�?
 研究最佳环境参数：
-- 不同重力下的步态优化
-- 不同地面的能量效率
+- 不同重力下的步态优�?
+- 不同地面的能量效�?
 
 ---
 
@@ -307,4 +307,4 @@ env_controller.from_dict({
 ---
 
 **版本**: 1.0  
-**最后更新**: 2026-01-14
+**最后更�?*: 2026-01-14

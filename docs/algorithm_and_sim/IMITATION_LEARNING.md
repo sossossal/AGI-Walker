@@ -1,14 +1,14 @@
-# 模仿学习（Imitation Learning）
+# 模仿学习（Imitation Learning�?
 
-AGI-Walker 支持两种主要的模仿学习方法。
+AGI-Walker 支持两种主要的模仿学习方法�?
 
 ## 核心优势
 
-- **无需奖励函数** - 直接从专家演示学习
-- **样本效率高** - BC 仅需10%的训练时间
+- **无需奖励函数** - 直接从专家演示学�?
+- **样本效率�?* - BC 仅需10%的训练时�?
 - **性能保证** - GAIL 可达专家95%性能
 
-## 快速开始
+## 快速开�?
 
 ### 1. 安装依赖
 
@@ -16,9 +16,9 @@ AGI-Walker 支持两种主要的模仿学习方法。
 pip install -r requirements-imitation.txt
 ```
 
-### 2. 行为克隆（BC）
+### 2. 行为克隆（BC�?
 
-最简单快速的方法：
+最简单快速的方法�?
 
 ```python
 from python_api.imitation_learning import BehaviorCloning
@@ -39,9 +39,9 @@ bc.train(demos, n_epochs=10)
 bc.evaluate(n_episodes=10)
 ```
 
-### 3. 生成对抗模仿学习（GAIL）
+### 3. 生成对抗模仿学习（GAIL�?
 
-更强大但训练时间更长：
+更强大但训练时间更长�?
 
 ```python
 from python_api.imitation_learning import GAIL
@@ -68,67 +68,67 @@ python examples/imitation_learning_demo.py --method compare
 
 ## 方法对比
 
-### 行为克隆（BC）
+### 行为克隆（BC�?
 
 **优点**:
-- 训练快速（10%时间）
-- 实现简单
-- 样本效率高
+- 训练快速（10%时间�?
+- 实现简�?
+- 样本效率�?
 
 **缺点**:
-- 性能上限受专家限制
+- 性能上限受专家限�?
 - 分布漂移问题
 
 **适用场景**:
-- 快速原型开发
-- 专家数据质量高
-- 任务相对简单
+- 快速原型开�?
+- 专家数据质量�?
+- 任务相对简�?
 
 ### GAIL
 
 **优点**:
 - 性能接近专家
 - 鲁棒性强
-- 可泛化
+- 可泛�?
 
 **缺点**:
 - 训练时间较长
-- 需要调参
+- 需要调�?
 - 资源消耗大
 
 **适用场景**:
 - 追求高性能
 - 复杂任务
-- 有充足计算资源
+- 有充足计算资�?
 
 ## 性能基准
 
-| 方法 | 训练时间 | 最终奖励 | 样本需求 |
+| 方法 | 训练时间 | 最终奖�?| 样本需�?|
 |------|----------|----------|----------|
 | PPO（基准） | 100% | 100% | 100% |
 | BC | **10%** | 85% | **20%** |
 | GAIL | 150% | **95%** | 50% |
 
-## 使用技巧
+## 使用技�?
 
 ### 1. 专家数据质量
 
 - 收集50-100个高质量回合
-- 确保多样性
-- 避免早期终止的回合
+- 确保多样�?
+- 避免早期终止的回�?
 
-### 2. BC 超参数
+### 2. BC 超参�?
 
 ```python
 bc.train(
     demos,
     n_epochs=10,      # 推荐 5-20
     batch_size=64,    # 推荐 32-128
-    learning_rate=1e-3  # 推荐 1e-4 到 1e-2
+    learning_rate=1e-3  # 推荐 1e-4 �?1e-2
 )
 ```
 
-### 3. GAIL 超参数
+### 3. GAIL 超参�?
 
 ```python
 gail.train(
@@ -148,17 +148,17 @@ A:
 
 **Q: GAIL 训练不稳定？**
 A:
-1. 调整判别器更新频率
-2. 降低学习率
+1. 调整判别器更新频�?
+2. 降低学习�?
 3. 增加专家演示
 
-**Q: 如何选择方法？**
+**Q: 如何选择方法�?*
 A:
-- 快速原型 → **BC**
-- 追求性能 → **GAIL**
-- 数据少 → **BC + Fine-tuning**
+- 快速原�?�?**BC**
+- 追求性能 �?**GAIL**
+- 数据�?�?**BC + Fine-tuning**
 
-## API 参考
+## API 参�?
 
 ### BehaviorCloning
 
@@ -181,13 +181,13 @@ gail.evaluate(n_episodes)
 gail.save(path)
 ```
 
-## 下一步
+## 下一�?
 
-- [ ] 实现 DAgger（Dataset Aggregation）
-- [ ] 支持多任务模仿学习
-- [ ] 增加逆强化学习（IRL）
+- [ ] 实现 DAgger（Dataset Aggregation�?
+- [ ] 支持多任务模仿学�?
+- [ ] 增加逆强化学习（IRL�?
 
-## 参考文献
+## 参考文�?
 
 - [Behavior Cloning](https://arxiv.org/abs/1011.0686)
 - [GAIL](https://arxiv.org/abs/1606.03476)

@@ -3,9 +3,9 @@
 ## 概述
 
 AGI-Walker 现已集成 **OpenNeuro** 通信框架,支持:
-*   ✅ **Zenoh** 轻量级 Pub/Sub 通信
-*   ✅ **ROS 2** 生态系统集成
-*   ✅ **TCP 向后兼容** (保持现有 Godot 接口)
+*   �?**Zenoh** 轻量�?Pub/Sub 通信
+*   �?**ROS 2** 生态系统集�?
+*   �?**TCP 向后兼容** (保持现有 Godot 接口)
 
 ---
 
@@ -17,7 +17,7 @@ AGI-Walker 现已集成 **OpenNeuro** 通信框架,支持:
 pip install eclipse-zenoh
 ```
 
-### 2. ROS 2 (可选,用于 ROS 2 集成)
+### 2. ROS 2 (可�?用于 ROS 2 集成)
 
 ```bash
 # Ubuntu 22.04/24.04
@@ -32,9 +32,9 @@ source ~/.bashrc
 
 ---
 
-## 快速开始
+## 快速开�?
 
-### 模式 1: 纯 Zenoh 通信
+### 模式 1: �?Zenoh 通信
 
 ```python
 from python_api.zenoh_interface import ZenohInterface
@@ -46,7 +46,7 @@ zenoh = ZenohInterface()
 zenoh.declare_publisher("rt/robot/cmd")
 zenoh.publish("rt/robot/cmd", {"joint_0": 1.5})
 
-# 订阅状态
+# 订阅状�?
 def on_state(data):
     print(f"State: {data}")
 
@@ -56,13 +56,13 @@ zenoh.declare_subscriber("rt/robot/state", on_state)
 ### 模式 2: TCP-Zenoh 桥接 (保持 Godot 兼容)
 
 ```bash
-# 终端 1: 启动桥接器
+# 终端 1: 启动桥接�?
 python python_api/tcp_zenoh_bridge.py
 
 # 终端 2: 启动 Godot (现有流程不变)
 # Godot 会连接到 TCP 端口 9090
 
-# 终端 3: 通过 Zenoh 发送命令
+# 终端 3: 通过 Zenoh 发送命�?
 python -c "
 from python_api.zenoh_interface import ZenohInterface
 z = ZenohInterface()
@@ -82,11 +82,11 @@ ros2 topic list
 #   /robot/joint_states
 #   /robot/joint_commands
 
-# 终端 3: 发送命令
+# 终端 3: 发送命�?
 ros2 topic pub /robot/joint_commands std_msgs/msg/Float64MultiArray \
   "data: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]"
 
-# 终端 4: 查看状态
+# 终端 4: 查看状�?
 ros2 topic echo /robot/joint_states
 ```
 
@@ -97,43 +97,43 @@ ros2 topic echo /robot/joint_states
 ### 通信拓扑
 
 ```
-┌─────────────────┐
-│  Python 控制端   │
-│  (RL / 规划)     │
-└────────┬────────┘
-         │
+┌─────────────────�?
+�? Python 控制�?  �?
+�? (RL / 规划)     �?
+└────────┬────────�?
+         �?
     Zenoh Pub/Sub
-         │
-    ┌────┴────┐
-    │         │
-┌───▼───┐ ┌──▼──────┐
-│ Godot │ │ ROS 2   │
-│ (仿真) │ │ (工具)  │
-└───────┘ └─────────┘
+         �?
+    ┌────┴────�?
+    �?        �?
+┌───▼───�?┌──▼──────�?
+�?Godot �?�?ROS 2   �?
+�?(仿真) �?�?(工具)  �?
+└───────�?└─────────�?
 ```
 
-### 数据流
+### 数据�?
 
-**命令流** (Python → Godot):
+**命令�?* (Python �?Godot):
 ```
 Python RL 策略
-    ↓
+    �?
 zenoh.publish("rt/python/cmd", {...})
-    ↓
-TCP-Zenoh 桥接器
-    ↓
-TCP Socket → Godot
+    �?
+TCP-Zenoh 桥接�?
+    �?
+TCP Socket �?Godot
 ```
 
-**状态流** (Godot → Python):
+**状态流** (Godot �?Python):
 ```
-Godot 传感器
-    ↓
-TCP Socket → 桥接器
-    ↓
+Godot 传感�?
+    �?
+TCP Socket �?桥接�?
+    �?
 zenoh.publish("rt/godot/state", {...})
-    ↓
-Python 订阅者
+    �?
+Python 订阅�?
 ```
 
 ---
@@ -141,10 +141,10 @@ Python 订阅者
 ## 常见问题
 
 ### Q: Zenoh 连接失败?
-**A**: 检查防火墙设置,确保端口 7447 (Zenoh 默认) 未被占用。
+**A**: 检查防火墙设置,确保端口 7447 (Zenoh 默认) 未被占用�?
 
 ### Q: ROS 2 节点无法启动?
-**A**: 确认已安装 ROS 2 并 source 环境:
+**A**: 确认已安�?ROS 2 �?source 环境:
 ```bash
 source /opt/ros/jazzy/setup.bash
 ```
@@ -156,12 +156,12 @@ python python_api/tcp_zenoh_bridge.py
 ```
 
 ### Q: 如何查看 Zenoh 流量?
-**A**: 使用 Zenoh 自带的监控工具:
+**A**: 使用 Zenoh 自带的监控工�?
 ```bash
 # 安装 Zenoh CLI
 cargo install zenoh --features=zenoh/unstable
 
-# 监控所有消息
+# 监控所有消�?
 zenoh scout
 ```
 
@@ -169,20 +169,20 @@ zenoh scout
 
 ## 性能指标
 
-| 指标 | TCP (旧) | Zenoh (新) |
+| 指标 | TCP (�? | Zenoh (�? |
 |------|---------|-----------|
 | 延迟 | ~5-10ms | ~1-2ms |
-| 吞吐量 | ~10MB/s | ~100MB/s |
-| CPU 占用 | 中 | 低 |
-| 内存占用 | 中 | 低 |
+| 吞吐�?| ~10MB/s | ~100MB/s |
+| CPU 占用 | �?| �?|
+| 内存占用 | �?| �?|
 
 ---
 
-## 下一步
+## 下一�?
 
 1.  **验证延迟**: 运行 `examples/zenoh_ros2_demo.py`
-2.  **RViz 可视化**: 启动 ROS 2 节点后,使用 RViz 查看机器人状态
-3.  **硬件部署**: 参考 OpenNeuro 文档部署到真实硬件
+2.  **RViz 可视�?*: 启动 ROS 2 节点�?使用 RViz 查看机器人状�?
+3.  **硬件部署**: 参�?OpenNeuro 文档部署到真实硬�?
 
 ---
 
