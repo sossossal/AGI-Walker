@@ -35,7 +35,7 @@ jobs:
         uses: actions/setup-python@v6.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
+          
 
       - name: Install linters
         run: pip install ruff black
@@ -60,12 +60,12 @@ jobs:
         uses: actions/setup-python@v6.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
+          
 
       - name: Install smoke-test dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install .[dev]
+          pip install ".[dev]"
 
       - name: Run Smoke Tests
         run: python tests/run_smoke_tests.py --output-root test_env/smoke_ci
@@ -94,12 +94,12 @@ jobs:
         uses: actions/setup-python@v6.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
+          
 
       - name: Install distributed-smoke dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install .[dev,training]
+          pip install ".[dev,training]"
           pip install fastapi uvicorn
 
       - name: Run Distributed Smoke Test
@@ -135,12 +135,12 @@ jobs:
         uses: actions/setup-python@v6.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
+          
 
       - name: Install headless-smoke dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install .[dev,training]
+          pip install ".[dev,training]"
           pip install pytest pytest-asyncio fastapi uvicorn
 
       - name: Run Real Godot Headless Smoke
@@ -180,7 +180,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install .[dev,training]
+          pip install ".[dev,training]"
           pip install pytest pytest-mock stable-baselines3 gymnasium lxml scipy pytest-cov
 
       - name: Run Unit Tests
@@ -219,7 +219,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install .[dev,training]
+          pip install ".[dev,training]"
           pip install pytest pytest-mock stable-baselines3 gymnasium
 
       # 运行带有 integration 标记的测�?
