@@ -140,8 +140,7 @@ call test_env\Scripts\activate.bat
 
 echo 安装依赖...
 python -m pip install -q --upgrade pip
-python -m pip install -q -r requirements.txt
-python -m pip install -q -r requirements-dev.txt
+python -m pip install -q -e ".[dev]"
 
 echo ✓ 环境初始化完成
 exit /b 0

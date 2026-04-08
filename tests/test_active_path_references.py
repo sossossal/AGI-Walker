@@ -7,6 +7,10 @@ URDF_BATCH_CONVERT = Path("agi_walker/skills/urdf-generator/scripts/batch_conver
 PARAMETER_BATCH_OPTIMIZE = Path(
     "agi_walker/skills/parameter-optimizer/scripts/batch_optimize.py"
 )
+QUICK_START_SH = Path("scripts/quick_start.sh")
+QUICK_START_BAT = Path("scripts/quick_start.bat")
+INSTALL_SH = Path("scripts/install.sh")
+INSTALL_BAT = Path("scripts/install.bat")
 
 
 def test_dockerfile_does_not_reference_removed_source_layout() -> None:
@@ -40,3 +44,20 @@ def test_skill_batch_scripts_do_not_use_brittle_repo_root_traversal() -> None:
     assert hardcoded_root not in optimizer_content
     assert "Path(__file__).resolve().parents" in urdf_content
     assert "Path(__file__).resolve().parents" in optimizer_content
+
+
+def test_root_scripts_install_from_pyproject_instead_of_missing_requirements_files() -> None:
+    quick_start_sh = QUICK_START_SH.read_text(encoding="utf-8")
+    quick_start_bat = QUICK_START_BAT.read_text(encoding="utf-8")
+    install_sh = INSTALL_SH.read_text(encoding="utf-8")
+    install_bat = INSTALL_BAT.read_text(encoding="utf-8")
+
+    assert "requirements.txt" not in install_sh
+    assert "requirements.txt" not in install_bat
+    assert "requirements-dev.txt" not in quick_start_sh
+    assert "requirements.txt" not in quick_start_bat
+    assert 'pip install -q -e ".[dev]"' in quick_start_sh
+    assert 'python -m pip install -q -e ".[dev]"' in quick_start_bat
+    assert "pip install -e ." in install_sh
+    assert "python -m pip install -e ." in install_bat
+    assert '"pyproject.toml"' in quick_start_sh

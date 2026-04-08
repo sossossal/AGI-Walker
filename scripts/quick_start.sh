@@ -78,7 +78,7 @@ check_environment() {
         "web_panel/static/js/web-godot-client.js"
         "web_panel/static/godot-control.html"
         "tests/test_web_godot_integration.py"
-        "requirements.txt"
+        "pyproject.toml"
     )
     
     for file in "${files[@]}"; do
@@ -133,8 +133,7 @@ init_environment() {
     
     print_step "安装依赖..."
     pip install -q --upgrade pip
-    pip install -q -r requirements.txt
-    pip install -q -r requirements-dev.txt
+    pip install -q -e ".[dev]"
     print_success "依赖安装完成"
 }
 

@@ -43,7 +43,7 @@ echo "📥 安装依赖..."
 
 # 基础依赖
 echo "  - 基础依赖"
-pip install -r requirements.txt
+pip install -e .
 
 # 可选: ROS 2 (仅 Linux)
 if [ "$PLATFORM" = "Linux" ]; then
