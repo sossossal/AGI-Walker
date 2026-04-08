@@ -11,15 +11,20 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制项目文件
-COPY requirements.txt .
-COPY python_api/ ./python_api/
-COPY python_controller/ ./python_controller/
+COPY pyproject.toml .
+COPY README.md .
+COPY LICENSE .
+COPY agi_walker/ ./agi_walker/
+COPY web_panel/ ./web_panel/
 COPY robot_models/ ./robot_models/
+COPY parts_library/ ./parts_library/
 COPY examples/ ./examples/
 COPY tests/ ./tests/
+COPY tools/ ./tools/
+COPY scripts/ ./scripts/
 
 # 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir .
 
 # 安装可选依赖
 RUN pip install --no-cache-dir mujoco PyQt6

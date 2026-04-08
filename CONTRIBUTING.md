@@ -70,8 +70,8 @@ git checkout -b fix/your-bug-fix
 python tests/test_integration.py
 
 # 检查代码风格
-flake8 python_api/ python_controller/
-black --check python_api/ python_controller/
+flake8 agi_walker/ web_panel/ tests/
+black --check agi_walker/ web_panel/ tests/
 ```
 
 #### 3.5 提交
