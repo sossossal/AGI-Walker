@@ -197,8 +197,12 @@ class ModernGodotAgentAdapter(GodotAgentBackend):
 
     def list_skills(self) -> Dict[str, Any]:
         templates_result = self.list_templates()
-        skills = templates_result.get("templates", []) if isinstance(templates_result, dict) else []
-        
+        skills = (
+            templates_result.get("templates", [])
+            if isinstance(templates_result, dict)
+            else []
+        )
+
         return {
             "status": "success",
             "skills": list(skills),
@@ -329,26 +333,61 @@ class ModernGodotAgentAdapter(GodotAgentBackend):
             }
 
         try:
-            self._sync_router_project_path(project_path or self.default_project_path)
+            normalized_project_path = project_path or self.default_project_path
+            self._sync_router_project_path(normalized_project_path)
 
-            load_router_class(str(self.agent_dir), "GodotAgentRouter")
-            from agent_system.tools.doctor import SystemDoctor
+            with redirect_stdout(StringIO()):
+                load_router_class(str(self.agent_dir), "GodotAgentRouter")
 
-            doctor = SystemDoctor(config_path=str(self.config_path))
-            original_cwd = Path.cwd()
-            try:
-                os.chdir(self.agent_dir)
-                with redirect_stdout(StringIO()):
-                    ok = doctor.check_all()
-            finally:
-                os.chdir(original_cwd)
+            godot_cli = getattr(self.router, "godot_cli", None)
+            executable = getattr(godot_cli, "executable", None)
+            effective_project_path = normalized_project_path or getattr(
+                godot_cli, "project_path", None
+            )
+
+            checks = [
+                {
+                    "name": "config_path",
+                    "passed": self.config_path.exists(),
+                    "message": str(self.config_path),
+                },
+                {
+                    "name": "router",
+                    "passed": True,
+                    "message": type(self.router).__name__,
+                },
+                {
+                    "name": "templates_dir",
+                    "passed": self.templates_dir.exists(),
+                    "message": str(self.templates_dir),
+                },
+                {
+                    "name": "history_file_parent",
+                    "passed": self.history_file.parent.exists(),
+                    "message": str(self.history_file),
+                },
+                {
+                    "name": "project_path",
+                    "passed": bool(effective_project_path),
+                    "message": effective_project_path or "Project path not configured",
+                },
+                {
+                    "name": "godot_executable",
+                    "passed": bool(executable),
+                    "message": executable or "Godot executable not found",
+                },
+            ]
+
+            ok = all(item["passed"] for item in checks)
 
             return {
                 "status": "success" if ok else "error",
                 "ok": ok,
-                "checks": list(doctor.results),
+                "checks": checks,
                 "backend": "godot-agent",
                 "config_path": str(self.config_path),
+                "project_path": effective_project_path,
+                "history_file": str(self.history_file),
             }
         except Exception as exc:
             return {"status": "error", "ok": False, "checks": [], "message": str(exc)}

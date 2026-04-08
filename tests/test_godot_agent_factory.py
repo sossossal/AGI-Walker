@@ -184,19 +184,31 @@ def test_modern_adapter_pipeline_and_roles(monkeypatch):
         switched_project_dir.mkdir()
 
         adapter = ModernGodotAgentAdapter(str(agent_dir), project_path=str(project_dir))
-        results = adapter.execute_pipeline(["step one", "step two"], context={"foo": "bar"})
+        results = adapter.execute_pipeline(
+            ["step one", "step two"], context={"foo": "bar"}
+        )
 
         assert len(results) == 2
         assert all(item["success"] is True for item in results)
         assert results[-1]["context"]["last_prompt"] == "step two"
         assert adapter.router.project_path == str(project_dir.resolve())
-        assert str(adapter.router.index_service.project_path) == str(project_dir.resolve())
+        assert str(adapter.router.index_service.project_path) == str(
+            project_dir.resolve()
+        )
 
-        adapter.execute_command("switch project", project_path=str(switched_project_dir))
+        adapter.execute_command(
+            "switch project", project_path=str(switched_project_dir)
+        )
         assert adapter.router.project_path == str(switched_project_dir.resolve())
-        assert adapter.router.godot_cli.project_path == str(switched_project_dir.resolve())
-        assert str(adapter.router.index_service.project_path) == str(switched_project_dir.resolve())
-        assert str(adapter.router.roles["developer"].index_service.project_path) == str(switched_project_dir.resolve())
+        assert adapter.router.godot_cli.project_path == str(
+            switched_project_dir.resolve()
+        )
+        assert str(adapter.router.index_service.project_path) == str(
+            switched_project_dir.resolve()
+        )
+        assert str(adapter.router.roles["developer"].index_service.project_path) == str(
+            switched_project_dir.resolve()
+        )
 
         roles = adapter.get_roles_info()
         assert [role["name"] for role in roles] == ["developer", "tester"]
@@ -218,6 +230,33 @@ def test_modern_adapter_pipeline_and_roles(monkeypatch):
         template = adapter.get_template("ai/chase.gd")
         assert template["status"] == "success"
         assert template["data"]["source_kind"] == "template"
+    finally:
+        shutil.rmtree(agent_dir, ignore_errors=True)
+
+
+def test_modern_adapter_doctor_degrades_to_builtin_checks():
+    agent_dir = _make_agent_dir("godot_agent_doctor")
+    try:
+        _write_modern_agent_stub(agent_dir)
+        (agent_dir / "agent_system" / "templates" / "ai").mkdir(parents=True)
+        (agent_dir / "config.yaml").write_text("godot: {}\n", encoding="utf-8")
+        project_dir = agent_dir / "project_a"
+        project_dir.mkdir()
+
+        adapter = ModernGodotAgentAdapter(str(agent_dir), project_path=str(project_dir))
+        doctor = adapter.doctor()
+
+        assert doctor["status"] == "error"
+        assert doctor["ok"] is False
+        assert doctor["backend"] == "godot-agent"
+        assert doctor["project_path"] == str(project_dir.resolve())
+        assert doctor["config_path"] == str((agent_dir / "config.yaml").resolve())
+        assert doctor["history_file"]
+        assert any(check["name"] == "router" and check["passed"] for check in doctor["checks"])
+        assert any(
+            check["name"] == "godot_executable" and check["passed"] is False
+            for check in doctor["checks"]
+        )
     finally:
         shutil.rmtree(agent_dir, ignore_errors=True)
 
