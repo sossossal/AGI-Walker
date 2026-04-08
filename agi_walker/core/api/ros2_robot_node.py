@@ -40,7 +40,7 @@ class AGIWalkerNode(Node):
     用法:
         ros2 run agi_walker robot_node
         # 或
-        python python_api/ros2_robot_node.py
+        python -m agi_walker.core.api.ros2_robot_node
     """
 
     def __init__(self):

@@ -184,7 +184,7 @@ def main():
     print("  ✓ 实时性能计算")
     print("  ✓ 参数范围限制")
     print("\n交互式调节:")
-    print("  python python_api/precision_adjuster.py")
+    print("  python -m agi_walker.core.api.control.precision_adjuster")
 
 
 if __name__ == "__main__":

@@ -12,9 +12,7 @@ def build_custom_quadruped():
     """
     使用零件库构建一个四足机器人
     """
-    pm = PartsManager(
-        os.path.join(os.path.dirname(__file__), "../python_api/parts_library.json")
-    )
+    pm = PartsManager()
 
     print("=" * 60)
     print("模块化机器人构建器 (Modular Robot Builder)")
