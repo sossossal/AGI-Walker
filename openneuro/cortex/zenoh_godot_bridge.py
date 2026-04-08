@@ -12,9 +12,15 @@ import threading
 from pathlib import Path
 import sys
 
-# 添加AGI-Walker路径
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-from python_api.comm.godot_client import GodotSimulationClient
+def _add_repo_root_to_path() -> None:
+    module_path = Path("agi_walker/core/api/comm/godot_client.py")
+    for parent in Path(__file__).resolve().parents:
+        if (parent / module_path).exists():
+            sys.path.insert(0, str(parent))
+            return
+
+_add_repo_root_to_path()
+from agi_walker.core.api.comm.godot_client import GodotSimulationClient
 
 
 class ZenohGodotBridge:

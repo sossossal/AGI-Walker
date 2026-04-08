@@ -103,7 +103,7 @@ notepad test_robot.json
 
 ```bash
 # 终端1：启动模拟Godot服务器
-python -c "from python_api.godot_client import MockGodotServer; import time; s=MockGodotServer(); s.start(); time.sleep(999)"
+python -c "from agi_walker.core.api.comm.godot_client import MockGodotServer; import time; s=MockGodotServer(); s.start(); time.sleep(999)"
 
 # 终端2：启动GUI
 python tools\robot_configurator_gui.py
