@@ -177,6 +177,7 @@ class WorkflowResult:
             "error_message": self.error_message,
             "start_time": self.start_time.isoformat(),
             "end_time": self.end_time.isoformat() if self.end_time else None,
+            "log_path": self.log_path,
             "graph_data": self.graph_data,
             "steps": [s.to_dict() for s in self.steps],
         }
@@ -201,17 +202,17 @@ class WorkflowOrchestrator:
         self.workflows["robot_creation_pipeline"] = {
             "name": "robot_creation_pipeline",
             "steps": [
-                {"name": "create_model", "skill_executor": "robot_modeling", "action": "create_from_template", "inputs": {"template": "biped_basic", "output_file": "created_robot.json"}},
-                {"name": "optimize_params", "skill_executor": "parameter_optimizer", "action": "optimize_mass_distribution", "inputs": {"robot_config": "{create_model.output_file}", "output_file": "optimized_robot.json", "target_com_height": 0.4}},
-                {"name": "export_urdf", "skill_executor": "urdf_generator", "action": "export_to_format", "inputs": {"robot_config": "{optimize_params.output_file}", "output_format": "urdf", "output_file": "robot.urdf"}},
+                {"name": "create_model", "skill_executor": "robot_modeling", "action": "create_from_template", "inputs": {"template": "biped_basic", "output_file": ".output/created_robot.json"}},
+                {"name": "optimize_params", "skill_executor": "parameter_optimizer", "action": "optimize_mass_distribution", "inputs": {"robot_config": "{create_model.output_file}", "output_file": ".output/optimized_robot.json", "target_com_height": 0.4}},
+                {"name": "export_urdf", "skill_executor": "urdf_generator", "action": "export_to_format", "inputs": {"robot_config": "{optimize_params.output_file}", "output_format": "urdf", "output_file": "exports/robot.urdf"}},
             ]
         }
         self.workflows["simulation_ready_robot"] = {
             "name": "simulation_ready_robot",
             "steps": [
-                {"name": "load_model", "skill_executor": "robot_modeling", "action": "load_config", "inputs": {"config_file": "configs/tutorial_01_biped.json", "output_file": "sim_robot.json"}},
-                {"name": "validate_physics", "skill_executor": "parameter_optimizer", "action": "validate_physics", "inputs": {"robot_config": "{load_model.output_file}", "output_file": "validated_robot.json"}},
-                {"name": "export_for_sim", "skill_executor": "urdf_generator", "action": "export_to_format", "inputs": {"robot_config": "{validate_physics.output_file}", "output_format": "sdf", "output_file": "robot_sim.sdf"}},
+                {"name": "load_model", "skill_executor": "robot_modeling", "action": "load_config", "inputs": {"config_file": "configs/tutorial_01_biped.json", "output_file": ".output/sim_robot.json"}},
+                {"name": "validate_physics", "skill_executor": "parameter_optimizer", "action": "validate_physics", "inputs": {"robot_config": "{load_model.output_file}", "output_file": ".output/validated_robot.json"}},
+                {"name": "export_for_sim", "skill_executor": "urdf_generator", "action": "export_to_format", "inputs": {"robot_config": "{validate_physics.output_file}", "output_format": "sdf", "output_file": "exports/robot_sim.sdf"}},
             ]
         }
 
@@ -260,16 +261,27 @@ class WorkflowOrchestrator:
         return normalized
 
     def _resolve_output_file_path(self, output_file: Any) -> Any:
-        if not isinstance(output_file, str) or not output_file: return output_file
-        
+        if not isinstance(output_file, str) or not output_file:
+            return output_file
+
+        output_path = Path(output_file)
+
         # V1.0 Test Contract: If the path is already absolute, use it directly.
-        if os.path.isabs(output_file) or Path(output_file).is_absolute():
+        if os.path.isabs(output_file) or output_path.is_absolute():
             return os.path.normpath(output_file)
-        
+
         # Priority 1: Use explicit output_root (common in tests)
         root = self._execution_context.get("output_root")
-        if root: return os.path.normpath(os.path.join(root, output_file))
-        
+        if root:
+            return os.path.normpath(os.path.join(root, output_file))
+
+        # Preserve explicitly scoped relative paths such as test_env/... while
+        # still isolating the built-in `.output/...` and `exports/...` defaults.
+        if output_path.parent != Path("."):
+            first_segment = output_path.parts[0]
+            if first_segment not in {".output", "exports"}:
+                return os.path.normpath(output_file)
+
         # Priority 2: Use global data root (standard V3.0 isolation)
         return os.path.normpath(os.path.join(str(RuntimePaths.DATA_ROOT), output_file))
 

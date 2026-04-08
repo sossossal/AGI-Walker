@@ -11,6 +11,7 @@ from agi_walker.integrations.godot_agent.godot_agent_adapter import (
     ModernGodotAgentAdapter,
 )
 from agi_walker.integrations.godot_agent.factory import create_godot_agent_backend
+from web_panel.command_parser import CommandParser
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,10 @@ class GodotAgentLaunchRequest(pydantic.BaseModel):
 
 class GodotSkillApplyRequest(pydantic.BaseModel):
     skill_id: str
+
+
+class AgentCommandParseRequest(pydantic.BaseModel):
+    command: str
 
 
 def get_godot_agent_backend(
@@ -128,6 +133,12 @@ def build_router(app: FastAPI) -> APIRouter:
     async def get_godot_agent_history_route(limit: int = 20):
         backend = create_godot_agent_backend()
         return backend.get_history(limit=limit)
+
+    @router.post("/api/agent/parse-command")
+    async def parse_agent_command_route(req: AgentCommandParseRequest):
+        parser = CommandParser()
+        config = parser.parse(req.command)
+        return {"status": "success", "config": config}
 
     @router.get("/api/godot_skills/list")
     async def list_godot_skills_route():

@@ -135,8 +135,8 @@ class GodotSessionManager:
         for s in self.sessions.values(): s.stop()
         self.sessions.clear()
 
-async def telemetry_loop(app: Any):
-    """Background loop for broadcasting telemetry."""
+async def telemetry_loop(manager: GodotSessionManager, broadcast_callback: Callable):
+    """Background loop kept signature-compatible with server lifespan wiring."""
     while True:
         await asyncio.sleep(1.0)
 

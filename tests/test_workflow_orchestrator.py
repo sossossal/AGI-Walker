@@ -1,10 +1,12 @@
 import shutil
+from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
 from agi_walker.workflow_orchestrator import (
     StepStatus,
     WorkflowOrchestrator,
+    WorkflowResult,
     WorkflowStatus,
 )
 
@@ -208,6 +210,20 @@ def test_simulation_ready_robot_completes_with_real_executors() -> None:
         assert (tmp_path / "robot_sim.sdf").exists()
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_workflow_result_to_dict_preserves_log_path() -> None:
+    result = WorkflowResult(
+        workflow_name="robot_creation_pipeline",
+        status=WorkflowStatus.COMPLETED,
+        start_time=datetime(2026, 4, 8, 10, 0, 0),
+        end_time=datetime(2026, 4, 8, 10, 0, 2),
+        log_path="test_env/workflow_log.json",
+    )
+
+    payload = result.to_dict()
+
+    assert payload["log_path"] == "test_env/workflow_log.json"
 
 
 def test_skipped_steps_are_counted_as_success() -> None:
