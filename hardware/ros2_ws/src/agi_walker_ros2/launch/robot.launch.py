@@ -1,80 +1,96 @@
+#!/usr/bin/env python3
 """
-AGI-Walker ROS 2 Launch File
-启动完整的机器人系统: 节点 + 状态发布 + RViz
+AGI-Walker ROS 2 launch wrapper.
+
+Starts the bridge launch and optionally adds robot_state_publisher and RViz.
 """
 
+import os
+
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
-from ament_index_python.packages import get_package_share_directory
-import os
 
 
 def generate_launch_description():
-    # 获取包路径
-    pkg_share = FindPackageShare('agi_walker_ros2').find('agi_walker_ros2')
-    
-    # 参数
-    use_sim_time = LaunchConfiguration('use_sim_time', default='true')
-    rviz_config = LaunchConfiguration(
-        'rviz_config',
-        default=os.path.join(pkg_share, 'rviz', 'robot_view.rviz')
+    pkg_share = get_package_share_directory("agi_walker_ros2")
+    bridge_launch_file = os.path.join(pkg_share, "launch", "agi_walker.launch.py")
+    urdf_file = os.path.join(pkg_share, "urdf", "agi_walker.urdf")
+
+    with open(urdf_file, encoding="utf-8") as handle:
+        robot_description = handle.read()
+
+    godot_host = LaunchConfiguration("godot_host")
+    godot_port = LaunchConfiguration("godot_port")
+    use_sim_time = LaunchConfiguration("use_sim_time")
+    publish_robot_description = LaunchConfiguration("publish_robot_description")
+    start_rviz = LaunchConfiguration("start_rviz")
+
+    bridge_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(bridge_launch_file),
+        launch_arguments={
+            "godot_host": godot_host,
+            "godot_port": godot_port,
+            "use_sim_time": use_sim_time,
+        }.items(),
     )
-    urdf_file = LaunchConfiguration(
-        'urdf_file',
-        default=os.path.join(pkg_share, 'urdf', 'agi_walker.urdf')
-    )
-    
-    # 声明参数
-    declare_use_sim_time = DeclareLaunchArgument(
-        'use_sim_time',
-        default_value='true',
-        description='Use simulation time'
-    )
-    
-    declare_rviz_config = DeclareLaunchArgument(
-        'rviz_config',
-        default_value=rviz_config,
-        description='RViz config file path'
-    )
-    
-    # 机器人节点
-    robot_node = Node(
-        package='agi_walker_ros2',
-        executable='robot_node',
-        name='agi_walker_node',
-        output='screen',
-        parameters=[{'use_sim_time': use_sim_time}]
-    )
-    
-    # 状态发布器 (发布 TF)
+
     robot_state_publisher = Node(
-        package='robot_state_publisher',
-        executable='robot_state_publisher',
-        name='robot_state_publisher',
-        output='screen',
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        name="robot_state_publisher",
+        output="screen",
+        condition=IfCondition(publish_robot_description),
         parameters=[
-            {'use_sim_time': use_sim_time},
-            {'robot_description': open(urdf_file.perform(None)).read()}
+            {
+                "use_sim_time": use_sim_time,
+                "robot_description": robot_description,
+            }
+        ],
+    )
+
+    rviz_node = Node(
+        package="rviz2",
+        executable="rviz2",
+        name="rviz2",
+        output="screen",
+        condition=IfCondition(start_rviz),
+        parameters=[{"use_sim_time": use_sim_time}],
+    )
+
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument(
+                "godot_host",
+                default_value="127.0.0.1",
+                description="Godot simulation server host",
+            ),
+            DeclareLaunchArgument(
+                "godot_port",
+                default_value="9999",
+                description="Godot simulation server port",
+            ),
+            DeclareLaunchArgument(
+                "use_sim_time",
+                default_value="false",
+                description="Use simulation time",
+            ),
+            DeclareLaunchArgument(
+                "publish_robot_description",
+                default_value="true",
+                description="Start robot_state_publisher with the packaged URDF",
+            ),
+            DeclareLaunchArgument(
+                "start_rviz",
+                default_value="false",
+                description="Start RViz without a custom config",
+            ),
+            bridge_launch,
+            robot_state_publisher,
+            rviz_node,
         ]
     )
-    
-    # RViz
-    rviz_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        output='screen',
-        arguments=['-d', rviz_config],
-        parameters=[{'use_sim_time': use_sim_time}]
-    )
-    
-    return LaunchDescription([
-        declare_use_sim_time,
-        declare_rviz_config,
-        robot_node,
-        robot_state_publisher,
-        rviz_node
-    ])

@@ -1,221 +1,26 @@
-# AGI-Walker: 娑撴氨鏅張鈧箛顐ゆ畱閺堝搫娅掓禍?Sim2Real 楠炲啿褰?
+# Launch Post
 
-## TL;DR
+This archived page keeps a draft structure for a short launch or milestone announcement.
 
-閹存垳婊戝鈧┃鎰啊 AGI-Walker - 娑撯偓娑擃亙绮犳禒璺ㄦ埂閸掓壆骞囩€圭偟娈戠€瑰本鏆ｉ張鍝勬珤娴?AI 瀵偓閸欐垵閽╅崣鑸偓?
+## Draft Angle
 
-**閺嶇绺炬禍顔惧仯**:
-- 閳?**10娓璼 闁矮淇婂鎯扮箿** (濮?Isaac Sim 韫?100x)
-- 棣冨箚 **10 娑擃亜宓嗛悽銊ョ€?RL 娴犺濮?* (濡ゅ吋顫弨鈧悥顑锯偓浣瑰閸欐牓鈧礁顕遍懜顏嗙搼)
-- 棣冨 **鐎瑰本鏆?Sim2Real 瀹搞儱鍙块柧?* (閺佺増宓侀崚鍡樼€介妴浣稿棘閺佺増鐗庨崙?
-- 棣冩畬 **娑撯偓闁款喖鐣ㄧ憗?* + **Web GUI**
+AGI-Walker now presents a clearer supported surface:
 
-GitHub: https://github.com/sossossal/AGI-Walker
+- CLI for automation and scripting
+- Web panel for browser-based interaction
+- MCP server for tool-driven integration
 
----
+## Suggested Announcement Structure
 
-## 娑撹桨绮堟稊鍫熷灉娴狀剝顩﹂崑姘崇箹娑?
+1. Lead with the practical user outcome.
+2. Mention the supported entry points.
+3. Call out documentation cleanup and verification.
+4. End with known limitations and next steps.
 
-閻滅増婀侀惃鍕簚閸ｃ劋姹夋禒璺ㄦ埂楠炲啿褰寸憰浣风疄婢额亪鍣?Isaac Sim 闂団偓鐟曚線鐝粩?GPU),鐟曚椒绠為崝鐔诲厴娑撳秴鍙?MuJoCo 閸欘亝婀侀悧鈺冩倞瀵洘鎼?,鐟曚椒绠?Sim2Real 鏉╀胶些閸ヤ即姣﹂妴?
+## Short Draft
 
-閹存垳婊戦幆瀹狀洣娑撯偓娑?
-- 閴?鏉炲鍣虹痪?閺咁噣鈧氨鐟拋鐗堟拱鐏忚精鍏樼捄?
-- 閴?閸旂喕鍏樼€瑰本鏆?娴犲簼璞㈤惇鐔峰煂绾兛娆㈤惃鍕弿濞翠胶鈻?
-- 閴?閺勬挷绨担璺ㄦ暏(Web GUI + 娑撯偓闁款喖鐣ㄧ憗?
-- 閴?閹嗗厴閸楁捁绉?10娓璼 闁矮淇婂鎯扮箿)
+AGI-Walker has been cleaned up into a clearer workflow surface. The supported paths are now the Python CLI, the Web panel, and the MCP server, with primary docs aligned to those entry points. Historical material remains archived for reference, while the active guides point to the current codebase.
 
-娴滃孩妲搁張澶夌啊 AGI-Walker閵?
+## Archive Note
 
----
-
-## 閹垛偓閺堫垯瀵掗悙?
-
-### 1. 鐡掑懍缍嗗鎯扮箿闁矮淇?(10娓璼)
-
-閹存垳婊戞担璺ㄦ暏 **Eclipse Zenoh + msgpack** 鐎圭偟骞囨禍鍡曠瑹閻ｅ本娓惰箛顐ゆ畱閺堝搫娅掓禍娲偓姘繆:
-
-| 楠炲啿褰?| 瀵ゆ儼绻?| 閹垛偓閺堫垱鐖?|
-|------|------|--------|
-| **AGI-Walker** | **10娓璼** | Zenoh + msgpack |
-| Isaac Sim | ~1000娓璼 | DDS |
-| Gazebo | ~2000娓璼 | ROS 1 |
-| PyBullet | ~500娓璼 | TCP |
-
-**閹嗗厴閸╁搫鍣ù瀣槸**:
-```bash
-python tests/benchmark_performance.py
-# 缂佹挻鐏? 楠炲啿娼?10.31娓璼, P99 14.51娓璼
-```
-
-### 2. 鐎瑰本鏆ｉ惃?Sim2Real 瀹搞儱鍙块柧?
-
-AGI-Walker 閹绘劒绶甸悪顒佹箒閻?Sim2Real 瀹搞儱鍙?
-
-- **閺佺増宓佸顔肩磽閸掑棙鐎介崳?*: 閼奉亜濮╃€佃鐦禒璺ㄦ埂娑撳海婀＄€圭偞鏆熼幑?
-- **閻椻晝鎮婇崣鍌涙殶閺嶁€冲櫙**: 閸︺劎鍤庢导妯哄娴犺法婀￠崣鍌涙殶
-- **娴犺濮熺紓鏍帆閸?*: 閸欘垵顫嬮崠鏍殶閺佺娅勯幏?閻滄澘鐤勬禒璇插閸欏倹鏆?
-
-鏉╂瑤绨哄銉ュ徔鐢喖濮幋鎴滄粦鐏?Sim2Real 閹存劕濮涢悳鍥︾矤 ~60% 閹绘劕宕岄崚?~85%閵?
-
-### 3. 10 娑擃亝鐖ｉ崙?RL 娴犺濮?
-
-閹存垳婊戠€圭偟骞囨禍?10 娑擃亜宓嗛悽銊ョ€锋禒璇插,鐟曞棛娲?
-- **Locomotion**: 濡ゅ吋顫弨鈧悥顑锯偓浣哥６瀹€鏍ф勾瑜邦潿鈧焦鏋╅崸陇顢戠挧?
-- **Manipulation**: 閻椻晙缍嬮幎鎾冲絿閵嗕礁绱戦梻銊ｂ偓浣哥垻閸欑姷袧閺?
-- **Navigation**: 闁潡娈扮€佃壈鍩呴妴浣稿З閹胶骞嗘晶?
-- **Multi-Agent**: 閸楀繋缍旈幖顒冪箥閵嗕胶绱梼鐔活攽鐠?
-
-濮ｅ繋閲滄禒璇插闁棄瀵橀崥?
-- 閴?Gymnasium 閹恒儱褰?
-- 閴?妫板嫯顔勭紒鍐┠侀崹?(鐠侇厾绮屾稉?
-- 閴?閹嗗厴 Baseline
-- 閴?鐠囷妇绮忛弬鍥ㄣ€?
-
-### 4. 濡€虫健閸栨牠娴傛禒鍓侀兇缂?
-
-閸╄桨绨惇鐔风杽绾兛娆㈢憴鍕壐(Unitree, Tesla)閻ㄥ嫰娴傛禒璺虹氨:
-- 14 娑擃亪娴傛禒?(閻㈠灚婧€閵嗕椒绱堕幇鐔锋珤閵嗕胶鏁稿Ч?
-- 閼奉亜濮?BOM 鐠侊紕鐣?
-- 閹存劖婀版导鎵暬 妤?000-妤?000
-
-閸嶅繒绮嶇憗鍛妤傛ü绔撮弽椋庣矋鐟佸懏婧€閸ｃ劋姹夐妴?
-
----
-
-## 韫囶偊鈧喎绱戞慨?
-
-### 鐎瑰顥?(30 缁?
-```bash
-git clone https://github.com/sossossal/AGI-Walker.git
-cd AGI-Walker
-./install.sh  # 閹?install.bat (Windows)
-```
-
-### 鏉╂劘顢戠粭顑跨娑擃亙鎹㈤崝?(1 閸掑棝鎸?
-```python
-import gymnasium as gym
-
-env = gym.make('StairClimbing-v0')
-obs, _ = env.reset()
-
-for _ in range(1000):
-    action = env.action_space.sample()
-    obs, reward, done, truncated, info = env.step(action)
-    if done or truncated:
-        print(f"閻栴兛绗?{info['steps_climbed']}/5 缁狙勩偧濮?")
-        break
-```
-
-### 閸氼垰濮?Web 閹貉冨煑闂堛垺婢?(10 缁?
-```bash
-python web_panel/server.py
-# 鐠佸潡妫?http://localhost:8000
-```
-
----
-
-## 閺嬭埖鐎拋鎹愵吀
-
-```
-閳瑰备鏀㈤埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞?
-閳? Cortex (PC/Jetson)                     閳?
-閳? - Python RL 缁涙牜鏆?                       閳?
-閳? - Web 閹貉冨煑闂堛垺婢?                         閳?
-閳? - Zenoh Router                         閳?
-閳规柡鏀㈤埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞顑芥敘閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳?
-             閳?10娓璼 瀵ゆ儼绻?
-             閳?
-    閳瑰备鏀㈤埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞绮规敘閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳?
-    閳? Zenoh Network  閳?
-    閳规柡鏀㈤埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞顑芥敘閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳?
-             閳?
-   閳瑰备鏀㈤埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞鈧埞灏栨敘閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳?
-   閳?        閳?        閳?
-閳瑰备鏀㈤埞鈧埢灏栨敘閳光偓閳? 閳瑰备鏀㈤埞鈧埢灏栨敘閳光偓閳? 閳瑰备鏀㈤埞鈧埢灏栨敘閳光偓閳?
-閳逛静SP32閳? 閳逛静SP32閳? 閳逛静SP32閳?
-閳?FL  閳? 閳?FR  閳? 閳?RL  閳?
-閳规柡鏀㈤埞鈧埞顑芥敘閳光偓閳? 閳规柡鏀㈤埞鈧埞顑芥敘閳光偓閳? 閳规柡鏀㈤埞鈧埞顑芥敘閳光偓閳?
-   閳?       閳?       閳?
- 2x閼稿灚婧€   2x閼稿灚婧€   2x閼稿灚婧€
-```
-
----
-
-## 閹嗗厴鐎佃鐦?
-
-### 闁矮淇婇幀褑鍏?
-```
-AGI-Walker:  閳诲牃鏋呴埢鍫氭瀰閳诲牃鏋呴埢鍫氭瀰閳诲牃鏋呴埢鍫氭瀰閳诲牃鏋呴埢鍫氭瀰閳诲牃鏋呴埢鍫氭瀰 10娓璼
-Isaac Sim:   閳诲牃鏋?1000娓璼 (100x 閹?
-Gazebo:      閳?2000娓璼 (200x 閹?
-PyBullet:    閳诲牃鏋呴埢鍫氭瀰 500娓璼 (50x 閹?
-```
-
-### 閸旂喕鍏樼€瑰本鏆ｆ惔?
-| 閸旂喕鍏?| AGI-Walker | Isaac Sim | MuJoCo | PyBullet |
-|------|-----------|-----------|--------|----------|
-| 閻椻晝鎮婄划鎯у | 鐚告劏鐡欑尭鎰ㄧ摍 | 鐚告劏鐡欑尭鎰ㄧ摍鐚?| 鐚告劏鐡欑尭鎰ㄧ摍鐚?| 鐚告劏鐡欑尭?|
-| 闁矮淇婇幀褑鍏?| 鐚告劏鐡欑尭鎰ㄧ摍鐚?| 鐚告劏鐡欑尭?| N/A | 鐚告劏鐡?|
-| Sim2Real | 鐚告劏鐡欑尭鎰ㄧ摍鐚?| 鐚告劏鐡欑尭?| 鐚告劏鐡?| 鐚告劏鐡?|
-| 閺勬挾鏁ら幀?| 鐚告劏鐡欑尭鎰ㄧ摍鐚?| 鐚告劏鐡?| 鐚告劏鐡欑尭?| 鐚告劏鐡欑尭鎰ㄧ摍 |
-
----
-
-## 鐠侯垳鍤庨崶?
-
-### 閻厽婀?(1-2 娑擃亝婀€)
-- [ ] 閸欐垵绔?10 娑擃亪顣╃拋顓犵矊濡€崇€?
-- [ ] 閻喎鐤勭涵顑挎妤犲矁鐦?(Unitree Go2)
-- [ ] 缁€鎯у隘閹恒劌绠?(閻╊喗鐖?1000 Stars)
-
-### 娑擃厽婀?(3-6 娑擃亝婀€)
-- [ ] VLA 婢堆勀侀崹瀣肠閹?(閼奉亞鍔х拠顓♀枅閹貉冨煑)
-- [ ] 娴滄垵閽╅崣?SaaS 閺堝秴濮?
-- [ ] 濡€崇€风敮鍌氭簚
-
-### 闂€鎸庢埂 (6-12 娑擃亝婀€)
-- [ ] 闁氨鏁ら張鍝勬珤娴滃搫鐔€鎼囱勀侀崹?
-- [ ] ICRA 2027 鐠佺儤鏋?
-
----
-
-## 鐠愶紕灏?
-
-閹存垳婊戝▎銏ｇ箣閸氬嫮顫掔拹锛勫盀:
-- 棣冩偘 閹躲儱鎲?Bug
-- 棣冩寱 閹绘劕鍤弬鏉垮閼?
-- 棣冩憫 閺€纭呯箻閺傚洦銆?
-- 棣冨箚 鐠愶紕灏炴禒璇插
-- 棣冾樆 閸掑棔闊╁Ο鈥崇€?
-
-[鐠愶紕灏為幐鍥у础 閳妳(https://github.com/sossossal/AGI-Walker/blob/main/CONTRIBUTING.md)
-
----
-
-## 閸ャ垽妲?
-
-AGI-Walker 閻╊喖澧犻弰顖欓嚋娴滃搫绱戝┃鎰般€嶉惄?濞嗐垼绻嬮崝鐘插弳!
-
-- 鐎电粯澹? RL 缁犳纭跺銉р柤鐢牄鈧胶鈥栨禒璺轰紣缁嬪绗€
-- 閼辨梻閮? team@agi-walker.org
-
----
-
-## 鐠佺褰茬拠?
-
-MIT License - 閸欘垵鍤滈悽鍙樺▏閻劊鈧椒鎱ㄩ弨鐟版嫲閸掑棗褰?
-
----
-
-## 闁剧偓甯?
-
-- **GitHub**: https://github.com/sossossal/AGI-Walker
-- **閺傚洦銆?*: https://agi-walker.readthedocs.io
-- **Discord**: https://discord.gg/agi-walker
-- **閻儰绠?*: https://zhuanlan.zhihu.com/agi-walker
-
----
-
-**鐚?婵″倹鐏夌憴澶婄繁閺堝鏁?鐠囬绮版稉?Star!**
-
-閹存垳婊戦惄闀愪繆瀵偓濠ф劗娈戦崝娑㈠櫤,鐠佲晜婧€閸ｃ劋姹?AI 瀵偓閸欐垶娲跨粻鈧崡鏇樷偓浣规纯妤傛ɑ鏅ラ妴?
+Keep this page as copy scaffolding, not as a current status announcement.

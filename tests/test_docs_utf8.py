@@ -1,0 +1,93 @@
+from pathlib import Path
+
+
+ENTRY_DOCS = [
+    Path("README.md"),
+    Path("docs/mcp.md"),
+    Path("docs/CURRENT_STATUS.md"),
+    Path("docs/MIGRATION_GUIDE.md"),
+    Path("docs/API_REFERENCE.md"),
+    Path("docs/CODE_QUALITY.md"),
+    Path("docs/SKILLS_INDEX.md"),
+    Path("docs/AGI_WALKER_V3_WHITE_PAPER.md"),
+    Path("docs/archive_and_reports/README.md"),
+    Path("docs/archive_and_reports/PROJECT_ARCHIVE.md"),
+    Path("docs/archive_and_reports/FINAL_STATUS.md"),
+    Path("docs/archive_and_reports/FINAL_REPORT.md"),
+    Path("docs/archive_and_reports/TEST_REPORT.md"),
+    Path("docs/archive_and_reports/OPENNEURO_TEST_REPORT.md"),
+    Path("docs/archive_and_reports/PHASE7_COMPLETION_REPORT.md"),
+    Path("docs/archive_and_reports/PROGRESS_REPORT_2026_03_24.md"),
+    Path("docs/archive_and_reports/BLOCKERS_RESOLVED.md"),
+    Path("docs/archive_and_reports/RELEASE_NOTES.md"),
+    Path("docs/archive_and_reports/RELEASE_CHECKLIST.md"),
+    Path("docs/archive_and_reports/GIT_RELEASE.md"),
+    Path("docs/archive_and_reports/GITHUB_UPDATE_GUIDE.md"),
+    Path("docs/archive_and_reports/LAUNCH_POST.md"),
+    Path("docs/archive_and_reports/demo_video_script.md"),
+    Path("docs/archive_and_reports/blog_hive_reflex.md"),
+    Path("docs/archive_and_reports/COMMUNITY_PLAN.md"),
+    Path("docs/archive_and_reports/TECH_DEBT_PLAN.md"),
+    Path("docs/archive_and_reports/3D_VISUALIZATION_PLAN.md"),
+    Path("docs/archive_and_reports/STAGE1_CLI_CLOSURE_COMPLETE.md"),
+    Path("docs/archive_and_reports/STAGE2_WORKFLOW_PLAN.md"),
+    Path("docs/archive_and_reports/STAGE2_WORKFLOW_CLOSURE_COMPLETE.md"),
+    Path("docs/archive_and_reports/SKILLS_CHANGELOG.md"),
+    Path("docs/archive_and_reports/CPP_PLUGIN_BUILD.md"),
+    Path("docs/ros2/ROS2_INTEGRATION_DESIGN.md"),
+    Path("docs/ros2/ROS2_QUICK_START.md"),
+    Path("docs/architecture/PROJECT_SUMMARY.md"),
+    Path("docs/architecture/COMPLETE_FEATURES.md"),
+    Path("docs/architecture/ADVANCED_FEATURES.md"),
+    Path("docs/architecture/AI_SETUP_GUIDE.md"),
+    Path("docs/architecture/MODEL_ZOO.md"),
+    Path("docs/algorithm_and_sim/CV_IMPLEMENTATION_PLAN.md"),
+    Path("docs/algorithm_and_sim/ENVIRONMENT_GENERATION.md"),
+    Path("docs/algorithm_and_sim/IMITATION_LEARNING.md"),
+    Path("docs/algorithm_and_sim/OFFLINE_RL.md"),
+    Path("docs/algorithm_and_sim/OPENNEURO_INTEGRATION.md"),
+    Path("docs/algorithm_and_sim/PARAMETER_CONVERSION_GUIDE.md"),
+    Path("docs/algorithm_and_sim/PARAMETRIC_CONTROL.md"),
+    Path("docs/algorithm_and_sim/PHYSICS_ENVIRONMENT_GUIDE.md"),
+    Path("docs/algorithm_and_sim/PID_BALANCE_GUIDE.md"),
+    Path("docs/algorithm_and_sim/SIMULATION_GUIDE.md"),
+    Path("docs/hardware/HARDWARE_DEPLOYMENT.md"),
+    Path("docs/hardware/HARDWARE_INTEGRATION_GUIDE.md"),
+    Path("docs/hardware/HARDWARE_SPEC.md"),
+    Path("docs/hardware/IMC22_WORKFLOW.md"),
+    Path("docs/hardware/MODULAR_ROBOT_BUILDER.md"),
+    Path("docs/hardware/PARTS_LIBRARY_GUIDE.md"),
+    Path("docs/getting_started/GETTING_STARTED.md"),
+    Path("docs/getting_started/QUICK_START.md"),
+    Path("docs/getting_started/BEGINNER_TUTORIAL.md"),
+    Path("docs/getting_started/HANDS_ON_GUIDE.md"),
+    Path("docs/guides/ADVANCED_USAGE.md"),
+    Path("docs/guides/CLI_GUIDE.md"),
+    Path("docs/guides/COMPILE_OPTIMIZED.md"),
+    Path("docs/guides/developer_guide.md"),
+    Path("docs/guides/DISTRIBUTED_GUIDE.md"),
+    Path("docs/guides/GODOT_INTEGRATION_GUIDE.md"),
+    Path("docs/guides/GODOT_TESTING_GUIDE.md"),
+    Path("docs/guides/GUI_GUIDE.md"),
+    Path("docs/guides/GUI_USER_GUIDE.md"),
+    Path("docs/guides/OPTIMIZATION_GUIDE.md"),
+    Path("docs/guides/SKILLS_DEVELOPMENT.md"),
+    Path("docs/guides/TESTING_GUIDE.md"),
+    Path("docs/guides/WEB_PANEL_GUIDE.md"),
+]
+
+SUSPICIOUS_MOJIBAKE_MARKERS = (
+    "閺",
+    "鈧",
+    "锟",
+    "\ufffd",
+)
+
+
+def test_entry_docs_are_utf8_and_do_not_contain_known_mojibake_markers() -> None:
+    for doc_path in ENTRY_DOCS:
+        content = doc_path.read_text(encoding="utf-8")
+        assert content.strip(), f"{doc_path} is empty"
+
+        for marker in SUSPICIOUS_MOJIBAKE_MARKERS:
+            assert marker not in content, f"{doc_path} contains suspicious marker {marker!r}"

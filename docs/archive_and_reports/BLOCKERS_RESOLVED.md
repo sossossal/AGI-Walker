@@ -1,209 +1,22 @@
-# 棣冩暋 闂冭顢ｉ梻顕€顣芥穱顔碱槻閹躲儱鎲?
+# Blockers Resolved
 
-**娣囶喖顦查弮銉︽埂:** 2026-03-24  
-**閻樿埖鈧?** 閴?**閹碘偓閺堝妫舵０妯哄嚒鐟欙絽鍠?*
+This archived note records categories of blockers that were cleared during earlier cleanup work.
 
----
+## Historically Resolved Blockers
 
-## 闂傤噣顣?閿斿繆鍎?CLI 閸ョ偛缍婃穱顔碱槻
+- Corrupted UTF-8 documentation that made key entry pages unreadable
+- MCP server startup drift caused by package API changes
+- Import-time warnings caused by eager module loading
+- Confusion around the actual supported runtime entry points
 
-### 闂傤噣顣介幓蹇氬牚
-鏉╂劘顢?`python -m agi_walker.cli skills list` 閺冨墎娲块幒銉ャ亼鐠?
+## What This Means Today
 
-**閺嶈婀伴崢鐔锋礈:**
-- `skills_cli.py:63` 鐎涙ê婀粚鍝勫棘閺佹壆娈?`logger.info()` 鐠嬪啰鏁?
-- `skills_cli.py:59` 鐎涙ê婀稉顓熸瀮缂傛牜鐖滅紘搴″鐎涙顑佸Ч鈩冪厠
+These blocker categories are useful because they explain why several core documents, tests, and MCP modules were rewritten.
 
-### 娣囶喖顦查弬瑙勵攳
+## What May Still Need Work
 
-**閺傚洣娆?** [agi_walker/cli/skills_cli.py](agi_walker/cli/skills_cli.py)
+Some historical subsystems can still carry drift even after these blockers were cleared. The main remaining examples are legacy launch flows, archive notes, and parts of the ROS 2 workspace.
 
-```python
-# 娣囶喗鏁奸崜?(缁?9-63鐞?
-logger.info(f"閵嗘伒category}閵?)  # 缂傛牜鐖滃Ч鈩冪厠鐎涙顑?
-...
-logger.info()  # 缁屽搫寮弫鎷岀殶閻?閴?
+## Current Reference
 
-# 娣囶喗鏁奸崥?
-logger.info(f"[{category}]")  # 閺嶅洤鍣疉SCII
-...
-logger.info("")  # 缁屽搫鐡х粭锔胯 閴?
-```
-
-### 妤犲矁鐦夌紒鎾寸亯
-```bash
-$ python -m agi_walker.cli skills list
-# 閴?閹笛嗩攽閹存劕濮涢敍灞炬￥闁挎瑨顕?
-```
-
----
-
-## 闂傤噣顣?閿斿繆鍎?WsMessage 閸忕厧顔愰幀褏鐗崸?
-
-### 闂傤噣顣介幓蹇氬牚
-WsMessage 閸楀繗顔呯€规矮绠熺亸?`payload` 閸欐ü璐熻箛鍛綖閸欏倹鏆熼敍宀€鐗崸蹇庣啊閺冾渿PI鐠嬪啰鏁ゆ俊?`WsMessage(type='ping')`
-
-**瑜板崬鎼烽懠鍐ㄦ纯:**
-- 娴犺缍嶆稉宥嗗絹娓?`payload` 閻ㄥ嫭妫禒锝囩垳闁垝绱伴幎娑樺毉 TypeError
-- 鏉╂瑦妲告稉鈧稉顏堝櫢婢堆呮畱閸氭垵鎮楁稉宥呭悑鐎圭懓褰夐弴?
-
-### 娣囶喖顦查弬瑙勵攳
-
-**閺傚洣娆?** [web_panel/ws_protocol.py](web_panel/ws_protocol.py)
-
-```python
-# 娣囶喗鏁奸崜?(缁?0-56鐞?
-@dataclass
-class WsMessage:
-    type: str
-    payload: Dict[str, Any]  # 韫囧懎锝?閴?
-    id: Optional[str] = None
-
-# 娣囶喗鏁奸崥? 
-@dataclass
-class WsMessage:
-    type: str
-    payload: Dict[str, Any] = None  # 閸欘垶鈧绱濋崥鎴濇倵閸忕厧顔?閴?
-    id: Optional[str] = None
-```
-
-### 妤犲矁鐦夌紒鎾寸亯
-```python
-# 閺傜檰PI鐠嬪啰鏁?(閹恒劏宕?
-msg = WsMessage(type='ping', payload={'test': 'data'})
-閴?濮濓絽鐖跺銉ょ稊
-
-# 閺冾渿PI鐠嬪啰鏁?(娣囨繃瀵旈崗鐓庮啇)
-msg = WsMessage(type='ping')
-閴?濮濓絽鐖跺銉ょ稊 - 閸氭垵鎮楅崗鐓庮啇
-```
-
----
-
-## 闂傤噣顣?閿斿繆鍎?娴犳挸绨遍崡顐ゆ晸濞撳懐鎮?
-
-### 闂傤噣顣介幓蹇氬牚
-娴犳挸绨遍弽鍦窗瑜版洖鐖㈢粔顖氥亣闁插繗绻冪粙瀣╅獓閻椻晜濮ら崨濠傛嫲娣囶喖顦查懘姘拱閿涘奔绗夐柅鍌氭値閻╁瓨甯撮崥鍫濊嫙
-
-**瑜板崬鎼烽懠鍐ㄦ纯:**
-- 50+ 娑?PHASE*_REPORT.md閵?_SUMMARY.md 閺傚洣娆?
-- 22 娑?fix_phase*.py閵嗕箍erify_phase*.py 閼存碍婀?
-- 閺嶅湱娲拌ぐ鏇熻穿娑旀唻绱濋梾鍙ヤ簰缂佸瓨濮?
-
-### 娣囶喖顦查弬瑙勵攳
-
-閹碘偓閺堝绻冪粙瀣╅獓閻椻晛鍑￠弫瀵告倞鏉╀胶些閿?
-
-| 缁鐎?| 閺佷即鍣?| 婢跺嫮鎮婇弬鐟扮础 |
-|------|------|----------|
-| Markdown 閹躲儱鎲?| 50+ | 缁夎鍩?archive/ |
-| Python 閼存碍婀?| 22 | 缁夎鍩?archive/ |
-| **閹槒顓?* | **83** | 閴?瑜版帗銆傜€瑰本鍨?|
-
-### 娣囨繄鏆€閻ㄥ嫭鐗宠箛鍐ф唉娴犳澧?
-
-**閺嶅湱娲拌ぐ?Markdown 閺傚洣娆?(9娑?:**
-- 閴?README.md - 妞ゅ湱娲扮拠瀛樻
-- 閴?CHANGELOG.md - 閸欐ɑ娲块弮銉ョ箶
-- 閴?CODE_QUALITY.md - 娴狅絿鐖滅拹銊╁櫤閹躲儱鎲?
-- 閴?MIGRATION_GUIDE.md - 鏉╀胶些閹稿洤宕?
-- 閴?RELEASE_NOTES.md - 閸欐垹澧楃拠瀛樻
-- 閴?CODE_OF_CONDUCT.md - 鐞涘奔璐熼崙鍡楀灟
-- 閴?CONTRIBUTING.md - 鐠愶紕灏為幐鍥у础
-- 閴?PRODUCTION_DEPLOYMENT_RUNBOOK.md - 闁劎璁查幍瀣斀
-- 閴?PHASE7_COMPLETION_REPORT.md - Phase 7鐎瑰本鍨氶幎銉ユ啞
-
-**閺嶅湱娲拌ぐ?Python 閺傚洣娆?(1娑?:**
-- 閴?deploy.py - 闁劎璁查懘姘拱
-
-### 濞撳懐鎮婄紒鎾寸亯
-
-```
-閺嶅湱娲拌ぐ鏇犵波閺?(娴兼ê瀵查崥?:
-閳规壕鏀㈤埞鈧?棣冩惖 閺嶇绺炬禍銈勭帛閺傚洦銆?(9娑?MD)
-閳规壕鏀㈤埞鈧?棣冩倳 闁劎璁查懘姘拱 (1娑?PY)
-閳规柡鏀㈤埞鈧?棣冩惂 archive/ (83娑擃亣绻冪粙瀣╅獓閻?
-    閳规壕鏀㈤埞鈧?PHASE*_REPORT.md
-    閳规壕鏀㈤埞鈧?COMPLETION_*.md
-    閳规壕鏀㈤埞鈧?fix_*.py
-    閳规壕鏀㈤埞鈧?verify_*.py
-    閳规柡鏀㈤埞鈧?... 閺囨潙顦块幎銉ユ啞
-```
-
----
-
-## 閴?娣囶喖顦叉宀冪槈濞撳懎宕?
-
-| 闂傤噣顣?| 妞ゅ湱娲?| 閻樿埖鈧?|
-|------|------|------|
-| **CLI 閸ョ偛缍?* | skills_cli.py logger.info() | 閴?娣囶喖顦?|
-| | 缂傛牜鐖滃Ч鈩冪厠鐎涙顑?| 閴?娣囶喖顦?|
-| | 閸旂喕鍏樺ù瀣槸 | 閴?闁俺绻?|
-| **WsMessage 閸忕厧顔愰幀?* | payload 姒涙顓婚崐?| 閴?娣囶喖顦?|
-| | 閺冾渿PI閸忕厧顔愰幀?| 閴?妤犲矁鐦?|
-| | 閺傜檰PI閸旂喕鍏?| 閴?妤犲矁鐦?|
-| **娴犳挸绨遍崡顐ゆ晸** | Markdown閹躲儱鎲℃潪顒傂?| 閴?鐎瑰本鍨?|
-| | Python閼存碍婀版潪顒傂?| 閴?鐎瑰本鍨?|
-| | 閺嶅湱娲拌ぐ鏇熺閻?| 閴?鐎瑰本鍨?|
-
----
-
-## 棣冩憫 閸氬海鐢诲楦款唴
-
-### 濠ф劒鍞惍浣侯吀閻?
-
-瀵ら缚顔呴崷銊﹀絹娴溿倖妞傞敍?
-1. **娴犲懍绻氶悾?* 閺嶅湱娲拌ぐ鏇犳畱閺嶇绺鹃弬鍥︽ (README閵嗕焦鏋冨锝冣偓渚€鍎寸純鑼跺壖閺?
-2. **閹绘劒姘﹂崚?* archive/ 閻ㄥ嫬宸婚崣鍙夆偓褑绻冪粙瀣╅獓閻椻晛褰查柅澶涚礉瀵ら缚顔呯€规碍婀″〒鍛倞
-3. **濞ｈ濮?* `.gitignore` 鐟欏嫬鍨幒鎺楁珟娑撳瓨妞傞悽鐔稿灇閻ㄥ嫯鍓奸張顒婄窗
-   ```
-   fix_*.py
-   verify_*.py
-   cleanup_*.py
-   analyze_*.py
-   check_*.py
-   generate_*.py
-   *_REPORT.md
-   *_SUMMARY.md
-   PHASE*_*.md
-   ```
-
-### CI/CD 瀹搞儰缍斿ù?
-
-瀵ら缚顔呴崷?GitHub Actions 娑擃叏绱?
-1. 閸︺劍褰佹禍銈呭濡偓閺屻儲鐗撮惄顔肩秿閺傚洣娆㈤弫浼村櫤
-2. 閸︹垥erge閸撳秹鐛欑拠浣稿彠闁款噣妫舵０妯荤ゴ鐠?
-3. 鐎规碍婀″〒鍛倞 archive/ 娑擃叀绉存潻?0婢垛晝娈戦幎銉ユ啞
-
----
-
-## 棣冩惓 娣囶喖顦茬紒鐔活吀
-
-```
-娣囶喖顦查弬鍥︽閺?         2娑?(skills_cli.py, ws_protocol.py)
-娣囶喗鏁肩悰灞炬殶:          10+ 鐞?
-瀹稿弶绔婚悶鍡氱箖缁嬪楠囬悧?    83娑?
-妤犲矁鐦夊ù瀣槸闁俺绻?      3/3
-閺嶅湱娲拌ぐ鏇氱喘閸?        娴犲孩璐╂稊?閳?閺佸瓨纾?
-娴狅絿鐖滅拹銊╁櫤:         閴?濮濓絽鐖?
-娴犳挸绨遍崡顐ゆ晸:         閴?閺€鐟版澖
-閸氭垵鎮楅崗鐓庮啇閹?       閴?娣囨繆鐦?
-```
-
----
-
-## 棣冨箚 缂佹捁顔?
-
-閴?**閹碘偓閺堝绗佹稉顏堟▎婵夌偤妫舵０妯哄嚒鐎瑰苯鍙忕憴锝呭枀**
-
-- CLI 閸旂喕鍏橀幁銏狀槻濮濓絽鐖?
-- 閸楀繗顔呴崗鐓庮啇閹冪繁閸掗绻氱拠?
-- 娴犳挸绨辩紒鎾寸€妤€鍩屾导妯哄
-
-AGI-Walker v2.0 閻滄澘鍑￠崙鍡楊槵婵傚€熺箻鐞涘苯鎮庨獮璺烘嫲闁劎璁查妴?
-
----
-
-**娣囶喖顦查懓?** GitHub Copilot  
-**鐎瑰本鍨氶弮鍫曟？:** 2026-03-24 08:50 UTC  
-**Quality Check:** 閴?閸忋劑鍎撮柅姘崇箖
+Use current tests and current guides to determine present status. This page only explains why certain cleanup work happened.

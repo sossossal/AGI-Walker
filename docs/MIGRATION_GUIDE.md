@@ -1,223 +1,160 @@
-AGI-Walker 娴狅絿鐖滅憴鍕瘱閸栨牕宕岀痪褎瀵氶崡?
+# Migration Guide
 
-## 濮掑倽鍫?
+更新日期：`2026-04-08`
 
-閺堫剚瀵氶崡妤勵嚛閺勫盯GI-Walker閸︺劏绻樼悰灞煎敩閻浇顫夐懠鍐ㄥ閸楀洨楠囬崥搴ｆ畱閸忔娊鏁弨纭呯箻閿涘苯搴滈崝鈺冩暏閹存灚鈧礁绱戦崣鎴ｂ偓鍛嫲闁劎璁叉禍鍝勬喅閻炲棜袙鏉╂瑤绨洪崣妯绘纯閻ㄥ嫬濂栭崫宥冣偓?
+本页用于把旧 README / 旧指南里的历史写法迁移到当前仓库真实可用的入口。
 
----
+## 入口迁移
 
-## 棣冨箚 娑撴槒顩﹂弨纭呯箻閸愬懎顔?
+| 旧写法 | 当前建议 |
+| --- | --- |
+| `agi_walker skills ...` | `python -m agi_walker.cli skills ...` |
+| `agi_walker workflows ...` | `python -m agi_walker.cli workflows ...` |
+| `agi_walker skills workflows ...` | 仍可用，但建议优先使用 `python -m agi_walker.cli workflows ...` |
+| `python web_panel/server.py` | `python -m web_panel.server` |
+| 自定义脚本启动 MCP | `agi-walker-mcp` 或 `python -m agi_walker.mcp.server` |
 
-### 1. 缂佺喍绔撮弮銉ョ箶濡楀棙鐏?
+说明：
 
-**閸欐ɑ娲?**
-- 閹碘偓閺堝ython濡€虫健闁插洨鏁ょ紒鐔剁閻ㄥ埐ogging濡楀棙鐏?
-- 娴犲骸鍨庨弫锝囨畱`print()`鏉烆剚宕叉稉铏圭波閺嬪嫬瀵瞏logger`
+- 仓库当前在 `pyproject.toml` 中只显式注册了 `agi-walker-mcp`。
+- CLI 的最稳妥入口是模块方式 `python -m agi_walker.cli`。
+- Windows 下如需快捷方式，可使用 [scripts/agi_walker.bat](../scripts/agi_walker.bat)。
 
-**瑜板崬鎼?**
-```python
-# 娑斿澧?
-print(f"Processing {task_id}...")
+## CLI 迁移
 
-# 娑斿鎮?
-logger.info(f"Processing {task_id}...")
+推荐把旧命令统一替换成下面这些形式：
+
+```bash
+python -m agi_walker.cli skills list
+python -m agi_walker.cli skills info robot-modeling -d
+python -m agi_walker.cli skills validate -v
+python -m agi_walker.cli workflows list
+python -m agi_walker.cli workflows run robot_creation_pipeline --mock --resume
+python -m agi_walker.cli doctor
 ```
 
-**娴兼ê濞?**
-- 閴?閺€顖涘瘮閺冦儱绻旂痪褍鍩嗛幒褍鍩?(DEBUG/INFO/WARNING/ERROR)
-- 閴?閺€顖涘瘮鏉堟挸鍤柌宥呯暰閸?(閺傚洣娆?缂冩垹绮?缁崵绮洪弮銉ョ箶)
-- 閴?娓氬じ绨梻顕€顣芥潻鍊熼嚋閸滃本鈧嗗厴閸掑棙鐎?
-- 閴?閺€顖涘瘮閻㈢喍楠囬悳顖氼暔閺冦儱绻旈柌鍥肠
+工作流别名关系：
 
-**鏉╀胶些瀵ら缚顔?**
-- 娑撳秹娓剁憰浣锋叏閺€鍦箛閺堝鍞惍?
-- 鐠佸墽鐤嗛弮銉ョ箶缁狙冨焼: `logging.basicConfig(level=logging.INFO)`
-- 閸︹暊eployments/Docker娑擃參鍘ょ純顔芥）韫囨绶崙?
+- `python -m agi_walker.cli workflows ...`
+- `python -m agi_walker.cli skills workflows ...`
 
-### 2. 鐎瑰本鏆ｉ惃鍕閸ㄥ褰佺粈?
+两者当前都会走到同一套 workflow CLI 逻辑。
 
-**閸欐ɑ娲?**
-- 1000+閸忔娊鏁崙鑺ユ殶鐞涖儱鍘栨潻鏂挎礀缁鐎烽幓鎰仛
-- 閺€顖涘瘮IDE缁鐎峰Λ鈧弻銉ユ嫲闂堟瑦鈧礁鍨庨弸?
+## MCP 迁移
 
-**瑜板崬鎼?**
-```python
-# 娑斿澧?
-def process_action(obs):
-    return result
+当前标准 MCP 入口：
 
-# 娑斿鎮? 
-def process_action(obs: np.ndarray) -> Dict[str, float]:
-    return result
+```bash
+agi-walker-mcp
 ```
 
-**娴兼ê濞?**
-- 閴?IDE閺呴缚鍏樼悰銉ュ弿閺囨潙鍣涵?
-- 閴?Mypy缁涘浼愰崗宄板讲鏉╂稖顢戦棃娆愨偓浣鸿閸ㄥ顥呴弻?
-- 閴?娴狅絿鐖滈崣顖濐嚢閹勫絹妤?
-- 閴?閸戝繐鐨猾璇茬€烽惄绋垮彠閻ㄥ嫯绻嶇悰灞炬闁挎瑨顕?
+或：
 
-**鏉╀胶些瀵ら缚顔?**
-- 閸氼垳鏁DE缁鐎峰Λ鈧弻? VSCode Pylance / PyCharm
-- 閸欘垶鈧婀狢I/CD娑擃厽澧界悰? `mypy --strict`
-
-### 3. 瀵倸鐖舵径鍕倞閺€纭呯箻
-
-**閸欐ɑ娲?**
-- 閹碘偓閺堝绱撶敮鎼佸厴鐞氼偅顒滅涵顔藉礋閼惧嘲鎷扮拋鏉跨秿
-- 瀵倸鐖跺☉鍫熶紖濞撳懏娅氶敍灞肩┒娴滃氦鐨熺拠?
-
-**瑜板崬鎼?**
-```python
-# 娑斿澧?
-except:
-    pass  # 闂堟瑩绮径杈Е
-
-# 娑斿鎮?
-except Exception as e:
-    logger.error(f"Process failed: {e}")
+```bash
+python -m agi_walker.mcp.server
 ```
 
-**娴兼ê濞?**
-- 閴?娑撳秴鍟€閺堝娈ｉ挊蹇曟畱闁挎瑨顕?
-- 閴?閺冦儱绻旀稉顓炵暚閺佸娈戦柨娆掝嚖鏉╁€熼嚋
-- 閴?娓氬じ绨梻顕€顣芥径宥囧箛閸滃奔鎱ㄦ径?
+当前暴露的工具以 [docs/mcp.md](mcp.md) 为准，核心分组包括：
 
-**鏉╀胶些瀵ら缚顔?**
-- 闁劎璁查弮璺烘儙閻劌鐣弫瀛樻）韫? `logging.basicConfig(level=logging.DEBUG)`
-- 闁板秶鐤咵LK閹存牜琚导鑲╅兇缂佺喐鏁归梿鍡涙晩鐠囶垱妫╄箛?
+- mission / telemetry / rag
+- workflows
+- skills
+- godot-agent
 
-### 4. 鐟欏嫯瀵栭崠鏍ь嚤閸?
+`2026-04-08` 的修复点：
 
-**閸欐ɑ娲?**
-- 閻╃顕€电厧鍙嗛弨閫涜礋缂佹繂顕€电厧鍙?
-- 閺夆€叉鐎电厧鍙嗘径鍕倞閸欘垶鈧绶风挧?
+- 修正了 `mcp>=1.27.0` 下的初始化兼容问题。
+- 修正了 `python -m agi_walker.mcp.server` 的导入警告路径。
 
-**瑜板崬鎼?**
-```python
-# 閻╃顕€电厧鍙?(娑撳秵甯归懡?
-from . import module
+## Web Panel 迁移
 
-# 缂佹繂顕€电厧鍙?(閺嶅洤鍣?
-from agi_walker.module import something
+当前建议启动方式：
 
-# 閺夆€叉鐎电厧鍙?(閸欘垶鈧绨?
-try:
-    import torch
-    TORCH_AVAILABLE = True
-except ImportError:
-    TORCH_AVAILABLE = False
+```bash
+python -m web_panel.server
 ```
 
-**娴兼ê濞?**
-- 閴?鐎电厧鍙嗙捄顖氱窞濞撳懏娅氶妴浣风瑝鐎硅妲楅崙娲晩
-- 閴?缂傚搫鐨崣顖炩偓澶夌贩鐠ф牗妞傞張澶嬬閺呮壆娈戦幓鎰仛
-- 閴?IDE鐎佃壈鍩呴弴鏉戝櫙绾?
+不要再优先使用旧文档里的零散脚本入口作为主启动方式。
 
-**鏉╀胶些瀵ら缚顔?**
-- 閺冪娀娓舵穱顔芥暭閻滅増婀佹禒锝囩垳
-- 閺傞鍞惍渚€浼掑顏嗙卜鐎电懓顕遍崗銉︾垼閸?
+Web 相关配置建议收敛到：
 
----
+- `deployment/web_panel.env`
+- `deployment/web_panel.env.example`
+- `AGI_WALKER_WEB_ENV_FILE`
 
-## 棣冩敡 鐎靛湱骞囬張澶愬劥缂冭尙娈戣ぐ鍗炴惙
+Workflow Web 运行时参数：
 
-### 瀵偓閸欐垹骞嗘晶?
-- 閴?**閺冪姷鐗崸蹇斺偓褍褰夐弴?* - 閹碘偓閺堝鏁兼潻娑㈠厴閺勵垰鎮滈崥搴″悑鐎?
-- 閸欘垯浜掔紒褏鐢绘担璺ㄦ暏閻滅増婀侀惃鍕磻閸欐垵浼愭担婊勭ウ
-- 閹恒劏宕橀崥顖滄暏IDE缁鐎峰Λ鈧弻銉ㄥ箯瀵版娲挎總鎴掔秼妤?
+- `AGI_WALKER_WEB_RUNS_PAGE_SIZE`
+- `AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE`
+- `AGI_WALKER_WEB_ARCHIVE_MAX_RUNS`
+- `AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS`
 
-### 濞村鐦悳顖氼暔
-- 閴?**pytest鐎瑰苯鍙忛崗鐓庮啇** - 濞村鐦鍡樼仸鐎瑰本鏆ｉ幀褌绻氱拠?
-- 閹碘偓閺堝绁寸拠鏇熸瀮娴犳湹绡冩潻娑滎攽娴滃棜顫夐懠鍐ㄥ
-- 瀵ら缚顔呴柊宥囩枂閺冦儱绻旀潏鎾冲毉娓氬じ绨ù瀣槸鐠嬪啳鐦?
+Nightly 相关参数：
 
-### 閻㈢喍楠囬悳顖氼暔
-- 閴?**鐎瑰苯鍙忛崗鐓庮啇** - 閺冪嚄PI閸欐ɑ娲?
-- 瀵ら缚顔呴柊宥囩枂閺冦儱绻旂化鑽ょ埠闁插洭娉?
-  ```python
-  import logging.handlers
-  
-  # 鏉堟挸鍤崚鐗堟瀮娴?
-  file_handler = logging.handlers.RotatingFileHandler(
-      'agi_walker.log',
-      maxBytes=10485760,  # 10MB
-      backupCount=5
-  )
-  logger.addHandler(file_handler)
-  ```
+- `AGI_WALKER_GITHUB_REPO`
+- `AGI_WALKER_GITHUB_TOKEN`
+- `AGI_WALKER_GITHUB_WORKFLOW_FILE`
+- `AGI_WALKER_NIGHTLY_STATUS_CACHE_SECONDS`
 
----
+Distributed 相关参数：
 
-## 棣冩惖 閸楀洨楠囧Λ鈧弻銉︾閸?
+- `AGI_WALKER_ZENOH_ENDPOINT`
+- `AGI_WALKER_DISTRIBUTED_ACTOR_TTL_SECONDS`
 
-### 閴?娴狅絿鐖滈梿鍡樺灇
-- [ ] 閺囧瓨鏌婇張顒€婀存禒锝囩垳閸掔増娓堕弬鎵閺?
-- [ ] 鏉╂劘顢慲python -m pytest tests/` 妤犲矁鐦夐幍鈧張澶嬬ゴ鐠囨洟鈧俺绻?
-- [ ] 鏉╂劘顢慲python -m compileall . -q` 妤犲矁鐦夊▽鈩冩箒鐠囶厽纭堕柨娆掝嚖
+## Godot Backend 迁移
 
-### 閴?瀵偓閸欐垹骞嗘晶?
-- [ ] 閸︹問DE娑擃厼鎯庨悽鈮抷lance/Pyright缁鐎峰Λ鈧弻?
-- [ ] (閸欘垶鈧? 鐎瑰顥妋ypy: `pip install mypy`
-- [ ] (閸欘垶鈧? 鏉╂劘顢憁ypy濡偓閺? `mypy --strict agi_walker`
+当前 Godot backend 通过环境变量切换：
 
-### 閴?闁劎璁查悳顖氼暔
-- [ ] (閸欘垶鈧? 闁板秶鐤嗛弮銉ョ箶鏉堟挸鍤崚鐗堟瀮娴犺埖鍨ㄧ化鑽ょ埠閺冦儱绻?
-- [ ] (閸欘垶鈧? 闂嗗棙鍨欵LK閹存牕鍙炬禒鏍ㄦ）韫囨鍣伴梿鍡欓兇缂?
-- [ ] 绾喛顓婚幍鈧張澶婂讲闁绶风挧鏍х暔鐟佸懏顒滅涵顕嗙礄torch/onnxruntime缁涘绱?
+```text
+AGI_WALKER_GODOT_AGENT_BACKEND=legacy|godot-agent
+```
 
-### 閴?閺傚洦銆傞崪灞界吙鐠?
-- [ ] 闂冨懓顕癧CODE_QUALITY.md](CODE_QUALITY.md) 娴滃棜袙娴狅絿鐖滅拹銊╁櫤閺嶅洤鍣?
-- [ ] 閸╃顔勯弬鏉跨磻閸欐垼鈧懘浼掑顏嗙埠娑撯偓閻ㄥ埐ogging閸滃ype hint鐟欏嫯瀵?
+常用配套变量：
 
----
+- `AGI_WALKER_GODOT_AGENT_DIR`
+- `AGI_WALKER_GODOT_PROJECT_PATH`
+- `AGI_WALKER_GODOT_AGENT_HISTORY_FILE`
 
-## 閴?鐢瓕顫嗛梻顕€顣?
+推荐理解为：
 
-### Q: 閹存垼鍏樼紒褏鐢绘担璺ㄦ暏print()閸氭绱?
-A: 閸欘垯浜掗敍灞肩稻娑撳秵甯归懡鎰┾偓鍌涘閺堝膩閸ф鍑＄紒鐔剁娴ｈ法鏁ogger閵嗗倸缂撶拋顔芥煀娴狅絿鐖滈柆闈涙儕logger鐟欏嫯瀵栭妴?
+- `legacy`：兼容旧控制流
+- `godot-agent`：现代模板 / 计划 / doctor / history 接口
 
-### Q: 缁鐎烽幓鎰仛娴兼艾鍣洪幈銏⑩柤鎼村繑鈧嗗厴閸氭绱?
-A: 娑撳秳绱伴妴鍌滆閸ㄥ褰佺粈鐑樻Ц闂堟瑦鈧礁鍨庨弸鎰紣閸忓嚖绱濇潻鎰攽閺冩湹绗夊☉鍫ｂ偓妤勭カ濠ф劧绱濋崣顏呮Ц閹绘劙鐝禒锝囩垳鐠愩劑鍣洪妴?
+## Smoke / Nightly 迁移
 
-### Q: 閺冄傚敩閻浇鍏樼紒褏鐢诲銉ょ稊閸氭绱?
-A: 鐎瑰苯鍙忛崗鐓庮啇閵嗗倽绻栧▎鈥冲磳缁狙勬Ц100%閸氭垵鎮楅崗鐓庮啇閻ㄥ嫸绱濇禒鍛潑閸旂姳绨￠弬鎵閹嶇礉濞屸剝婀佺粔濠氭珟閸旂喕鍏橀妴?
+主 smoke 入口：
 
-### Q: 閺勵垰鎯佽箛鍛淬€忛幍鈧張澶夊敩閻線鍏橀張澶岃閸ㄥ褰佺粈鐚寸吹
-A: 娑撳秵妲搁妴鍌氬彠闁款喗鏋冩禒璺哄嚒濞ｈ濮為敍灞炬煀娴狅絿鐖滃楦款唴濞ｈ濮炴禒銉ょ箽閹镐椒绔撮懛瀛樷偓褋鈧?
+```bash
+python tests/run_smoke_tests.py
+```
 
-### Q: 婵″倷缍嶉崷鈥昽cker娑擃參鍘ょ純顔芥）韫?
-A: 鐟欎箷闁劎璁查幐鍥у础](docs/deployment/) - 閸欘垵顔曠純顔芥）韫囨绶崙鍝勫煂閺傚洣娆㈤幋鏉漷dout閵?
+Godot headless smoke 现在是显式 opt-in：
 
----
+```powershell
+$env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
+python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
+```
 
-## 棣冩憮 閹垛偓閺堫垱鏁幐?
+附加变量：
 
-**闂傤噣顣芥稉搴″冀妫?**
-- 閸欐垹骞囬弮銉ョ箶闂傤噣顣? 濡偓閺岊櫜ogger鐠佸墽鐤嗛崪灞炬）韫囨楠囬崚?
-- 闁洤鍩岀猾璇茬€峰Λ鈧弻銉╂晩鐠? 濡偓閺岊檹DE闁板秶鐤嗛幋鏉晊py閻楀牊婀?
-- 瀵倸鐖舵径鍕倞闂傤噣顣? 閺屻儳婀呴柨娆掝嚖閺冦儱绻旀稉顓犳畱鐎瑰本鏆ｉ弽鍫ｇ闊?
+- `AGI_WALKER_GODOT_HEADLESS_SCENE`
+- `AGI_WALKER_GODOT_HEADLESS_ARTIFACT_DIR`
+- `AGI_WALKER_GODOT_HEADLESS_CONNECT_TIMEOUT_SECONDS`
+- `AGI_WALKER_GODOT_HEADLESS_SCHEMA_TIMEOUT_SECONDS`
+- `AGI_WALKER_GODOT_HEADLESS_STEP_COUNT`
 
-**閻╃鍙ч弬鍥ㄣ€?**
-- [CODE_QUALITY.md](CODE_QUALITY.md) - 娴狅絿鐖滅拹銊╁櫤閺嶅洤鍣?
-- [CHANGELOG.md](CHANGELOG.md) - 鐠囷妇绮忛崣妯绘纯閸掓銆?
-- [Python logging閺傚洦銆俔(https://docs.python.org/3/library/logging.html)
+## 迁移完成的判断标准
 
----
+如果你现在使用的是以下入口，就说明已经迁移到当前文档口径：
 
-## 棣冨笚 鐎涳缚绡勭挧鍕爱
+- `python -m agi_walker.cli ...`
+- `python -m web_panel.server`
+- `agi-walker-mcp`
+- `python tests/run_smoke_tests.py`
 
-**閹恒劏宕橀梼鍛邦嚢:**
-1. logging濡楀棙鐏? https://docs.python.org/3/library/logging.html
-2. 缁鐎烽幓鎰仛: https://docs.python.org/3/library/typing.html
-3. Pytest閺堚偓娴ｅ啿鐤勭捄? https://docs.pytest.org/
+后续请优先参考：
 
-**閸ャ垽妲﹂崺纭咁唲:**
-- 閺冦儱绻旂化鑽ょ埠闁板秶鐤? 閺屻儳婀卐xamples/娑擃厾娈戦柊宥囩枂缁€杞扮伐
-- 缁鐎烽幓鎰仛閺堚偓娴ｅ啿鐤勭捄? 閸欏倽鈧兎ython_controller/娑擃厾娈戦悳鐗堟箒娴狅絿鐖?
-- 瀵倸鐖舵径鍕倞濡€崇础: 閸欏倽鈧兗ests/娑擃厾娈戝ù瀣槸娴狅絿鐖?
-
----
-
-閻楀牊婀? 2.0 (Post Code Normalization)
-閺囧瓨鏌婇弮銉︽埂: 2026-03-24
+- [README.md](../README.md)
+- [CLI 指南](guides/CLI_GUIDE.md)
+- [Web Panel 指南](guides/WEB_PANEL_GUIDE.md)
+- [MCP 集成说明](mcp.md)

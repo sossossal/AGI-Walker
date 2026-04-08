@@ -1,23 +1,98 @@
-# 棣冾樆 AGI-Walker Skills 閹垛偓閼崇晫鍌ㄥ鏇熷閸?
+# Skills Index
 
-> 閺堫剚鏋冨锝囨暠 CI Pipeline 閼奉亜濮╅悽鐔稿灇閿涘奔绻氶幐浣风瑢娴狅絿鐖滄惔鎾虫倱濮濄儯鈧倸顩ч棁鈧晶鐐插閹垛偓閼虫枻绱濈拠閿嬬叀闂冨懎绱戦崣鎴炲瘹閸楁ぜ鈧?
+更新日期：`2026-04-08`
 
-## 閹垛偓閼宠棄鍨庣猾璇插弿鐟?
+本页列出当前 `agi_walker/skills/` 中实际存在并可被 `SkillsLoader` 扫描到的 skills。
 
-### 棣冨娇閿?缁鍩? 娴兼ê瀵?
+## 当前 Skills
 
-| 閸ョ偓鐖?| 閸氬秶袨 | 閹诲繗鍫?| 閺嶇绺炬笟婵婄 |
-|--|--|--|--|
-| 閳挎瑱绗?| **`parameter-optimizer`** | 閼奉亜濮╂导妯哄閺堝搫娅掓禍鍝勫棘閺?鐠愩劑鍣洪崚鍡楃/閸忓疇濡梽鎰秴/PID婢х偟娉?,娴ｈ法鏁ら柆妞剧炊缁犳纭堕幋鏍潽鎼达附鏌熷▔鏇樷偓鍌炩偓鍌滄暏娴?(1)娴兼ê瀵查柌宥呯妇娴ｅ秶鐤嗘禒銉﹀絹妤傛菙鐎规碍鈧?(2)鐠嬪啩绱幒褍鍩楅崳銊ュ棘閺?(3)婢舵氨娲伴弽鍥︾喘閸?(4)閼奉亜濮╅崠鏍у棘閺佺増鎮崇槐?| 棣冩憹 Py: scipy,numpy |
+### 建模
 
-### 棣冨娇閿?缁鍩? 瀵ょ儤膩
+#### `robot-modeling`
 
-| 閸ョ偓鐖?| 閸氬秶袨 | 閹诲繗鍫?| 閺嶇绺炬笟婵婄 |
-|--|--|--|--|
-| 棣冾樆 | **`robot-modeling`** | 韫囶偊鈧喎鍨卞鍝勫蓟鐡?閸ユ稖鍐?鏉烆喖绱￠張鍝勬珤娴滅儤膩閸?閺€顖涘瘮妫板嫯顔曞Ο鈩冩緲閸滃苯寮弫鏉垮鐎规艾鍩楅妴鍌炩偓鍌滄暏娴?(1)閺傛澘缂撻張鍝勬珤娴滄椽銆嶉惄?(2)娣囶喗鏁奸悳鐗堟箒鐠佹崘顓?(3)閹靛綊鍣洪悽鐔稿灇閸欐ü缍?(4)鐎电厧鍤崚鐧巓dot娴犺法婀?| 棣冩憹 Py: numpy,pydantic |
+- 分类：`建模`
+- 描述：快速创建双足和四足机器人配置，支持模板加载、参数化建模和 JSON 导出。
+- 路径：[agi_walker/skills/robot-modeling](../agi_walker/skills/robot-modeling)
 
-### 棣冨娇閿?缁鍩? 鏉烆剚宕?
+说明：
 
-| 閸ョ偓鐖?| 閸氬秶袨 | 閹诲繗鍫?| 閺嶇绺炬笟婵婄 |
-|--|--|--|--|
-| 棣冩惈 | **`urdf-generator`** | 鐏忓挜GI-Walker闁板秶鐤嗘潪顒佸床娑撶RDF/SDF閺嶇厧绱℃笟姹玜zebo/MuJoCo/PyBullet娴ｈ法鏁ら妴鍌炩偓鍌滄暏娴?(1)鐎电厧鍤崚鐧汷S 2閻㈢喐鈧?(2)娑撳定azebo娴犺法婀￠梿鍡樺灇 (3)MuJoCo閻椻晝鎮婂鏇熸惛 (4)閻㈢喐鍨氱喊鐗堟寬缂冩垶鐗?(5)閸掓稑缂撻崣顖濐潒閸栨牗膩閸?| 棣冩憹 Py: lxml,numpy |
+- 当前目录下没有独立 `scripts/`，主要通过 skill 文档和系统集成使用。
+
+### 优化
+
+#### `parameter-optimizer`
+
+- 分类：`优化`
+- 描述：自动优化机器人质量分布与 PID 控制参数，支持梯度法、遗传算法和批量调优。
+- 路径：[agi_walker/skills/parameter-optimizer](../agi_walker/skills/parameter-optimizer)
+- 脚本：
+  - [batch_optimize.py](../agi_walker/skills/parameter-optimizer/scripts/batch_optimize.py)
+
+#### `model-distiller`
+
+- 分类：`优化`
+- 描述：将大型教师模型的决策能力蒸馏到轻量学生模型中，用于边缘侧实时推理部署。
+- 路径：[agi_walker/skills/model-distiller](../agi_walker/skills/model-distiller)
+- 脚本：
+  - [distill_model.py](../agi_walker/skills/model-distiller/scripts/distill_model.py)
+
+### 转换
+
+#### `urdf-generator`
+
+- 分类：`转换`
+- 描述：将 AGI-Walker 机器人配置转换为 URDF 或 SDF 文件，用于仿真器和 ROS 生态集成。
+- 路径：[agi_walker/skills/urdf-generator](../agi_walker/skills/urdf-generator)
+- 脚本：
+  - [batch_convert.py](../agi_walker/skills/urdf-generator/scripts/batch_convert.py)
+
+## CLI 查看方式
+
+列出所有 skills：
+
+```bash
+python -m agi_walker.cli skills list
+```
+
+查看单个 skill：
+
+```bash
+python -m agi_walker.cli skills info robot-modeling
+python -m agi_walker.cli skills info parameter-optimizer -d
+```
+
+按分类过滤：
+
+```bash
+python -m agi_walker.cli skills list --category 建模
+python -m agi_walker.cli skills list --category 优化
+python -m agi_walker.cli skills list --category 转换
+```
+
+## Python 访问方式
+
+```python
+from agi_walker.skills_loader import get_skills_loader
+
+loader = get_skills_loader()
+skills = loader.get_skills_list()
+robot_modeling = loader.get_skill("robot-modeling")
+```
+
+常用能力：
+
+- `get_skills_list()`
+- `get_skill(name)`
+- `get_categories()`
+- `search_skills(query)`
+- `get_skill_doc(name)`
+
+## 与 MCP / Web 的关系
+
+Skills 会通过多条路径暴露：
+
+- CLI：`python -m agi_walker.cli skills ...`
+- MCP：`skills_list` / `skill_get`
+- Web：`GET /api/skills/catalog`、`GET /api/skills/list`
+
+如果某个 skill 的 metadata、分类或描述需要变更，优先检查该 skill 目录下的 `SKILL.md` frontmatter。

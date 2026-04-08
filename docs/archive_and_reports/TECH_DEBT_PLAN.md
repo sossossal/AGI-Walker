@@ -1,70 +1,28 @@
-"""
-閹垛偓閺堫垰鈧搫濮熷〒鍛倞鐠佲€冲灊
-娴兼ê鍘涚痪? 妤?
-閻╊喗鐖? 閹绘劕宕屾禒锝囩垳鐠愩劑鍣洪妴浣圭ゴ鐠囨洝顩惄鏍芳閸滃瞼鏁ら幋铚傜秼妤?
-"""
+# Tech Debt Plan
 
-# ==================== 1. 娴狅絿鐖滅拹銊╁櫤 ====================
+This archived note records debt categories that were visible during repository cleanup.
 
-## 1.1 缁鐎峰▔銊ㄐ掔憰鍡欐磰閻滃洨娲伴弽? 100%
-- [x] zenoh_interface.py - 瀹稿弶婀佺猾璇茬€峰▔銊ㄐ?
-- [x] task_editor.py - 瀹稿弶婀佺猾璇茬€峰▔銊ㄐ?
-- [ ] mujoco_backend.py - 闂団偓鐟曚礁鐣崰?
-- [ ] tcp_zenoh_bridge.py - 闂団偓鐟曚焦鍧婇崝?
-- [ ] ros2_robot_node.py - 闂団偓鐟曚焦鍧婇崝?
-- [ ] 閹碘偓閺堝鎹㈤崝锛勫箚婢?- 闂団偓鐟曚焦鍧婇崝?
+## Debt Categories
 
-## 1.2 閸楁洖鍘撳ù瀣槸鐟曞棛娲婇悳鍥╂窗閺? >80%
-瑜版挸澧? ~20% 閳?閻╊喗鐖? 80%
+- stale launch files
+- outdated import paths
+- mismatched package exports
+- historical docs that drifted away from the code
+- partial subsystem coverage outside the main CLI, Web, and MCP paths
 
-娴兼ê鍘涘ù瀣槸濡€虫健:
-- [ ] zenoh_interface (閺嶇绺鹃柅姘繆)
-- [ ] task_editor (娴犺濮熺化鑽ょ埠)
-- [ ] mujoco_backend (閻椻晝鎮婂鏇熸惛)
-- [ ] parts_manager (闂嗘湹娆㈡惔?
-- [ ] 濮ｅ繋閲滄禒璇插閻滎垰顣ㄩ惃鍕唨绾偓閸旂喕鍏?
+## Still Relevant Priorities
 
-## 1.3 閺傚洦銆傜€瑰本鏆ｉ幀?
-- [ ] 閻㈢喐鍨?API 閺傚洦銆?(Sphinx)
-- [ ] 濞ｈ濮?docstring (Google 妞嬪孩鐗?
-- [ ] 閸掓稑缂撳鈧崣鎴ｂ偓鍛瘹閸?
+1. Remove or repair legacy launch flows.
+2. Align packaging metadata with the modules that actually exist.
+3. Keep user-facing docs tied to tested workflows.
+4. Expand regression coverage where drift is likely.
 
-# ==================== 2. 閻劍鍩涙担鎾荤崣 ====================
+## Current High-Risk Areas
 
-## 2.1 鐎瑰顥婄粻鈧崠?
-- [ ] 閸掓稑缂撴稉鈧柨顔肩暔鐟佸懓鍓奸張?(install.sh/install.bat)
-- [ ] Docker 闂€婊冨剼 (閸栧懎鎯堥幍鈧張澶夌贩鐠?
-- [ ] requirements.txt 閸掑棛楠?(minimal/full/dev)
+- ROS 2 workspace packaging and launch metadata
+- historical experimental integrations
+- any path that still points to older project layouts
 
-## 2.2 GUI 瀹搞儱鍙?
-- [ ] Web 閹貉冨煑闂堛垺婢?(Flask/FastAPI)
-- [ ] 娴犺濮熺紓鏍帆閸?GUI 鐎瑰苯鏉?
-- [ ] 鐎圭偞妞傞惄鎴炲付娴狀亣銆冮弶?
+## Archive Note
 
-# ==================== 3. 閹嗗厴娴兼ê瀵?====================
-
-## 3.1 闁矮淇婃导妯哄
-瑜版挸澧? TCP ~5ms 閳?閻╊喗鐖? <2ms
-- [ ] 娴兼ê瀵?JSON 鎼村繐鍨崠?(娴ｈ法鏁?msgpack)
-- [ ] 閸戝繐鐨弫鐗堝祦閹风柉绀?
-- [ ] 閹靛綊鍣洪崣鎴︹偓?
-
-## 3.2 楠炴儼顢戦崠?
-- [ ] 婢舵氨骞嗘晶鍐ㄨ嫙鐞涘矁顔勭紒?
-- [ ] GPU 閸旂娀鈧?(閸欘垶鈧?
-
-# ==================== 閹笛嗩攽鐠佲€冲灊 ====================
-
-Week 1: 娴狅絿鐖滅拹銊╁櫤
-- Day 1-2: 濞ｈ濮炵猾璇茬€峰▔銊ㄐ?
-- Day 3-4: 閹碘晛鐫嶉崡鏇炲帗濞村鐦?
-- Day 5: 閻㈢喐鍨?API 閺傚洦銆?
-
-Week 2: 閻劍鍩涙担鎾荤崣
-- Day 1-2: Docker 闂€婊冨剼
-- Day 3-4: 娑撯偓闁款喖鐣ㄧ憗鍛板壖閺?
-- Day 5: Web 閹貉冨煑闂堛垺婢橀崢鐔风€?
-
-Week 3: 閹嗗厴娴兼ê瀵?
-- Day 1-3: 闁矮淇婃导妯哄
-- Day 4-5: 楠炴儼顢戦崠鏍ㄦ暜閹?
+This file is a debt snapshot, not a live issue tracker.

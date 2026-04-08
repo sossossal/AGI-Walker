@@ -1,126 +1,158 @@
-# AGI-Walker Distributed Training Guide
+# Distributed Guide
 
-This guide details the **Zenoh-based Distributed Training Architecture** (Phase 6) for AGI-Walker. It enables massive parallel training by decoupling Godot simulation instances (Actors) from the central RL algorithm (Learner).
+更新日期：`2026-04-08`
 
-## 1. Architecture Overview
+本页说明 AGI-Walker 当前仓库里的 distributed 路径。它主要面向需要验证 Zenoh + learner + sidecar + Web 监控联动的场景，不属于默认本地快速上手流程。
 
-```mermaid
-graph LR
-    subgraph "Host / Docker Worker"
-        G[Godot Instance] <-->|TCP/9000| S[Python Sidecar]
-    end
-    
-    subgraph "Central Server"
-        L[Learner]
-        W[Web Monitor]
-    end
-    
-    S <-->|Zenoh Protocol| Z[Zenoh Router]
-    L <-->|Zenoh Protocol| Z
-    W <-->|Zenoh Protocol| Z
-```
+## 1. 当前组件
 
-### Components
-*   **Godot Instance**: Runs the physics simulation. Connects to local Sidecar via TCP.
-*   **Sidecar (`distributed/sidecar.py`)**: Bridge node.
-    *   Talks TCP to Godot.
-    *   Talks Zenoh to the network.
-    *   Handles **Data Compression** (Zlib > 1KB).
-*   **Learner (`distributed/run_learner.py`)**: Central training node. Subscribes to all observations, computes actions.
-*   **Web Monitor (`web_panel/server.py`)**: Visualizes active actors in real-time on the dashboard.
+distributed smoke 当前围绕这些服务工作：
 
-## 2. Quick Start (Local)
+- `zenoh-router`
+- `learner`
+- `web-panel-distributed`
+- `mock-godot`
+- `sidecar-1`
 
-### Prerequisites
-*   Python 3.8+
-*   `pip install eclipse-zenoh numpy torch gymnasium`
-*   Godot 4.5+
+它们的编排入口在：
 
-### Step-by-Step
-1.  **Start Godot (Headless)**:
-    ```bash
-    godot --headless --path godot_project --scene run_rl_server.tscn
-    ```
-    *listens on TCP 9000*
+- `deployment/docker-compose.yml`
+- `tests/run_distributed_smoke.py`
 
-2.  **Start Sidecar**:
-    ```bash
-    python distributed/sidecar.py --id actor_1 --godot-host 127.0.0.1 --godot-port 9000
-    ```
+## 2. 代码角色
 
-3.  **Start Learner**:
-    ```bash
-    python distributed/run_learner.py
-    ```
+### Learner
 
-4.  **Monitor**:
-    Open `http://localhost:8000/static/distributed.html` (requires Web Panel running).
+文件：
 
-## 3. Docker Deployment (Cluster)
+- `agi_walker/core/distributed/run_learner.py`
 
-We provide `deployment/docker-compose.yml` for orchestrating the Python components.
+职责：
+
+- 订阅 `ag/*/obs`
+- 计算动作
+- 回写 `ag/<actor>/act`
+
+### Sidecar
+
+文件：
+
+- `agi_walker/core/distributed/sidecar.py`
+
+职责：
+
+- 连接 Godot TCP
+- 把 observation 发到 Zenoh
+- 接收 cloud action
+- 做本地/云端 offloading 决策
+
+### Web Distributed Monitor
+
+文件：
+
+- `web_panel/distributed_monitor.py`
+
+职责：
+
+- 订阅 actor 观测数据
+- 聚合活跃 actor 状态
+- 向 Web 广播 `distributed_update`
+
+## 3. 环境变量
+
+当前分布式路径常见变量：
+
+- `AGI_WALKER_ZENOH_ENDPOINT`
+- `AGI_WALKER_DISTRIBUTED_ACTOR_TTL_SECONDS`
+- `ZENOH_ROUTER`
+- `AGI_WALKER_SIDECAR_ACTOR_ID`
+- `AGI_WALKER_GODOT_HOST`
+
+需要注意：
+
+- monitor 侧默认 endpoint 是 `tcp/127.0.0.1:7447`
+- actor TTL 默认是 `30` 秒
+
+## 4. 推荐启动方式
+
+优先使用现成 smoke runner：
 
 ```bash
-cd deployment
-docker-compose up --build
+python tests/run_distributed_smoke.py --build --stop-after
 ```
 
-Compose 姒涙顓绘导姘儙閸旑煉绱?
+这个脚本会负责：
 
-*   `zenoh-router`
-*   `learner`
-*   `sidecar-1`
-*   `web-panel`
+- 拉起 compose 服务
+- 等待 Web distributed monitor ready
+- 检查 actor 是否出现在 `/api/distributed/status`
+- 检查 mock-godot 是否收到 step action
 
-閸忔湹鑵戦敍?
-*   `web-panel` 閺勵垶绮拋銈囨畱閺嶇绺?Web 闂堛垺婢橀梹婊冨剼閿涘奔绻氱拠?workflow 閹貉冨煑閸欐澘鎷伴崺铏诡攨妞ょ敻娼伴懗钘夊閸欘垱鐎鎭掆偓浣稿讲閸氼垰濮╅妴?*   `web-panel-distributed` 閺勵垰褰查柅?profile閿涘矂顤傛径鏍х暔鐟?`eclipse-zenoh`閿涘瞼鏁ゆ禍搴ㄦ付鐟曚礁婀€圭懓娅掗崘鍛纯閹恒儱鎯庨悽?Zenoh 閸掑棗绔峰蹇曟磧閹貉呮畱閸︾儤娅欓妴?
-婵″倿娓堕崥顖氬З鐢箑鍨庣敮鍐ㄧ础閻╂垶甯舵笟婵婄閻?Web 闂堛垺婢橀崣妯圭秼閿?
-```bash
-cd deployment
-docker compose --profile distributed up --build web-panel-distributed
-```
+不要先手工散着启动多个服务，排错成本会更高。
 
-Docker 閸︾儤娅欐稉瀣畱鐠佸潡妫堕崷鏉挎絻閿?
-*   Web 闂堛垺婢樻稉濠氥€? `http://localhost:8080/static/index.html`
-*   閸掑棗绔峰蹇曟磧閹貉囥€? `http://localhost:8080/static/distributed.html`
-*   Workflow 閹貉冨煑閸? `http://localhost:8080/static/workflows.html`
-*   閸欘垶鈧?`web-panel-distributed` 閸欐ü缍? `http://localhost:8081/static/index.html`
+## 5. Web 验证点
 
-婵″倿娓堕幍褑顢戦張鈧亸?Docker 閸掑棗绔峰?smoke閿涘苯褰查惄瀛樺复閸︺劋绮ㄦ惔鎾寸壌閻╊喖缍嶆潻鎰攽閿?
-```bash
-python tests/run_distributed_smoke.py --build
-```
+分布式路径最关键的两个 HTTP 入口：
 
-鐠囥儴鍓奸張顑跨窗閸氼垳鏁?compose 閻?`distributed` 閸?`smoke` profiles閿涘苯鑻熸笟婵囶偧閹峰鎹ｉ敍?
-*   `zenoh-router`
-*   `learner`
-*   `web-panel-distributed`
-*   `mock-godot`
-*   `sidecar-1`
+- `/api/system/status`
+- `/api/distributed/status`
 
-閸忔湹鑵?`mock-godot` 閺勵垯绮庨悽銊ょ艾 smoke 妤犲矁鐦夐惃鍕氦闁?TCP 濞村鐦張宥呭閿涘瞼鏁ら弶銉︽禌娴狅絿婀＄€?Godot 鏉╂稓鈻奸敍宀€鈥樼拋?`sidecar-1 -> zenoh-router -> learner -> web-panel-distributed` 閺佸瓨娼柧鎹愮熅閸欘垯浜掗惇鐔割劀娴溠呮晸濞叉槒绌?actor閵嗗倿鐛欑拠渚€鈧俺绻冮崥搴礉閸欘垰婀敍?
-*   `http://localhost:8081/static/distributed.html`
-*   `http://localhost:8081/api/distributed/status`
+你需要重点关注：
 
-閻鍩?actor 閻樿埖鈧礁鎷伴崺铏诡攨闁儲绁寸€涙顔岄妴?
-**Note**:
-*   Since Godot requires GPU/Display (or specific headless setup), the default compose file assumes Godot runs on the **Host Machine**. The Sidecar container connects to `host.docker.internal`.
-*   Port `8000` on the host remains available for Zenoh Router HTTP/REST. The Web Panel is exposed on host port `8080`.
-*   `GET /api/system/status` 閸?`GET /api/distributed/status` 閻滄澘婀导姘崇箲閸?`distributed_monitor` / `monitor` 閻樿埖鈧礁鐡у▓纰夌礉閻劋绨拠瀛樻瑜版挸澧犵€圭懓娅掗弰顖氭儊閸忓嘲顦?Zenoh 閻╂垶甯堕懗钘夊閵?*   `mock-godot` 閸欘亞鏁ゆ禍搴ゅ殰閸斻劌瀵?smoke閿涘奔绗夋惔鏃€娴涙禒锝囨埂鐎?Godot 闁劎璁茬捄顖氱窞閵?
-### Configuration
-*   **ZENOH_ROUTER**: Address of the Zenoh router (default `tcp/zenoh-router:7447`).
-*   **GODOT_HOST**: Address of the Godot instance.
-*   **AGI_WALKER_GODOT_HOST**: Compose/Smoke 娑?Sidecar 娴ｈ法鏁ら惃?Godot 娑撶粯婧€閸氬稄绱遍崚鍡楃瀵?smoke 姒涙顓绘导姘瘹閸?`mock-godot`閵?*   **AGI_WALKER_SIDECAR_ACTOR_ID**: 閸掑棗绔峰?smoke 娴ｈ法鏁ら惃?actor 閺嶅洩鐦戦敍宀勭帛鐠?`actor_docker_1`閵?*   **Web Panel pagination/archive policy**: `deployment/web_panel.env.example` is loaded into the `web-panel` service by default.
-*   **AGI_WALKER_ZENOH_ENDPOINT**: Web 闂堛垺婢橀崚鍡楃瀵繒娲冮幒褑绻涢幒銉ユ勾閸р偓閵嗗倿绮拋?compose 闁板秶鐤嗘导姘瘹閸?`tcp/zenoh-router:7447`閵?*   **AGI_WALKER_DISTRIBUTED_ACTOR_TTL_SECONDS**: Web 闂堛垺婢樻穱婵堟殌 actor 閻ㄥ嫭娓舵径褏鈹栭梻鑼潡閺佸府绱濇妯款吇 `30`閵?
-## 4. Optimization Features
+- `distributed_monitor.monitor_active`
+- `actors`
+- `endpoint`
+- `last_error`
 
-*   **Zlib Compression**: Payloads > 1KB are automatically compressed by Sidecar. Learner/Monitor transparently decompress.
-*   **Explicit Peering**: Sidecar listens on TCP `7447` to avoid multicast issues in some network environments.
-*   **Heartbeats**: Monitor tracks `last_seen` to detect offline actors.
-*   **TTL Cleanup**: Web monitor automatically prunes stale actors after the configured TTL so dashboards and `/api/distributed/status` do not accumulate dead entries forever.
+## 6. 本地开发建议
 
-## 5. Troubleshooting
+如果你只是做一般功能开发，不需要默认打开 distributed 模式。建议顺序：
 
-*   **"Connection Refused"**: Ensure Godot is fully started *before* running Sidecar.
-*   **No Data on Dashboard**: Check `server.py` logs for `[Zenoh] Error`. Ensure Web Server and Sidecar are on the same Zenoh network (router).
-*   **Actor lingering too long**: Lower `AGI_WALKER_DISTRIBUTED_ACTOR_TTL_SECONDS` if you need more aggressive stale-actor cleanup in the Web monitor.
+1. 先跑 CLI / workflow
+2. 再跑普通 Web Panel
+3. 确认主线稳定后，再进入 distributed smoke
+
+## 7. 常见失败点
+
+### Zenoh 没连上
+
+检查：
+
+- router 是否启动
+- endpoint 是否一致
+- 容器网络是否可达
+
+### Actor 不出现
+
+检查：
+
+- `sidecar-1` 是否启动
+- `AGI_WALKER_SIDECAR_ACTOR_ID` 是否与预期一致
+- mock-godot 是否可用
+
+### Web 监控未激活
+
+检查：
+
+- `web-panel-distributed` 日志
+- `/api/system/status`
+- `DistributedMonitor.last_error`
+
+## 8. 何时使用 distributed
+
+当前更适合这些场景：
+
+- 端到端部署冒烟
+- Zenoh 观察链路验证
+- learner / sidecar 回路验证
+- 夜间或 CI 集成检查
+
+不适合：
+
+- 纯文档修复
+- 单机 workflow 调试
+- skills 元数据开发
+
+## 结论
+
+AGI-Walker 的 distributed 路径已经有清晰的烟测入口，但它仍是重型集成能力。优先把它当作专项验证链，而不是日常开发默认模式。

@@ -1,95 +1,143 @@
-# 濡€崇€烽崣鎴濈閹稿洤宕?
+# Model Zoo
 
-## 妫板嫯顔勭紒鍐┠侀崹瀣氨
+更新日期：`2026-04-08`
 
-AGI-Walker 閹绘劒绶垫０鍕唲缂佸啰娈戝鍝勫鐎涳缚绡勫Ο鈥崇€?閸欘垳娲块幒銉ф暏娴滃氦鐦庢导鐗堝灗瀵邦喛鐨熼妴?
+本仓库当前不维护一个传统意义上的“预训练模型动物园”。旧文档中如果出现大批可下载模型、版本排行榜或预打包权重清单，应视为历史内容，不代表当前仓库状态。
 
-### 閸欘垳鏁ゅΟ鈥崇€?
+本页改为说明 AGI-Walker 现在实际存在的模型相关资产与接入方式。
 
-| 娴犺濮?| 缁犳纭?| 鐠侇厾绮屽銉︽殶 | 閹存劕濮涢悳?| 娑撳娴?|
-|------|------|---------|--------|------|
-| 濡ゅ吋顫弨鈧悥?| PPO | 1M | 85% | [娑撳娴嘳(weights/stair_climbing/final_model.zip) |
-| 瀹曞骸鐭曢崷鏉胯埌 | PPO | 1M | 78% | 鐠侇厾绮屾稉?|
-| 閻椻晙缍嬮幎鎾冲絿 | SAC | 500K | 72% | 鐠侇厾绮屾稉?|
+## 当前仓库内的模型相关文件
 
-### 韫囶偊鈧喎绱戞慨?
+`weights/` 目录当前可以看到的内容主要是：
 
-#### 1. 娑撳娴囧Ο鈥崇€?
+- `created_robot.json`
+- `optimized_robot.json`
+- `sim_robot.json`
+- `validated_robot.json`
+- `imc22_control_net.py`
+
+这些文件更接近：
+
+- 工作流输出物
+- 控制脚本示例
+- 仿真相关资产
+
+它们不是统一标准下的可复用模型注册表。
+
+## 当前支持的模型来源
+
+### Ollama
+
+仓库通过 `create_ai_model(engine="ollama", ...)` 使用本地 Ollama 模型。模型本体由你的本地 Ollama 服务管理，不随仓库分发。
+
+典型模型名示例：
+
+- `phi3:mini`
+- `mistral:7b`
+- `llama2:70b`
+
+这些名称只是当前代码里的常见默认值或示例值，不代表仓库已经内置了对应权重。
+
+### llama.cpp / GGUF
+
+仓库支持通过本地 `model_path` 加载 GGUF 模型文件。模型文件需要你自行准备，例如：
+
+```text
+models/controller.gguf
+```
+
+### ONNX
+
+仓库支持使用 `ONNXInferenceEngine` 加载 `.onnx` 文件。这类模型通常来自：
+
+- 外部训练管线
+- RL 导出流程
+- 手工准备的部署模型
+
+## 训练与导出路径
+
+当前最明确的模型生成路径来自 `RLOptimizer`：
+
+- 用 Stable-Baselines3 训练策略
+- 评估策略
+- 导出为 ONNX
+
+因此，如果你想在 AGI-Walker 里形成一条相对闭环的模型链路，比较现实的做法是：
+
+```text
+train policy -> export ONNX -> load with ONNXInferenceEngine
+```
+
+## 工作流输出与模型的区别
+
+请不要把 workflow 产物和模型权重混为一谈。
+
+当前 workflow 生成的主要是：
+
+- 机器人配置 JSON
+- 导出的 URDF / SDF
+- 步骤 artifact JSON
+
+这些产物描述的是结构、参数和导出结果，而不是神经网络权重。
+
+## 如果要新增模型资产
+
+建议遵守以下原则：
+
+- 大文件不要直接无约束提交到仓库
+- 在文档里写清楚模型来源、格式和消费者模块
+- 为 ONNX / GGUF / Ollama 分开写加载说明
+- 给出最小可运行示例
+- 说明是否需要额外依赖或 GPU
+
+建议至少记录这些字段：
+
+- 模型名称
+- 来源或训练方式
+- 文件格式
+- 推荐路径
+- 负责加载的 Python 模块
+- 输入输出约定
+
+## 当前不再承诺的内容
+
+截至 `2026-04-08`，仓库没有正式维护以下内容：
+
+- 统一下载中心
+- 多版本 benchmark 排行
+- 自动同步的 release 权重库
+- 全量预训练策略清单
+- 细分任务的官方最佳模型推荐
+
+## 推荐用法
+
+### 想快速试用
+
+优先用 Ollama：
+
 ```bash
-# 娑撳娴囧Δ鍏碱潽閺€鈧悥顒伳侀崹?
-wget https://github.com/sossossal/AGI-Walker/releases/download/v4.2.0/stair_climbing_ppo.zip
+ollama pull phi3:mini
 ```
 
-#### 2. 閸旂姾娴囧Ο鈥崇€?
-```python
-from stable_baselines3 import PPO
-import gymnasium as gym
+### 想做本地部署
 
-# 閸旂姾娴囧Ο鈥崇€?
-model = PPO.load("stair_climbing_ppo.zip")
+优先用 ONNX：
 
-# 閸掓稑缂撻悳顖氼暔
-env = gym.make('StairClimbing-v0')
+- 训练或准备 `.onnx`
+- 用 `ONNXInferenceEngine` 加载
 
-# 鏉╂劘顢?
-obs, info = env.reset()
-for _ in range(1000):
-    action, _ = model.predict(obs, deterministic=True)
-    obs, reward, terminated, truncated, info = env.step(action)
-    if terminated or truncated:
-        break
+### 想做完全离线文件分发
 
-print(f"Steps climbed: {info['steps_climbed']}/5")
-```
+优先用 llama.cpp / GGUF：
 
-#### 3. 瀵邦喛鐨熷Ο鈥崇€?
-```python
-# 缂佈呯敾鐠侇厾绮?
-model.learn(total_timesteps=100000)
-model.save("finetuned_model.zip")
-```
+- 自备 `.gguf`
+- 用 `create_ai_model(engine="llamacpp", model_path=...)`
 
-### 鐠侇厾绮岄懛顏勭箒閻ㄥ嫭膩閸?
+## 结论
 
-```bash
-# 鐎瑰顥婃笟婵婄
-pip install stable-baselines3
+AGI-Walker 当前没有“模型动物园”，只有“模型接入能力”。最准确的理解方式是：
 
-# 鐠侇厾绮屽Δ鍏碱潽閺€鈧悥?
-python examples/tasks/stair_climbing/train.py --timesteps 1000000
-
-# 鐠囧嫪鍙婂Ο鈥崇€?
-python examples/tasks/stair_climbing/train.py --mode eval --model weights/stair_climbing/final_model.zip
-```
-
-### 閹嗗厴 Baseline
-
-#### 濡ゅ吋顫弨鈧悥?(Stair Climbing)
-- **缁犳纭?*: PPO
-- **鐠侇厾绮屽銉︽殶**: 1,000,000
-- **閹存劕濮涢悳?*: 85%
-- **楠炲啿娼庢總鏍уС**: 12.5 鍗?2.3
-- **鐠侇厾绮岄弮鍫曟？**: ~2 鐏忓繑妞?(NVIDIA A100)
-
-**婵傛牕濮抽弴鑼殠**:
-```
-Episode 0-100:    楠炲啿娼庢總鏍уС -5.2
-Episode 100-500:  楠炲啿娼庢總鏍уС 3.8
-Episode 500-1000: 楠炲啿娼庢總鏍уС 12.5
-```
-
-### 鐠愶紕灏炲Ο鈥崇€?
-
-濞嗐垼绻嬬拹锛勫盀妫板嫯顔勭紒鍐┠侀崹?
-
-1. 鐠侇厾绮屽Ο鈥崇€?
-2. 鐠囧嫪鍙婇幀褑鍏?(>70% 閹存劕濮涢悳?
-3. 閹绘劒姘?Pull Request
-4. 閸栧懎鎯?
-   - 濡€崇€烽弬鍥︽ (.zip)
-   - 鐠侇厾绮岀紒鐔活吀 (training_stats.json)
-   - 鐠囧嫪鍙婄紒鎾寸亯
-
-### 濡€崇€风拋绋垮讲
-
-閹碘偓閺堝顣╃拋顓犵矊濡€崇€烽柌鍥╂暏 MIT 鐠佺褰茬拠?閸欘垵鍤滈悽鍙樺▏閻劊鈧椒鎱ㄩ弨鐟版嫲閸掑棗褰傞妴?
+- 模型可以来自 Ollama
+- 模型可以来自 GGUF
+- 模型可以来自 ONNX
+- 仓库里的 `weights/` 主要是工作流和控制相关资产，不是正式模型目录

@@ -1,55 +1,26 @@
-# AGI-Walker v3.0 閸欐垵绔风拠瀛樻
+# Release Notes
 
-**閸欐垵绔烽弮銉︽埂**: 2026-01-18
-**閻楀牊婀?*: v3.0.0 (Production Ready)
+This archived file preserves the release-note shape used during a documentation and platform cleanup milestone.
 
-## 棣冩畬 闁插秴銇囬弴瀛樻煀閿涙I 閺佺増宓侀悽鐔稿灇娑撳氦濮遍悧鍥у礂閸氬瞼鏁撻幀?
+## Historical Highlights
 
-AGI-Walker v3.0 閺嶅洤绻旈惈鈧い鍦窗娴犲骸宕熸稉鈧惃鍕簚閸ｃ劋姹夋禒璺ㄦ埂楠炲啿褰存潻娑樺娑撳搫鐣弫瀵告畱 AI 鐠侇厾绮屾稉搴ｂ€栨禒璺哄礂閸氬苯绱戦崣鎴犳晸閹胶閮寸紒鐔粹偓鍌涙拱濞嗏剝娲块弬鐗堢壋韫囧啳浠涢悞锔跨艾婢堆嗩潐濡?AI 鐠侇厾绮岄弫鐗堝祦閻ㄥ嫮鏁撻幋鎰厴閸旀稐浜掗崣濠佺瑢 IMC-22 鏉堝湱绱?AI 閼侯垳澧栭惃鍕矤缁旑垰鍩岀粩顖炴肠閹存劑鈧?
+- Main runtime entry points were clarified.
+- MCP startup compatibility was fixed.
+- Core user-facing documentation was rewritten into readable UTF-8 text.
+- Regression checks were added for docs and MCP behavior.
 
-### 閴?閺嶇绺鹃弬鏉垮閼?
+## User-Visible Impact
 
-#### 1. 棣冨疆 瀹搞儰绗熺痪?AI 鐠侇厾绮岄弫鐗堝祦閻㈢喐鍨氬銉ュ范
-- **閹靛綊鍣洪弫鐗堝祦閻㈢喐鍨氶崳?(`batch_generator`)**: 閺€顖涘瘮婢舵俺绻樼粙瀣嫙鐞涘瞼鏁撻幋鎰剁礉閸楁洘婧€ 24 鐏忓繑妞傞崣顖欓獓閸?**2000娑?** 閺佺増宓侀悙骞库偓?
-- **閺呴缚鍏橀弫鐗堝祦闂嗗棛顓搁悶?(`dataset_manager`)**: 閹绘劒绶甸弫鐗堝祦闂嗗棜鍤滈崝銊ュ瀻閸?(Train/Val/Test)閵嗕焦鐗稿蹇氭祮閹?(NumPy/HDF5) 閸欏﹥鏆熼幑顔垮窛闁插繒绮虹拋鈩冨Г閸涘鈧?
-- **婢舵碍膩閹焦鏆熼幑顔芥暜閹?*: 闂勩倓绨￠悩鑸碘偓浣告嫲閹貉冨煑閺佺増宓侀敍灞炬煀婢х偘绨￠崺杞扮艾 Godot 閻?**鐠侊紕鐣婚張楦款潒鐟?(CV) 閺佺増宓侀悽鐔稿灇閼宠棄濮?* (RGB/濞ｅ崬瀹?閸掑棗澹?閸忔娊鏁悙?閵?
+- It became easier to find the correct CLI, Web, and MCP entry paths.
+- The repository became safer to navigate because key docs stopped pointing at broken or outdated workflows.
+- MCP startup no longer depended on older initialization APIs.
 
-#### 2. 棣冩敳 IMC-22 閼侯垳澧栭崡蹇撴倱瀵偓閸欐垶绁?
-- **缁旑垰鍩岀粩顖氫紣娴ｆ粍绁?*: 閹垫捇鈧矮绨?`閺佺増宓侀悽鐔稿灇 -> 濡€崇€风拋顓犵矊 -> INT8闁插繐瀵?-> C娴狅絿鐖滈悽鐔稿灇 -> 閼侯垳澧栭柈銊ц` 閻ㄥ嫬鍙忛柧鎹愮熅閵?
-- **鏉炲鍣虹痪褏顨ｇ紒蹇曠秹缂?*: 鐠佹崘顓告禍鍡曠瑩娑?MCU/NPU 娴兼ê瀵查惃鍕簳閸ㄥ甯堕崚鍓佺秹缂?(<1KB 閸欏倹鏆熼柌?閵?
-- **閼奉亜濮╅崠鏍櫤閸栨牕浼愰崗?*: 閹绘劒绶垫稉鈧柨顔肩础 Post-Training Quantization (PTQ) 瀹搞儱鍙块敍宀冨殰閸斻劎鏁撻幋鎰扳偓鍌炲帳 IMC-22 閻?C 婢跺瓨鏋冩禒韬测偓?
+## Current Reference
 
-#### 3. 棣冩礈閿?缁崵绮虹€瑰本鏆ｉ幀褑藟閸?
-- **閺佸懘娈扮拠濠冩焽缁崵绮?(v1.0)**: 閸╄桨绨壕銊﹀疮濡€崇€烽惃鍕矋娴犺泛顕撮崨浠嬵暕濞村绗岀紒瀛樺Б瀵ら缚顔呴妴?
-- **閹存劖婀版导妯哄缁崵绮?(v1.0)**: 閺堝搫娅掓禍鍝勫弿閻㈢喎鎳￠崨銊︽埂閹存劖婀?(TCO) 鐠侊紕鐣绘稉搴ゎ啎鐠佲€茬喘閸栨牕娅掗妴?
-- **娴犺濮熺憴鍕灊缁崵绮?(v1.0)**: 閸╄桨绨?A* 閻ㄥ嫯鐭惧鍕潐閸掓帊绗屾径姘崲閸斅ょ殶鎼达箑绱╅幙搴涒偓?
+For live project usage, use:
 
-### 棣冩憹 閸旂喕鍏樼€瑰苯鏉芥惔锔剧埠鐠?
-
-| 濡€虫健 | 閻樿埖鈧?| 鐠囧瓨妲?|
-| :--- | :--- | :--- |
-| **閸╄櫣顢呮禒璺ㄦ埂** | 閴?100% | 闂嗘湹娆㈡惔鎾扁偓浣哄⒖閻炲棗绱╅幙搴涒偓浣哄箚婢у啯膩閹?|
-| **閹扮喓鐓＄化鑽ょ埠** | 閴?90% | 娴肩姵鍔呴崳銊ㄧ€洪崥鍫涒偓涓哣 閺佺増宓侀幒銉ュ經 |
-| **閺佺増宓佸銉ュ范** | 閴?95% | 閹靛綊鍣洪悽鐔稿灇閵嗕焦绔诲ú妞尖偓浣侯吀閻?|
-| **绾兛娆㈤梿鍡樺灇** | 閴?95% | IMC-22 閸ヨ桨娆㈤弨顖涘瘮閵嗕線鍣洪崠鏍т紣閸?|
-
-### 棣冩偘 娣囶喖顦叉稉搴濈喘閸?
-- 娴兼ê瀵叉禍鍡楊樋鏉╂稓鈻奸弫鐗堝祦閻㈢喐鍨氶弮鍓佹畱閸愬懎鐡ㄩ崡鐘垫暏闂傤噣顣介妴?
-- 娣囶喖顦叉禍?`SensorFusion` 濡€虫健娑擃厽妞傞梻瀛樺煈閸氬本顒為惃鍕簳鐏忓繗顕ゅ顔衡偓?
-- 鐎瑰苯鏉芥禍鍡涖€嶉惄顔芥瀮濡楋絿绮ㄩ弸鍕剁礉閺傛澘顤?4 娴犺姤鐗宠箛鍐╁Η閺堫垱鏋冨锝冣偓?
-
----
-
-### 棣冩憫 婵″倷缍嶉崡鍥╅獓
-
-閻滅増婀侀悽銊﹀煕鐠囬攱濯洪崣鏍ㄦ付閺傞鍞惍浣歌嫙鐎瑰顥婇弬鏉款杻娓氭繆绂嗛敍?
-
-```bash
-git pull origin master
-pip install -r requirements.txt
-```
-
-### 棣冩晭 閺堫亝娼电拋鈥冲灊 (v3.1)
-- 瀵洖鍙嗛崺杞扮艾 Transformer 閻ㄥ嫰鈧氨鏁ら幒褍鍩楃粵鏍殣濡€崇€烽妴?
-- 娴滄垵甯悽鐔告殶閹诡喚鏁撻幋鎰暜閹?(Kubernetes/Ray)閵?
-- 鐎圭偞妞傞悧鈺冩倞-娴犺法婀″ǎ宄版値 (Sim-to-Real) 濡椼儲甯撮幒銉ュ經閵?
+- `README.md`
+- `docs/CURRENT_STATUS.md`
+- `docs/guides/CLI_GUIDE.md`
+- `docs/guides/WEB_PANEL_GUIDE.md`
+- `docs/mcp.md`

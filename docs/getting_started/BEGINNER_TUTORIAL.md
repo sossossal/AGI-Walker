@@ -1,146 +1,123 @@
-# AGI-Walker 閺傜増澧滈崗銉╂，閺佹瑧鈻?(娴?瀵偓婵?
+# Beginner Tutorial
 
-濞嗐垼绻嬮弶銉ュ煂 AGI-Walker閿涗浇绻栭弰顖欑娑擃亙绗撴稉鍝勭暚閸忋劑娴傞崺铏诡攨閻ㄥ嫭鏌婇幍瀣啎鐠侊紕娈戦弫娆戔柤閿涘本鍨滄禒顒€鐨㈢敮锔藉亶娴犲酣娴傚鈧慨瀣剁礉娑撯偓濮濄儲顒炴潻鎰攽閹劎娈戠粭顑跨娑擃亝婧€閸ｃ劋姹夋禒璺ㄦ埂閵?
+更新日期：`2026-04-08`
 
-**妫板嫯顓搁懓妤佹**: 15-20 閸掑棝鎸?
+这个教程带你第一次完整走通 AGI-Walker 的主路径：skills -> workflows -> Web -> MCP。
 
----
-
-## 棣冩惖 閸戝棗顦銉ょ稊
-
-閸︺劌绱戞慨瀣╃閸撳稄绱濈拠椋庘€樻穱婵囧亶閻ㄥ嫮鏁搁懘鎴濆嚒缂佸繐鐣ㄧ憗鍛啊娴犮儰绗呮潪顖欐閵?
-
-### 1. 鐎瑰顥?Python
-AGI-Walker 閺勵垰鐔€娴?Python 瀵偓閸欐垹娈戦妴鍌氼洤閺嬫粍鍋嶆潻妯荤梾閺堝鐣ㄧ憗?Python閿?
-1. 鐠佸潡妫?[Python鐎规缍塢(https://www.python.org/downloads/)
-2. 娑撳娴囬張鈧弬鎵閺?(閹恒劏宕?3.8 閹存牔浜掓稉?
-3. 鐎瑰顥婇弮璺哄韫囧懎瀣€闁?**"Add Python to PATH"** (鐏忓摉ython濞ｈ濮為崚鎵箚婢у啫褰夐柌?
-
-### 2. 鐎瑰顥?Git (閸欘垶鈧绱濇担鍡樺腹閼?
-Git 閻劋绨稉瀣祰閹存垳婊戦惃鍕敩閻礁绨遍妴?
-1. 鐠佸潡妫?[Git鐎规缍塢(https://git-scm.com/downloads)
-2. 娑撳娴囬獮璺虹暔鐟?Windows 閻楀牊婀?
-
----
-
-## 棣冩畬 缁楊兛绔村銉窗娑撳娴囨い鍦窗
-
-### 閺傝纭?A: 娴ｈ法鏁?Git (閹恒劏宕?
-閹垫挸绱戦崨鎴掓姢鐞涘苯浼愰崗?(CMD 閹?PowerShell)閿涘矁绶崗銉窗
+## Step 1：确认 CLI 可用
 
 ```bash
-git clone https://github.com/sossossal/AGI-Walker.git
-cd AGI-Walker
+python -m agi_walker.cli --help
 ```
 
-### 閺傝纭?B: 閻╁瓨甯存稉瀣祰 ZIP
-1. 閸?GitHub 妞ょ敻娼伴悙鐟板毊缂佽儻澹婇惃?**"Code"** 閹稿鎸?
-2. 闁瀚?**"Download ZIP"**
-3. 鐟欙絽甯囨稉瀣祰閻ㄥ嫭鏋冩禒?
-4. 閸︺劏袙閸樺鎮楅惃鍕瀮娴犺泛銇欐稉顓熷ⅵ瀵偓閸涙垝鎶ょ悰?(閸︺劍鏋冩禒璺恒仚閸︽澘娼冮弽蹇氱翻閸?`cmd` 楠炶泛娲栨潪?
-
----
-
-## 棣冩憹 缁楊兛绨╁銉窗鐎瑰顥婇悳顖氼暔
-
-閹存垳婊戦棁鈧憰浣哥暔鐟佸懍绔存禍娑樼箑鐟曚胶娈?Python 鎼?(婵?numpy, matplotlib 缁?閵?
-
-閸︺劑銆嶉惄顔界壌閻╊喖缍嶆稉瀣剁礉鏉╂劘顢戦敍?
+然后执行：
 
 ```bash
-pip install -r requirements.txt
+python -m agi_walker.cli skills list
+python -m agi_walker.cli workflows list
 ```
 
-*婵″倹鐏夋稉瀣祰闁喎瀹抽幈顫礉閸欘垯浜掓担璺ㄦ暏閸ヨ棄鍞撮梹婊冨剼*:
+你现在应该知道两件事：
+
+- 仓库里有哪些 skills
+- 仓库里有哪些 workflows
+
+## Step 2：查看一个 skill
+
 ```bash
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+python -m agi_walker.cli skills info robot-modeling
 ```
 
----
+如果想看完整文档正文：
 
-## 棣冨籍 缁楊兛绗佸銉窗鏉╂劘顢戠粭顑跨娑擃亝绱ㄧ粈?
-
-鐠佲晜鍨滄禒顒佹降鏉╂劘顢戞稉鈧稉顏呮付缁犫偓閸楁洜娈戝鏃傘仛閿涙俺顔€閺堝搫娅掓禍楦胯泲1缁偨鈧?
-
-鏉╂劘顢戞禒銉ょ瑓閸涙垝鎶ら敍?
 ```bash
-python examples/walk_1m_demo.py
+python -m agi_walker.cli skills info robot-modeling -d
 ```
 
-### 閹劌鐨㈡导姘辨箙閸掑府绱?
-1. **閹貉冨煑閸欐媽绶崙?*: 閺勫墽銇氶張鍝勬珤娴滆櫣娈戠€圭偞妞傞悩鑸碘偓渚婄礄娴ｅ秶鐤嗛妴渚€鈧喎瀹抽妴浣稿⒖娴ｆ瑧鏁搁柌蹇ョ礆閵?
-2. **瀵懓鍤粣妤€褰?*: 婵″倹鐏夋稉鈧崚鍥劀鐢潻绱濋懘姘拱閹笛嗩攽鐎瑰本鐦崥搴″讲閼虫垝绱伴弰鍓с仛閻㈢喐鍨氶惃鍕禈鐞涖劍鍨ㄩ弫鐗堝祦閹芥顩﹂妴?
+这一步的目的不是背内容，而是知道 skill metadata 从哪里来，以及 CLI 如何读取 `SKILL.md`。
+
+## Step 3：跑一次 workflow
+
+执行：
+
+```bash
+python -m agi_walker.cli workflows run robot_creation_pipeline --mock --resume --output-root test_env/beginner_tutorial_run
+```
+
+重点观察：
+
+- workflow 名称
+- 执行器模式
+- 输出根目录
+- 每一步的状态
+- 最终输出摘要
+
+如果命令完成，你就已经跑通了当前仓库最重要的一条轻量编排路径。
+
+## Step 4：启动 Web Panel
+
+```bash
+python -m web_panel.server
+```
+
+打开：
 
 ```text
-瀵偓婵璞㈤惇?..
-Step 0: Pos=0.00m, Vel=0.00m/s, Bat=100.0%
-Step 10: Pos=0.05m, Vel=0.12m/s, Bat=99.9%
-...
-閴?閻╊喗鐖ｆ潏鐐灇閿涗礁鍑＄悰宀冪箻 1.05 缁?
+http://localhost:8000/static/index.html
 ```
 
----
+接着访问：
 
-## 棣冨箖 缁楊剙娲撳銉窗鐏忔繆鐦穱顔芥暭閸欏倹鏆?
+- `http://localhost:8000/static/workflows.html`
+- `http://localhost:8000/api/system/status`
+- `http://localhost:8000/api/workflows/`
 
-AGI-Walker 閻ㄥ嫭鐗宠箛鍐╂Ц**閸欏倹鏆熼崠鏍ㄥ付閸?*閵嗗倽顔€閹存垳婊戠拠鏇犳絻娣囶喗鏁兼稉鈧稉瀣簚閸ｃ劋姹夐惃鍕棘閺佸府绱濋惇瀣箙娴兼碍婀佹禒鈧稊鍫滅瑝閸氬被鈧?
+这一步的目标是把“命令行里的 workflow”与“Web 上的 workflow 视图”对应起来。
 
-1. 閻劏顔囨禍瀣拱閹存牔鍞惍浣虹椽鏉堟垵娅掗幍鎾崇磻 `examples/walk_1m_demo.py`
-2. 閹垫儳鍩岀猾璁虫妧鏉╂瑦鐗遍惃鍕敩閻緤绱?
+## Step 5：启动 MCP Server
 
-```python
-# 娣囶喗鏁奸崜?
-params = {
-    'motor_power': 1.0,  # 閻㈠灚婧€閸旂喓宸?
-    'stiffness': 1.0     # 閸忓疇濡崚姘
-}
-```
+新开一个终端：
 
-3. 鐏忔繆鐦穱顔芥暭閸欏倹鏆熼敍灞肩伐婵″倸顤冮崝鐘插閻滃浄绱?
-
-```python
-# 娣囶喗鏁奸崥?
-params = {
-    'motor_power': 2.0,  # 婢х偛濮炴稉鈧崐宥呭閻滃浄绱?
-    'stiffness': 0.5     # 闂勫秳缍嗛崚姘閸欐钂?
-}
-```
-
-4. 閸愬秵顐兼潻鎰攽閼存碍婀伴敍宀冾潎鐎电喐婧€閸ｃ劋姹夐弰顖氭儊鐠烘垵绶遍弴鏉戞彥娴滃棴绱濋幋鏍偓鍛Ц閸氾附娲跨€硅妲楅幗鏂库偓鎺炵吹
-
----
-
-## 棣冨疆 缁楊兛绨插銉窗閻㈢喐鍨?AI 鐠侇厾绮岄弫鐗堝祦
-
-婵″倹鐏夐幃銊ヮ嚠娴滃搫浼愰弲楦垮厴閹扮喎鍙寸搾锝忕礉閹劌褰叉禒銉ョ毦鐠囨洜鏁撻幋鎰娴滄稖顔勭紒鍐╂殶閹诡喓鈧?
-
-鏉╂劘顢戦幍褰掑櫤閻㈢喐鍨氬鏃傘仛閿?
 ```bash
-python examples/batch_data_generation_demo.py
+agi-walker-mcp
 ```
 
-缁嬪绨导姘愁嚄闂傤喗鍋嶉柅澶嬪閸濐亞顫掑Ο鈥崇础閿涘矁绶崗?`1` 闁瀚?**鐏忓繗顫夊Ο鈩冪川缁€?*閵?
+或：
 
-缁嬪绨亸鍡氬殰閸旑煉绱?
-1. 閸︺劌鎮楅崣鏉挎儙閸斻劌顦挎稉顏囩箻缁?
-2. 楠炴儼顢戦悽鐔稿灇閸戠姷娅ㄩ弶鈩冩簚閸ｃ劋姹夋潻鎰З閺佺増宓?
-3. 鐏忓棙鏆熼幑顔荤箽鐎涙ê鍩?`data/` 閻╊喖缍?
+```bash
+python -m agi_walker.mcp.server
+```
 
----
+你不需要马上写 MCP 客户端代码，先理解这件事就够了：
 
-## 閴?鐢瓕顫嗛梻顕€顣?
+- CLI 是给人直接操作
+- Web 是给浏览器和 HTTP client
+- MCP 是给 agent / model client
 
-**Q: 鏉╂劘顢戦幎銉╂晩 `ModuleNotFoundError`?**
-A: 鐠囬鈥樻穱婵囧亶瀹歌尙绮￠幋鎰鏉╂劘顢戞禍?`pip install -r requirements.txt`閵?
+它们背后共享的是同一批 skills、workflows 和 backend 能力。
 
-**Q: 閸欘亝婀侀弬鍥х摟鏉堟挸鍤敍灞剧梾閺?3D 閻㈠娼伴敍?*
-A: 閻╊喖澧?AGI-Walker 娑撴槒顩︽稉鎾存暈娴?*閺佺増宓侀悽鐔稿灇**閸?*閻椻晝鎮婄拋锛勭暬**閵嗗倸顩ч弸婊勫亶闂団偓鐟?3D 閻㈠娼伴敍宀勬付鐟曚礁鐣ㄧ憗?Godot 瀵洘鎼搁獮鎯扮箥鐞?`godot_project` 閻╊喖缍嶆稉瀣畱瀹搞儳鈻奸妴?
+## Step 6：跑最小回归
 
-**Q: 婵″倷缍嶉幒褍鍩楅張鍝勬珤娴滅尨绱?*
-A: 閹劋绗夐棁鈧憰渚€鈧俺绻冮柨顔炬磸閹貉冨煑鐎瑰啨鈧倽绻栭弰顖欑娑?*娴犺法婀￠獮鍐插酱**閿涘本鍋嶉柅姘崇箖娣囶喗鏁兼禒锝囩垳娑擃厾娈戦崣鍌涙殶閺夈儱鐣炬稊澶嬫簚閸ｃ劋姹夐惃鍕攽娑撶尨绱濋悞璺烘倵鐟欏倸鐧傜€瑰啰娈戠悰銊у箛閵?
+```bash
+python -m pytest tests/test_docs_utf8.py tests/test_mcp_tools.py tests/test_mcp_server.py -q
+```
 
----
+如果这一步也通过，说明你当前环境的“文档入口 + MCP 入口”至少是健康的。
 
-棣冨竴 **閹厼鏋╅敍浣瑰亶瀹歌尙绮￠幋鎰閸忋儵妫?AGI-Walker閿?*
+## 你已经完成了什么
 
-閻滄澘婀幃銊ュ讲娴犮儲甯扮槐?`examples/` 閻╊喖缍嶆稉瀣畱閸忔湹绮懘姘拱閿涘苯褰傞悳鐗堟纯婢舵碍婀佺搾锝囨畱閸旂喕鍏橀妴?
+到这里你已经完成：
+
+1. 验证 CLI 可用。
+2. 读取 skill metadata。
+3. 跑通最小 workflow。
+4. 启动 Web Panel。
+5. 启动 MCP server。
+6. 跑通最小入口回归。
+
+## 下一步建议
+
+- 想深入命令行：读 [CLI_GUIDE.md](../guides/CLI_GUIDE.md)
+- 想深入 Web：读 [WEB_PANEL_GUIDE.md](../guides/WEB_PANEL_GUIDE.md)
+- 想理解架构：读 [AGI_WALKER_V3_WHITE_PAPER.md](../AGI_WALKER_V3_WHITE_PAPER.md)
+- 想继续做一次带检查点的实操：读 [HANDS_ON_GUIDE.md](HANDS_ON_GUIDE.md)

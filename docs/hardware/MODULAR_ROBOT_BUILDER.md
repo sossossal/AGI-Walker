@@ -1,91 +1,94 @@
-# 棣冃?濡€虫健閸栨牗婧€閸ｃ劋姹夐弸鍕紦閹稿洤宕?(Modular Robot Builder)
+# Modular Robot Builder
 
-AGI-Walker 閻滄澘鍑￠弨顖涘瘮閸╄桨绨惇鐔风杽闂嗗爼鍎存禒鑸垫殶閹诡噯绱橠ata-Driven Parts閿涘娈戦張鍝勬珤娴滅儤鐎鐑樼ウ缁嬪鈧倹鍋嶉崣顖欎簰閸嶅繒绮嶇憗鍛暩閼存垳绔撮弽鍑ょ礉闁瀚ㄩ悽鍨簚閵嗕胶鏁稿Ч鐘叉嫲娴肩姵鍔呴崳銊︽降"閹疯壈顥?閹劎娈戦張鍝勬珤娴滄亽鈧?
+更新日期：`2026-04-08`
 
-## 1. 闂嗘湹娆㈡惔?(Parts Library)
+本页说明 AGI-Walker 当前的“模块化机器人构建”能力。当前这条能力的核心不是 CAD 建模器，而是 parts library、装配清单和 JSON 配置。
 
-閺嶇绺鹃弫鐗堝祦鎼存挷缍呮禍?`python_api/parts_library.json`閵嗗倻娲伴崜宥嗘暪瑜版洑绨℃禒銉ょ瑓娑撶粯绁︾涵顑挎鐟欏嫭鐗搁敍?
+## 1. 当前核心资产
 
-### 棣冾瀶 閹笛嗩攽閸?(Actuators)
-*   **Unitree Go-M8010 Style**: 妤傛ê濮╅幀浣告磽鐡掑啿鍙ч懞鍌滄暩閺?(23.7Nm, 30rad/s)閵?
-*   **Tesla Optimus Style Hip**: 闁插秴鐎风悰灞炬Е姒昏儻鐤嗛崗瀹犲Ν (200Nm, 8rad/s)閵?
-*   **Tesla Optimus Style Knee**: 鐡掑懘鍣搁崹瀣暀閸忓疇濡?(300Nm)閵?
-*   **SG90 Servo**: 瀵邦喖鐎烽懜鍨簚閵?
+### Parts Database
 
-### 棣冩啑閿?娴肩姵鍔呴崳?(Sensors)
-*   **MPU-6050**: 濞戝牐鍨傜痪?IMU閵?
-*   **Xsens MTi**: 瀹搞儰绗熺痪?IMU閵?
-*   **VLP-16**: 16缁炬寧绺洪崗澶愭祫鏉堜勘鈧?
-*   **RealSense D435**: 濞ｅ崬瀹抽惄鍛婃簚閵?
+- `parts_library/complete_parts_database.json`
 
-### 棣冩敱 閻㈠灚鐫?(Batteries)
-*   **LiPo 4S 5000mAh**: 閼割亝膩閻㈠灚鐫?(0.5kg)閵?
-*   **Tesla Module 2kWh**: 閸斻劌濮忛悽鍨潨閸?(12kg)閵?
+### 管理工具
 
----
+- `parts_library/parts_manager.py`
 
-## 2. 婵″倷缍嶉弸鍕紦閼奉亜鐣炬稊澶嬫簚閸ｃ劋姹?
+### 参考参数表
 
-閹存垳婊戦幓鎰返娴滃棔绔存稉?Python API `PartsManager` 閺夈儴绶熼崝鈺傜€鎭掆偓?
+- `parts_library/PARTS_SPECIFICATIONS.md`
 
-### 濮濄儵顎?1: 鐎电厧鍙嗗銉ュ徔
-```python
-from python_api.parts_manager import PartsManager
-from robot_models.base_robot import RobotConfig, LinkConfig, JointConfig
+### Godot 侧测试脚本
 
-# 閸掓繂顫愰崠鏍吀閻炲棗娅?
-pm = PartsManager()
-```
+- `godot_project/scripts/test_parts_library.gd`
 
-### 濮濄儵顎?2: 闁瀚ㄩ梿鏈垫娑撳氦顓哥粻妗濷M
-```python
-# 闁瀚ㄩ梿鏈垫 ID
-motor_id = "go_m8010"
-battery_id = "lipo_4s_5000mah"
+## 2. 当前可构建的对象
 
-# 閼奉亜濮╃拋锛勭暬閹鍣搁崪灞锯偓璁崇幆
-parts_list = [motor_id] * 12 + [battery_id]
-bom = pm.calculate_bom(parts_list)
+从现有 parts database 看，当前更像是：
 
-print(f"BOM Cost: ${bom['total_cost_usd']}")
-print(f"Total Mass: {bom['total_weight_kg']} kg")
-```
+- 零件索引
+- 装配套件定义
+- BOM 生成基础
 
-### 濮濄儵顎?3: 閻㈢喐鍨氶張鍝勬珤娴滄椽鍘ょ純?
-閸掆晝鏁ら梿鏈垫閻ㄥ嫬寮弫甯礄婵?`max_torque_nm`閿涘娼垫繅顐㈠帠 `JointConfig`閿涘本妫ら棁鈧幍瀣З閺屻儴銆冮妴?
+而不是复杂的几何约束装配系统。
 
-```python
-motor = pm.get_part(motor_id)
+当前 assembly 分区包括：
 
-joint = JointConfig(
-    name="hip_joint",
-    type="hinge",
-    max_torque=motor.specs["max_torque_nm"], # 閼奉亜濮╁鏇犳暏
-    max_speed=motor.specs["max_speed_rad_s"]
-)
-```
+- `complete_robot_kits`
+- `low_cost_robotd`
 
-### 鐎瑰本鏆ｇ粈杞扮伐
-鐠囩柉绻嶇悰灞剧川缁€楦垮壖閺堫剚鐓￠惇瀣暚閺佸瓨绁︾粙瀣剁窗
-```bash
-python examples/custom_parts_demo.py
-```
+其中已有的套件名包括：
 
-鏉╂劘顢戦崥搴濈窗閻㈢喐鍨?`custom_robot_config.json`閿涘本鍋嶉崣顖欎簰閸╄桨绨銈嗘瀮娴犺泛濮炴潪鎴掕雹閻喓骞嗘晶鍐︹偓?
+- `双足行走机器人完整套件`
+- `四足机器人完整套件`
+- `低成本双足机器人套件 (DIY版)`
 
----
+## 3. 当前构建方式
 
-## 3. 閹碘晛鐫嶉梿鏈垫鎼?
+最现实的“builder”路径是：
 
-閹劌褰ч棁鈧紓鏍帆 `python_api/parts_library.json` 閸楀啿褰插ǎ璇插閺備即娴傛禒韬测偓?
-閺嶇厧绱℃俊鍌欑瑓閿?
+1. 从 parts database 挑零件
+2. 读取 assembly 定义
+3. 计算成本和 BOM
+4. 结合 workflow / 配置文件导出机器人描述
 
-```json
-"my_new_motor": {
-  "name": "Super Motor X",
-  "weight_kg": 0.8,
-  "max_torque_nm": 50.0,
-  "cost_usd": 199
-}
-```
-缁崵绮烘导姘冲殰閸斻劏顕伴崣鏍ㄦ煀濞ｈ濮為惃鍕祩娴犺翰鈧?
+## 4. PartsManager 提供什么
+
+`PartsLibrary` 当前提供：
+
+- `search_by_type`
+- `search_by_name`
+- `get_part_by_id`
+- `calculate_assembly_cost`
+- `generate_bom`
+
+这意味着当前 builder 更偏向：
+
+- 选型
+- 成本估算
+- BOM 输出
+
+## 5. 与 workflow 的关系
+
+当前模块化构建并没有单独形成独立 CLI builder 命令。更现实的主线是：
+
+- 先用 parts library 做部件与 BOM 层决策
+- 再用 skill / workflow 做机器人配置生成与导出
+
+## 6. 不应误解的地方
+
+- 当前没有完整可视化 CAD 装配主线
+- Tk GUI 不是当前稳定 builder 主界面
+- parts database 不是自动物理求解器
+
+## 7. 推荐使用方式
+
+如果你要做模块化构建：
+
+1. 先从 `parts_library/complete_parts_database.json` 理解分类
+2. 用 `parts_manager.py` 搜索和生成 BOM
+3. 再将结果映射到 robot config / workflow
+
+## 结论
+
+AGI-Walker 当前的模块化机器人构建能力，本质上是“部件库 + 套件定义 + BOM 工具链”。它适合作为机器人配置和选型前端，而不是完整机械设计平台。

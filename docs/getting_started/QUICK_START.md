@@ -1,391 +1,98 @@
-# 棣冩畬 韫囶偊鈧喎绱戞慨瀣瘹閸?
+# Quick Start
 
-濞嗐垼绻嬫担璺ㄦ暏 Godot 閺堝搫娅掓禍鐑樐侀幏鐔奉殰娴犺绱掗張顒佸瘹閸楁鐨㈢敮顔煎И閹劌鎻╅柅鐔哥ゴ鐠囨洖鍑＄€圭偟骞囬惃鍕閺堝濮涢懗濮愨偓?
+更新日期：`2026-04-08`
 
----
+目标：用 5 分钟确认 AGI-Walker 的主路径在你的机器上能工作。
 
-## 棣冩惖 閸撳秶鐤嗙憰浣圭湴
+## 1. 安装
 
-- 閴?Godot 4.2+
-- 閴?Python 3.8+
-- 閴?瀹告彃鐣幋鎰畱妞ゅ湱娲伴弬鍥︽
-
----
-
-## 棣冨箚 濞村鐦捄顖滃殠閸?
-
-```
-缁楊兛绔村? 濞村鐦梿鏈垫鎼存搫绱橮ython閿?    閳?5閸掑棝鎸?
-    閳?
-缁楊兛绨╁? 濞村鐦悳顖氼暔缁崵绮洪敍鍦檕dot閿?   閳?10閸掑棝鎸?
-    閳?
-缁楊兛绗佸? 濞村鐦疨ython API閿涘牆褰查柅澶涚礆   閳?15閸掑棝鎸?
+```bash
+pip install -e .
 ```
 
----
+如果你还需要测试工具：
 
-## 缁楊兛绔村? 濞村鐦梿鏈垫鎼?棣冩憥
-
-### 1.1 Python 閻滎垰顣ㄩ崙鍡楊槵
-
-```powershell
-# 鏉╂稑鍙?python_api 閻╊喖缍?
-cd d:\閺傛澘缂撻弬鍥︽婢剁AGI-Walker\python_api
-
-# 绾喕绻氬鎻掔暔鐟?gymnasium 閸?numpy
-pip install gymnasium numpy
+```bash
+pip install -e ".[dev]"
 ```
 
-### 1.2 鏉╂劘顢戦梿鏈垫鎼存挻绁寸拠?
+## 2. 列出 skills
 
-```powershell
-# 缁犫偓閸楁洘绱ㄧ粈?
-python examples\demo_parts.py
-
-# 鐎瑰本鏆ｅù瀣槸
-python examples\test_parts.py
+```bash
+python -m agi_walker.cli skills list
 ```
 
-**妫板嫭婀℃潏鎾冲毉**:
-```
-============================================================
-閺堝搫娅掓禍娲祩娴犺泛绨卞鏃傘仛
-============================================================
+预期你会看到类似这些条目：
 
-[1] 閸旂姾娴囬梿鏈垫閺佺増宓佹惔?..
-    閴?閹存劕濮涢崝鐘烘祰 3 娑擃亪娴傛禒?
-    闂嗘湹娆㈤崚妤勩€? dynamixel_xl430_w250, dynamixel_mx106, bosch_bno055
+- `robot-modeling`
+- `parameter-optimizer`
+- `urdf-generator`
+- `model-distiller`
 
-[2] 閼惧嘲褰?Dynamixel XL430-W250 鐠囷附鍎?..
-    閸ㄥ褰? XL430-W250-T
-    閸掑爼鈧姴鏅? ROBOTIS
-    閸絻娴嗛幍顓犵叐: 1.4 N璺痬
-    缁岄缚娴囬柅鐔峰: 50 RPM
-    ...
+## 3. 列出 workflows
 
-閴?閹碘偓閺堝绁寸拠鏇⑩偓姘崇箖閿涗線娴傛禒璺虹氨閸旂喕鍏樺锝呯埗
+```bash
+python -m agi_walker.cli workflows list
 ```
 
-### 1.3 閻㈠灚婧€閹嗗厴鐎佃鐦?
+当前常见条目至少包括：
 
-```powershell
-python examples\test_parts.py
+- `robot_creation_pipeline`
+- `simulation_ready_robot`
+
+## 4. 执行一个最小 workflow
+
+```bash
+python -m agi_walker.cli workflows run robot_creation_pipeline --mock --resume --output-root test_env/quick_start_run
 ```
 
-閹劋绱伴惇瀣煂娑撳秴鎮撻悽鍨簚閻ㄥ嫭鈧嗗厴鐎佃鐦崪灞锯偓褌鐜В鏂垮瀻閺嬫劑鈧?
+如果成功，你应该看到：
 
----
+- 状态 `completed`
+- 多个步骤输出
+- `test_env/quick_start_run` 下生成产物
 
-## 缁楊兛绨╁? 閸?Godot 娑擃厽绁寸拠鏇犲箚婢у啰閮寸紒?棣冨
+## 5. 启动 Web Panel
 
-### 2.1 閹垫挸绱?Godot 妞ゅ湱娲?
-
-1. 閸氼垰濮?Godot 4.2+
-2. 閻愮懓鍤?"鐎电厧鍙?
-3. 闁瀚?`d:\閺傛澘缂撻弬鍥︽婢剁AGI-Walker\godot_project\project.godot`
-4. 閻愮懓鍤?"鐎电厧鍙嗛獮鍓佺椽鏉?
-
-### 2.2 閸氼垳鏁ら幓鎺嶆
-
-1. 鏉╂稑鍙?`妞ゅ湱娲癭 閳?`妞ゅ湱娲扮拋鍓х枂` 閳?`閹绘帊娆
-2. 閸氼垳鏁?**"Robot Simulation Toolkit"**
-3. 閸忔娊妫寸拋鍓х枂缁愭褰?
-
-### 2.3 閸掓稑缂撳ù瀣槸閸︾儤娅?
-
-**閺傚洣娆?* 閳?**閺傛澘缂撻崷鐑樻珯**
-
-閸掓稑缂撴禒銉ょ瑓閼哄倻鍋ｇ紒鎾寸€敍?
-
-```
-TestEnvironment (Node3D)
-閳规壕鏀㈤埞鈧?EnvironmentController (Node)
-閳规壕鏀㈤埞鈧?GroundMaterialLibrary (Node)
-閳规壕鏀㈤埞鈧?Ground (StaticBody3D)
-閳?  閳规柡鏀㈤埞鈧?CollisionShape3D (BoxShape3D: 20x1x20)
-閳?      閳规柡鏀㈤埞鈧?MeshInstance3D (BoxMesh: 20x1x20)
-閳规壕鏀㈤埞鈧?TestRobot (RigidBody3D)
-閳?  閳规柡鏀㈤埞鈧?CollisionShape3D (CapsuleShape3D)
-閳?      閳规柡鏀㈤埞鈧?MeshInstance3D (CapsuleMesh)
-閳规壕鏀㈤埞鈧?Camera3D
-閳规柡鏀㈤埞鈧?DirectionalLight3D
+```bash
+python -m web_panel.server
 ```
 
-### 2.4 闂勫嫬濮為懘姘拱
+打开：
 
-#### 缂?EnvironmentController 濞ｈ濮為懘姘拱
-
-```
-闁鑵?EnvironmentController 閼哄倻鍋?
-閳?闂勫嫬濮為懘姘拱
-閳?闁瀚?res://scripts/environment/environment_controller.gd
+```text
+http://localhost:8000/static/index.html
 ```
 
-#### 缂?GroundMaterialLibrary 濞ｈ濮為懘姘拱
+## 6. 启动 MCP Server
 
-```
-闁鑵?GroundMaterialLibrary 閼哄倻鍋?
-閳?闂勫嫬濮為懘姘拱
-閳?闁瀚?res://scripts/environment/ground_material_library.gd
+```bash
+agi-walker-mcp
 ```
 
-#### 缂佹瑦鐗撮懞鍌滃仯濞ｈ濮炲ù瀣槸閼存碍婀?
+或：
 
-```
-闁鑵?TestEnvironment 閼哄倻鍋?
-閳?闂勫嫬濮為懘姘拱
-閳?闁瀚?res://scripts/test_environment.gd
+```bash
+python -m agi_walker.mcp.server
 ```
 
-### 2.5 鏉╂劘顢戦崷鐑樻珯
+## 7. 跑最小回归
 
-1. 閹?**F5** 閹存牜鍋ｉ崙缁樻尡閺€鐐瘻闁?
-2. 閺屻儳婀呴幒褍鍩楅崣鎷岀翻閸?
-
-**妫板嫭婀℃潏鎾冲毉**:
-```
-=== 閻滎垰顣ㄧ化鑽ょ埠濞村鐦?===
-
-[1] 濞村鐦悳顖氼暔妫板嫯顔?..
-棣冨 Loaded environment preset: 閸︽壆鎮?
-棣冨 Loaded environment preset: 閺堝牏鎮?
-棣冩暥 Loaded environment preset: 閻忣偅妲?
-  閴?閻滎垰顣ㄦ０鍕啎濞村鐦€瑰本鍨?
-
-[2] 濞村鐦崷浼存桨閺夋劘宸?..
-  閸欘垳鏁ら弶鎰窛: [concrete, wood, carpet, ice, metal, sand, grass, mud]
-  - Concrete: 閹解晜鎽?0.9 瀵鈧?0.1
-  - Wood: 閹解晜鎽?0.6 瀵鈧?0.2
-  ...
-  閴?閸︿即娼伴弶鎰窛濞村鐦€瑰本鍨?
-
-[3] 濞村鐦崝銊︹偓浣稿棘閺?..
-  闁插秴濮? 9.81 m/s铏?
-  ...
-  閴?閸斻劍鈧礁寮弫鐗堢ゴ鐠囨洖鐣幋?
+```bash
+python -m pytest tests/test_docs_utf8.py tests/test_mcp_tools.py tests/test_mcp_server.py -q
 ```
 
-### 2.6 娴溿倓绨板ù瀣槸
+## 如果你只记住三条命令
 
-鏉╂劘顢戦崷鐑樻珯閸氬函绱濋幐澶変簰娑撳鏁ù瀣槸閿?
-
-| 閹稿鏁?| 閸旂喕鍏?|
-|------|------|
-| **1** | 閸掑洦宕查崚鏉挎勾閻炲啰骞嗘晶?|
-| **2** | 閸掑洦宕查崚鐗堟箑閻炲啰骞嗘晶?|
-| **3** | 閸掑洦宕查崚鎵紑閺勭喓骞嗘晶?|
-| **C** | 閸掑洦宕查崚鐗堣穿閸戞繂婀￠崷浼存桨 |
-| **I** | 閸掑洦宕查崚鏉垮暫闂?|
-| **S** | 閸掑洦宕查崚鐗堢煓閸?|
-
-鐟欏倸鐧傞張鍝勬珤娴滃搫婀稉宥呮倱閻滎垰顣?閺夋劘宸濇稉瀣畱閻椻晝鎮婄悰灞艰礋閸欐ê瀵查妴?
-
----
-
-## 缁楊兛绗佸? 濞村鐦?Python API閿涘牆褰查柅澶涚礆棣冩倳
-
-### 3.1 閸戝棗顦銉ょ稊
-
-**濞夈劍鍓?*: 濮濄倖顒炴銈夋付鐟?Godot 娴犺法婀￠崳銊ㄧ箥鐞涘苯鑻熼惄鎴濇儔 TCP 缁旑垰褰?9999閵?
-
-瑜版挸澧犻悽鍙樼艾 TCP 閺堝秴濮熼崳銊╂付鐟曚礁婀?Godot 閸︾儤娅欐稉顓㈠帳缂冾噯绱濆楦款唴鐠哄疇绻冨銈嗩劄閹存牜鈼㈤崥搴ㄥ帳缂冾喓鈧?
-
-### 3.2 鐎瑰顥婃笟婵婄
-
-```powershell
-cd d:\閺傛澘缂撻弬鍥︽婢剁AGI-Walker\python_api
-pip install -r requirements.txt
+```bash
+python -m agi_walker.cli skills list
+python -m agi_walker.cli workflows run robot_creation_pipeline --mock --resume --output-root test_env/quick_start_run
+python -m web_panel.server
 ```
 
-鏉╂瑤绱扮€瑰顥婇敍?
-- gymnasium
-- numpy
-- stable-baselines3
-- torch
-- tensorboard
+## 下一步
 
-### 3.3 濞村鐦?Gym 閻滎垰顣ㄩ敍鍫熌侀幏鐕傜礆
-
-閸掓稑缂撳ù瀣槸閼存碍婀?`test_gym_env.py`:
-
-```python
-from godot_robot_env import GodotRobotEnv, PartsDatabase
-
-# 濞村鐦梿鏈垫鎼存捇娉﹂幋?
-db = PartsDatabase()
-print("閴?Parts database loaded")
-
-robot_config = db.create_robot_config([
-    {"part_id": "dynamixel_xl430_w250", "joint": "hip_left"},
-    {"part_id": "dynamixel_xl430_w250", "joint": "hip_right"},
-])
-print("閴?Robot config created")
-
-# 濞村鐦悳顖氼暔閸掓稑缂?
-env = GodotRobotEnv(robot_config=robot_config)
-print("閴?Environment created")
-
-# 濞村鐦憴鍌氱檪缁屾椽妫?
-print("\n鐟欏倸鐧傜粚娲？:")
-print(env.observation_space)
-
-# 濞村鐦崝銊ょ稊缁屾椽妫?
-print("\n閸斻劋缍旂粚娲？:")
-print(env.action_space)
-
-print("\n閴?閹碘偓閺堝绁寸拠鏇⑩偓姘崇箖!")
-```
-
-鏉╂劘顢?
-```powershell
-python test_gym_env.py
-```
-
----
-
-## 棣冨腹 閸欘垵顫嬮崠鏍у閼虫垝绔寸憴?
-
-### 閻滎垰顣ㄦ０鍕啎閺佸牊鐏?
-
-| 閻滎垰顣?| 闁插秴濮忛崣妯哄 | 鐟欏棜顫庨弫鍫熺亯 |
-|------|----------|----------|
-| 棣冨 閸︽壆鎮?| 9.81 m/s铏?| 濮濓絽鐖剁悰宀冭泲 |
-| 棣冨 閺堝牏鎮?| 1.62 m/s铏?| 缂傛挻鍙冩妯昏癁 |
-| 棣冩暥 閻忣偅妲?| 3.71 m/s铏?| 鏉炶崵娉╃捄瀹犵┈ |
-| 棣冪崫 閺堛劍妲?| 24.79 m/s铏?| 濞屽鍣搁崸鐘烘儰 |
-
-### 閸︿即娼伴弶鎰窛閺佸牊鐏?
-
-| 閺夋劘宸?| 閹解晜鎽濋弫鍫熺亯 | 闁倻鏁ら崷鐑樻珯 |
-|------|----------|----------|
-| 濞ｅ嘲鍤岄崷?| 妤傛ɑ鎳囬幙锔肩礉缁嬪啿鐣?| 閺嶅洤鍣ù瀣槸 |
-| 閸愪即娼?| 閺嬩椒缍嗛幗鈺傛憹閿涘本绮︾悰?| 閺嬩胶顏ù瀣槸 |
-| 濞屾瑥婀?| 娑擃厽鎳囬幙锔肩礉閸欘垰褰夎ぐ?| 閹村嘲顦婚悳顖氼暔 |
-| 閸︾増顕?| 閺嬩線鐝幗鈺傛憹閿涘矂妯嗙亸?| 鐎广倕鍞撮悳顖氼暔 |
-
----
-
-## 棣冩惓 閹嗗厴閸╁搫鍣?
-
-### Python 闂嗘湹娆㈡惔?
-
-```
-閴?閸旂姾娴囬弮鍫曟？: < 0.1 缁?
-閴?閺屻儴顕楅弮鍫曟？: < 0.001 缁?
-閴?閸愬懎鐡ㄩ崡鐘垫暏: ~10 MB
-```
-
-### Godot 閻滎垰顣ㄧ化鑽ょ埠
-
-```
-閴?閻滎垰顣ㄩ崚鍥ㄥ床: < 0.05 缁?
-閴?閺夋劘宸濋崚鍥ㄥ床: < 0.02 缁?
-閴?閻椻晝鎮婄敮褏宸? 60 FPS
-```
-
----
-
-## 棣冩偘 鐢瓕顫嗛梻顕€顣?
-
-### Q1: Godot 閺冪姵纭堕幍鎯у煂閼存碍婀?
-
-**闂傤噣顣?*: "Can't open script res://scripts/environment/..."
-
-**鐟欙絽鍠?*: 绾喕绻氶幍鈧張澶庡壖閺堫剚鏋冩禒鍫曞厴閸︺劍顒滅涵顔炬畱鐠侯垰绶炴稉瀣剁礉濡偓閺屻儲鏋冩禒璺烘倳婢堆冪毈閸愭瑣鈧?
-
-### Q2: Python 缂傚搫鐨笟婵婄
-
-**闂傤噣顣?*: "ModuleNotFoundError: No module named 'gymnasium'"
-
-**鐟欙絽鍠?*:
-```powershell
-pip install gymnasium numpy
-```
-
-### Q3: 闂嗘湹娆㈡惔鎾冲鏉炶棄銇戠拹?
-
-**闂傤噣顣?*: "Parts library not found"
-
-**鐟欙絽鍠?*: 濡偓閺屻儴鐭惧鍕Ц閸氾附顒滅涵顕嗙窗
-```python
-# 閸掓繂顫愰崠鏍祩娴犺泛绨?(閼奉亜濮╃€规矮缍呮い鍦窗閺嶅湱娲拌ぐ?
-db = PartsDatabase("./parts_library")
-```
-
-### Q4: 濞村鐦懘姘拱濞屸剝婀佹潏鎾冲毉
-
-**闂傤噣顣?*: 鏉╂劘顢戦崷鐑樻珯娴ｅ棙甯堕崚璺哄酱濞屸剝婀佹潏鎾冲毉
-
-**鐟欙絽鍠?*: 
-1. 绾喕绻氶懘姘拱濮濓絿鈥橀梽鍕閸掓媽濡悙?
-2. 濡偓閺?Godot 鏉堟挸鍤棃銏℃緲閿涘牐鈧奔绗夐弰顖濈殶鐠囨洖娅掗敍?
-3. 绾喛顓婚懘姘拱閻?`_ready()` 閸戣姤鏆熺悮顐ョ殶閻?
-
----
-
-## 閴?妤犲矁鐦夊〒鍛礋
-
-鐎瑰本鍨氭禒銉ょ瑓妞ゅ湱娲版禒銉р€樻穱婵呯閸掑洦顒滅敮闈╃窗
-
-### Python 缁?
-- [ ] 闂嗘湹娆㈡惔鎾寸ゴ鐠囨洝鍓奸張顒冪箥鐞涘本鍨氶崝?
-- [ ] 閼宠棄顧勯崝鐘烘祰閹碘偓閺?3 娑擃亪娴傛禒?
-- [ ] 閻㈠灚婧€閹嗗厴鐎佃鐦锝呯埗閺勫墽銇?
-- [ ] 閺堝搫娅掓禍娲帳缂冾喖鍨卞鐑樺灇閸?
-
-### Godot 缁?
-- [ ] 妞ゅ湱娲扮€电厧鍙嗛幋鎰
-- [ ] 閹绘帊娆㈤崥顖滄暏閹存劕濮?
-- [ ] 濞村鐦崷鐑樻珯閸掓稑缂撶€瑰本鍨?
-- [ ] 閻滎垰顣ㄦ０鍕啎閸掑洦宕插锝呯埗
-- [ ] 閸︿即娼伴弶鎰窛閸掑洦宕插锝呯埗
-- [ ] 闁款喚娲忛幒褍鍩楅崫宥呯安濮濓絽鐖?
-
-### 闂嗗棙鍨?
-- [ ] 闂嗘湹娆㈢憴鍕壐閼宠棄绨查悽銊ュ煂 Godot
-- [ ] 閻滎垰顣ㄩ崣鍌涙殶閼虫垝绮?Python 閹貉冨煑閿涘牆顩ч弸婊堝帳缂冾喕绨CP閿?
-
----
-
-## 棣冨笚 娑撳绔村銉ヮ劅娑?
-
-鐎瑰本鍨氶崺铏诡攨濞村鐦崥搴礉閹劌褰叉禒銉窗
-
-1. **闂冨懓顕扮拠锔剧矎閺傚洦銆?*
-   - [闂嗘湹娆㈡惔鎾插▏閻劍瀵氶崡姊?file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/PARTS_LIBRARY_GUIDE.md)
-   - [閻椻晝鎮婇悳顖氼暔婢х偛宸遍幐鍥у础](file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/PHYSICS_ENVIRONMENT_GUIDE.md)
-   - [閸欏倹鏆熸潪顒佸床閹稿洤宕(file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/PARAMETER_CONVERSION_GUIDE.md)
-
-2. **閸掓稑缂撻懛顏勭暰娑斿婧€閸ｃ劋姹?*
-   - 娴ｈ法鏁ら梿鏈垫鎼存挾绮嶇憗?
-   - 闁板秶鐤嗛崗瀹犲Ν閸欏倹鏆?
-   - 濞ｈ濮炴导鐘冲妳閸?
-
-3. **鐠侇厾绮屽鍝勫鐎涳缚绡勭粵鏍殣**
-   - 闁板秶鐤?TCP 闁矮淇?
-   - 鏉╂劘顢?PPO 鐠侇厾绮岄懘姘拱
-   - 閸╃喖娈㈤張鍝勫鐎圭偤鐛?
-
-4. **濞ｈ濮為弬浼存祩娴?*
-   - 閺屻儲澹橀惇鐔风杽闂嗘湹娆㈢憴鍕壐
-   - 閸掓稑缂?JSON 閺佺増宓侀弬鍥︽
-   - 妤犲矁鐦夐獮鑸电ゴ鐠?
-
----
-
-## 棣冩憮 閼惧嘲褰囩敮顔煎И
-
-闁洤鍩岄梻顕€顣介敍?
-
-1. 閺屻儳婀匸妞ゅ湱娲伴幀鑽ょ波](file:///C:/Users/閼斤綀鈧偓/.gemini/antigravity/brain/13b03e40-12d0-4ed9-92ae-1182ae98df13/walkthrough.md)
-2. 濡偓閺岊櫋娴犺濮熷〒鍛礋](file:///C:/Users/閼斤綀鈧偓/.gemini/antigravity/brain/13b03e40-12d0-4ed9-92ae-1182ae98df13/task.md)
-3. 閺屻儳婀呴崥鍕嚋閸旂喕鍏橀惃鍕嚊缂佸棙鏋冨?
-
----
-
-**缁佹繃鍋嶅ù瀣槸閹板鎻╅敍?* 棣冨竴
-
----
-
-**閻楀牊婀?*: 1.0  
-**閺堚偓閸氬孩娲块弬?*: 2026-01-14
+- 想继续看命令行：读 [CLI_GUIDE.md](../guides/CLI_GUIDE.md)
+- 想继续看 Web：读 [WEB_PANEL_GUIDE.md](../guides/WEB_PANEL_GUIDE.md)
+- 想继续看 MCP：读 [mcp.md](../mcp.md)
+- 想按步骤做第一次完整操作：读 [BEGINNER_TUTORIAL.md](BEGINNER_TUTORIAL.md)

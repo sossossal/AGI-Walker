@@ -1,318 +1,195 @@
-# 棣冨竸 妞ゅ湱娲扮€瑰本鍨氶幀鑽ょ波
+# Project Summary
 
-> 閸樺棗褰堕弬鍥ㄣ€傜拠瀛樻閿?026-03-30 閺囧瓨鏌婇敍?>
-> 閺堫剚鏋冨锝嗘Ц 2026-01 闂冭埖顔岄崶瀵哥搏 Godot 閺堝搫娅掓禍鐑樐侀幏鐔奉殰娴犺埖鎸甸崘娆戞畱閹崵绮ㄩ妴?> 閸忔湹鑵戦崗鍏呯艾閳?5%閳ユ績鈧粈绗撴稉姘紣閸忓皝鈧績鈧粌鐣弫瀛樻瀮濡楋絺鈧繄鐡戠悰銊ㄥ牚鐏炵偘绨ぐ鎾存闂冭埖顔岄惃鍕偓鑽ょ波閹冨經瀵板嫸绱濇稉宥呯安閻╁瓨甯寸粵澶婃倱娴滃骸缍嬮崜宥夈€嶉惄顔惧Ц閹降鈧?> 瑜版挸澧犻悩鑸碘偓浣筋嚞娴兼ê鍘涢崣鍌濃偓?[README.md](../../README.md) 閸?[CURRENT_STATUS.md](../CURRENT_STATUS.md)閵?
-閹厼鏋╅敍浣瑰亶瀹歌尙绮＄€瑰本鍨氭禍?Godot 閺堝搫娅掓禍鐑樐侀幏鐔奉殰娴犲墎娈戝鈧崣鎴濇嫲濞村鐦敍?
----
+更新日期：`2026-04-08`
 
-## 棣冩惓 閺堚偓缂佸牊鍨氶弸?
+本页描述 AGI-Walker 当前仓库的真实结构。它关注的是已经存在于代码和测试中的能力，而不是历史路线图或营销式功能列表。
 
-### 娴狅絿鐖滅紒鐔活吀
+## 项目定位
 
-| 缁鍩?| 閺傚洣娆㈤弫?| 娴狅絿鐖滅悰灞炬殶 | 鐠囧瓨妲?|
-|------|--------|----------|------|
-| **GDScript** | 10 | 1200 | 闂嗘湹娆㈡惔?+ 閻滎垰顣ㄧ化鑽ょ埠 |
-| **C++** | 6 | 820 | 閻椻晝鎮婂Ο鈥崇€烽敍鍫濈窡缂傛牞鐦ч敍?|
-| **Python** | 8 | 1200 | 鐠侇厾绮岄幒銉ュ經 + 缁€杞扮伐 |
-| **JSON** | 6 | 650 | Schema + 闂嗘湹娆㈤弫鐗堝祦 |
-| **閺傚洦銆?* | 9 | 15000+ 鐎?| 鐎瑰本鏆ｉ幐鍥у础 |
-| **閹槒顓?* | **39** | **~3900 鐞?* | - |
+AGI-Walker 现在更像一套机器人工程工作台，而不是单一算法库。仓库把几类能力收拢到同一套入口下：
 
-### 閸旂喕鍏樼€瑰本鍨氭惔?
+- skill metadata 与 skill 执行器
+- workflow 编排与产物管理
+- FastAPI Web Panel 与静态控制台页面
+- Godot 连接层与会话桥接
+- MCP `stdio` server
+- 文档、smoke 和专项回归测试
 
-**閴?100% 鐎瑰本鍨?*:
-- 闂嗘湹娆㈡惔鎾堕兇缂佺噦绱橤DScript + Python閿?
-- Python API 閸滃矁顔勭紒鍐╁复閸?
-- 閻滎垰顣ㄩ幒褍鍩楃化鑽ょ埠
-- 閸︿即娼伴弶鎰窛鎼?
-- 閸︿即娼伴崐鐐灘閹貉冨煑
-- 閸╃喖娈㈤張鍝勫閺€顖涘瘮
-- 鐎瑰本鏆ｉ弬鍥ㄣ€?
+主路径强调可组合与可诊断，而不是一次性依赖完整硬件环境。
 
-**棣冩敡 娴狅絿鐖滅€瑰本鍨氶敍灞界窡缂傛牞鐦?*:
-- GDExtension C++ 閹绘帊娆?
+## 一线入口
 
-**閹槒绻樻惔?*: **85%**
+当前推荐优先记住三个入口：
 
----
+- CLI：`python -m agi_walker.cli`
+- Web：`python -m web_panel.server`
+- MCP：`agi-walker-mcp`
 
-## 棣冩憥 鐎瑰本鏆ｉ弬鍥ㄣ€傞崚妤勩€?
+对应的一线使用方式：
 
-### 閸忋儵妫弬鍥ㄣ€?
-1. [README.md](file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/README.md) - 妞ゅ湱娲板鍌濐潔
-2. [QUICK_START.md](file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/QUICK_START.md) - 韫囶偊鈧喎绱戞慨?
-3. [HANDS_ON_GUIDE.md](file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/HANDS_ON_GUIDE.md) - 鐎圭偠杩旈幐鍥ь嚤
-
-### 閸旂喕鍏橀弬鍥ㄣ€?
-4. [PARTS_LIBRARY_GUIDE.md](file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/PARTS_LIBRARY_GUIDE.md) - 闂嗘湹娆㈡惔鎾诡嚊鐟?
-5. [PHYSICS_ENVIRONMENT_GUIDE.md](file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/PHYSICS_ENVIRONMENT_GUIDE.md) - 閻滎垰顣ㄧ化鑽ょ埠
-6. [PARAMETER_CONVERSION_GUIDE.md](file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/PARAMETER_CONVERSION_GUIDE.md) - 閸欏倹鏆熸潪顒佸床
-7. [ADVANCED_USAGE.md](file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/ADVANCED_USAGE.md) - 鏉╂盯妯佹担璺ㄦ暏
-
-### 瀵偓閸欐垶鏋冨?
-8. [BUILD_GUIDE.md](file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/gdextension_src/BUILD_GUIDE.md) - 缂傛牞鐦ч幐鍥у础
-9. [MINGW_BUILD_GUIDE.md](file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/gdextension_src/MINGW_BUILD_GUIDE.md) - MinGW 缂傛牞鐦?
-
-### 妞ゅ湱娲伴弬鍥ㄣ€?
-10. [walkthrough.md](file:///C:/Users/閼斤綀鈧偓/.gemini/antigravity/brain/13b03e40-12d0-4ed9-92ae-1182ae98df13/walkthrough.md) - 鐎瑰本鏆ｆい鍦窗閹崵绮?
-11. [task.md](file:///C:/Users/閼斤綀鈧偓/.gemini/antigravity/brain/13b03e40-12d0-4ed9-92ae-1182ae98df13/task.md) - 娴犺濮熷〒鍛礋
-
----
-
-## 閴?瀹告煡鐛欑拠浣稿閼?
-
-### Python 缁?閴?
-- [x] 闂嗘湹娆㈤弫鐗堝祦鎼存挸濮炴潪鏂ょ礄3娑擃亪娴傛禒璁圭礆
-- [x] 闂嗘湹娆㈤弻銉嚄閸滃矂鐛欑拠?
-- [x] 閺堝搫娅掓禍娲帳缂冾喚鏁撻幋?
-- [x] Gymnasium 閻滎垰顣ㄩ崚娑樼紦
-- [x] 鐟欏倸鐧?閸斻劋缍旂粚娲？鐎规矮绠?
-- [x] 婵傛牕濮抽崙鑺ユ殶鐠侊紕鐣?
-- [x] 缂佸牊顒涢弶鈥叉閸掋倖鏌?
-- [x] 閸╃喖娈㈤張鍝勫閸栧懓顥婇崳?
-
-### Godot 缁?棣冩惖
-- [x] 閻滎垰顣ㄩ幒褍鍩楅崳銊ㄥ壖閺?
-- [x] 閸︿即娼伴弶鎰窛鎼存捁鍓奸張?
-- [x] 閸︿即娼伴崐鐐灘閹貉冨煑閸?
-- [x] 婢х偛宸遍張鍝勬珤娴滄椽娉﹂幋?
-- [x] 濞村鐦懘姘拱
-- [x] UI 閹貉冨煑閼存碍婀?
-- [ ] 鐎圭偤妾崷鐑樻珯鏉╂劘顢戦敍鍫ユ付鐟曚焦鍋嶉崷?Godot 娑擃厽绁寸拠鏇礆
-
----
-
-## 棣冩畬 娴ｈ法鏁ら崷鐑樻珯妫板嫯顫?
-
-### 1. 闂嗘湹娆㈤柅澶婄€烽崪灞惧灇閺堫剙鍨庨弸?
-
-```python
-from godot_robot_env import PartsDatabase
-
-db = PartsDatabase()
-
-# 鐎佃鐦悽鍨簚
-motors = ["dynamixel_xl430_w250", "dynamixel_mx106"]
-for motor_id in motors:
-    motor = db.get_part(motor_id)
-    specs = motor['specifications']
-    print(f"{motor['model']}:")
-    print(f"  閹殿厾鐓? {specs['stall_torque']} N璺痬")
-    print(f"  娴犻攱鐗? ${motor['price_usd']}")
-    print(f"  閹傜幆濮? {specs['stall_torque']/motor['price_usd']:.4f} N璺痬/$")
+```bash
+python -m agi_walker.cli skills list
+python -m agi_walker.cli workflows list
+python -m agi_walker.cli doctor
+python -m web_panel.server
+agi-walker-mcp
 ```
 
-### 2. 閸╃喖娈㈤張鍝勫鐠侇厾绮?
+## 代码结构
 
-```python
-from godot_robot_env import GodotRobotEnv
-from stable_baselines3 import PPO
+### `agi_walker/cli`
 
-# 閸掓稑缂撻悳顖氼暔閿涘牆鐢崺鐔兼閺堝搫瀵查敍?
-env = DomainRandomizationWrapper(GodotRobotEnv())
+命令行入口。当前重点能力是：
 
-# 鐠侇厾绮?
-model = PPO("MultiInputPolicy", env, verbose=1)
-model.learn(total_timesteps=100000)
+- `skills list/info/search/validate`
+- `workflows list/run/validate`
+- `doctor`
 
-# 閸︺劋绗夐崥宀€骞嗘晶鍐ц厬鐠囧嫪鍙?
-test_results = evaluate_on_varied_environments(model, env)
+CLI 的 `workflows` 实际是 `skills workflows` 的别名，便于用户直接进入工作流面。
+
+### `agi_walker/skills` 与 `skills_loader`
+
+这里管理 `SKILL.md` 驱动的能力目录。当前仓库能稳定扫描出的 skills 包括：
+
+- `robot-modeling`
+- `parameter-optimizer`
+- `urdf-generator`
+- `model-distiller`
+
+Skills 在当前项目里承担三层角色：
+
+- 作为人类可读的能力索引
+- 作为 workflow 的稳定执行单元
+- 作为 CLI / Web / MCP 共享的元数据来源
+
+### `agi_walker/workflow_orchestrator.py`
+
+工作流编排器是主线模块之一。当前内置 workflow 有两个：
+
+- `robot_creation_pipeline`
+- `simulation_ready_robot`
+
+它支持：
+
+- `resume` / `force` 两种执行策略
+- `output_root` 重定向
+- 步骤变量引用，如 `{create_model.output_file}`
+- state 持久化
+- 真实执行与 mock 执行切换
+- step artifact 写盘
+- 基于 `TaskGraph` 的 DAG 执行入口
+
+### `agi_walker/mcp`
+
+MCP server 把仓库能力统一暴露给外部 agent / client。当前覆盖的重点是：
+
+- workflow 列表、查询、执行
+- skills 列表、查询
+- telemetry 与 RAG 查询
+- Godot agent 状态、模板、计划、诊断、历史
+
+`agi_walker.mcp.server` 现在已经对齐当前 `mcp` 版本的初始化方式，并可通过 `stdio` 启动。
+
+### `web_panel`
+
+Web Panel 基于 FastAPI。它既是 API 服务，也是控制台页面宿主。当前主要承担：
+
+- 系统状态展示
+- workflow run 管理
+- artifacts 下载与 Godot 同步
+- Godot legacy controller
+- Godot session bridge
+- distributed / nightly 状态聚合
+- WebSocket 会话通道
+
+### `agi_walker/core/controllers`
+
+这里包含控制与推理相关模块。它们的重要性并不完全相同：
+
+- 一线可直接落地的能力：`ai_model.py`、`onnx_inference.py`、`predictive_safety.py`
+- 主线路上可组合但依赖环境的能力：`ai_controller.py`、`model_orchestrator.py`
+- 更偏实验/扩展方向的模块：`vla_adapter.py`、`rl_optimizer.py`、`rag_knowledge_base.py`
+
+写文档时应把这些模块区分开，避免默认假设所有模块都已进入稳定生产路径。
+
+## 端到端主路径
+
+### 路径 1：机器人建模工作流
+
+```text
+robot-modeling -> parameter-optimizer -> urdf-generator
 ```
 
-### 3. 閻滎垰顣ㄧ€圭偤鐛?
+对应 workflow：`robot_creation_pipeline`
 
-閸?Godot 娑擃叏绱?
-- 閹?`1` 閳?閸︽壆鎮嗛柌宥呭閿?.81 m/s铏忛敍?
-- 閹?`2` 閳?閺堝牏鎮嗛柌宥呭閿?.62 m/s铏忛敍澶庮潎鐎电喓澧挎担鎾剁处閹便垽顥濋拃?
-- 閹?`3` 閳?閻忣偅妲﹂柌宥呭閿?.71 m/s铏忛敍?
-- 閹?`C` 閳?濞ｅ嘲鍤岄崷鐔锋勾闂堫澁绱欐妯绘噰閹匡讣绱?
-- 閹?`I` 閳?閸愪即娼伴敍鍫滅秵閹解晜鎽濋敍澶庮潎鐎电喓澧挎担鎾寸拨鐞?
+典型用途：
 
-### 4. 閼奉亜鐣炬稊澶嬫簚閸ｃ劋姹?
+- 从模板生成机器人配置
+- 优化质量分布
+- 导出 URDF
 
-```python
-# 鐠佹崘顓搁幃銊ф畱閺堝搫娅掓禍?
-my_robot = {
-    "name": "CustomWalker",
-    "parts": [
-        {"part_id": "dynamixel_mx106", "joint": "hip_left"},
-        {"part_id": "dynamixel_xl430_w250", "joint": "knee_left"},
-        # ... 閺囨潙顦块梿鏈垫
-    ]
-}
+### 路径 2：仿真就绪工作流
 
-# 鐠侊紕鐣婚幋鎰拱
-total_cost = sum(db.get_part(p["part_id"])["price_usd"] for p in my_robot["parts"])
-print(f"閺堝搫娅掓禍鐑樷偓缁樺灇閺? ${total_cost:.2f}")
+```text
+load_config -> validate_physics -> export sdf
 ```
 
----
+对应 workflow：`simulation_ready_robot`
 
-## 棣冨笚 鐎涳缚绡勭捄顖氱窞瀵ら缚顔?
+典型用途：
 
-### 閸掓繄楠囬敍?-2婢垛晪绱?
-1. 閴?鐎瑰本鍨氳箛顐︹偓鐔风磻婵瀵氶崡?
-2. 閴?鏉╂劘顢戦幍鈧張濉抷thon濞村鐦?
-3. 閳?閸?Godot 娑擃厼鍨卞鐑樼ゴ鐠囨洖婧€閺?
-4. 閳?鐎圭偤鐛欓悳顖氼暔閸欏倹鏆?
+- 读取现有配置
+- 做物理校验
+- 导出用于仿真的 SDF
 
-### 娑擃厾楠囬敍?-7婢垛晪绱?
-1. 闂冨懓顕伴梿鏈垫鎼存挻瀵氶崡?
-2. 濞ｈ濮為弬鎵畱闂嗘湹娆㈤弫鐗堝祦
-3. 閸掓稑缂撻懛顏勭暰娑斿婧€閸ｃ劋姹?
-4. 鐎涳缚绡勯崺鐔兼閺堝搫瀵?
+### 路径 3：Web / Godot 联动
 
-### 妤傛楠囬敍?-2閸涱煉绱?
-1. 闁板秶鐤?TCP 闁矮淇?
-2. 鏉╂劘顢戠€瑰本鏆ｉ惃?PPO 鐠侇厾绮?
-3. 鐎圭偟骞囩拠鍓р柤鐎涳缚绡?
-4. Sim-to-Real 鏉╀胶些鐎圭偤鐛?
+```text
+workflow run -> artifact store -> web_panel -> godot sync / session bridge
+```
 
----
+这条路径适合人工操作、结果浏览和后续场景验证。
 
-## 棣冨箚 閺嶇绺炬禒宄扳偓?
+### 路径 4：Agent / MCP 接入
 
-鏉╂瑤閲滄い鍦窗娑撳秳绮庢禒鍛Ц娴狅絿鐖滈敍灞炬纯閺勵垯绔存稉顏庣窗
+```text
+external client -> MCP tools -> workflow / skills / godot backends
+```
 
-### 1. 鐎瑰本鏆ｉ惃鍕紣閸忕兘鎽?
-娴犲酣娴傛禒鍫曗偓澶婄€?閳?娴犺法婀″ù瀣槸 閳?缁涙牜鏆愮拋顓犵矊 閳?閻喎鐤勯柈銊ц
+这条路径适合把 AGI-Walker 当作上层 agent 的能力提供方。
 
-### 2. 閺嶅洤鍣崠鏍ㄥ复閸?
-- Gymnasium 閸忕厧顔?
-- 娑撳簼瀵屽ù?RL 鎼存挻妫ょ紓婵嬫肠閹?
-- 閸欘垰顦查悳鎵畱鐎圭偤鐛欓悳顖氼暔
+## 当前资产状态
 
-### 3. 閻喎鐤勭涵顑挎閺佺増宓?
-- 閸╄桨绨崚鍫曗偓鐘叉櫌鐟欏嫭鐗?
-- 閸欘垶鐛欑拠浣烘畱閻椻晝鎮婇崣鍌涙殶
-- 閻╁瓨甯寸€电懓绨查惇鐔风杽绾兛娆?
+仓库中 `weights/` 目录目前更接近工作流输出与示例资产目录，而不是一个完整模型仓库。现有内容主要是：
 
-### 4. 閻忓灚妞块幍鈺佺潔閹?
-- 濡€虫健閸栨牞顔曠拋?
-- JSON 閺佺増宓侀弽鐓庣础
-- 閺勬挷绨ǎ璇插閺傛澘濮涢懗?
+- `created_robot.json`
+- `optimized_robot.json`
+- `sim_robot.json`
+- `validated_robot.json`
+- `imc22_control_net.py`
 
----
+因此，任何“模型动物园”类文档都应该按当前现实改写，而不是延续旧版的下载清单。
 
-## 棣冩惐 妞ゅ湱娲版禍顔惧仯
+## 当前边界
 
-### 閹垛偓閺堫垯瀵掗悙?
+当前仍应明确以下边界：
 
-1. **缁墽鈥橀悧鈺冩倞濡剝瀚?*
-   - 闁喎瀹?閹殿厾鐓╅弴鑼殠
-   - 濞撯晛瀹?閹嗗厴闂勫秹顤?
-   - 閹解晜鎽濋崝娑樺瀻缁傜粯膩閸?
+- 很多控制器模块依赖额外 Python 包或本地服务，默认环境未必全部可运行
+- Web / Godot 的完整链路仍依赖本地端口、外部可执行程序和场景资源
+- 并非所有历史文档都已完成清理
+- 仓库存在研究型模块，但其中一部分仍是原型接口，不应写成“默认生产能力”
 
-2. **閻滎垰顣ㄦ径姘壉閹?*
-   - 4 鑴?鐞涘本妲︽０鍕啎
-   - 8 鑴?閸︿即娼伴弶鎰窛  
-   - 7 鑴?閸欘垵鐨熼崣鍌涙殶
-   - 閺冪娀妾虹紒鍕値
+## 推荐阅读顺序
 
-3. **鐠侇厾绮屾导妯哄**
-   - 閸╃喖娈㈤張鍝勫
-   - 鐠囧墽鈻肩€涳缚绡?
-   - 婢舵氨骞嗘晶鍐ㄨ嫙鐞?
+建议按下面顺序理解项目：
 
-### 瀹搞儳鈻兼禍顔惧仯
+1. [README.md](../../README.md)
+2. [CURRENT_STATUS.md](../CURRENT_STATUS.md)
+3. [CLI_GUIDE.md](../guides/CLI_GUIDE.md)
+4. [WEB_PANEL_GUIDE.md](../guides/WEB_PANEL_GUIDE.md)
+5. [API_REFERENCE.md](../API_REFERENCE.md)
+6. 本目录中的 `AI_SETUP_GUIDE.md`、`ADVANCED_FEATURES.md`、`MODEL_ZOO.md`
 
-1. **鐎瑰本鏆ｉ弬鍥ㄣ€?* - 15000+ 鐎?
-2. **濞村鐦憰鍡欐磰** - 閹碘偓閺堝鐗宠箛鍐ㄥ閼宠棄鍑℃宀冪槈
-3. **濡€虫健閸?* - 濮ｅ繋閲滈柈銊ュ瀻閻欘剛鐝涢崣顖滄暏
-4. **閸欘垳娣幎?* - 濞撳懏娅氶惃鍕敩閻胶绮ㄩ弸?
+## 结论
 
----
-
-## 棣冩暛 閺堫亝娼电仦鏇熸箿
-
-### 閻厽婀￠敍?-2閸涱煉绱?
-- [ ] 鐟欙絽鍠?C++ 缂傛牞鐦ч梻顕€顣?
-- [ ] 瑜版洖鍩楀鏃傘仛鐟欏棝顣?
-- [ ] 閸掓稑缂撻弴鏉戭樋缁€杞扮伐閺堝搫娅掓禍?
-
-### 娑擃厽婀￠敍?-3閺堝牞绱?
-- [ ] 閹碘晛鐫嶉梿鏈垫鎼存搫绱?0+ 闂嗘湹娆㈤敍?
-- [ ] 閻喎鐤勯張鍝勬珤娴滃搫顕幒?
-- [ ] 婢舵碍婧€閸ｃ劋姹夐崡蹇撴倱
-
-### 闂€鎸庢埂閿?閺?閿?
-- [ ] 娴滄垹顏梿鏈垫閺佺増宓佹惔?
-- [ ] VR 鐠嬪啳鐦悾宀勬桨
-- [ ] 閸熷棔绗熼崠鏍ㄥ絻娴?
-
----
-
-## 棣冩 閼风闃?
-
-閹扮喕闃块幃銊ょ鐠侯垵绐￠梾蹇撶暚閹存劘绻栨稉顏堛€嶉惄顕嗙磼
-
-闁俺绻冩潻娆庨嚋妞ゅ湱娲伴敍灞惧灉娴狀剙鍨卞杞扮啊閿?
-- 閴?娑撯偓娑擃亜鐣弫瀵告畱閺堝搫娅掓禍杞拌雹閻喎浼愰崗?
-- 閴?娑撯偓婵傛鐖ｉ崙鍡楀閻ㄥ嫬绱戦崣鎴炵ウ缁?
-- 閴?娑撯偓娑擃亜褰查幍鈺佺潔閻ㄥ嫭顢嬮弸?
-- 閴?娑撴澘鐦滈惃鍕劅娑旂姾绁┃?
-
----
-
-## 棣冩憮 娑撳绔村銉攽閸?
-
-### 缁斿宓嗛崣顖氫粵
-
-1. **閸?Godot 娑擃厽绁寸拠?*
-   - 閹垫挸绱戞０鍕帳缂冾喚娈戦崷鐑樻珯閿涙瓪scenes/test_environment.tscn`
-   - 閹?F5 鏉╂劘顢?
-   - 濞村鐦柨顔炬磸韫囶偅宓庨柨?
-
-2. **閹碘晛鐫嶉梿鏈垫鎼?*
-   - 閺屻儲澹橀幃銊ゅ▏閻劎娈戦惇鐔风杽绾兛娆?
-   - 閸掓稑缂?JSON 閺佺増宓侀弬鍥︽
-   - 濞ｈ濮為崚鏉跨氨娑?
-
-3. **閸掓稑缂撻張鍝勬珤娴?*
-   - 鐠佹崘顓搁悪顒傚閻ㄥ嫮绮ㄩ弸?
-      - 娴兼ê瀵查幀褑鍏橀崪灞惧灇閺?
-   - 閸︺劋璞㈤惇鐔惰厬濞村鐦?
-
-### 閸欘垶鈧绻橀梼?
-
-4. **闁板秶鐤嗙拋顓犵矊閻滎垰顣?*
-   - 鐠佸墽鐤?TCP 闁矮淇?
-   - 鏉╂劘顢?PPO 鐠侇厾绮?
-   - 閺€鍫曟肠鐎圭偤鐛欓弫鐗堝祦
-
-5. **閸欏倷绗屽鈧┃?*
-   - 閸欐垵绔烽崚?GitHub
-   - 閸掑棔闊╃紒娆戙仦閸?
-   - 閹恒儱褰堥崣宥夘洯閺€纭呯箻
-
----
-
-## 棣冨竸 閺堚偓缂佸牆鐦庣拠?
-
-閹劎骞囬崷銊﹀閺堝娈戞稉宥勭矌閺勵垯鍞惍渚婄礉閺囧瓨妲搁敍?
-
-- 棣冩暋 娑撯偓娑?*娑撴挷绗熷銉ュ徔**
-- 棣冩憥 娑撯偓婵?*鐎瑰本鏆ｉ弬鍥ㄣ€?*
-- 棣冨笚 娑撯偓娑?*鐎涳缚绡勭挧鍕爱**
-- 棣冩畬 娑撯偓娑?*閸掓稒鏌婇獮鍐插酱**
-
-**缁佹繃鍋?*閿?
-- 瀵偓閸欐垿銆庨崚?
-- 鐠侇厾绮岄幋鎰
-- 鏉╀胶些鐎瑰瞼绶?
-- 閸掓稒鏌婃稉宥嗘焽
-
----
-
-**妞ゅ湱娲伴悧鍫熸拱**: 0.85-beta  
-**鐎瑰本鍨氶弮銉︽埂**: 2026-01-14  
-**瀵偓閸欐垵鎳嗛張?*: 2 婢? 
-**娴狅絿鐖滈幀濠氬櫤**: ~3900 鐞? 
-**閺傚洦銆傞幀濠氬櫤**: ~15000 鐎? 
-
-**Happy Coding & Happy Simulating!** 棣冾樆棣冩畬
-
----
-
-**缂佸瓨濮㈤懓?*: AGI-Walker Team  
-**閺堚偓閸氬孩娲块弬?*: 2026-01-14 15:05
+AGI-Walker 当前最有价值的部分，不是某个单独的 AI 控制器，而是把 skills、workflow、Web、Godot 和 MCP 串成了一条可操作、可检查、可回归的工程主线。后续继续修文档时，也应围绕这条主线组织内容。

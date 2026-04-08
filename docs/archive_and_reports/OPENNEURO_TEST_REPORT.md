@@ -1,178 +1,20 @@
-# OpenNeuro 闂嗗棙鍨氬ù瀣槸閹躲儱鎲?
+# OpenNeuro Test Report
 
-**濞村鐦弮銉︽埂**: 2026-01-21  
-**閻楀牊婀?*: v4.1.0  
-**濞村鐦悳顖氼暔**: Windows, Python 3.12, Zenoh 1.7.2
+This archived page preserves the OpenNeuro-related testing context that existed during earlier research and integration work.
 
----
+## What It Was About
 
-## 濞村鐦幀鑽ょ波
+The original scope focused on validating whether OpenNeuro-derived or OpenNeuro-adjacent research workflows could be connected to AGI-Walker data, simulation, and experimentation layers.
 
-| 閹稿洦鐖?| 缂佹挻鐏?|
-|------|------|
-| 閹粯绁寸拠鏇熸殶 | 6 |
-| 閴?闁俺绻?| 5 |
-| 閴?婢惰精瑙?| 0 |
-| 閳搭叏绗?鐠哄疇绻?| 1 (ROS 2 閺堫亜鐣ㄧ憗? |
-| **闁俺绻冮悳?* | **100%** (5/5) |
+## What Still Matters
 
----
+- The repository still contains OpenNeuro-facing documentation and planning context.
+- Any real integration work should be checked against the current algorithm and simulation documentation, not against historical ad hoc notes.
 
-## 濞村鐦拠锔藉剰
+## Current Reference
 
-### 閴?濞村鐦?1: Zenoh 濡€虫健鐎电厧鍙?
-**閻樿埖鈧?*: 闁俺绻? 
-**閹诲繗鍫?*: 妤犲矁鐦?Zenoh 鎼存挻顒滅涵顔肩暔鐟佸懎鎷扮€电厧鍙? 
-**缂佹挻鐏?*: `ZENOH_AVAILABLE = True`
+Use `docs/algorithm_and_sim/OPENNEURO_INTEGRATION.md` as the maintained document for this topic.
 
-### 閴?濞村鐦?2: Zenoh 娴兼俺鐦介崚娑樼紦
-**閻樿埖鈧?*: 闁俺绻? 
-**閹诲繗鍫?*: 妤犲矁鐦?Zenoh 娴兼俺鐦介惃鍕灡瀵ゅ搫鎷伴崗鎶芥４  
-**缂佹挻鐏?*: 娴兼俺鐦介幋鎰瀵よ櫣鐝?(peer 濡€崇础) 楠炶埖顒滅敮绋垮彠闂?
+## Archive Note
 
-### 閴?濞村鐦?3: Zenoh Pub/Sub 闁矮淇?
-**閻樿埖鈧?*: 闁俺绻? 
-**閹诲繗鍫?*: 妤犲矁鐦?Zenoh 閸欐垵绔?鐠併垽妲勯崝鐔诲厴  
-**濞村鐦弫鐗堝祦**: `{"test": "hello", "value": 123}`  
-**缂佹挻鐏?*: 濞戝牊浼呴幋鎰閸欐垿鈧礁鎷伴幒銉︽暪閿涘本鏆熼幑顔肩暚閺佸瓨鈧囩崣鐠囦線鈧俺绻?
-
-**娣囶喖顦茬拋鏉跨秿**:
-- 闂傤噣顣? Zenoh 1.7+ 娴ｈ法鏁?`ZBytes` 缁鐎烽敍灞筋嚤閼?`payload.decode()` 婢惰精瑙?
-- 娣囶喖顦? 娴ｈ法鏁?`bytes(sample.payload)` 鏉烆剚宕查崥搴″晙鐟欙絿鐖?
-- 閻樿埖鈧? 閴?瀹歌弓鎱ㄦ径?
-
-### 閴?濞村鐦?4: TCP-Zenoh 濡椼儲甯撮崳?
-**閻樿埖鈧?*: 闁俺绻? 
-**閹诲繗鍫?*: 妤犲矁鐦?TCP-Zenoh 濡椼儲甯撮崳銊ф畱閸氼垰濮╅崪灞戒粻濮? 
-**闁板秶鐤?*: TCP 缁旑垰褰?9091  
-**缂佹挻鐏?*: 濡椼儲甯撮崳銊﹀灇閸旂喎鎯庨崝顭掔礉TCP 閺堝秴濮熼崳銊︻劀鐢摜娲冮崥顒婄礉娴兼﹢娉ら崗鎶芥４
-
-**濞夈劍鍓?*: TCP 闁挎瑨顕?(WinError 10038) 閺勵垶顣╅張鐔活攽娑撶尨绱濋崶鐘辫礋濞村鐦稉顓熺梾閺堝鐤勯梽鍛畱 TCP 鐎广垺鍩涚粩顖濈箾閹?
-
-### 閳搭叏绗?濞村鐦?5: ROS 2 閼哄倻鍋?
-**閻樿埖鈧?*: 鐠哄疇绻? 
-**閸樼喎娲?*: ROS 2 閺堫亜鐣ㄧ憗鍛躬瑜版挸澧犻悳顖氼暔  
-**瀵ら缚顔?*: 閸?Linux 閻滎垰顣ㄩ幋鏍х暔鐟?ROS 2 Jazzy 閸氬酣鍣搁弬鐗堢ゴ鐠?
-
-### 閴?濞村鐦?6: 闂嗘湹娆㈢粻锛勬倞閸?
-**閻樿埖鈧?*: 闁俺绻? 
-**閹诲繗鍫?*: 妤犲矁鐦夐梿鏈垫鎼存挸濮炴潪钘夋嫲 BOM 鐠侊紕鐣? 
-**缂佹挻鐏?*: 
-- 閹存劕濮涢崝鐘烘祰 14 娑擃亪娴傛禒?
-- 闂嗘湹娆㈤弻銉嚄閸旂喕鍏樺锝呯埗 (go_m8010: 23.7Nm)
-- BOM 鐠侊紕鐣婚崝鐔诲厴濮濓絽鐖?
-
----
-
-## 閸旂喕鍏樻宀冪槈濞撳懎宕?
-
-### Phase 1: Zenoh 閸╄櫣顢呴梿鍡樺灇
-- [x] Zenoh 閹恒儱褰涚仦?(`zenoh_interface.py`)
-  - [x] 娴兼俺鐦界粻锛勬倞
-  - [x] 閸欐垵绔烽懓鍛紣閺?
-  - [x] 鐠併垽妲勯懓鍛紣閺?
-  - [x] JSON 鎼村繐鍨崠?閸欏秴绨崚妤€瀵?
-  - [x] ZBytes 閸忕厧顔愰幀?
-- [x] TCP-Zenoh 濡椼儲甯撮崳?(`tcp_zenoh_bridge.py`)
-  - [x] TCP 閺堝秴濮熼崳銊ユ儙閸?
-  - [x] Zenoh 闂嗗棙鍨?
-  - [x] 娴兼﹢娉ら崗鎶芥４
-
-### Phase 2: ROS 2 闂嗗棙鍨?
-- [x] ROS 2 閸栧懐绮ㄩ弸?
-  - [x] `package.xml`
-  - [x] `setup.py`
-  - [x] Launch 閺傚洣娆?
-- [x] URDF 閺堝搫娅掓禍鐑樺伎鏉?
-- [ ] ROS 2 閼哄倻鍋ｆ潻鎰攽閺冭埖绁寸拠?(闂団偓鐟?ROS 2 閻滎垰顣?
-
-### Phase 3: 绾兛娆㈤柈銊ц
-- [x] ESP32 閸ヨ桨娆㈡禒锝囩垳
-- [x] PlatformIO 闁板秶鐤?
-- [x] 绾兛娆㈤柈銊ц閺傚洦銆?
-- [ ] 閻喎鐤勭涵顑挎濞村鐦?(闂団偓鐟?ESP32 鐠佹儳顦?
-
-### 閸忔湹绮崝鐔诲厴
-- [x] 闂嗘湹娆㈡惔鎾堕兇缂?
-  - [x] 闂嗘湹娆㈤弫鐗堝祦閸旂姾娴?
-  - [x] 闂嗘湹娆㈤弻銉嚄
-  - [x] BOM 鐠侊紕鐣?
-- [x] 閺傚洦銆傜€瑰本鏆ｉ幀?
-  - [x] OpenNeuro 闂嗗棙鍨氶幐鍥у础
-  - [x] 绾兛娆㈤柈銊ц閹稿洤宕?
-  - [x] CHANGELOG 閺囧瓨鏌?
-
----
-
-## 閹嗗厴閹稿洦鐖?
-
-| 閹稿洦鐖?| 濞村鍣洪崐?| 閻╊喗鐖ｉ崐?| 閻樿埖鈧?|
-|------|--------|--------|------|
-| Zenoh 娴兼俺鐦介崚娑樼紦閺冨爼妫?| <100ms | <500ms | 閴?|
-| Pub/Sub 瀵ゆ儼绻?| <500ms | <2000ms | 閴?|
-| 濡椼儲甯撮崳銊ユ儙閸斻劍妞傞梻?| <1s | <2s | 閴?|
-| 闂嗘湹娆㈡惔鎾冲鏉炶姤妞傞梻?| <50ms | <200ms | 閴?|
-
----
-
-## 瀹歌尙鐓￠梻顕€顣?
-
-### 1. TCP 濡椼儲甯撮崳?WinError 10038
-**娑撱儵鍣搁幀?*: 娴? 
-**閹诲繗鍫?*: 閸?Windows 閻滎垰顣ㄦ稉瀣剁礉TCP 閺堝秴濮熼崳銊ュ彠闂傤厽妞傛导姘閸?socket 闁挎瑨顕? 
-**瑜板崬鎼?*: 娴犲懎濂栭崫宥嗙ゴ鐠囨洘妫╄箛妤嬬礉娑撳秴濂栭崫宥呭閼? 
-**閻樿埖鈧?*: 瀹歌尙鐓￠敍灞肩瑝瑜板崬鎼烽悽鐔堕獓娴ｈ法鏁?
-
-### 2. ROS 2 閼哄倻鍋ｉ張顏呯ゴ鐠?
-**娑撱儵鍣搁幀?*: 娑? 
-**閹诲繗鍫?*: 瑜版挸澧犻悳顖氼暔閺堫亜鐣ㄧ憗?ROS 2  
-**瑜板崬鎼?*: 閺冪姵纭舵宀冪槈 ROS 2 闂嗗棙鍨氶崝鐔诲厴  
-**瀵ら缚顔?*: 閸?Linux + ROS 2 閻滎垰顣ㄦ稉顓＄箻鐞涘苯鐣弫瀛樼ゴ鐠?
-
----
-
-## 娑撳绔村銉︾ゴ鐠囨洖缂撶拋?
-
-### 閻厽婀?(1-2 婢?
-1. **ROS 2 閻滎垰顣ㄥù瀣槸**
-   - 閸?Ubuntu 22.04 + ROS 2 Jazzy 閻滎垰顣ㄦ稉顓＄箥鐞?
-   - 妤犲矁鐦?`/robot/joint_states` 閸欐垵绔?
-   - 妤犲矁鐦?`/robot/joint_commands` 鐠併垽妲?
-   - 濞村鐦?RViz 閸欘垵顫嬮崠?
-
-2. **缁旑垰鍩岀粩顖炴肠閹存劖绁寸拠?*
-   - 閸氼垰濮?Godot 娴犺法婀?
-   - 閸氼垰濮?TCP-Zenoh 濡椼儲甯撮崳?
-   - 閸氼垰濮?ROS 2 閼哄倻鍋?
-   - 妤犲矁鐦夌€瑰本鏆ｉ弫鐗堝祦濞?
-
-### 娑擃厽婀?(1-2 閸?
-3. **绾兛娆㈠ù瀣槸**
-   - 閻懷冪秿 ESP32 閸ヨ桨娆?
-   - 妤犲矁鐦?WiFi 鏉╃偞甯?
-   - 妤犲矁鐦?Zenoh-Pico 闁矮淇?
-   - 濞村鐦懜鍨簚閹貉冨煑
-
-4. **閹嗗厴閸樺濮忓ù瀣槸**
-   - 妤傛﹢顣跺☉鍫熶紖閸欐垿鈧?(100Hz)
-   - 婢舵艾顓归幋椋庮伂楠炶泛褰?
-   - 闂€鎸庢闂傚菙鐎规碍鈧勭ゴ鐠?(24h)
-
----
-
-## 缂佹捁顔?
-
-閴?**OpenNeuro 闁矮淇婂鍡樼仸闂嗗棙鍨氶幋鎰**
-
-閹碘偓閺堝鐗宠箛鍐ㄥ閼宠姤绁寸拠鏇⑩偓姘崇箖閿涘瞼閮寸紒鐔峰嚒閸忓嘲顦?
-- Zenoh 鏉炲鍣虹痪褔鈧矮淇婇懗钘夊
-- TCP 閸氭垵鎮楅崗鐓庮啇閹?
-- ROS 2 閻㈢喐鈧線娉﹂幋鎰櫙婢?
-- 绾兛娆㈤柈銊ц閸╄櫣顢呯拋鐐煢
-
-**閹恒劏宕?*: 閸欘垯浜掓潻娑樺弳娑撳绔撮梼鑸殿唽閻ㄥ嫬鐤勯梽鍛安閻劌鎷扮涵顑挎闁劎璁查妴?
-
----
-
-**濞村鐦幍褑顢戦懓?*: AGI-Walker 閼奉亜濮╅崠鏍ㄧゴ鐠囨洜閮寸紒? 
-**閹躲儱鎲￠悽鐔稿灇閺冨爼妫?*: 2026-01-21 12:40 UTC+1
+Treat this report as historical research context only.

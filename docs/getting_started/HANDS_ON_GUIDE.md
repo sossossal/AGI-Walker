@@ -1,327 +1,130 @@
-# 棣冨箚 鐎圭偠杩旈幐鍥ь嚤 - 缁楊兛绔村?
+# Hands-On Guide
 
-鐠佲晜鍨滄禒顒勨偓姘崇箖鐎圭偤妾幙宥勭稊閺夈儰缍嬫宀€閮寸紒鐔烘畱閸旂喕鍏橀敍?
+更新日期：`2026-04-08`
 
----
+本页是一个可直接照做的实操清单。目标不是理解所有概念，而是把 AGI-Walker 的主路径真正跑一遍，并留下可检查的产物。
 
-## 棣冩憫 鐎圭偠杩斿〒鍛礋
+## 场景
 
-- [ ] **Step 1**: Python 闂嗘湹娆㈡惔鎾寸ゴ鐠囨洩绱?閸掑棝鎸撻敍?
-- [ ] **Step 2**: Python Gym 閻滎垰顣ㄥù瀣槸閿?閸掑棝鎸撻敍?
-- [ ] **Step 3**: Godot 濞村鐦崷鐑樻珯閸掓稑缂撻敍?5閸掑棝鎸撻敍?
-- [ ] **Step 4**: 閻滎垰顣ㄩ崣鍌涙殶鐎圭偤鐛欓敍?0閸掑棝鎸撻敍?
+你希望完成下面这组动作：
 
----
+1. 用 CLI 看见当前 skills 和 workflows。
+2. 用 mock 模式执行一个 workflow。
+3. 用 Web 查看系统状态。
+4. 用 MCP 暴露统一工具面。
 
-## Step 1: Python 闂嗘湹娆㈡惔鎾寸ゴ鐠?閴?
+## 0. 安装
 
-### 鏉╂劘顢戝ù瀣槸
+```bash
+pip install -e .
+pip install -e ".[dev]"
+```
 
-閹垫挸绱?PowerShell閿涘本澧界悰宀嬬窗
+## 1. 查看 skills
+
+```bash
+python -m agi_walker.cli skills list
+python -m agi_walker.cli skills list -v
+```
+
+检查点：
+
+- 命令能正常返回
+- 至少能看到 `robot-modeling`、`parameter-optimizer`、`urdf-generator`
+
+## 2. 查看 workflows
+
+```bash
+python -m agi_walker.cli workflows list
+```
+
+检查点：
+
+- 至少能看到 `robot_creation_pipeline`
+
+## 3. 执行 workflow
+
+```bash
+python -m agi_walker.cli workflows run robot_creation_pipeline --mock --resume --output-root test_env/hands_on_run
+```
+
+检查点：
+
+- 命令返回 `completed`
+- 输出目录存在：`test_env/hands_on_run`
+- 终端里能看到步骤列表和最终输出摘要
+
+## 4. 启动 Web Panel
+
+```bash
+python -m web_panel.server
+```
+
+检查点：
+
+- 能打开 `http://localhost:8000/static/index.html`
+- `http://localhost:8000/api/system/status` 能返回 JSON
+- `http://localhost:8000/api/workflows/` 能列出 workflows
+
+## 5. 启动 MCP Server
+
+新开一个终端：
+
+```bash
+agi-walker-mcp
+```
+
+或：
+
+```bash
+python -m agi_walker.mcp.server
+```
+
+检查点：
+
+- 进程能启动
+- 不再出现当前 `mcp` 版本下的初始化报错
+
+## 6. 跑文档和 MCP 最小回归
+
+```bash
+python -m pytest tests/test_docs_utf8.py tests/test_mcp_tools.py tests/test_mcp_server.py -q
+```
+
+检查点：
+
+- docs UTF-8 检查通过
+- MCP tool/server 测试通过
+
+## 7. 可选：启用真实 Godot headless smoke
+
+如果你的机器已经具备 Godot 可执行文件，并且希望再往前走一步：
 
 ```powershell
-cd d:\閺傛澘缂撻弬鍥︽婢剁AGI-Walker\python_api
-python examples\demo_parts.py
+$env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
+python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
 ```
 
-### 妫板嫭婀＄紒鎾寸亯
+常用附加变量：
 
-```
-============================================================
-閺堝搫娅掓禍娲祩娴犺泛绨卞鏃傘仛
-============================================================
+- `AGI_WALKER_GODOT_HEADLESS_SCENE`
+- `AGI_WALKER_GODOT_HEADLESS_ARTIFACT_DIR`
+- `AGI_WALKER_GODOT_HEADLESS_CONNECT_TIMEOUT_SECONDS`
+- `AGI_WALKER_GODOT_HEADLESS_SCHEMA_TIMEOUT_SECONDS`
+- `AGI_WALKER_GODOT_HEADLESS_STEP_COUNT`
 
-[1] 閸旂姾娴囬梿鏈垫閺佺増宓佹惔?..
-    閴?閹存劕濮涢崝鐘烘祰 3 娑擃亪娴傛禒?
-    闂嗘湹娆㈤崚妤勩€? dynamixel_xl430_w250, dynamixel_mx106, bosch_bno055
+## 结果判定
 
-[2] 閼惧嘲褰?Dynamixel XL430-W250 鐠囷附鍎?..
-    閸ㄥ褰? XL430-W250-T
-    閸掑爼鈧姴鏅? ROBOTIS
-    閸絻娴嗛幍顓犵叐: 1.4 N璺痬
-    缁岄缚娴囬柅鐔峰: 50 RPM
-    闁插秹鍣? 0.057 kg
-    娴犻攱鐗? $69.90
+如果下面四项都成立，就说明你已经完成一次有效的 hands-on：
 
-[3] 閸掓稑缂?4-DOF 濮濄儴顢戦張鍝勬珤娴滄椽鍘ょ純?..
-    閴?閺堝搫娅掓禍娲帳缂冾喖鍨卞鐑樺灇閸旂噦绱濋崠鍛儓 4 娑擃亪娴傛禒?
+1. CLI 可以列出 skills 和 workflows。
+2. mock workflow 可以完成。
+3. Web Panel 可以启动并返回系统状态。
+4. MCP server 可以启动，且相关测试通过。
 
-[4] 妤犲矁鐦夐弫鐗堝祦鐎瑰本鏆ｉ幀?..
-    閴?3/3 娑擃亪娴傛禒鑸垫殶閹诡喗婀侀弫?
+## 完成后建议
 
-============================================================
-閴?閹碘偓閺堝绁寸拠鏇⑩偓姘崇箖閿涗線娴傛禒璺虹氨閸旂喕鍏樺锝呯埗
-============================================================
-```
-
-**閴?婵″倹鐏夐惇瀣煂鏉╂瑤閲滄潏鎾冲毉閿涘tep 1 鐎瑰本鍨氶敍?*
-
----
-
-## Step 2: Python Gym 閻滎垰顣ㄥù瀣槸 閴?
-
-### 鏉╂劘顢戝ù瀣槸
-
-```powershell
-# 鐠佸墽鐤?Python 鐠侯垰绶?
-$env:PYTHONPATH = "d:\閺傛澘缂撻弬鍥︽婢剁AGI-Walker\python_api"
-
-# 鏉╂劘顢戝ù瀣槸
-python examples\test_gym_env.py
-```
-
-### 妫板嫭婀＄紒鎾寸亯
-
-```
-============================================================
-Gymnasium 閻滎垰顣ㄥù瀣槸閿涘牏顬囩痪鎸幠佸蹇ョ礆
-============================================================
-
-[1] 閸旂姾娴囬梿鏈垫閺佺増宓佹惔?..
-    閴?閹存劕濮涢崝鐘烘祰 3 娑擃亪娴傛禒?
-
-[2] 閸掓稑缂撻張鍝勬珤娴滄椽鍘ょ純?..
-    閴?闁板秶鐤嗛崠鍛儓 4 娑擃亪娴傛禒?
-
-[3] 閸掓稑缂?Gym 閻滎垰顣?..
-    閴?閻滎垰顣ㄩ崚娑樼紦閹存劕濮?
-
-[4] 鐟欏倸鐧傜粚娲？:
-    缁鐎? <class 'gymnasium.spaces.dict.Dict'>
-    閸栧懎鎯?
-      - imu_orient: (3,) (float32)
-      - imu_angular_vel: (3,) (float32)
-      - imu_linear_acc: (3,) (float32)
-      - joint_angles: (4,) (float32)
-      - joint_velocities: (4,) (float32)
-      - joint_torques: (4,) (float32)
-      - foot_contacts: (2,) (int8)
-      - torso_height: (1,) (float32)
-
-[5] 閸斻劋缍旂粚娲？:
-    缁鐎? <class 'gymnasium.spaces.box.Box'>
-    瑜般垻濮? (4,)
-    閼煎啫娲? [-45. -45. -120. -120.] 閸?[90. 90. 0. 0.]
-
-[6] 濞村鐦總鏍уС閸戣姤鏆?..
-    缁€杞扮伐婵傛牕濮? 0.150
-
-[7] 濞村鐦紒鍫燁剾閺夆€叉...
-    濮濓絽鐖舵慨鎸庘偓浣虹矒濮? False 閴?
-    閸婃儳鈧帒协閹胶绮撳? True 閴?
-    娴ｅ酣鐝惔锔剧矒濮? True 閴?
-
-============================================================
-閴?閹碘偓閺堝绁寸拠鏇⑩偓姘崇箖閿?
-============================================================
-```
-
-**閴?婵″倹鐏夐惇瀣煂鏉╂瑤閲滄潏鎾冲毉閿涘tep 2 鐎瑰本鍨氶敍?*
-
----
-
-## Step 3: Godot 濞村鐦崷鐑樻珯閸掓稑缂?
-
-### 3.1 閸氼垰濮?Godot
-
-1. 閹垫挸绱?Godot Engine 4.2+
-2. 閻愮懓鍤?"鐎电厧鍙?
-3. 濞村繗顫嶉崚?`d:\閺傛澘缂撻弬鍥︽婢剁AGI-Walker\godot_project\project.godot`
-4. 閻愮懓鍤?"鐎电厧鍙嗛獮鍓佺椽鏉?
-
-### 3.2 閸氼垳鏁ら幓鎺嶆
-
-1. 閼挎粌宕熼敍姝氭い鍦窗` 閳?`妞ゅ湱娲扮拋鍓х枂`
-2. 闁瀚?`閹绘帊娆 閺嶅洨顒?
-3. 閹垫儳鍩?**"Robot Simulation Toolkit"**
-4. 閸曢箖鈧?"閸氼垳鏁?
-5. 閸忔娊妫寸拋鍓х枂缁愭褰?
-
-**閹貉冨煑閸欐澘绨茬拠銉︽▔缁€?*:
-```
-Robot Simulation Toolkit plugin activated
-```
-
-### 3.3 閸掓稑缂撳ù瀣槸閸︾儤娅?
-
-#### A. 閺傛澘缂撻崷鐑樻珯
-
-1. `閸︾儤娅檂 閳?`閺傛澘缂撻崷鐑樻珯`
-2. 闁瀚?`3D Scene` 閿涘牊鍨ㄩ悙鐟板毊 "3D 閸︾儤娅?閿?
-3. 閺嶇濡悙褰掑櫢閸涜棄鎮曟稉?`TestEnvironment`
-
-#### B. 濞ｈ濮為悳顖氼暔閹貉冨煑閸?
-
-1. 閸欐娊鏁悙鐟板毊 `TestEnvironment`
-2. 闁瀚?`濞ｈ濮炵€涙劘濡悙绛?
-3. 閹兼粎鍌?`Node`
-4. 濞ｈ濮為崥搴ㄥ櫢閸涜棄鎮曟稉?`EnvironmentController`
-5. 闁鑵?`EnvironmentController`
-6. 閸︺劍顥呴弻銉ユ珤娑擃厾鍋ｉ崙?`闂勫嫬濮為懘姘拱`
-7. 闁瀚?`res://scripts/environment/environment_controller.gd`
-8. 閻愮懓鍤?"閸掓稑缂?
-
-#### C. 濞ｈ濮為弶鎰窛鎼?
-
-1. 閸欐娊鏁悙鐟板毊 `TestEnvironment`
-2. `濞ｈ濮炵€涙劘濡悙绛?閳?`Node`
-3. 闁插秴鎳￠崥宥勮礋 `GroundMaterialLibrary`
-4. 闂勫嫬濮為懘姘拱閿涙瓪res://scripts/environment/ground_material_library.gd`
-
-#### D. 閸掓稑缂撻崷浼存桨
-
-1. 閸欐娊鏁悙鐟板毊 `TestEnvironment`
-2. `濞ｈ濮炵€涙劘濡悙绛?閳?`StaticBody3D`
-3. 闁插秴鎳￠崥宥勮礋 `Ground`
-4. 闁鑵?`Ground`閿涘苯褰搁柨?閳?`濞ｈ濮炵€涙劘濡悙绛?閳?`CollisionShape3D`
-5. 闁鑵?`CollisionShape3D`
-   - 閸︺劍顥呴弻銉ユ珤閻?`Shape` 鐏炵偞鈧嶇礉閻愮懓鍤?`<缁?` 閳?`閺傛澘缂?BoxShape3D`
-   - 閻愮懓鍤?`BoxShape3D`閿涘矁顔曠純?`Size` 娑?`(20, 1, 20)`
-6. 閸愬秵鍧婇崝?`MeshInstance3D` 閸?`Ground`
-   - `Mesh` 閳?`閺傛澘缂?BoxMesh`
-   - 鐠佸墽鐤?`Size` 娑?`(20, 1, 20)`
-
-#### E. 濞ｈ濮炲ù瀣槸閻椻晙缍嬮敍鍫濆讲闁绱?
-
-1. 閸欐娊鏁悙鐟板毊 `TestEnvironment`
-2. `濞ｈ濮炵€涙劘濡悙绛?閳?`RigidBody3D`
-3. 闁插秴鎳￠崥宥勮礋 `TestCube`
-4. 娴ｅ秶鐤嗙拋鍓х枂娑?`(0, 5, 0)`
-5. 濞ｈ濮?`CollisionShape3D` 閸?`MeshInstance3D`
-   - Shape: `BoxShape3D` (1, 1, 1)
-   - Mesh: `BoxMesh` (1, 1, 1)
-
-#### F. 濞ｈ濮為惄鍛婃簚閸滃苯鍘滃┃?
-
-1. 濞ｈ濮?`Camera3D`
-   - 娴ｅ秶鐤? `(0, 10, 15)`
-   - 閺冨娴? `(-30, 0, 0)`
-2. 濞ｈ濮?`DirectionalLight3D`
-   - 閺冨娴? `(-45, -30, 0)`
-
-#### G. 濞ｈ濮炲ù瀣槸閼存碍婀?
-
-1. 闁鑵戦弽纭呭Ν閻?`TestEnvironment`
-2. 闂勫嫬濮為懘姘拱閿涙瓪res://scripts/test_environment.gd`
-
-### 3.4 娣囨繂鐡ㄩ崷鐑樻珯
-
-1. `閸︾儤娅檂 閳?`娣囨繂鐡ㄩ崷鐑樻珯`
-2. 娣囨繂鐡ㄦ稉?`res://scenes/test_environment.tscn`
-
-### 3.5 鏉╂劘顢戝ù瀣槸
-
-1. 閹?**F5** 閹存牜鍋ｉ崙?"閹绢厽鏂侀崷鐑樻珯"
-2. 閺屻儳婀呴幒褍鍩楅崣鎷岀翻閸?
-
-**妫板嫭婀℃潏鎾冲毉**:
-```
-=== 閻滎垰顣ㄧ化鑽ょ埠濞村鐦?===
-
-棣冨 EnvironmentController initialized
-棣冩憥 Ground Material Library initialized with 8 materials
-
-[1] 濞村鐦悳顖氼暔妫板嫯顔?..
-閴?Gravity set to: 9.81 m/s铏?
-棣冨 Loaded environment preset: 閸︽壆鎮?
-閴?Gravity set to: 1.62 m/s铏?
-棣冨 Loaded environment preset: 閺堝牏鎮?
-...
-
-[2] 濞村鐦崷浼存桨閺夋劘宸?..
-  閸欘垳鏁ら弶鎰窛: [concrete, wood, carpet, ice, metal, sand, grass, mud]
-  - Concrete: 閹解晜鎽?0.9 瀵鈧?0.1
-  - Wood: 閹解晜鎽?0.6 瀵鈧?0.2
-  ...
-
-[3] 濞村鐦崝銊︹偓浣稿棘閺?..
-  闁插秴濮? 9.81 m/s铏?
-  闁插秴濮? 5.0 m/s铏?
-  闁插秴濮? 15.0 m/s铏?
-  ...
-
-=== 濞村鐦€瑰本鍨?===
-```
-
-**閴?婵″倹鐏夐惇瀣煂鏉╂瑤绨烘潏鎾冲毉閿涘tep 3 鐎瑰本鍨氶敍?*
-
----
-
-## Step 4: 閻滎垰顣ㄩ崣鍌涙殶鐎圭偤鐛?
-
-閻滄澘婀崷鐑樻珯濮濓絽婀潻鎰攽閿涘苯鐨剧拠鏇熷瘻闁款喚娲忚箛顐ｅ祹闁款噯绱?
-
-| 閹稿鏁?| 閸旂喕鍏?| 鐟欏倸鐧傞弫鍫熺亯 |
-|------|------|----------|
-| **1** | 閸︽壆鎮嗛悳顖氼暔 | 濮濓絽鐖堕柌宥呭閿涘瞼澧挎担鎾搭劀鐢晲绗呴拃?|
-| **2** | 閺堝牏鎮嗛悳顖氼暔 | 娴ｅ酣鍣搁崝娑崇礉閻椻晙缍嬬紓鎾村弮娑撳鎯?|
-| **3** | 閻忣偅妲﹂悳顖氼暔 | 娑擃厾鐡戦柌宥呭 |
-| **C** | 濞ｅ嘲鍤岄崷鐔锋勾闂?| 妤傛ɑ鎳囬幙?|
-| **I** | 閸愪即娼?| 娴ｅ孩鎳囬幙锔肩礉閻椻晙缍嬪鎴ｎ攽 |
-| **S** | 濞屾瑥婀?| 娑擃厽鎳囬幙?|
-
-### 鐟欏倸鐧傜憰浣哄仯
-
-1. **闁插秴濮忛崣妯哄**: 
-   - 閸︽壆鎮?閳?閺堝牏鎮嗛敍姘卞⒖娴ｆ挷绗呴拃鑺ユ閺勬儳褰夐幈?
-   - 閺堝牏鎮?閳?閺堛劍妲﹂敍姘卞⒖娴ｆ挸鎻╅柅鐔锋浆閽€?
-
-2. **閺夋劘宸濋崣妯哄**:
-   - 濞ｅ嘲鍤岄崷?閳?閸愪即娼伴敍姘噰閹匡箑濮忛弰鎹愭啿闂勫秳缍?
-   - 閺夋劘宸濇０婊嗗娴兼碍鏁奸崣?
-
-3. **閹貉冨煑閸欐媽绶崙?*:
-   - 濮ｅ繑顐奸崚鍥ㄥ床闁姤婀侀弮銉ョ箶閺勫墽銇?
-
----
-
-## 棣冨竴 鐎瑰本鍨氱€圭偠杩旈敍?
-
-婵″倹鐏夐幃銊ョ暚閹存劒绨￠幍鈧張?4 娑擃亝顒炴銈忕礉閹厼鏋╅敍浣瑰亶瀹歌尙绮￠敍?
-
-- 閴?妤犲矁鐦夋禍?Python 闂嗘湹娆㈡惔鎾冲閼?
-- 閴?濞村鐦禍?Gym 閻滎垰顣ㄩ幒銉ュ經
-- 閴?閸?Godot 娑擃厼鍨卞杞扮啊濞村鐦崷鐑樻珯
-- 閴?鐎圭偤鐛欐禍鍡欏箚婢у啫寮弫鎵兇缂?
-
-### 娑撳绔村銉ュ讲娴犮儱浠涙禒鈧稊鍫吹
-
-1. **娣囶喗鏁煎ù瀣槸閸︾儤娅?*
-   - 濞ｈ濮為弴鏉戭樋閻椻晙缍?
-   - 鐏忔繆鐦稉宥呮倱閻ㄥ嫭娼楃拹銊х矋閸?
-   - 閸掓稑缂撻崸锟犱壕濞村鐦崐鐐灘
-
-2. **鐎圭偤鐛欓梿鏈垫鎼?*
-   - 閺屻儳婀呮稉宥呮倱閻㈠灚婧€閻ㄥ嫯顫夐弽?
-   - 鐠侊紕鐣婚張鍝勬珤娴滅儤鍨氶張?
-   - 濮ｆ棁绶濋幀褑鍏橀幐鍥ㄧ垼
-
-3. **鐎涳缚绡勬潻娑㈡▉閸旂喕鍏?*
-   - 闂冨懓顕?[ADVANCED_USAGE.md](file:///d:/閺傛澘缂撻弬鍥︽婢?AGI-Walker/ADVANCED_USAGE.md)
-   - 閸掓稑缂撻懛顏勭箒閻ㄥ嫭婧€閸ｃ劋姹?
-   - 鐏忔繆鐦崺鐔兼閺堝搫瀵茬拋顓犵矊
-
----
-
-## 棣冩偘 闁洤鍩岄梻顕€顣介敍?
-
-### 鐢瓕顫嗛梻顕€顣?
-
-**Q: Godot 閹靛彞绗夐崚鎷屽壖閺?*
-- **A**: 绾喕绻氶懘姘拱鐠侯垰绶炲锝団€橀敍灞绢梾閺?`res://scripts/environment/` 閻╊喖缍?
-
-**Q: Python 閹绘劗銇氬Ο鈥虫健閺堫亝澹橀崚?*
-- **A**: 鐠佸墽鐤?PYTHONPATH:
-  ```powershell
-  $env:PYTHONPATH = "d:\閺傛澘缂撻弬鍥︽婢剁AGI-Walker\python_api"
-  ```
-
-**Q: 閸︾儤娅欐潻鎰攽娴ｅ棙鐥呴張澶庣翻閸?*
-- **A**: 濡偓閺屻儻绱?
-  1. 閼存碍婀伴弰顖氭儊濮濓絿鈥橀梽鍕
-  2. Godot 鏉堟挸鍤棃銏℃緲閿涘牅绗夐弰顖濈殶鐠囨洖娅掗敍?
-  3. 閼哄倻鍋ｉ崥宥囆為弰顖氭儊閸栧綊鍘?
-
----
-
-**缂佈呯敾閸旂姵琛ラ敍?* 棣冩畬
+- 把本次 workflow 输出保留在 `test_env/hands_on_run`
+- 继续阅读 [CLI_GUIDE.md](../guides/CLI_GUIDE.md)
+- 继续阅读 [WEB_PANEL_GUIDE.md](../guides/WEB_PANEL_GUIDE.md)
+- 如果要接 MCP client，继续阅读 [mcp.md](../mcp.md)
