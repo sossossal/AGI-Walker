@@ -35,7 +35,7 @@ except ImportError:
     PartsLibrary = None
 
 try:
-    from python_api.comm.godot_client import GodotSimulationClient
+    from agi_walker.core.api.comm.godot_client import GodotSimulationClient
 except ImportError:
     print("警告: 无法导入GodotSimulationClient，仿真功能将不可用")
     GodotSimulationClient = None
