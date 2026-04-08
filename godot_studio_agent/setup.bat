@@ -27,23 +27,19 @@ pip install -r requirements.txt -q
 :: 生成激活脚本
 echo [3/3] 生成启动快捷方式...
 echo @echo off > start.bat
+echo cd /d %%~dp0 >> start.bat
 echo call venv\Scripts\activate.bat >> start.bat
-echo cd api_server >> start.bat
 echo echo 正在启动 Godot Studio Agent... >> start.bat
-echo echo 打开浏览器访问: http://localhost:8000/ui >> start.bat
-echo start http://localhost:8000/ui >> start.bat
 echo python main.py >> start.bat
 
 echo.
 echo  ✅ 安装完成！双击 start.bat 启动服务
-echo  🌐 启动后访问: http://localhost:8000/ui
+echo  💬 启动后进入交互式 CLI
 echo.
 
 :: 询问是否立即启动
 set /p LAUNCH="立即启动？(Y/N): "
 if /i "%LAUNCH%"=="Y" (
-    cd api_server
-    start http://localhost:8000/ui
     python main.py
 )
 pause

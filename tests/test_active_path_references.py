@@ -14,6 +14,8 @@ INSTALL_BAT = Path("scripts/install.bat")
 ROOT_RELEASE_NOTES = Path("RELEASE_NOTES.md")
 ROS2_WORKSPACE_README = Path("hardware/ros2_ws/README.md")
 CORE_API_README = Path("agi_walker/core/api/README.md")
+GODOT_STUDIO_SETUP = Path("godot_studio_agent/setup.bat")
+GODOT_STUDIO_MAIN = Path("godot_studio_agent/main.py")
 
 
 def test_dockerfile_does_not_reference_removed_source_layout() -> None:
@@ -79,3 +81,14 @@ def test_active_docs_do_not_reintroduce_removed_root_requirements_or_python_api_
     assert "pip install -e ." in ros2_readme
     assert "pip install -e ." in core_api_readme
     assert "from agi_walker.core.api.godot_robot_env import GodotRobotEnv" in core_api_readme
+
+
+def test_godot_studio_agent_setup_targets_real_cli_entrypoint() -> None:
+    setup_content = GODOT_STUDIO_SETUP.read_text(encoding="utf-8")
+    main_content = GODOT_STUDIO_MAIN.read_text(encoding="utf-8")
+
+    assert "cd api_server" not in setup_content
+    assert "http://localhost:8000/ui" not in setup_content
+    assert "python main.py" in setup_content
+    assert "from agent_system import GodotStudioRouter" in main_content
+    assert "def main() -> int:" in main_content
