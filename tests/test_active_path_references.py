@@ -16,6 +16,7 @@ ROS2_WORKSPACE_README = Path("hardware/ros2_ws/README.md")
 CORE_API_README = Path("agi_walker/core/api/README.md")
 GODOT_STUDIO_SETUP = Path("godot_studio_agent/setup.bat")
 GODOT_STUDIO_MAIN = Path("godot_studio_agent/main.py")
+DOCTOR_MODULE = Path("agi_walker/utils/doctor.py")
 
 
 def test_dockerfile_does_not_reference_removed_source_layout() -> None:
@@ -92,3 +93,15 @@ def test_godot_studio_agent_setup_targets_real_cli_entrypoint() -> None:
     assert "python main.py" in setup_content
     assert "from agent_system import GodotStudioRouter" in main_content
     assert "def main() -> int:" in main_content
+
+
+def test_doctor_checks_current_runtime_dependencies_and_ports() -> None:
+    content = DOCTOR_MODULE.read_text(encoding="utf-8")
+
+    assert '"mcp": "mcp"' in content
+    assert '"sqlalchemy": "sqlalchemy"' in content
+    assert '"aiosqlite": "aiosqlite"' in content
+    assert '"prometheus-fastapi-instrumentator": "prometheus_fastapi_instrumentator"' in content
+    assert '"python-json-logger": "pythonjsonlogger"' in content
+    assert '"lxml"' not in content
+    assert "ports = [8000, 9999]" in content

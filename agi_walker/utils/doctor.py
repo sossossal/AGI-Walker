@@ -6,13 +6,47 @@ system configuration, and common pitfalls.
 """
 
 import os
-import sys
 import socket
 import logging
 import importlib.util
-from typing import Dict, List, Tuple, Any
+from typing import Dict, Tuple, Any
 
 logger = logging.getLogger(__name__)
+
+
+CORE_DEPENDENCIES = {
+    "numpy": "numpy",
+    "gymnasium": "gymnasium",
+    "pyyaml": "yaml",
+    "mcp": "mcp",
+    "eclipse-zenoh": "zenoh",
+    "sqlalchemy": "sqlalchemy",
+    "aiosqlite": "aiosqlite",
+    "fastapi": "fastapi",
+    "uvicorn": "uvicorn",
+    "pydantic": "pydantic",
+    "celery": "celery",
+    "redis": "redis",
+    "passlib": "passlib",
+    "python-jose": "jose",
+    "python-multipart": "multipart",
+    "prometheus-fastapi-instrumentator": "prometheus_fastapi_instrumentator",
+    "python-json-logger": "pythonjsonlogger",
+    "asyncpg": "asyncpg",
+    "psycopg2-binary": "psycopg2",
+}
+
+OPTIONAL_DEPENDENCIES = {
+    "python-can": "can",
+    "mujoco": "mujoco",
+    "PyQt6": "PyQt6",
+    "torch": "torch",
+    "stable-baselines3": "stable_baselines3",
+    "imitation": "imitation",
+    "d3rlpy": "d3rlpy",
+    "onnx": "onnx",
+    "onnxruntime": "onnxruntime",
+}
 
 
 # Colors for terminal output
@@ -76,22 +110,18 @@ def run_diagnostics() -> Dict[str, Any]:
         "directory_checks": [],
     }
 
-    # 1. Core Packages (from requirements.txt and code usage)
-    core_deps = ["numpy", "gymnasium", "yaml", "fastapi", "uvicorn", "lxml"]
-    for dep in core_deps:
-        # Standardize naming for imports
-        import_name = dep if dep != "yaml" else "yaml"
+    # 1. Core packages from pyproject runtime dependencies
+    for import_name in CORE_DEPENDENCIES.values():
         success, msg = check_package(import_name)
         results["core_packages"].append((success, msg))
 
-    # 2. Optional Packages
-    optional_deps = ["torch", "zenoh", "PyQt6", "stable_baselines3"]
-    for dep in optional_deps:
-        success, msg = check_package(dep)
+    # 2. Optional packages from pyproject extras
+    for import_name in OPTIONAL_DEPENDENCIES.values():
+        success, msg = check_package(import_name)
         results["optional_packages"].append((success, msg))
 
     # 3. Network Ports
-    ports = [8000, 8080]  # Default ports for Web Panel and Godot bridge
+    ports = [8000, 9999]  # Default ports for Web Panel and Godot TCP bridge
     for port in ports:
         success, msg = check_port(port)
         results["network_checks"].append((success, msg))
