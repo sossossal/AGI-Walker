@@ -3,6 +3,7 @@ from pathlib import Path
 
 ENTRY_DOCS = [
     Path("README.md"),
+    Path("RELEASE_NOTES.md"),
     Path("docs/mcp.md"),
     Path("docs/CURRENT_STATUS.md"),
     Path("docs/MIGRATION_GUIDE.md"),
@@ -74,6 +75,8 @@ ENTRY_DOCS = [
     Path("docs/guides/SKILLS_DEVELOPMENT.md"),
     Path("docs/guides/TESTING_GUIDE.md"),
     Path("docs/guides/WEB_PANEL_GUIDE.md"),
+    Path("hardware/ros2_ws/README.md"),
+    Path("agi_walker/core/api/README.md"),
 ]
 
 SUSPICIOUS_MOJIBAKE_MARKERS = (

@@ -1,115 +1,86 @@
-# AGI-Walker ROS 2 Integration
+# AGI-Walker ROS 2 Workspace
 
-AGI-Walker与ROS 2生态系统的集成包�?
+This directory contains the repository's reference ROS 2 workspace under `hardware/ros2_ws`.
+It is a secondary integration surface around the main Python package, not the primary CLI, Web, or MCP runtime.
 
-## 📦 Packages
+## Workspace Layout
 
-### agi_walker_msgs
-自定义ROS 2消息和服务定义：
-- `Part.msg` - 机器人零件定�?
-- `Connection.msg` - 零件连接关系
-- `RobotState.msg` - 机器人整体状�?
-- `LoadRobot.srv` - 加载机器人配置服�?
+- `src/agi_walker_msgs`
+  - Custom messages: `Part.msg`, `Connection.msg`, `RobotState.msg`
+  - Custom service: `LoadRobot.srv`
+- `src/agi_walker_ros2`
+  - Bridge implementation: `agi_walker_ros2/bridge_node.py`
+  - Launch files: `launch/agi_walker.launch.py`, `launch/robot.launch.py`
+  - Parameters: `config/params.yaml`
+  - URDF: `urdf/agi_walker.urdf`
 
-### agi_walker_ros2
-ROS 2桥接节点，连接AGI-Walker仿真与ROS 2�?
-- 发布关节状态、机器人状态等
-- 接收速度命令、关节命�?
-- 提供启动/停止仿真服务
-- 参数服务器集�?
+## Prerequisites
 
-## 🚀 快速开�?
+- Ubuntu 22.04 or another ROS 2 Humble-compatible environment
+- ROS 2 Humble and `colcon`
+- A checkout of this repository with the Python package installed from the repo root
 
-### 安装依赖
+Install the Python package from the repository root first:
 
 ```bash
-# 安装ROS 2 Humble (Ubuntu 22.04)
-sudo apt update
-sudo apt install ros-humble-desktop python3-colcon-common-extensions
-
-# 安装AGI-Walker核心依赖
-cd path/to/AGI-Walker
-pip install -r requirements.txt
+cd /path/to/AGI-Walker
+pip install -e .
 ```
 
-### 编译Package
+## Build
 
 ```bash
-cd ros2_ws
+cd hardware/ros2_ws
+source /opt/ros/humble/setup.bash
 colcon build
 source install/setup.bash
 ```
 
-### 运行桥接节点
+## Launch
+
+Minimal bridge launch:
 
 ```bash
-# 终端1: 启动Godot仿真（可选，如未启动则桥接节点会等待连接�?
-cd ../godot_project
-godot --headless
-
-# 终端2: 启动ROS 2桥接
-ros2 run agi_walker_ros2 bridge_node
+ros2 launch agi_walker_ros2 agi_walker.launch.py
 ```
 
-### 测试
+Wrapper launch with optional `robot_state_publisher` and RViz:
 
 ```bash
-# 启动仿真
-ros2 service call /start_simulation std_srvs/srv/Trigger
+ros2 launch agi_walker_ros2 robot.launch.py
+```
 
-# 查看关节状�?
+The bridge reads defaults from `src/agi_walker_ros2/config/params.yaml`.
+
+## Runtime Surface
+
+The current bridge exposes:
+
+- Publishers: `/joint_states`, `/battery`, `/imu`
+- Optional publisher path: `/robot_state`
+- Subscriber: `/cmd_vel`
+- Services: `/start_simulation`, `/stop_simulation`, `/load_robot`
+
+## Basic Validation
+
+```bash
+ros2 topic list
 ros2 topic echo /joint_states
-
-# 发送速度命令
-ros2 topic pub /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.5}, angular: {z: 0.3}}"
-
-# 停止仿真
-ros2 service call /stop_simulation std_srvs/srv/Trigger
+ros2 service call /start_simulation std_srvs/srv/Trigger
+ros2 topic pub /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.2}, angular: {z: 0.1}}" --once
 ```
 
-## 📚 文档
+## Current Status
 
-详细文档请参考：
-- [ROS 2集成设计文档](../../docs/ros2/ROS2_INTEGRATION_DESIGN.md)
+This workspace has already been aligned with the current repository structure:
 
-## ⚙️ 参数
+- `bridge_node.py` imports `GodotSimulationClient` from `agi_walker.core.api.comm.godot_client`
+- `setup.py` exports the real `bridge_node` entrypoint
+- `robot.launch.py` wraps `agi_walker.launch.py` instead of referencing removed nodes
 
-桥接节点支持以下参数�?
+It is still less battle-tested than the main CLI, Web Panel, and MCP paths, so validate it in your target ROS 2 environment before treating it as production-ready.
 
-```yaml
-/agi_walker_bridge:
-  ros__parameters:
-    godot_host: "127.0.0.1"
-    godot_port: 9999
-    joint_state_rate: 50.0
-    robot_state_rate: 20.0
-    motor_power_multiplier: 1.0
-    joint_stiffness: 1.0
-    joint_damping: 0.5
-```
+## Related Docs
 
-## 🔧 Topics
-
-### 发布 (Published)
-- `/joint_states` (sensor_msgs/JointState) - 50Hz
-- `/robot_state` (agi_walker_msgs/RobotState) - 20Hz
-- `/battery` (sensor_msgs/BatteryState) - 1Hz
-- `/imu` (sensor_msgs/Imu) - 100Hz
-- `/tf` (tf2_msgs/TFMessage) - 50Hz
-
-### 订阅 (Subscribed)
-- `/cmd_vel` (geometry_msgs/Twist)
-- `/joint_cmd` (trajectory_msgs/JointTrajectory)
-
-## 🛠�?Services
-- `/start_simulation` (std_srvs/Trigger)
-- `/stop_simulation` (std_srvs/Trigger)
-- `/load_robot` (agi_walker_msgs/LoadRobot)
-
-## 📝 许可�?
-
-MIT License - 详见主项目LICENSE文件
-
-## 🤝 贡献
-
-欢迎提交Issue和Pull Request�?
+- `docs/ros2/ROS2_QUICK_START.md`
+- `docs/ros2/ROS2_INTEGRATION_DESIGN.md`

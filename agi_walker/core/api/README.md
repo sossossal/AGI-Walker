@@ -1,92 +1,81 @@
-# Python API for Godot Robot Environment
+# AGI-Walker Core API
 
-OpenAI Gym/Gymnasium compatible interface for robot reinforcement learning.
+This directory contains the lower-level API surface used by the Godot simulation environment, communication clients, control helpers, and local examples.
+It is part of the `agi_walker` package and no longer lives under a separate `python_api/` source tree.
 
-## Installation
+## Install
 
-```bash
-cd python_api
-pip install -r requirements.txt
-pip install -e .  # Install in development mode
-```
-
-## Quick Start
-
-### 1. Run Parts Database Test
+Install from the repository root:
 
 ```bash
-python examples/test_parts.py
+pip install -e .
 ```
 
-### 2. Train a Walking Robot
-
-First, start Godot simulator:
-1. Open `godot_project` in Godot
-2. Press F5 to run the main scene
-3. Ensure TCP server is running on port 9999
-
-Then run training:
+If you want the RL and training extras used by some examples:
 
 ```bash
-python examples/train_walker_ppo.py --timesteps 100000
+pip install -e ".[training]"
 ```
 
-### 3. Test Trained Model
+## Main Package Surface
 
-```bash
-python examples/train_walker_ppo.py --mode test --model-path ./models/walker_ppo/walker_ppo_final
-```
-
-## Usage
-
-### Basic Usage
+The Godot-compatible environment package lives at:
 
 ```python
-from godot_robot_env import GodotRobotEnv
+from agi_walker.core.api.godot_robot_env import GodotRobotEnv, PartsDatabase
+```
 
-# Create environment
+This package provides:
+
+- `GodotRobotEnv` for Gym/Gymnasium-style simulation loops
+- `PartsDatabase` for robot part lookup and config assembly
+- Communication clients under `comm/`
+- Control, diagnostics, and sensor helpers under the surrounding `core/api/` package
+
+## Local Example Scripts
+
+The local examples in this directory still run as scripts from the repository checkout:
+
+```bash
+python agi_walker/core/api/examples/test_parts.py
+python agi_walker/core/api/examples/train_walker_ppo.py --timesteps 100000
+```
+
+Those scripts add the local package directory to `sys.path` so they can be executed directly from the repo root.
+
+## Godot Environment Example
+
+```python
+from agi_walker.core.api.godot_robot_env import GodotRobotEnv
+
 env = GodotRobotEnv(host="127.0.0.1", port=9999)
-
-# Reset environment
 obs, info = env.reset()
 
-# Run episode
 for _ in range(1000):
-    action = env.action_space.sample()  # Random action
+    action = env.action_space.sample()
     obs, reward, terminated, truncated, info = env.step(action)
-    
+
     if terminated or truncated:
         obs, info = env.reset()
 
 env.close()
 ```
 
-### With Stable-Baselines3
+## Training Example
 
-```python
-from godot_robot_env import GodotRobotEnv
-from stable_baselines3 import PPO
+Before running PPO training, start a compatible Godot simulation endpoint on port `9999`, then run:
 
-env = GodotRobotEnv()
-model = PPO("MultiInputPolicy", env, verbose=1)
-model.learn(total_timesteps=100000)
-model.save("walker_ppo")
+```bash
+python agi_walker/core/api/examples/train_walker_ppo.py --timesteps 100000
 ```
 
-## Features
+To test a saved model:
 
-- âœ?OpenAI Gym/Gymnasium compatible
-- âœ?Dict observation space (IMU, joints, contacts)
-- âœ?Box action space (motor targets)
-- âœ?Customizable reward function
-- âœ?Physics parameter modification
-- âœ?Robot parts library integration
-- âœ?Real-time communication with Godot
+```bash
+python agi_walker/core/api/examples/train_walker_ppo.py --mode test --model-path ./models/walker_ppo/walker_ppo_final
+```
 
-## Documentation
+## Notes
 
-See `PYTHON_API_GUIDE.md` for detailed documentation.
-
-## License
-
-MIT License
+- The examples under this directory are legacy local demos, not the repository's main product entrypoints.
+- For the main runtime surfaces, prefer the top-level CLI, Web Panel, and MCP server documented in the repository root `README.md`.

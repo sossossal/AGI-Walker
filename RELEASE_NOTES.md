@@ -62,7 +62,7 @@ AGI-Walker v1.0.0 是项目从实验性原型向“标准化机器人工作流�
 
 ### 新用户
 ```bash
-pip install -r requirements.txt
+pip install -e ".[dev]"
 python tests/run_smoke_tests.py
 ```
 

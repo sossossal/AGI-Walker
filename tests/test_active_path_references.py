@@ -11,6 +11,9 @@ QUICK_START_SH = Path("scripts/quick_start.sh")
 QUICK_START_BAT = Path("scripts/quick_start.bat")
 INSTALL_SH = Path("scripts/install.sh")
 INSTALL_BAT = Path("scripts/install.bat")
+ROOT_RELEASE_NOTES = Path("RELEASE_NOTES.md")
+ROS2_WORKSPACE_README = Path("hardware/ros2_ws/README.md")
+CORE_API_README = Path("agi_walker/core/api/README.md")
 
 
 def test_dockerfile_does_not_reference_removed_source_layout() -> None:
@@ -61,3 +64,18 @@ def test_root_scripts_install_from_pyproject_instead_of_missing_requirements_fil
     assert "pip install -e ." in install_sh
     assert "python -m pip install -e ." in install_bat
     assert '"pyproject.toml"' in quick_start_sh
+
+
+def test_active_docs_do_not_reintroduce_removed_root_requirements_or_python_api_layout() -> None:
+    release_notes = ROOT_RELEASE_NOTES.read_text(encoding="utf-8")
+    ros2_readme = ROS2_WORKSPACE_README.read_text(encoding="utf-8")
+    core_api_readme = CORE_API_README.read_text(encoding="utf-8")
+
+    assert "pip install -r requirements.txt" not in release_notes
+    assert "pip install -r requirements.txt" not in ros2_readme
+    assert "cd python_api" not in core_api_readme
+    assert "pip install -r requirements.txt" not in core_api_readme
+    assert 'pip install -e ".[dev]"' in release_notes
+    assert "pip install -e ." in ros2_readme
+    assert "pip install -e ." in core_api_readme
+    assert "from agi_walker.core.api.godot_robot_env import GodotRobotEnv" in core_api_readme
