@@ -3,6 +3,7 @@ import os
 from typing import Any, Dict, Optional
 
 import pydantic
+from pydantic import Field
 from fastapi import APIRouter
 from fastapi import FastAPI
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class GodotAgentLaunchRequest(pydantic.BaseModel):
-    project_path: Optional[str] = None
+    project_path: Optional[str] = Field(default=None, alias="godot_project_path")
     scene_path: Optional[str] = None
 
 
@@ -43,22 +44,51 @@ def get_godot_agent_status(app: FastAPI) -> Dict[str, Any]:
     configured_backend = (
         os.getenv("AGI_WALKER_GODOT_AGENT_BACKEND", "legacy").strip().lower()
     )
-    backend = create_godot_agent_backend(backend_name=configured_backend)
+    backend = get_godot_agent_backend(app)
 
     # 统一识别逻辑
+    backend_class = type(backend).__name__
+    is_fake = backend_class.lower().startswith("fake")
     is_modern = isinstance(backend, ModernGodotAgentAdapter) or configured_backend in {
         "godot-agent",
         "modern",
     }
 
-    backend_mode = "godot-agent" if is_modern else "legacy"
+    if is_fake:
+        backend_mode = "fake"
+    elif is_modern:
+        backend_mode = "godot-agent"
+    else:
+        backend_mode = "legacy"
     resource_mode = "templates" if is_modern else "skills"
 
+    router = getattr(backend, "router", None)
+    roles_count = 0
+    templates_count = 0
+    try:
+        roles_count = len(backend.get_roles_info())
+    except Exception:
+        roles_count = 0
+    try:
+        templates_count = len((backend.list_templates() or {}).get("templates", []))
+    except Exception:
+        templates_count = 0
+
+    default_project_path = getattr(backend, "default_project_path", None)
+    history_file = getattr(backend, "history_file", None)
+
     return {
+        "status": "ready",
         "backend_mode": backend_mode,
+        "backend_class": backend_class,
+        "router_ready": router is not None or is_fake,
         "resource_mode": resource_mode,
+        "roles_count": roles_count,
+        "templates_count": templates_count,
         "agent_dir": os.getenv("AGI_WALKER_GODOT_AGENT_DIR"),
-        "project_path": os.getenv("AGI_WALKER_GODOT_PROJECT_PATH"),
+        "project_path": os.getenv("AGI_WALKER_GODOT_PROJECT_PATH")
+        or default_project_path,
+        "history_file": str(history_file) if history_file else None,
     }
 
 
@@ -83,12 +113,16 @@ def build_router(app: FastAPI) -> APIRouter:
     @router.post("/api/godot-agent/plan")
     async def plan_godot_agent_command_route(req: Dict[str, Any]):
         backend = create_godot_agent_backend()
-        return backend.plan_command(req.get("command", ""), context=req.get("context"))
+        return backend.plan_command(
+            req.get("command", ""),
+            context=req.get("context"),
+            project_path=req.get("godot_project_path"),
+        )
 
     @router.get("/api/godot-agent/doctor")
-    async def doctor_godot_agent_route():
+    async def doctor_godot_agent_route(godot_project_path: Optional[str] = None):
         backend = create_godot_agent_backend()
-        return backend.doctor()
+        return backend.doctor(project_path=godot_project_path)
 
     @router.get("/api/godot-agent/history")
     async def get_godot_agent_history_route(limit: int = 20):

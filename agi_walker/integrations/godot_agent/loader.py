@@ -46,6 +46,14 @@ def _prepare_agent_imports(agent_dir: str) -> None:
         _purge_agent_system_modules()
 
 
+def _module_exists_under_agent_dir(agent_dir: str, module_name: str) -> bool:
+    resolved_dir = Path(agent_dir).resolve()
+    relative_module_path = Path(*module_name.split("."))
+    module_file = resolved_dir / relative_module_path.with_suffix(".py")
+    package_init = resolved_dir / relative_module_path / "__init__.py"
+    return module_file.exists() or package_init.exists()
+
+
 def load_agent_attribute(agent_dir: str, module_name: str, attribute_name: str):
     _prepare_agent_imports(agent_dir)
 
@@ -55,6 +63,9 @@ def load_agent_attribute(agent_dir: str, module_name: str, attribute_name: str):
             return getattr(preloaded_module, attribute_name)
         except AttributeError:
             pass
+
+    if not _module_exists_under_agent_dir(agent_dir, module_name):
+        raise ImportError(f"Module '{module_name}' not found under '{Path(agent_dir).resolve()}'")
 
     module = importlib.import_module(module_name)
     try:
@@ -75,6 +86,9 @@ def load_router_class(agent_dir: str, router_class_name: str):
             return getattr(preloaded_router_module, router_class_name)
         except AttributeError:
             pass
+
+    if not _module_exists_under_agent_dir(agent_dir, "agent_system.router"):
+        raise ImportError(f"Router module not found in {resolved_dir}")
 
     router_module = importlib.import_module("agent_system.router")
     try:
