@@ -2,6 +2,7 @@ from pathlib import Path
 
 
 ZENOH_GODOT_BRIDGE = Path("openneuro/cortex/zenoh_godot_bridge.py")
+MVP_ZENOH_GODOT_BRIDGE = Path("openneuro/mvp/simulation/zenoh_godot_bridge.py")
 GUI_TEST_GUIDE = Path("tests/GUI_TEST_GUIDE.md")
 QUADRUPED_README = Path("examples/quadruped/README.md")
 ROBOT_CONFIGURATOR_GUI = Path("tools/robot_configurator_gui.py")
@@ -28,6 +29,18 @@ def test_gui_test_guide_uses_current_mock_server_import() -> None:
         "from agi_walker.core.api.comm.godot_client import MockGodotServer"
         in content
     )
+
+
+def test_mvp_openneuro_bridge_uses_current_godot_client_protocol() -> None:
+    content = MVP_ZENOH_GODOT_BRIDGE.read_text(encoding="utf-8")
+
+    assert (
+        "from agi_walker.core.api.comm.godot_client import GodotSimulationClient"
+        in content
+    )
+    assert "sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))" not in content
+    assert "socket.socket(socket.AF_INET, socket.SOCK_STREAM)" not in content
+    assert 'self.godot_client.send_command("update_zone", payload)' in content
 
 
 def test_quadruped_readme_uses_current_gait_controller_import() -> None:

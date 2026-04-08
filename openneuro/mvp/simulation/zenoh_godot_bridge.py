@@ -9,21 +9,30 @@ OpenNeuro → Godot Bridge
 """
 
 import zenoh
-import socket
 import json
 import time
-import threading
 import sys
 from pathlib import Path
 
-# 添加AGI-Walker路径
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+
+def _add_repo_root_to_path() -> None:
+    module_path = Path("agi_walker/core/api/comm/godot_client.py")
+
+    for parent in Path(__file__).resolve().parents:
+        if (parent / module_path).exists():
+            sys.path.insert(0, str(parent))
+            return
+
+
+_add_repo_root_to_path()
+from agi_walker.core.api.comm.godot_client import GodotSimulationClient
+
 
 class OpenNeuroGodotBridge:
     def __init__(self, godot_host='127.0.0.1', godot_port=9999):
         self.godot_host = godot_host
         self.godot_port = godot_port
-        self.godot_socket = None
+        self.godot_client = GodotSimulationClient(godot_host, godot_port)
         self.running = False
         
         # Zone状态缓存
@@ -53,7 +62,7 @@ class OpenNeuroGodotBridge:
             self.zone_states[zone_id] = data
             
             # 转发到Godot
-            if self.godot_socket:
+            if self.godot_client.is_connected():
                 self.forward_to_godot(zone_id, data)
         except Exception as e:
             print(f"[Bridge] Error processing zone {zone_id}: {e}")
@@ -61,33 +70,30 @@ class OpenNeuroGodotBridge:
     def forward_to_godot(self, zone_id, data):
         """转发数据到Godot"""
         try:
-            # 构造Godot命令
-            godot_cmd = {
-                "command": "update_zone",
+            payload = {
                 "zone_id": zone_id,
                 "joints": data.get("joints", []),
-                "timestamp": data.get("timestamp", time.time())
+                "timestamp": data.get("timestamp", time.time()),
             }
-            
-            # 发送JSON + 换行符
-            msg = json.dumps(godot_cmd) + "\n"
-            self.godot_socket.sendall(msg.encode('utf-8'))
+
+            self.godot_client.send_command("update_zone", payload)
         except Exception as e:
             print(f"[Bridge] Godot send error: {e}")
-            self.godot_socket = None
-    
+            self.godot_client.disconnect()
+
     def connect_godot(self):
         """连接到Godot TCP服务器"""
         print(f"[Bridge] Connecting to Godot at {self.godot_host}:{self.godot_port}...")
         try:
-            self.godot_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.godot_socket.connect((self.godot_host, self.godot_port))
-            self.godot_socket.settimeout(1.0)
-            print("[Bridge] ✓ Connected to Godot")
-            return True
+            if self.godot_client.connect(timeout=5.0):
+                print("[Bridge] ✓ Connected to Godot")
+                return True
+
+            print("[Bridge] ✗ Failed to connect to Godot")
+            return False
         except Exception as e:
             print(f"[Bridge] ✗ Failed to connect to Godot: {e}")
-            self.godot_socket = None
+            self.godot_client.disconnect()
             return False
     
     def run(self):
@@ -120,8 +126,7 @@ class OpenNeuroGodotBridge:
         for sub in self.subscribers:
             sub.undeclare()
         self.z_session.close()
-        if self.godot_socket:
-            self.godot_socket.close()
+        self.godot_client.disconnect()
         print("[Bridge] ✓ Stopped")
 
 
