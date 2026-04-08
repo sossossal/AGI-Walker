@@ -12,8 +12,17 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-# 添加项目根目录到路径
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+
+def _add_repo_root_to_path() -> None:
+    module_path = Path("agi_walker/skills/parameter_optimizer/__init__.py")
+
+    for parent in Path(__file__).resolve().parents:
+        if (parent / module_path).exists():
+            sys.path.insert(0, str(parent))
+            return
+
+
+_add_repo_root_to_path()
 
 from agi_walker.skills.parameter_optimizer import (  # noqa: E402
     optimize_mass_distribution,

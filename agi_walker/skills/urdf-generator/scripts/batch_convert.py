@@ -11,7 +11,17 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+
+def _add_repo_root_to_path() -> None:
+    module_path = Path("agi_walker/skills/urdf_generator/__init__.py")
+
+    for parent in Path(__file__).resolve().parents:
+        if (parent / module_path).exists():
+            sys.path.insert(0, str(parent))
+            return
+
+
+_add_repo_root_to_path()
 
 from agi_walker.skills.urdf_generator import (
     convert_to_urdf,
