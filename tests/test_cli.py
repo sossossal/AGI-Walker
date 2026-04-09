@@ -241,6 +241,60 @@ class TestSkillsCLI:
             output = captured.out + captured.err
             assert len(output) > 0
 
+    def test_skills_validate_warns_on_missing_dependencies_but_succeeds(
+        self, capsys, mock_loader
+    ) -> None:
+        """测试：默认 validate 将缺失依赖视为 warning，而不是失败"""
+        from agi_walker.cli.skills_cli import main as skills_main
+        from agi_walker.skills_loader import SkillMetadata
+
+        mock_loader.get_skills_list.return_value = [
+            SkillMetadata(
+                name="parameter-optimizer", description="opt", category="优化"
+            )
+        ]
+        mock_loader.validate_skill_dependencies.return_value = {
+            "python_modules": ["scipy"],
+            "bins": [],
+            "files": [],
+        }
+
+        with patch.object(sys, "argv", ["agi_walker", "validate"]):
+            result = skills_main()
+            assert result == 0 or result is None
+
+        captured = capsys.readouterr()
+        output = captured.out + captured.err
+        assert "[WARN] parameter-optimizer:" in output
+        assert "[OK] 所有skills配置有效" in output
+
+    def test_skills_validate_strict_deps_fails_on_missing_dependencies(
+        self, capsys, mock_loader
+    ) -> None:
+        """测试：--strict-deps 会把缺失依赖视为失败"""
+        from agi_walker.cli.skills_cli import main as skills_main
+        from agi_walker.skills_loader import SkillMetadata
+
+        mock_loader.get_skills_list.return_value = [
+            SkillMetadata(
+                name="parameter-optimizer", description="opt", category="优化"
+            )
+        ]
+        mock_loader.validate_skill_dependencies.return_value = {
+            "python_modules": ["scipy"],
+            "bins": [],
+            "files": [],
+        }
+
+        with patch.object(sys, "argv", ["agi_walker", "validate", "--strict-deps"]):
+            result = skills_main()
+            assert result == 1
+
+        captured = capsys.readouterr()
+        output = captured.out + captured.err
+        assert "[FAIL] parameter-optimizer:" in output
+        assert "[FAIL] 发现配置问题" in output
+
     def test_skills_workflows_list_command(self, capsys) -> None:
         """测试：workflows list 命令"""
         from agi_walker.cli.skills_cli import main as skills_main

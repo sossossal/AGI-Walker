@@ -152,17 +152,21 @@ def cmd_validate(args):
     print("验证 Skills 配置...\n")
 
     all_valid = True
+    dependency_warnings = False
     for skill in loader.get_skills_list():
         # 检查依赖
         missing_deps = loader.validate_skill_dependencies(skill.name)
         has_missing = any(missing_deps.get(dep_type) for dep_type in missing_deps)
 
         if has_missing:
-            all_valid = False
-            print(f"[FAIL] {skill.name}:")
+            dependency_warnings = True
+            label = "[FAIL]" if args.strict_deps else "[WARN]"
+            print(f"{label} {skill.name}:")
             for dep_type, deps in missing_deps.items():
                 if deps:
                     print(f"    缺失 {dep_type}: {', '.join(deps)}")
+            if args.strict_deps:
+                all_valid = False
         else:
             if args.verbose:
                 print(f"[OK] {skill.name}")
@@ -170,6 +174,10 @@ def cmd_validate(args):
     print()
     if all_valid:
         print("[OK] 所有skills配置有效")
+        if dependency_warnings and not args.strict_deps:
+            print(
+                "[WARN] 检测到可选运行时依赖缺失，相关 skill 在当前环境下可能降级运行"
+            )
         return 0
     else:
         print("[FAIL] 发现配置问题")
@@ -354,6 +362,11 @@ def main():
     val_parser = subparsers.add_parser("validate", help="验证skills配置")
     val_parser.add_argument(
         "-v", "--verbose", action="store_true", help="显示所有验证结果"
+    )
+    val_parser.add_argument(
+        "--strict-deps",
+        action="store_true",
+        help="将缺失的运行时依赖视为失败，而不是 warning",
     )
 
     # workflows 子命令组
