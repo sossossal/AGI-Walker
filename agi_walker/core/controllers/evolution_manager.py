@@ -3,6 +3,8 @@
 串联RL训练、数据生成、自动标记和PEFT微调，实现自动化进化
 """
 
+# ruff: noqa: E402
+
 import logging
 import asyncio
 from dataclasses import dataclass
@@ -28,7 +30,11 @@ except ImportError:
 
 from agi_walker.core.training.auto_labeler import AutoLabeler  # noqa: E402
 from agi_walker.core.training.dataset_cleaner import DatasetCleaner  # noqa: E402
-from agi_walker.core.training.peft_trainer import PEFTTrainer, PEFTConfig, PEFTMethod  # noqa: E402
+from agi_walker.core.training.peft_trainer import (
+    PEFTTrainer,
+    PEFTConfig,
+    PEFTMethod,
+)  # noqa: E402
 
 
 @dataclass
