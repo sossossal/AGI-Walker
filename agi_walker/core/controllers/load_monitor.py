@@ -7,7 +7,10 @@ import time
 from enum import Enum
 from typing import Any, Dict, Optional
 
-import psutil
+try:
+    import psutil
+except ModuleNotFoundError:
+    psutil = None
 
 logger = logging.getLogger(__name__)
 
@@ -65,12 +68,31 @@ class SystemMonitor:
         self.temp_threshold = temp_threshold
         self.os_type = platform.system()
 
+    @staticmethod
+    def _safe_cpu_percent() -> float:
+        if psutil is None:
+            return 0.0
+        try:
+            return float(psutil.cpu_percent(interval=None))
+        except Exception:
+            return 0.0
+
+    @staticmethod
+    def _safe_memory_percent() -> float:
+        if psutil is None:
+            return 0.0
+        try:
+            return float(psutil.virtual_memory().percent)
+        except Exception:
+            return 0.0
+
     def get_hw_stats(self) -> Dict[str, Any]:
         return {
-            "cpu_percent": psutil.cpu_percent(interval=None),
-            "memory_percent": psutil.virtual_memory().percent,
+            "cpu_percent": self._safe_cpu_percent(),
+            "memory_percent": self._safe_memory_percent(),
             "load_avg": self._get_load_avg(),
             "temperature": self._get_temperature(),
+            "psutil_available": psutil is not None,
             "timestamp": time.time(),
         }
 
@@ -80,7 +102,7 @@ class SystemMonitor:
         return [0.0, 0.0, 0.0]
 
     def _get_temperature(self) -> Optional[float]:
-        if self.os_type != "Linux":
+        if self.os_type != "Linux" or psutil is None:
             return None
         try:
             temps = psutil.sensors_temperatures()
