@@ -3,17 +3,18 @@
 证明通过调节零件参数可以达到控制目的
 """
 
+# ruff: noqa: E402
+
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
+
 import sys
 import os
 
+logger = logging.getLogger(__name__)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from agi_walker.core.api.control.precision_adjuster import PrecisionPartAdjuster
 from agi_walker.core.api.physics_validator import PhysicsSimulator
-import numpy as np
 
 
 class ParametricControlValidator:
@@ -334,7 +335,9 @@ class ParametricControlValidator:
                     check = "⚠️"
                     test_passed = False
 
-                logger.info(f"{scenario_name:<12} {speed:<15.3f} {check:<10} {评价:<25}")
+                logger.info(
+                    f"{scenario_name:<12} {speed:<15.3f} {check:<10} {评价:<25}"
+                )
             else:
                 logger.info(f"{scenario_name:<12} {'N/A':<15} ✗{'':<9} 失败")
                 test_passed = False

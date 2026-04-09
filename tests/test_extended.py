@@ -4,15 +4,17 @@
 """
 
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
-import sys
+
 import os
 import pytest
 
 
+logger = logging.getLogger(__name__)
+
+
 def get_np():
     import numpy as np
+
     return np
 
 
@@ -21,7 +23,11 @@ class TestZenohInterface:
 
     def setup_method(self) -> None:
         try:
-            from agi_walker.core.api.comm.zenoh_interface import ZenohInterface, ZENOH_AVAILABLE
+            from agi_walker.core.api.comm.zenoh_interface import (
+                ZenohInterface,
+                ZENOH_AVAILABLE,
+            )
+
             if not ZENOH_AVAILABLE:
                 pytest.skip("Zenoh 未安装")
             self.zenoh = ZenohInterface()
@@ -49,8 +55,10 @@ class TestZenohInterface:
 
     def test_subscriber_creation(self) -> None:
         """测试订阅者创建"""
+
         def callback(data):
             pass
+
         self.zenoh.declare_subscriber("test/sub", callback)
         assert "test/sub" in self.zenoh.subscribers
 
@@ -60,6 +68,7 @@ class TestTaskEditor:
 
     def setup_method(self) -> None:
         from agi_walker.core.api.task_editor import TaskEditor
+
         self.editor = TaskEditor()
 
     def test_create_task(self) -> None:
@@ -78,6 +87,7 @@ class TestTaskEditor:
     def test_save_load_task(self) -> None:
         """测试保存和加载"""
         import tempfile
+
         task = self.editor.create_task("test", "quadruped")
         task.env_params = {"test": 123}
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -97,6 +107,7 @@ class TestPartsManager:
 
     def setup_method(self) -> None:
         from agi_walker.core.api.parts.parts_manager import PartsManager
+
         self.pm = PartsManager()
 
     def test_load_parts(self) -> None:
@@ -124,10 +135,11 @@ class TestTaskEnvironments:
         try:
             import gymnasium as gym
             from examples.tasks.stair_climbing.env import StairClimbingEnv
+
             # 避免重复注册
             try:
                 gym.register(id="StairClimbing-Test", entry_point=StairClimbingEnv)
-            except:
+            except Exception:
                 logger.warning("Exception occurred")
             env = gym.make("StairClimbing-Test")
         except Exception as e:
@@ -144,9 +156,10 @@ class TestTaskEnvironments:
         try:
             import gymnasium as gym
             from examples.tasks.object_grasping.env import ObjectGraspingEnv
+
             try:
                 gym.register(id="ObjectGrasping-Test", entry_point=ObjectGraspingEnv)
-            except:
+            except Exception:
                 logger.warning("Exception occurred")
             env = gym.make("ObjectGrasping-Test")
         except Exception as e:

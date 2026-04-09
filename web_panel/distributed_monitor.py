@@ -76,9 +76,12 @@ class DistributedMonitor:
         self.actor_ttl_seconds = self._read_actor_ttl_seconds()
         self.last_error = None
         self.monitor_active = False
-        logger.info("[Zenoh] Initializing Monitor Node for endpoint %s...", self.endpoint)
+        logger.info(
+            "[Zenoh] Initializing Monitor Node for endpoint %s...", self.endpoint
+        )
         try:
             import zenoh
+
             self.zenoh_available = True
 
             z_conf = zenoh.Config()
@@ -95,7 +98,11 @@ class DistributedMonitor:
 
                     import zlib
 
-                    raw_bytes = sample.payload.to_bytes() if hasattr(sample.payload, "to_bytes") else sample.payload
+                    raw_bytes = (
+                        sample.payload.to_bytes()
+                        if hasattr(sample.payload, "to_bytes")
+                        else sample.payload
+                    )
                     if len(raw_bytes) > 0:
                         header = raw_bytes[0]
                         data_content = raw_bytes[1:]

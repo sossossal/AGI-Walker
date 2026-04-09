@@ -12,16 +12,17 @@
 """
 
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
-import pytest
+
 import json
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock
 
 
 # ============================================================================
 # 测试组 1：模型到控制的完整工作流
 # ============================================================================
+
+
+logger = logging.getLogger(__name__)
 
 
 class TestModelToControlWorkflow:
@@ -71,7 +72,7 @@ class TestModelToControlWorkflow:
             "generated": False,
         }
         gait["generated"] = True
-        assert gait["generated"] == True
+        assert gait["generated"]
 
     def test_controller_setup_step(self) -> None:
         """测试：步骤 4 - 控制器设置"""
@@ -82,7 +83,7 @@ class TestModelToControlWorkflow:
             "active": False,
         }
         controller["active"] = True
-        assert controller["active"] == True
+        assert controller["active"]
 
     def test_execution_step(self) -> None:
         """测试：步骤 5 - 执行"""
@@ -99,7 +100,7 @@ class TestModelToControlWorkflow:
             if execution["time"] >= execution["target_time"]:
                 execution["completed"] = True
                 break
-        assert execution["completed"] == True
+        assert execution["completed"]
         assert execution["num_steps"] <= 1001
 
     def test_complete_workflow_sequence(self) -> None:
@@ -180,10 +181,12 @@ class TestCommunicationToControlCycle:
 
     def test_message_deserialization(self) -> None:
         """测试：消息反序列化"""
-        message_json = json.dumps({
-            "cmd": "move",
-            "joints": [1.0, 2.0, 3.0],
-        })
+        message_json = json.dumps(
+            {
+                "cmd": "move",
+                "joints": [1.0, 2.0, 3.0],
+            }
+        )
         deserialized = json.loads(message_json)
         assert deserialized["cmd"] == "move"
 
@@ -191,10 +194,12 @@ class TestCommunicationToControlCycle:
         """测试：完整通信循环"""
         cycle_steps = []
         for i in range(100):
-            cycle_steps.append({
-                "send_cmd": {"joint": 1.0},
-                "recv_state": {"angle": 0.95},
-            })
+            cycle_steps.append(
+                {
+                    "send_cmd": {"joint": 1.0},
+                    "recv_state": {"angle": 0.95},
+                }
+            )
         assert len(cycle_steps) == 100
 
 
@@ -215,7 +220,9 @@ class TestPhysicsSimulationCycle:
         }
         # 更新状态
         state["velocities"] = [v + 0.1 for v in state["velocities"]]
-        state["positions"] = [p + v for p, v in zip(state["positions"], state["velocities"])]
+        state["positions"] = [
+            p + v for p, v in zip(state["positions"], state["velocities"])
+        ]
         assert state["positions"][0] > 0
 
     def test_force_computation(self) -> None:
@@ -235,7 +242,7 @@ class TestPhysicsSimulationCycle:
         robot_pos = [0.95, 0.0, 0.0]
         collisions = []
         for obs in obstacles:
-            distance = sum((a - b)**2 for a, b in zip(robot_pos, obs["pos"]))**0.5
+            distance = sum((a - b) ** 2 for a, b in zip(robot_pos, obs["pos"])) ** 0.5
             if distance < obs["size"] + 0.05:
                 collisions.append(obs)
         assert len(collisions) == 1
@@ -275,7 +282,7 @@ class TestCompleteTrainingCycle:
             episode["steps"] += 1
             episode["reward"] += 0.1
         assert episode["steps"] == 500
-        assert episode["done"] == False
+        assert not episode["done"]
 
     def test_multiple_episodes(self) -> None:
         """测试：多个 episode"""
@@ -361,7 +368,7 @@ class TestErrorRecoveryAndRobustness:
         system["shutdown_initiated"] = True
         system["cleanup_done"] = True
         system["running"] = False
-        assert system["running"] == False
+        assert not system["running"]
 
     def test_fault_tolerance_layers(self) -> None:
         """测试：容错层"""
@@ -433,7 +440,7 @@ class TestSystemIntegration:
             "sensors": True,
         }
         initialized = all(components.values())
-        assert initialized == True
+        assert initialized
 
     def test_data_consistency(self) -> None:
         """测试：数据一致性"""
@@ -442,7 +449,7 @@ class TestSystemIntegration:
             "real_robot": {"position": [1.0, 2.0, 3.0]},
         }
         consistent = data_sources["simulation"] == data_sources["real_robot"]
-        assert consistent == True
+        assert consistent
 
     def test_cross_module_communication(self) -> None:
         """测试：模块间通信"""
@@ -462,4 +469,4 @@ class TestSystemIntegration:
             "sensors": "healthy",
         }
         all_healthy = all(v == "healthy" for v in health.values())
-        assert all_healthy == True
+        assert all_healthy

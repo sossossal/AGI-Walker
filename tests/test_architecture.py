@@ -4,14 +4,12 @@
 """
 
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
-import json
-import time
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 
 # 导入测试目标模块
+
+logger = logging.getLogger(__name__)
 try:
     from agi_walker.core.controllers.load_monitor import (
         LoadMonitor,
@@ -19,6 +17,7 @@ try:
         ControlMode,
     )
     from agi_walker.core.controllers.rag_knowledge_base import PhysicsKnowledgeBase
+
     MODULES_AVAILABLE = True
 except ImportError:
     MODULES_AVAILABLE = False
@@ -110,6 +109,7 @@ class TestRAGKnowledgeBase:
         check_modules_available()
         # 依赖于 conftest.py 提供的 sys.path
         from pathlib import Path
+
         project_root = Path(__file__).resolve().parent.parent
         index_path = project_root / "knowledge" / "test_index"
         self.kb = PhysicsKnowledgeBase(
@@ -142,6 +142,7 @@ def test_vision_processor_mock() -> None:
     """测试视觉处理器 (Mock模式)"""
     try:
         from agi_walker.core.api.vision_processor import create_vision_processor
+
         processor = create_vision_processor()
         assert processor is not None
     except ImportError:
@@ -152,6 +153,7 @@ def test_multimodal_fusion_mock() -> None:
     """测试多模态融合 (Mock模式)"""
     try:
         from agi_walker.core.api.multimodal_fusion import create_multimodal_fusion
+
         fusion = create_multimodal_fusion()
         assert fusion is not None
     except ImportError:
@@ -165,7 +167,7 @@ def test_load_monitor_integration() -> None:
     pid = SimplePIDController()
     monitor = LoadMonitor(pid)
     sensor_data = {"sensors": {"imu": {"orient": [10.0, -5.0, 0.0]}}}
-    
+
     for lat in [15, 25, 35, 45, 55]:
         monitor.record_latency(lat)
         action = monitor.get_control_action(sensor_data)

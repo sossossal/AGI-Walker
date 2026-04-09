@@ -47,11 +47,15 @@ def _get_run_record(run_id):
 
 
 def _finalize_run_from_result(run_id, result_dict):
-    return _run_coro(web_panel.workflows_api._finalize_run_from_result(run_id, result_dict))
+    return _run_coro(
+        web_panel.workflows_api._finalize_run_from_result(run_id, result_dict)
+    )
 
 
 def _mark_run_terminal(run_id, status, **changes):
-    return _run_coro(web_panel.workflows_api._mark_run_terminal(run_id, status, **changes))
+    return _run_coro(
+        web_panel.workflows_api._mark_run_terminal(run_id, status, **changes)
+    )
 
 
 @pytest.fixture()
@@ -246,7 +250,10 @@ def _build_failed_workflow_result() -> WorkflowResult:
                 action="optimize_mass_distribution",
                 status=StepStatus.FAILED,
                 error="mass distribution optimizer diverged",
-                output={"status": "error", "error": "mass distribution optimizer diverged"},
+                output={
+                    "status": "error",
+                    "error": "mass distribution optimizer diverged",
+                },
                 start_time=start_time + timedelta(seconds=1),
                 end_time=end_time,
             ),
@@ -364,10 +371,14 @@ def test_workflow_routes_list_execute_and_download_artifacts(
     try:
         result = _build_completed_workflow_result(tmp_path)
         orchestrator = FakeWorkflowOrchestrator(result)
-        monkeypatch.setattr(web_panel.workflows_api, "get_workflow_orchestrator", lambda: orchestrator)
+        monkeypatch.setattr(
+            web_panel.workflows_api, "get_workflow_orchestrator", lambda: orchestrator
+        )
         submitted = {}
 
-        async def fake_start_background_run(run_id, workflow_name, request, output_root):
+        async def fake_start_background_run(
+            run_id, workflow_name, request, output_root
+        ):
             submitted["run_id"] = run_id
             submitted["workflow_name"] = workflow_name
             submitted["request"] = request
@@ -379,10 +390,14 @@ def test_workflow_routes_list_execute_and_download_artifacts(
                 status_detail="Worker process started.",
                 worker_pid=4321,
             )
-            await web_panel.workflows_api._finalize_run_from_result(run_id, result.to_dict())
+            await web_panel.workflows_api._finalize_run_from_result(
+                run_id, result.to_dict()
+            )
             return await web_panel.workflows_api._get_run_record(run_id)
 
-        monkeypatch.setattr(web_panel.workflows_api, "_start_background_run", fake_start_background_run)
+        monkeypatch.setattr(
+            web_panel.workflows_api, "_start_background_run", fake_start_background_run
+        )
 
         workflows_response = client.get("/api/workflows/")
         assert workflows_response.status_code == 200
@@ -398,7 +413,10 @@ def test_workflow_routes_list_execute_and_download_artifacts(
 
         workflow_detail_response = client.get("/api/workflows/robot_creation_pipeline")
         assert workflow_detail_response.status_code == 200
-        assert workflow_detail_response.json()["workflow"]["name"] == "robot_creation_pipeline"
+        assert (
+            workflow_detail_response.json()["workflow"]["name"]
+            == "robot_creation_pipeline"
+        )
 
         requested_output_root = tmp_path / "manual_run"
         run_response = client.post(
@@ -433,7 +451,10 @@ def test_workflow_routes_list_execute_and_download_artifacts(
         assert run["steps_snapshot"][0]["status"] == "completed"
         assert len(run["artifacts"]) == 2
         assert run["log_download_url"] == f"/api/workflows/runs/{run['run_id']}/log"
-        assert run["live_log_download_url"] == f"/api/workflows/runs/{run['run_id']}/live-log"
+        assert (
+            run["live_log_download_url"]
+            == f"/api/workflows/runs/{run['run_id']}/live-log"
+        )
 
         assert submitted["workflow_name"] == "robot_creation_pipeline"
         assert submitted["output_root"] == str(requested_output_root)
@@ -455,23 +476,41 @@ def test_workflow_routes_list_execute_and_download_artifacts(
 
         run_detail_response = client.get(f"/api/workflows/runs/{run['run_id']}")
         assert run_detail_response.status_code == 200
-        assert run_detail_response.json()["run"]["artifacts"][0]["name"] == "created_robot.json"
-        assert run_detail_response.json()["run"]["artifacts"][0]["artifact_type"] == "robot_config"
-        assert run_detail_response.json()["run"]["artifacts"][0]["godot_load_supported"] is True
-        assert run_detail_response.json()["run"]["artifacts"][1]["artifact_type"] == "urdf"
-        assert run_detail_response.json()["run"]["artifacts"][1]["preview_mode"] == "web_urdf"
+        assert (
+            run_detail_response.json()["run"]["artifacts"][0]["name"]
+            == "created_robot.json"
+        )
+        assert (
+            run_detail_response.json()["run"]["artifacts"][0]["artifact_type"]
+            == "robot_config"
+        )
+        assert (
+            run_detail_response.json()["run"]["artifacts"][0]["godot_load_supported"]
+            is True
+        )
+        assert (
+            run_detail_response.json()["run"]["artifacts"][1]["artifact_type"] == "urdf"
+        )
+        assert (
+            run_detail_response.json()["run"]["artifacts"][1]["preview_mode"]
+            == "web_urdf"
+        )
 
         artifact_response = client.get(run["artifacts"][0]["download_url"])
         assert artifact_response.status_code == 200
-        assert artifact_response.content == (
-            tmp_path / ".output" / "created_robot.json"
-        ).read_bytes()
+        assert (
+            artifact_response.content
+            == (tmp_path / ".output" / "created_robot.json").read_bytes()
+        )
 
         log_response = client.get(run["log_download_url"])
         assert log_response.status_code == 200
-        assert log_response.content == (
-            tmp_path / ".output" / "workflow_log_robot_creation_pipeline.json"
-        ).read_bytes()
+        assert (
+            log_response.content
+            == (
+                tmp_path / ".output" / "workflow_log_robot_creation_pipeline.json"
+            ).read_bytes()
+        )
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -507,22 +546,26 @@ def test_workflow_artifact_godot_load_uses_legacy_controller(
         monkeypatch.setattr(
             web_panel.server.godot_controller,
             "connect",
-            lambda host, port, session_id=None: recorded.update(
-                {"host": host, "port": port, "connect_session_id": session_id}
-            )
-            or True,
+            lambda host, port, session_id=None: (
+                recorded.update(
+                    {"host": host, "port": port, "connect_session_id": session_id}
+                )
+                or True
+            ),
         )
         monkeypatch.setattr(
             web_panel.server.godot_controller,
             "load_robot",
-            lambda parts, connections, session_id=None: recorded.update(
-                {
-                    "parts": parts,
-                    "connections": connections,
-                    "load_session_id": session_id,
-                }
-            )
-            or True,
+            lambda parts, connections, session_id=None: (
+                recorded.update(
+                    {
+                        "parts": parts,
+                        "connections": connections,
+                        "load_session_id": session_id,
+                    }
+                )
+                or True
+            ),
         )
 
         response = client.post(
@@ -594,8 +637,14 @@ def test_workflow_artifact_godot_load_uses_session_bridge(
             def is_running(self) -> bool:
                 return self._running
 
-            def launch(self, scene: str, godot_exe: str = "", headless: bool = False) -> dict[str, object]:
-                observed["launch"] = {"scene": scene, "godot_exe": godot_exe, "headless": headless}
+            def launch(
+                self, scene: str, godot_exe: str = "", headless: bool = False
+            ) -> dict[str, object]:
+                observed["launch"] = {
+                    "scene": scene,
+                    "godot_exe": godot_exe,
+                    "headless": headless,
+                }
                 self._running = True
                 return {"status": "launched", "pid": 4321}
 
@@ -606,11 +655,15 @@ def test_workflow_artifact_godot_load_uses_session_bridge(
                 observed["wait_until_connected"] = timeout_seconds
                 return True
 
-            async def send_load_robot(self, config: dict[str, object]) -> dict[str, object]:
+            async def send_load_robot(
+                self, config: dict[str, object]
+            ) -> dict[str, object]:
                 observed["robot_config"] = config
                 return {"status": "success"}
 
-            async def wait_until_schema(self, timeout_seconds: float = 5.0) -> dict[str, object]:
+            async def wait_until_schema(
+                self, timeout_seconds: float = 5.0
+            ) -> dict[str, object]:
                 observed["wait_until_schema"] = timeout_seconds
                 return {"sensors": {}, "actuators": {}}
 
@@ -647,7 +700,10 @@ def test_workflow_artifact_godot_load_uses_session_bridge(
         assert payload["godot_delivery"]["transport_status_url"].endswith(
             "/api/godot/workflow-preview/status"
         )
-        assert payload["godot_delivery"]["delivery_target"] == "session bridge workflow-preview"
+        assert (
+            payload["godot_delivery"]["delivery_target"]
+            == "session bridge workflow-preview"
+        )
         assert observed["session_id"] == "workflow-preview"
         assert observed["launch"] == {
             "scene": "demo_generated_biped.tscn",
@@ -690,8 +746,14 @@ def test_workflow_godot_sync_uses_recommended_artifact_and_persists_delivery(
             def is_running(self) -> bool:
                 return True
 
-            def launch(self, scene: str, godot_exe: str = "", headless: bool = False) -> dict[str, object]:
-                observed["launch"] = {"scene": scene, "godot_exe": godot_exe, "headless": headless}
+            def launch(
+                self, scene: str, godot_exe: str = "", headless: bool = False
+            ) -> dict[str, object]:
+                observed["launch"] = {
+                    "scene": scene,
+                    "godot_exe": godot_exe,
+                    "headless": headless,
+                }
                 return {"status": "already_running", "pid": 9876}
 
             def is_connected(self) -> bool:
@@ -701,11 +763,15 @@ def test_workflow_godot_sync_uses_recommended_artifact_and_persists_delivery(
                 observed["wait_until_connected"] = timeout_seconds
                 return True
 
-            async def send_load_robot(self, config: dict[str, object]) -> dict[str, object]:
+            async def send_load_robot(
+                self, config: dict[str, object]
+            ) -> dict[str, object]:
                 observed["robot_config"] = config
                 return {"status": "success"}
 
-            async def wait_until_schema(self, timeout_seconds: float = 5.0) -> dict[str, object]:
+            async def wait_until_schema(
+                self, timeout_seconds: float = 5.0
+            ) -> dict[str, object]:
                 observed["wait_until_schema"] = timeout_seconds
                 return {"sensors": {}, "actuators": {}}
 
@@ -824,7 +890,9 @@ def test_workflow_run_rejects_invalid_execution_strategy(
     try:
         result = _build_completed_workflow_result(tmp_path)
         orchestrator = FakeWorkflowOrchestrator(result)
-        monkeypatch.setattr(web_panel.workflows_api, "get_workflow_orchestrator", lambda: orchestrator)
+        monkeypatch.setattr(
+            web_panel.workflows_api, "get_workflow_orchestrator", lambda: orchestrator
+        )
 
         response = client.post(
             "/api/workflows/robot_creation_pipeline/run",
@@ -1022,9 +1090,14 @@ def test_runs_endpoint_supports_pagination_metadata(client: TestClient) -> None:
     assert body["offset"] == 2
     assert body["has_previous_page"] is True
     assert body["has_next_page"] is False
-    assert body["archive_retention_policy"]["max_runs"] == web_panel.workflows_api.ARCHIVE_RETENTION_MAX_RUNS
+    assert (
+        body["archive_retention_policy"]["max_runs"]
+        == web_panel.workflows_api.ARCHIVE_RETENTION_MAX_RUNS
+    )
     assert body["runs"][0]["run_id"] == first_run_id
-    assert {run["run_id"] for run in body["runs"]}.isdisjoint({second_run_id, third_run_id})
+    assert {run["run_id"] for run in body["runs"]}.isdisjoint(
+        {second_run_id, third_run_id}
+    )
 
 
 def test_archive_retention_policy_prunes_old_and_excess_archives(
@@ -1059,10 +1132,22 @@ def test_archive_retention_policy_prunes_old_and_excess_archives(
     newer_timestamp = time.time() - (2 * 60 * 60)
     newest_timestamp = time.time() - (1 * 60 * 60)
 
-    os.utime(web_panel.workflows_api._archive_run_path(oldest_run_id), (old_timestamp, old_timestamp))
-    os.utime(web_panel.workflows_api._archive_run_path(older_run_id), (older_timestamp, older_timestamp))
-    os.utime(web_panel.workflows_api._archive_run_path(newer_run_id), (newer_timestamp, newer_timestamp))
-    os.utime(web_panel.workflows_api._archive_run_path(newest_run_id), (newest_timestamp, newest_timestamp))
+    os.utime(
+        web_panel.workflows_api._archive_run_path(oldest_run_id),
+        (old_timestamp, old_timestamp),
+    )
+    os.utime(
+        web_panel.workflows_api._archive_run_path(older_run_id),
+        (older_timestamp, older_timestamp),
+    )
+    os.utime(
+        web_panel.workflows_api._archive_run_path(newer_run_id),
+        (newer_timestamp, newer_timestamp),
+    )
+    os.utime(
+        web_panel.workflows_api._archive_run_path(newest_run_id),
+        (newest_timestamp, newest_timestamp),
+    )
 
     monkeypatch.setattr(web_panel.workflows_api, "ARCHIVE_RETENTION_MAX_RUNS", 2)
     monkeypatch.setattr(web_panel.workflows_api, "ARCHIVE_RETENTION_MAX_AGE_DAYS", 1)
@@ -1086,9 +1171,13 @@ def test_workflow_routes_support_status_polling_and_cancel_request(
     try:
         result = _build_completed_workflow_result(tmp_path)
         orchestrator = FakeWorkflowOrchestrator(result)
-        monkeypatch.setattr(web_panel.workflows_api, "get_workflow_orchestrator", lambda: orchestrator)
+        monkeypatch.setattr(
+            web_panel.workflows_api, "get_workflow_orchestrator", lambda: orchestrator
+        )
 
-        async def fake_start_background_run(run_id, workflow_name, request, output_root):
+        async def fake_start_background_run(
+            run_id, workflow_name, request, output_root
+        ):
             return await web_panel.workflows_api._update_run_record(
                 run_id,
                 status="running",
@@ -1097,7 +1186,9 @@ def test_workflow_routes_support_status_polling_and_cancel_request(
                 worker_pid=9988,
             )
 
-        monkeypatch.setattr(web_panel.workflows_api, "_start_background_run", fake_start_background_run)
+        monkeypatch.setattr(
+            web_panel.workflows_api, "_start_background_run", fake_start_background_run
+        )
 
         run_response = client.post(
             "/api/workflows/robot_creation_pipeline/run",
@@ -1210,7 +1301,10 @@ def test_finalize_failed_result_extracts_step_diagnostics() -> None:
     request = web_panel.workflows_api.WorkflowRunRequest(
         use_real=False,
         execution_strategy="force",
-        parameters={"execution_strategy": "force", "output_root": "test_env/failed_result"},
+        parameters={
+            "execution_strategy": "force",
+            "output_root": "test_env/failed_result",
+        },
     )
     record = web_panel.workflows_api._build_initial_run_record(
         run_id,
@@ -1588,7 +1682,9 @@ def test_legacy_godot_routes_reflect_mocked_controller_state(
     )
     monkeypatch.setattr(web_panel.server.godot_controller.client, "running", True)
 
-    connect_response = client.post("/api/godot/connect", json={"host": "127.0.0.1", "port": 9999})
+    connect_response = client.post(
+        "/api/godot/connect", json={"host": "127.0.0.1", "port": 9999}
+    )
     assert connect_response.status_code == 200
     assert connect_response.json()["status"] == "connected"
 
@@ -1596,15 +1692,21 @@ def test_legacy_godot_routes_reflect_mocked_controller_state(
     assert status_response.status_code == 200
     assert status_response.json() == {"connected": True, "client_running": True}
 
-    load_response = client.post("/api/godot/load-robot", json={"parts": [], "connections": []})
+    load_response = client.post(
+        "/api/godot/load-robot", json={"parts": [], "connections": []}
+    )
     assert load_response.status_code == 200
     assert load_response.json()["status"] == "success"
 
-    start_response = client.post("/api/godot/start", json={"physics": {"gravity": 9.81}})
+    start_response = client.post(
+        "/api/godot/start", json={"physics": {"gravity": 9.81}}
+    )
     assert start_response.status_code == 200
     assert start_response.json()["status"] == "started"
 
-    update_response = client.post("/api/godot/update-params", json={"params": {"mass": 7.5}})
+    update_response = client.post(
+        "/api/godot/update-params", json={"params": {"mass": 7.5}}
+    )
     assert update_response.status_code == 200
     assert update_response.json()["status"] == "updated"
 
@@ -1621,9 +1723,13 @@ def test_legacy_godot_load_robot_requires_connection(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    monkeypatch.setattr(web_panel.server.godot_controller, "is_connected", lambda: False)
+    monkeypatch.setattr(
+        web_panel.server.godot_controller, "is_connected", lambda: False
+    )
 
-    response = client.post("/api/godot/load-robot", json={"parts": [], "connections": []})
+    response = client.post(
+        "/api/godot/load-robot", json={"parts": [], "connections": []}
+    )
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Godot not connected"
@@ -1637,13 +1743,15 @@ def test_legacy_controller_forwards_physics_to_client(
     monkeypatch.setattr(
         web_panel.server.godot_controller.client,
         "start_simulation",
-        lambda robot_config, physics_config=None: recorded.update(
-            {
-                "robot_config": robot_config,
-                "physics_config": physics_config,
-            }
-        )
-        or True,
+        lambda robot_config, physics_config=None: (
+            recorded.update(
+                {
+                    "robot_config": robot_config,
+                    "physics_config": physics_config,
+                }
+            )
+            or True
+        ),
     )
     monkeypatch.setattr(
         web_panel.server.godot_controller,
@@ -1688,8 +1796,9 @@ def test_legacy_routes_forward_session_id_query_to_controller(
     monkeypatch.setattr(
         web_panel.server.godot_controller,
         "connect",
-        lambda host, port, session_id=None: recorded.setdefault("connect", session_id)
-        or True,
+        lambda host, port, session_id=None: (
+            recorded.setdefault("connect", session_id) or True
+        ),
     )
     monkeypatch.setattr(
         web_panel.server.godot_controller,
@@ -1700,17 +1809,20 @@ def test_legacy_routes_forward_session_id_query_to_controller(
     monkeypatch.setattr(
         web_panel.server.godot_controller,
         "load_robot",
-        lambda parts, connections, session_id=None: recorded.setdefault(
-            "load_robot",
-            session_id,
-        )
-        or True,
+        lambda parts, connections, session_id=None: (
+            recorded.setdefault(
+                "load_robot",
+                session_id,
+            )
+            or True
+        ),
     )
     monkeypatch.setattr(
         web_panel.server.godot_controller,
         "start_simulation",
-        lambda physics, session_id=None: recorded.setdefault("start", session_id)
-        or True,
+        lambda physics, session_id=None: (
+            recorded.setdefault("start", session_id) or True
+        ),
     )
     monkeypatch.setattr(
         web_panel.server.godot_controller,
@@ -1720,8 +1832,9 @@ def test_legacy_routes_forward_session_id_query_to_controller(
     monkeypatch.setattr(
         web_panel.server.godot_controller,
         "update_params",
-        lambda params, session_id=None: recorded.setdefault("update", session_id)
-        or True,
+        lambda params, session_id=None: (
+            recorded.setdefault("update", session_id) or True
+        ),
     )
 
     client.post(

@@ -69,7 +69,10 @@ def _artifact_dir() -> Path:
 
 
 def _scene_name() -> str:
-    return os.getenv("AGI_WALKER_GODOT_HEADLESS_SCENE", DEFAULT_SCENE).strip() or DEFAULT_SCENE
+    return (
+        os.getenv("AGI_WALKER_GODOT_HEADLESS_SCENE", DEFAULT_SCENE).strip()
+        or DEFAULT_SCENE
+    )
 
 
 def _write_report(artifact_dir: Path, report: Dict[str, Any]) -> None:
@@ -80,7 +83,9 @@ def _write_report(artifact_dir: Path, report: Dict[str, Any]) -> None:
     )
 
 
-def _base_report(session_id: str, scene_name: str, port: int, artifact_dir: Path) -> Dict[str, Any]:
+def _base_report(
+    session_id: str, scene_name: str, port: int, artifact_dir: Path
+) -> Dict[str, Any]:
     return {
         "test_name": "test_godot_headless_smoke_lifecycle",
         "session_id": session_id,
@@ -92,8 +97,12 @@ def _base_report(session_id: str, scene_name: str, port: int, artifact_dir: Path
         "failure_stage": None,
         "message": None,
         "godot_executable": None,
-        "connect_timeout_seconds": _env_float("AGI_WALKER_GODOT_HEADLESS_CONNECT_TIMEOUT_SECONDS", 15.0),
-        "schema_timeout_seconds": _env_float("AGI_WALKER_GODOT_HEADLESS_SCHEMA_TIMEOUT_SECONDS", 10.0),
+        "connect_timeout_seconds": _env_float(
+            "AGI_WALKER_GODOT_HEADLESS_CONNECT_TIMEOUT_SECONDS", 15.0
+        ),
+        "schema_timeout_seconds": _env_float(
+            "AGI_WALKER_GODOT_HEADLESS_SCHEMA_TIMEOUT_SECONDS", 10.0
+        ),
         "step_count": _env_int("AGI_WALKER_GODOT_HEADLESS_STEP_COUNT", 3),
         "started_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "finished_at": None,
@@ -108,7 +117,9 @@ def _base_report(session_id: str, scene_name: str, port: int, artifact_dir: Path
     }
 
 
-def _record_skip(artifact_dir: Path, report: Dict[str, Any], stage: str, reason: str) -> None:
+def _record_skip(
+    artifact_dir: Path, report: Dict[str, Any], stage: str, reason: str
+) -> None:
     report["status"] = "skipped"
     report["failure_stage"] = stage
     report["message"] = reason
@@ -117,7 +128,9 @@ def _record_skip(artifact_dir: Path, report: Dict[str, Any], stage: str, reason:
     pytest.skip(reason)
 
 
-def _fail(report: Dict[str, Any], stage: str, message: str, bridge: GodotBridge | None = None) -> None:
+def _fail(
+    report: Dict[str, Any], stage: str, message: str, bridge: GodotBridge | None = None
+) -> None:
     report["status"] = "failed"
     report["failure_stage"] = stage
     report["message"] = message
@@ -226,9 +239,16 @@ async def test_godot_headless_smoke_lifecycle():
         if load_result is None:
             _fail(report, "load_robot", "未接收到 load_robot 回复。", bridge)
         if not isinstance(load_result, dict):
-            _fail(report, "load_robot", f"load_robot 返回类型错误: {type(load_result)!r}", bridge)
+            _fail(
+                report,
+                "load_robot",
+                f"load_robot 返回类型错误: {type(load_result)!r}",
+                bridge,
+            )
         if load_result.get("status") not in {None, "success"}:
-            _fail(report, "load_robot", f"Godot 拒绝装载机器人配置: {load_result}", bridge)
+            _fail(
+                report, "load_robot", f"Godot 拒绝装载机器人配置: {load_result}", bridge
+            )
 
         for index in range(step_count):
             sensors = await bridge.get_sensors()

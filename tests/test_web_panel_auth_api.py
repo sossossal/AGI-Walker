@@ -73,10 +73,16 @@ def test_protected_workflow_route_requires_authentication(
         (),
         {
             "list_workflows": lambda self: ["robot_creation_pipeline"],
-            "get_workflow": lambda self, name: {"name": name, "description": "auth test", "steps": []},
+            "get_workflow": lambda self, name: {
+                "name": name,
+                "description": "auth test",
+                "steps": [],
+            },
         },
     )()
-    monkeypatch.setattr(web_panel.workflows_api, "get_workflow_orchestrator", lambda: orchestrator)
+    monkeypatch.setattr(
+        web_panel.workflows_api, "get_workflow_orchestrator", lambda: orchestrator
+    )
 
     response = client.post(
         "/api/workflows/robot_creation_pipeline/run",
@@ -98,10 +104,16 @@ def test_protected_workflow_route_accepts_valid_bearer_token(
         (),
         {
             "list_workflows": lambda self: ["robot_creation_pipeline"],
-            "get_workflow": lambda self, name: {"name": name, "description": "auth test", "steps": []},
+            "get_workflow": lambda self, name: {
+                "name": name,
+                "description": "auth test",
+                "steps": [],
+            },
         },
     )()
-    monkeypatch.setattr(web_panel.workflows_api, "get_workflow_orchestrator", lambda: orchestrator)
+    monkeypatch.setattr(
+        web_panel.workflows_api, "get_workflow_orchestrator", lambda: orchestrator
+    )
 
     async def fake_start_background_run(run_id, workflow_name, request, output_root):
         return await web_panel.workflows_api._update_run_record(
@@ -111,7 +123,9 @@ def test_protected_workflow_route_accepts_valid_bearer_token(
             status_detail="Workflow queued for authenticated user.",
         )
 
-    monkeypatch.setattr(web_panel.workflows_api, "_start_background_run", fake_start_background_run)
+    monkeypatch.setattr(
+        web_panel.workflows_api, "_start_background_run", fake_start_background_run
+    )
 
     response = client.post(
         "/api/workflows/robot_creation_pipeline/run",

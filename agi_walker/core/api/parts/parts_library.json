@@ -1,0 +1,133 @@
+{
+    "actuators": {
+        "go_m8010": {
+            "name": "Unitree Go-M8010 Style",
+            "description": "High-dynamic actuator for quadrupeds",
+            "weight_kg": 0.53,
+            "max_torque_nm": 23.7,
+            "rated_torque_nm": 6.0,
+            "max_speed_rad_s": 30.0,
+            "gear_ratio": 6.33,
+            "voltage_v": 24,
+            "cost_usd": 350
+        },
+        "humanoid_hip_heavy": {
+            "name": "Tesla Optimus Style Hip",
+            "description": "High-torque planetary actuator for humanoid hips",
+            "weight_kg": 2.5,
+            "max_torque_nm": 200.0,
+            "rated_torque_nm": 60.0,
+            "max_speed_rad_s": 8.0,
+            "gear_ratio": 50.0,
+            "voltage_v": 48,
+            "cost_usd": 1200
+        },
+        "humanoid_knee_heavy": {
+            "name": "Tesla Optimus Style Knee",
+            "description": "Linear-to-rotary or high-reduction rotary actuator",
+            "weight_kg": 2.8,
+            "max_torque_nm": 300.0,
+            "rated_torque_nm": 90.0,
+            "max_speed_rad_s": 6.0,
+            "gear_ratio": 80.0,
+            "voltage_v": 48,
+            "cost_usd": 1500
+        },
+        "humanoid_arm_joint": {
+            "name": "Lightweight Arm Actuator",
+            "description": "For upper limbs, focusing on speed and precision",
+            "weight_kg": 0.5,
+            "max_torque_nm": 30.0,
+            "rated_torque_nm": 10.0,
+            "max_speed_rad_s": 15.0,
+            "gear_ratio": 20.0,
+            "voltage_v": 24,
+            "cost_usd": 400
+        },
+        "micro_servo_sg90": {
+            "name": "Hobby Servo SG90",
+            "description": "Tiny servo for grippers or small heads",
+            "weight_kg": 0.009,
+            "max_torque_nm": 0.25,
+            "rated_torque_nm": 0.1,
+            "max_speed_rad_s": 6.0,
+            "gear_ratio": 100.0,
+            "voltage_v": 5,
+            "cost_usd": 2
+        }
+    },
+    "links": {
+        "carbon_tube_50cm": {
+            "name": "Carbon Fiber Tube 50cm",
+            "material": "Carbon Fiber",
+            "length_m": 0.5,
+            "weight_kg": 0.2,
+            "strength_limit_n": 5000,
+            "cost_usd": 50
+        },
+        "aluminum_box_beam": {
+            "name": "Aluminum Box V-Slot",
+            "material": "Aluminum 6061",
+            "length_m": 1.0,
+            "weight_kg": 1.5,
+            "strength_limit_n": 8000,
+            "cost_usd": 20
+        },
+        "titanium_bracket": {
+            "name": "Titanium Joint Bracket",
+            "material": "Titanium Alloy",
+            "weight_kg": 0.15,
+            "cost_usd": 100
+        }
+    },
+    "sensors": {
+        "imu_comsumer": {
+            "name": "MPU-6050 Style",
+            "type": "imu",
+            "weight_kg": 0.01,
+            "update_rate_hz": 1000,
+            "noise_density": 0.01,
+            "cost_usd": 5
+        },
+        "imu_industrial": {
+            "name": "Xsens MTi Style",
+            "type": "imu",
+            "weight_kg": 0.05,
+            "update_rate_hz": 2000,
+            "noise_density": 0.001,
+            "cost_usd": 500
+        },
+        "lidar_16": {
+            "name": "VLP-16 Style Lidar",
+            "type": "lidar",
+            "weight_kg": 0.8,
+            "range_m": 100,
+            "cost_usd": 4000
+        },
+        "depth_cam": {
+            "name": "Realsense D435 Style",
+            "type": "camera",
+            "weight_kg": 0.1,
+            "fov_deg": 87,
+            "cost_usd": 300
+        }
+    },
+    "batteries": {
+        "lipo_4s_5000mah": {
+            "name": "LiPo 4S 5000mAh",
+            "voltage_v": 14.8,
+            "capacity_wh": 74,
+            "weight_kg": 0.5,
+            "max_current_a": 100,
+            "cost_usd": 60
+        },
+        "tesla_module_2kwh": {
+            "name": "Optimus Battery Module",
+            "voltage_v": 52,
+            "capacity_wh": 2300,
+            "weight_kg": 12.0,
+            "max_current_a": 200,
+            "cost_usd": 2000
+        }
+    }
+}

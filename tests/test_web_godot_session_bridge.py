@@ -41,7 +41,10 @@ def test_godot_capabilities_exposes_both_modes(client: TestClient) -> None:
         "load_robot",
     ]
     assert payload["modes"]["session_bridge"]["status"] == "preferred"
-    assert payload["modes"]["workflow_bridge"]["preferred_transport_mode"] == "session_bridge"
+    assert (
+        payload["modes"]["workflow_bridge"]["preferred_transport_mode"]
+        == "session_bridge"
+    )
     assert "canonical websocket pushes" in payload["note"]
 
 
@@ -109,7 +112,9 @@ def test_godot_bridge_launch_uses_scene_flag(
         }
 
     monkeypatch.setattr(bridge, "_find_godot_exe", lambda: r"C:\Godot\Godot.exe")
-    monkeypatch.setattr(bridge, "_launch_windows_headless", fake_launch_windows_headless)
+    monkeypatch.setattr(
+        bridge, "_launch_windows_headless", fake_launch_windows_headless
+    )
     monkeypatch.setattr("asyncio.create_task", fake_create_task)
 
     result = bridge.launch(scene="run_rl_server.tscn", headless=True)
@@ -148,7 +153,9 @@ def test_websocket_commands_return_error_when_godot_not_connected(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(web_panel.server.godot_controller, "is_connected", lambda: False)
+    monkeypatch.setattr(
+        web_panel.server.godot_controller, "is_connected", lambda: False
+    )
     session_id = f"ws-{uuid.uuid4().hex}"
 
     with client.websocket_connect(f"/ws/{session_id}") as websocket:
@@ -185,10 +192,9 @@ def test_websocket_legacy_commands_bind_controller_session(
     monkeypatch.setattr(
         web_panel.server.godot_controller,
         "start_simulation",
-        lambda physics, session_id=None: recorded.update(
-            {"physics": physics, "session_id": session_id}
-        )
-        or True,
+        lambda physics, session_id=None: (
+            recorded.update({"physics": physics, "session_id": session_id}) or True
+        ),
     )
 
     with client.websocket_connect(f"/ws/{session_id}") as websocket:

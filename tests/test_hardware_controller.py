@@ -1,105 +1,192 @@
 """
 硬件控制器测试
-测试 IMC22Controller 和 HardwareEnvironment
+使用 fake CAN runtime 验证 IMC22Controller 与 HardwareEnvironment。
 """
 
-import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+from __future__ import annotations
 
-try:
-    import can
-    CAN_AVAILABLE = True
-except (ImportError, OSError, Exception):
-    CAN_AVAILABLE = False
+import struct
+import types
+from unittest.mock import MagicMock
+
+import pytest
+
+from agi_walker.core.api.godot_robot_env import hardware_controller as hw
+
+
+class FakeMessage:
+    def __init__(self, arbitration_id, data, is_extended_id):
+        self.arbitration_id = arbitration_id
+        self.data = data
+        self.is_extended_id = is_extended_id
+
+
+@pytest.fixture
+def fake_can_runtime(monkeypatch):
+    bus = MagicMock()
+    bus.shutdown = MagicMock()
+    bus.recv = MagicMock(return_value=None)
+    bus_factory = MagicMock(return_value=bus)
+    fake_can = types.SimpleNamespace(
+        interface=types.SimpleNamespace(Bus=bus_factory),
+        Message=FakeMessage,
+    )
+    monkeypatch.setattr(hw, "can", fake_can)
+    return {"bus": bus, "bus_factory": bus_factory}
 
 
 class TestIMC22Controller:
-    """IMC-22 控制器测试"""
+    def test_controller_initialization(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller(
+            channel="virtual0", bustype="virtual", bitrate=500000
+        )
 
-    @pytest.fixture
-    def mock_can_bus(self):
-        """模拟 CAN 总线"""
-        if not CAN_AVAILABLE:
-            pytest.skip("python-can 不可用或初始化失败")
-        with patch("can.interface.Bus") as mock_bus:
-            yield mock_bus.return_value
+        fake_can_runtime["bus_factory"].assert_called_once_with(
+            channel="virtual0", bustype="virtual", bitrate=500000
+        )
+        assert controller.bus is fake_can_runtime["bus"]
 
-    def test_controller_initialization(self, mock_can_bus) -> None:
-        """测试控制器初始化"""
-        pass
+    def test_send_command(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller()
+        controller.send_command(node_id=5, target_angle=12.34, compliance=0.6)
 
-    def test_send_command(self, mock_can_bus) -> None:
-        """测试发送控制命令"""
-        pass
+        sent_message = fake_can_runtime["bus"].send.call_args.args[0]
+        assert sent_message.arbitration_id == controller.ID_COMMAND_BASE + 5
+        angle_raw, compliance_raw = struct.unpack("<hB", sent_message.data)
+        assert angle_raw == 1234
+        assert compliance_raw == 153
 
-    def test_command_angle_bounds(self, mock_can_bus) -> None:
-        """测试角度边界限制"""
-        pass
+    def test_command_angle_bounds(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller()
 
-    def test_command_compliance_bounds(self, mock_can_bus) -> None:
-        """测试柔顺系数边界"""
-        pass
+        controller.send_command(node_id=1, target_angle=500.0, compliance=0.5)
+        high_message = fake_can_runtime["bus"].send.call_args.args[0]
+        high_angle, _ = struct.unpack("<hB", high_message.data)
+        assert high_angle == 32767
 
-    def test_read_status(self, mock_can_bus) -> None:
-        """测试读取状态"""
-        pass
+        controller.send_command(node_id=1, target_angle=-500.0, compliance=0.5)
+        low_message = fake_can_runtime["bus"].send.call_args.args[0]
+        low_angle, _ = struct.unpack("<hB", low_message.data)
+        assert low_angle == -32768
 
-    def test_discover_nodes(self, mock_can_bus) -> None:
-        """测试节点发现"""
-        pass
+    def test_command_compliance_bounds(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller()
+
+        controller.send_command(node_id=1, target_angle=0.0, compliance=2.0)
+        high_message = fake_can_runtime["bus"].send.call_args.args[0]
+        _, high_compliance = struct.unpack("<hB", high_message.data)
+        assert high_compliance == 255
+
+        controller.send_command(node_id=1, target_angle=0.0, compliance=-1.0)
+        low_message = fake_can_runtime["bus"].send.call_args.args[0]
+        _, low_compliance = struct.unpack("<hB", low_message.data)
+        assert low_compliance == 0
+
+    def test_read_status(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller()
+        fake_can_runtime["bus"].recv.return_value = types.SimpleNamespace(
+            arbitration_id=controller.ID_STATUS_BASE + 3,
+            data=struct.pack("<hhH", 1234, 250, 12),
+        )
+
+        status = controller.read_status(timeout=0.01)
+
+        assert status == {
+            "node_id": 3,
+            "angle": 12.34,
+            "current": 0.25,
+            "error": 0.12,
+        }
+        assert controller.node_states[3] == status
+
+    def test_discover_nodes(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller()
+        statuses = iter(
+            [
+                {"node_id": 3, "angle": 0.0, "current": 0.0, "error": 0.0},
+                {"node_id": 1, "angle": 0.0, "current": 0.0, "error": 0.0},
+                {"node_id": 3, "angle": 0.0, "current": 0.0, "error": 0.0},
+                None,
+                None,
+            ]
+        )
+
+        controller.read_status = lambda timeout=0.1: next(statuses, None)
+        nodes = controller.discover_nodes(timeout=0.01)
+        assert nodes == [1, 3]
 
     @pytest.mark.hardware
     def test_real_hardware_connection(self) -> None:
-        """测试真实硬件连接（需要实际硬件）"""
         pytest.skip("需要真实硬件")
 
 
 class TestHardwareEnvironment:
-    """硬件环境测试"""
+    def test_hardware_env_creation(self, monkeypatch) -> None:
+        controller = MagicMock()
+        controller.discover_nodes.return_value = [1, 2, 3]
+        monkeypatch.setattr(hw, "IMC22Controller", MagicMock(return_value=controller))
 
-    @pytest.fixture
-    def mock_controller(self):
-        """模拟硬件控制器"""
-        if not CAN_AVAILABLE:
-            pytest.skip("python-can 不可用")
-        with patch(
-            "python_api.godot_robot_env.hardware_controller.IMC22Controller"
-        ) as mock:
-            controller = mock.return_value
-            controller.discover_nodes.return_value = list(range(1, 13))  # 12个节点
-            yield controller
+        env = hw.HardwareEnvironment(num_joints=3, control_freq_hz=50)
 
-    def test_hardware_env_creation(self, mock_controller) -> None:
-        """测试硬件环境创建"""
-        pass
+        assert env.controller is controller
+        assert env.node_ids == [1, 2, 3]
+        assert env.control_period == pytest.approx(0.02)
 
-    def test_hardware_reset(self, mock_controller) -> None:
-        """测试硬件重置"""
-        pass
+    def test_hardware_reset(self, monkeypatch) -> None:
+        controller = MagicMock()
+        controller.discover_nodes.return_value = [1, 2]
+        controller.get_all_states.return_value = {
+            1: {"angle": 1.0, "current": 0.1, "error": 0.0},
+            2: {"angle": -1.0, "current": 0.2, "error": 0.0},
+        }
+        monkeypatch.setattr(hw, "IMC22Controller", MagicMock(return_value=controller))
+        monkeypatch.setattr(hw.time, "sleep", lambda *_args, **_kwargs: None)
 
-    def test_hardware_step(self, mock_controller) -> None:
-        """测试硬件步进"""
-        pass
+        env = hw.HardwareEnvironment(num_joints=2, control_freq_hz=100)
+        obs = env.reset()
+
+        assert obs == [1.0, 0.1, 0.0, -1.0, 0.2, 0.0]
+        controller.send_command.assert_any_call(1, target_angle=0.0, compliance=0.5)
+        controller.send_command.assert_any_call(2, target_angle=0.0, compliance=0.5)
+
+    def test_hardware_step(self, monkeypatch) -> None:
+        controller = MagicMock()
+        controller.discover_nodes.return_value = [1, 2, 3]
+        controller.get_all_states.return_value = {
+            1: {"angle": 1.0, "current": 0.1, "error": 0.0},
+            2: {"angle": 2.0, "current": 0.2, "error": 0.0},
+            3: {"angle": 3.0, "current": 0.3, "error": 0.0},
+        }
+        monkeypatch.setattr(hw, "IMC22Controller", MagicMock(return_value=controller))
+        monkeypatch.setattr(hw.time, "sleep", lambda *_args, **_kwargs: None)
+
+        env = hw.HardwareEnvironment(num_joints=3, control_freq_hz=100)
+        obs, reward, terminated, truncated, info = env.step([10.0, 20.0, 30.0])
+
+        assert obs == [1.0, 0.1, 0.0, 2.0, 0.2, 0.0, 3.0, 0.3, 0.0]
+        assert reward == 0.0
+        assert terminated is False
+        assert truncated is False
+        assert info["states"][2]["angle"] == 2.0
+        controller.send_command.assert_any_call(1, 10.0, compliance=0.5)
+        controller.send_command.assert_any_call(2, 20.0, compliance=0.5)
+        controller.send_command.assert_any_call(3, 30.0, compliance=0.5)
 
 
 class TestCANProtocol:
-    """CAN 协议测试"""
-
     def test_message_id_calculation(self) -> None:
-        """测试消息 ID 计算"""
-        pass
+        assert hw.IMC22Controller.ID_COMMAND_BASE + 7 == 0x207
+        assert hw.IMC22Controller.ID_STATUS_BASE + 7 == 0x107
 
     def test_angle_encoding(self) -> None:
-        """测试角度编码"""
-        pass
+        encoded = struct.pack("<h", int(12.34 * 100))
+        assert struct.unpack("<h", encoded)[0] == 1234
 
     def test_angle_decoding(self) -> None:
-        """测试角度解码"""
-        pass
+        data = struct.pack("<h", -567)
+        decoded = struct.unpack("<h", data)[0] * 0.01
+        assert decoded == -5.67
 
     def test_compliance_encoding(self) -> None:
-        """测试柔顺系数编码"""
-        pass
+        encoded = int(0.5 * 255)
+        assert encoded == 127

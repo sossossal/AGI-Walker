@@ -5,17 +5,16 @@
 """
 
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
+
 import unittest
 import time
-import threading
 import pytest
 from agi_walker.core.api.comm.godot_client import GodotSimulationClient, MockGodotServer
 
 # 需要 TCP 服务器，不适合默认单元测试路径
-pytestmark = pytest.mark.integration
 
+logger = logging.getLogger(__name__)
+pytestmark = pytest.mark.integration
 
 
 class TestGodotClient(unittest.TestCase):

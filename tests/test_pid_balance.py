@@ -1,91 +1,55 @@
 """
-PID平衡控制专项测试
-测试不同PID参数下的平衡效果
+PID 平衡控制专项测试
+使用 mock TCP 传感器流验证基础姿态统计。
 """
 
-import logging
-logger = logging.getLogger(__name__)
-import time
-import json
 import statistics
-from typing import List, Tuple, Dict
+import time
+
 import pytest
+
+from agi_walker.core.controllers.tcp_client import GodotClient
+
 
 pytestmark = pytest.mark.integration
 
-try:
-    from agi_walker.core.controllers.tcp_client import GodotClient
-    CLIENT_AVAILABLE = True
-except ImportError:
-    CLIENT_AVAILABLE = False
-
-
-def check_client_available():
-    if not CLIENT_AVAILABLE:
-        pytest.skip("python_controller.tcp_client 不可用")
-
 
 class TestPIDBalance:
-    """PID平衡控制测试类"""
+    def test_pid_default_config(self, jsonline_godot_server) -> None:
+        client = GodotClient(port=jsonline_godot_server.port)
+        assert client.connect(timeout=1.0), "应能连接到 mock Godot 服务器"
 
-    def setup_method(self) -> None:
-        self.client = GodotClient()
-
-    def teardown_method(self) -> None:
-        if hasattr(self, 'client'):
-            self.client.close()
-
-    def test_pid_default_config(self) -> None:
-        """测试默认PID配置"""
-        check_client_available()
-        
-        # 在 CI 环境中自动跳过，除非能连接上
-        if not self.client.connect(timeout=0.1):
-            pytest.skip("无法连接到仿真器 (Godot 未运行)")
-
-        duration = 5.0  # 测试时间缩短以适应 CI
-        start_time = time.time()
         tilts = []
-
-        while time.time() - start_time < duration:
-            sensor = self.client.get_latest_sensors()
-            if sensor:
+        try:
+            deadline = time.time() + 1.0
+            while time.time() < deadline:
+                sensor = client.wait_for_sensors(timeout=0.1)
+                assert sensor is not None, "应能持续收到传感器数据"
                 orient = sensor["sensors"]["imu"]["orient"]
-                tilt = abs(orient[0]) + abs(orient[1])
-                tilts.append(tilt)
-            time.sleep(0.05)
+                tilts.append(abs(float(orient[0])) + abs(float(orient[1])))
+        finally:
+            client.close()
 
-        assert len(tilts) > 0, "未收集到传感器数据"
-        avg_tilt = statistics.mean(tilts)
-        logger.info(f"平均倾斜: {avg_tilt:.2f}")
+        assert len(tilts) >= 10
+        assert statistics.mean(tilts) < 8.0
 
 
-def run_pid_tests_manual():
-    """手动运行PID测试 (兼容脚本模式)"""
-    logger.info("=" * 60)
-    logger.info("🧪 PID平衡控制测试 (手动模式)")
-    logger.info("=" * 60)
-
-    if not CLIENT_AVAILABLE:
-        logger.info("❌ python_controller.tcp_client 不可用")
-        return
-
-    client = GodotClient()
-    if not client.connect():
-        logger.info("❌ 无法连接到仿真器")
-        return
-
-    logger.info("开始 5 秒监控...")
+def run_pid_tests_manual() -> None:
+    server = pytest.importorskip("tests.tcp_json_mock_server").JsonLineGodotServer()
+    server.start()
+    client = GodotClient(port=server.port)
     try:
+        if not client.connect(timeout=1.0):
+            raise RuntimeError("无法连接到 mock Godot 服务器")
+
         start_time = time.time()
-        while time.time() - start_time < 5:
-            sensor = client.get_latest_sensors()
+        while time.time() - start_time < 1.0:
+            sensor = client.wait_for_sensors(timeout=0.1)
             if sensor:
-                logger.info(f"当前姿态: {sensor['sensors']['imu']['orient']}")
-            time.sleep(1)
+                print(f"当前姿态: {sensor['sensors']['imu']['orient']}")
     finally:
         client.close()
-    logger.info("✅ 测试完成")
+        server.stop()
 
 
 if __name__ == "__main__":

@@ -1,8 +1,11 @@
 import logging
-logger = logging.getLogger(__name__)
+
 import json
 import jsonschema
 from jsonschema import validate
+
+
+logger = logging.getLogger(__name__)
 
 
 def validate_parts_library(schema_path, db_path):
@@ -17,9 +20,11 @@ def validate_parts_library(schema_path, db_path):
     logger.info("Validating...")
     try:
         validate(instance=data, schema=schema)
-        logger.info("✅ Validation Successful! The parts database conforms to Schema v2.")
+        logger.info(
+            "✅ Validation Successful! The parts database conforms to Schema v2."
+        )
     except jsonschema.exceptions.ValidationError as err:
-        logger.info(f"❌ Validation Failed!")
+        logger.info("❌ Validation Failed!")
         logger.info(f"Message: {err.message}")
         logger.info(f"Path: {list(err.path)}")
         logger.info(f"Instance: {err.instance}")

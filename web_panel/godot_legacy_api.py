@@ -37,7 +37,9 @@ def _supports_session_argument(callback: Any) -> bool:
     return "session_id" in signature.parameters
 
 
-def _call_controller(callback: Any, *args: Any, session_id: Optional[str] = None) -> Any:
+def _call_controller(
+    callback: Any, *args: Any, session_id: Optional[str] = None
+) -> Any:
     if session_id is not None and _supports_session_argument(callback):
         return callback(*args, session_id=session_id)
     return callback(*args)
@@ -48,7 +50,9 @@ def connect_godot(
     req: ConnectionRequest,
     session_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    if _call_controller(godot_controller.connect, req.host, req.port, session_id=session_id):
+    if _call_controller(
+        godot_controller.connect, req.host, req.port, session_id=session_id
+    ):
         return {"status": "connected", "host": req.host, "port": req.port}
     raise HTTPException(status_code=500, detail="Connection refused or timeout")
 
@@ -61,10 +65,14 @@ def disconnect_godot(
     return {"status": "disconnected"}
 
 
-def get_godot_status(godot_controller: Any, session_id: Optional[str] = None) -> Dict[str, Any]:
+def get_godot_status(
+    godot_controller: Any, session_id: Optional[str] = None
+) -> Dict[str, Any]:
     client = _call_controller(godot_controller.get_client, session_id=session_id)
     return {
-        "connected": _call_controller(godot_controller.is_connected, session_id=session_id),
+        "connected": _call_controller(
+            godot_controller.is_connected, session_id=session_id
+        ),
         "client_running": client.running,
     }
 
@@ -95,7 +103,9 @@ def start_simulation(
     if not _call_controller(godot_controller.is_connected, session_id=session_id):
         raise HTTPException(status_code=400, detail="Godot not connected")
 
-    if _call_controller(godot_controller.start_simulation, req.physics, session_id=session_id):
+    if _call_controller(
+        godot_controller.start_simulation, req.physics, session_id=session_id
+    ):
         return {"status": "started"}
     raise HTTPException(status_code=500, detail="Failed to start simulation")
 
@@ -120,7 +130,9 @@ def update_params(
     if not _call_controller(godot_controller.is_connected, session_id=session_id):
         raise HTTPException(status_code=400, detail="Godot not connected")
 
-    if _call_controller(godot_controller.update_params, req.params, session_id=session_id):
+    if _call_controller(
+        godot_controller.update_params, req.params, session_id=session_id
+    ):
         return {"status": "updated", "params": req.params}
     raise HTTPException(status_code=500, detail="Failed to update parameters")
 

@@ -4,17 +4,17 @@ AI控制系统测试套件
 """
 
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
 import time
-import json
+import types
+import sys
 import pytest
 
+logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.integration
 
 try:
     from agi_walker.core.controllers.ai_model import create_ai_model
-    from agi_walker.core.controllers.ai_controller import AIController
+
     AI_MODULES_AVAILABLE = True
 except ImportError:
     AI_MODULES_AVAILABLE = False
@@ -37,6 +37,40 @@ def test_model_loading() -> None:
         logger.info("✅ 模型加载成功")
     except Exception as e:
         pytest.fail(f"模型加载失败: {e}")
+
+
+def test_ollama_fallback_when_service_unavailable(monkeypatch) -> None:
+    """测试Ollama服务不可用时启用本地fallback"""
+    check_ai_available()
+
+    import agi_walker.core.controllers.ai_model as ai_model_module
+
+    fake_ollama = types.ModuleType("ollama")
+
+    def _raise_unavailable():
+        raise RuntimeError("service unavailable")
+
+    fake_ollama.list = _raise_unavailable
+    monkeypatch.setitem(sys.modules, "ollama", fake_ollama)
+
+    ai = ai_model_module.create_ai_model(engine="ollama", model_name="phi3:mini")
+    action = ai.predict(
+        {
+            "sensors": {
+                "imu": {"orient": [3.0, -2.0, 0.0]},
+                "joints": {
+                    "hip_left": {"angle": 0.0, "velocity": 0.0},
+                    "hip_right": {"angle": 0.0, "velocity": 0.0},
+                },
+            },
+            "torso_height": 0.75,
+        }
+    )
+
+    assert action["mode"] == "deterministic_fallback"
+    assert isinstance(action["motors"]["hip_left"], (int, float))
+    assert isinstance(action["motors"]["hip_right"], (int, float))
+    assert ai.get_stats()["fallback_mode"] is True
 
 
 def test_inference_speed() -> None:
@@ -76,7 +110,7 @@ def test_inference_speed() -> None:
             latencies.append((t1 - t0) * 1000)
 
             if i % 5 == 0:
-                logger.info(f"  推理 {i+1}/20: {latencies[-1]:.1f}ms")
+                logger.info(f"  推理 {i + 1}/20: {latencies[-1]:.1f}ms")
 
         avg_latency = sum(latencies) / len(latencies)
         max_latency = max(latencies)
@@ -127,19 +161,19 @@ def test_json_format() -> None:
                 assert "motors" in action, "缺少motors字段"
                 assert "hip_left" in action["motors"], "缺少hip_left"
                 assert "hip_right" in action["motors"], "缺少hip_right"
-                assert isinstance(
-                    action["motors"]["hip_left"], (int, float)
-                ), "hip_left类型错误"
-                assert isinstance(
-                    action["motors"]["hip_right"], (int, float)
-                ), "hip_right类型错误"
+                assert isinstance(action["motors"]["hip_left"], (int, float)), (
+                    "hip_left类型错误"
+                )
+                assert isinstance(action["motors"]["hip_right"], (int, float)), (
+                    "hip_right类型错误"
+                )
 
                 success_count += 1
 
             except AssertionError as e:
-                logger.info(f"  第{i+1}次失败: {e}")
+                logger.info(f"  第{i + 1}次失败: {e}")
             except Exception as e:
-                logger.info(f"  第{i+1}次错误: {e}")
+                logger.info(f"  第{i + 1}次错误: {e}")
 
         success_rate = success_count / 10 * 100
         logger.info(f"\n结果: {success_count}/10 成功 ({success_rate:.1f}%)")

@@ -87,8 +87,14 @@ def test_nightly_status_provider_parses_github_runs_and_jobs():
     dashboard = provider.dashboard(limit_runs=3)
     assert dashboard["cache_state"] == "miss"
     assert len(dashboard["recent_runs"]) == 1
-    assert dashboard["recent_runs"][0]["jobs"]["smoke"]["artifact_name"] == "smoke-artifacts"
-    assert dashboard["job_catalog"]["distributed-smoke"]["artifact_name"] == "distributed-smoke-artifacts"
+    assert (
+        dashboard["recent_runs"][0]["jobs"]["smoke"]["artifact_name"]
+        == "smoke-artifacts"
+    )
+    assert (
+        dashboard["job_catalog"]["distributed-smoke"]["artifact_name"]
+        == "distributed-smoke-artifacts"
+    )
     assert calls["count"] == 6
 
 
@@ -117,8 +123,16 @@ def test_nightly_status_provider_marks_degraded_when_job_fails():
             return {
                 "jobs": [
                     {"name": "smoke", "status": "completed", "conclusion": "success"},
-                    {"name": "distributed-smoke", "status": "completed", "conclusion": "failure"},
-                    {"name": "godot-headless-smoke", "status": "completed", "conclusion": "success"},
+                    {
+                        "name": "distributed-smoke",
+                        "status": "completed",
+                        "conclusion": "failure",
+                    },
+                    {
+                        "name": "godot-headless-smoke",
+                        "status": "completed",
+                        "conclusion": "success",
+                    },
                 ]
             }
         raise AssertionError(f"Unexpected URL: {url}")

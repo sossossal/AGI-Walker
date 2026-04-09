@@ -1,22 +1,18 @@
 import logging
-logger = logging.getLogger(__name__)
 import inspect
-from typing import Optional, Dict, Callable, Any
-import sys
-import os
-import asyncio
-
-# 添加项目根目录以导入 python_api
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from typing import Any, Callable, Dict, Optional
 
 from agi_walker.core.api.comm.godot_client import GodotSimulationClient
 from web_panel.core_api import DEFAULT_GODOT_SESSION_ID
 from web_panel.ws_protocol import MessageType, WsMessage
 
+logger = logging.getLogger(__name__)
+
+
 class GodotController:
     _instance = None
-    
-    def __new__(cls) -> None:
+
+    def __new__(cls):
         if cls._instance is None:
             cls._instance = super(GodotController, cls).__new__(cls)
             cls._instance.clients: Dict[str, GodotSimulationClient] = {}
@@ -39,7 +35,8 @@ class GodotController:
         positional = [
             parameter
             for parameter in signature.parameters.values()
-            if parameter.kind in (
+            if parameter.kind
+            in (
                 inspect.Parameter.POSITIONAL_ONLY,
                 inspect.Parameter.POSITIONAL_OR_KEYWORD,
             )
@@ -107,7 +104,9 @@ class GodotController:
         if session_id in self.cached_configs:
             del self.cached_configs[session_id]
 
-    def _broadcast(self, message: Dict[str, Any], session_id: Optional[str] = None) -> None:
+    def _broadcast(
+        self, message: Dict[str, Any], session_id: Optional[str] = None
+    ) -> None:
         if not self.broadcast_callback:
             return
 
@@ -120,7 +119,9 @@ class GodotController:
     def set_broadcast_callback(self, callback: Callable[..., Any]) -> None:
         """设置用于WebSocket广播的回调函数"""
         self.broadcast_callback = callback
-        self.broadcast_callback_accepts_session = self._callback_accepts_session(callback)
+        self.broadcast_callback_accepts_session = self._callback_accepts_session(
+            callback
+        )
 
     def connect(
         self,
@@ -134,21 +135,21 @@ class GodotController:
         client.port = port
         success = client.connect()
         if success:
-             self._broadcast(
-                 WsMessage(
-                     type=MessageType.CONNECTION_STATUS.value,
-                     payload={
-                         "connected": True,
-                         "details": {
-                             "mode": "legacy_controller",
-                             "host": host,
-                             "port": port,
-                         },
-                     },
-                     status="push",
-                 ).to_dict(),
-                 session_id=target_session_id,
-             )
+            self._broadcast(
+                WsMessage(
+                    type=MessageType.CONNECTION_STATUS.value,
+                    payload={
+                        "connected": True,
+                        "details": {
+                            "mode": "legacy_controller",
+                            "host": host,
+                            "port": port,
+                        },
+                    },
+                    status="push",
+                ).to_dict(),
+                session_id=target_session_id,
+            )
         return success
 
     def disconnect(self, session_id: Optional[str] = None) -> None:
@@ -156,16 +157,16 @@ class GodotController:
         client = self.get_client(target_session_id)
         client.disconnect()
         self._broadcast(
-             WsMessage(
-                 type=MessageType.CONNECTION_STATUS.value,
-                 payload={
-                     "connected": False,
-                     "details": {"mode": "legacy_controller"},
-                 },
-                 status="push",
-             ).to_dict(),
-             session_id=target_session_id,
-         )
+            WsMessage(
+                type=MessageType.CONNECTION_STATUS.value,
+                payload={
+                    "connected": False,
+                    "details": {"mode": "legacy_controller"},
+                },
+                status="push",
+            ).to_dict(),
+            session_id=target_session_id,
+        )
         self.release_session(target_session_id)
 
     def is_connected(self, session_id: Optional[str] = None) -> bool:
@@ -174,7 +175,6 @@ class GodotController:
             return False
         return self.clients[target_session_id].is_connected()
 
-    
     def start_simulation(
         self,
         physics_config: Optional[Dict] = None,
@@ -205,14 +205,15 @@ class GodotController:
         client = self.get_client(target_session_id)
         # Cache the config for later start_simulation calls
         self.cached_configs[target_session_id] = {
-            'parts': parts,
-            'connections': connections
+            "parts": parts,
+            "connections": connections,
         }
         return client.load_robot_config(parts, connections)
 
     def update_params(self, params: Dict, session_id: Optional[str] = None) -> bool:
         target_session_id = self._resolve_session_id(session_id)
         return self.get_client(target_session_id).update_parameters(params)
+
 
 # 全局单例
 godot_controller = GodotController()

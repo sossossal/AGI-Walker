@@ -122,11 +122,21 @@ def _wait_for_condition(
 def _collect_logs(compose_file: Path, actor_id: str) -> str:
     result = _run_compose(
         compose_file,
-        ["logs", "learner", "sidecar-1", "web-panel-distributed", "mock-godot", "--tail", "200"],
+        [
+            "logs",
+            "learner",
+            "sidecar-1",
+            "web-panel-distributed",
+            "mock-godot",
+            "--tail",
+            "200",
+        ],
         actor_id=actor_id,
         capture_output=True,
     )
-    output = "\n".join(part for part in [result.stdout.strip(), result.stderr.strip()] if part)
+    output = "\n".join(
+        part for part in [result.stdout.strip(), result.stderr.strip()] if part
+    )
     return output or "no compose logs captured"
 
 
@@ -136,7 +146,9 @@ def _mock_godot_received_step(compose_file: Path, actor_id: str) -> bool:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run the distributed Docker smoke test.")
+    parser = argparse.ArgumentParser(
+        description="Run the distributed Docker smoke test."
+    )
     parser.add_argument(
         "--compose-file",
         default=str(DEFAULT_COMPOSE_FILE),
@@ -190,7 +202,13 @@ def main() -> int:
         if args.build:
             build_result = _run_compose(
                 compose_file,
-                ["build", "learner", "sidecar-1", "mock-godot", "web-panel-distributed"],
+                [
+                    "build",
+                    "learner",
+                    "sidecar-1",
+                    "mock-godot",
+                    "web-panel-distributed",
+                ],
                 actor_id=args.actor_id,
                 capture_output=True,
             )
@@ -258,7 +276,11 @@ def main() -> int:
             lambda: (
                 status
                 if (
-                    (status := _try_fetch_json(f"{web_panel_url}/api/distributed/status"))
+                    (
+                        status := _try_fetch_json(
+                            f"{web_panel_url}/api/distributed/status"
+                        )
+                    )
                     and args.actor_id in status.get("actors", {})
                 )
                 else None
@@ -271,7 +293,9 @@ def main() -> int:
 
         step_seen = _wait_for_condition(
             max(30.0, min(args.timeout_seconds, 90.0)),
-            lambda: True if _mock_godot_received_step(compose_file, args.actor_id) else None,
+            lambda: (
+                True if _mock_godot_received_step(compose_file, args.actor_id) else None
+            ),
         )
         if not step_seen:
             print("learner action loop: FAIL")
@@ -280,7 +304,11 @@ def main() -> int:
 
         print("distributed smoke summary: PASS")
         print(json.dumps(distributed_ready, ensure_ascii=False, indent=2))
-        print(json.dumps(actor_status["actors"][args.actor_id], ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                actor_status["actors"][args.actor_id], ensure_ascii=False, indent=2
+            )
+        )
         return 0
     finally:
         if args.stop_after:

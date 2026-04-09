@@ -4,8 +4,10 @@ from sqlalchemy import Integer, String, Float, Boolean, DateTime, JSON, ForeignK
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from web_panel.database import Base
 
+
 class User(Base):
     """工业级用户模型。"""
+
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -19,23 +21,27 @@ class User(Base):
     # 关联 WorkflowRuns
     workflow_runs: Mapped[List["WorkflowRun"]] = relationship(back_populates="owner")
 
+
 class WorkflowRun(Base):
     """持久化 Workflow 运行记录。"""
+
     __tablename__ = "workflow_runs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     run_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
-    
+
     # 租户隔离 (v2.0)
-    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
     owner: Mapped[Optional["User"]] = relationship(back_populates="workflow_runs")
-    
+
     workflow_name: Mapped[str] = mapped_column(String(128))
     status: Mapped[str] = mapped_column(String(32), default="running")
     mode: Mapped[str] = mapped_column(String(32), default="real")
     execution_strategy: Mapped[str] = mapped_column(String(32), default="force")
     output_root: Mapped[str] = mapped_column(String(256), nullable=True)
-    
+
     # 统计数据
     total_steps: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     completed_steps: Mapped[int] = mapped_column(Integer, default=0)
@@ -52,38 +58,52 @@ class WorkflowRun(Base):
     last_event: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     live_log_tail: Mapped[List[str]] = mapped_column(JSON, default=list)
     live_log_line_count: Mapped[int] = mapped_column(Integer, default=0)
-    live_log_updated_at: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    live_log_updated_at: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
     live_log_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
-    live_log_download_url: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    live_log_download_url: Mapped[Optional[str]] = mapped_column(
+        String(256), nullable=True
+    )
     log_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     log_download_url: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     message: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
     worker_pid: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     exit_reason: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    preferred_godot_transport_mode: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    preferred_godot_transport_mode: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
 
     # 负载与结果
     parameters: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
     steps_snapshot: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
     step_errors: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
     artifacts: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
-    godot_delivery: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    godot_delivery: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSON, nullable=True
+    )
     result: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
-    
+
     # 时间戳
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     duration: Mapped[float] = mapped_column(Float, default=0.0)
-    progress_updated_at: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    
+    progress_updated_at: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
+
     # 错误详情
     failed_step_name: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     failed_step_error: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
-    worker_error_message: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    worker_error_message: Mapped[Optional[str]] = mapped_column(
+        String(1024), nullable=True
+    )
     worker_traceback: Mapped[Optional[str]] = mapped_column(String(4096), nullable=True)
-    diagnostic_summary: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
-    
+    diagnostic_summary: Mapped[Optional[str]] = mapped_column(
+        String(1024), nullable=True
+    )
+
     def to_dict(self) -> Dict[str, Any]:
         """将模型转换为字典，保持与原有 API 格式一致。"""
         return {
@@ -114,7 +134,8 @@ class WorkflowRun(Base):
             "message": self.message,
             "worker_pid": self.worker_pid,
             "exit_reason": self.exit_reason,
-            "preferred_godot_transport_mode": self.preferred_godot_transport_mode or "session_bridge",
+            "preferred_godot_transport_mode": self.preferred_godot_transport_mode
+            or "session_bridge",
             "parameters": self.parameters,
             "steps_snapshot": self.steps_snapshot,
             "step_errors": self.step_errors,

@@ -20,10 +20,7 @@ from typing import Sequence
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUTPUT_ROOT = (
-    PROJECT_ROOT
-    / "test_env"
-    / "smoke_runs"
-    / datetime.now().strftime("%Y%m%d_%H%M%S")
+    PROJECT_ROOT / "test_env" / "smoke_runs" / datetime.now().strftime("%Y%m%d_%H%M%S")
 )
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -49,12 +46,18 @@ def _build_env() -> dict[str, str]:
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONUTF8"] = "1"
     existing_path = env.get("PYTHONPATH", "")
-    env["PYTHONPATH"] = str(PROJECT_ROOT) if not existing_path else f"{PROJECT_ROOT}{os.pathsep}{existing_path}"
+    env["PYTHONPATH"] = (
+        str(PROJECT_ROOT)
+        if not existing_path
+        else f"{PROJECT_ROOT}{os.pathsep}{existing_path}"
+    )
     return env
 
 
 def _default_modern_godot_agent_dir() -> Path | None:
-    configured = os.environ.get("AGI_WALKER_SMOKE_GODOT_AGENT_DIR") or os.environ.get("AGI_WALKER_GODOT_AGENT_DIR")
+    configured = os.environ.get("AGI_WALKER_SMOKE_GODOT_AGENT_DIR") or os.environ.get(
+        "AGI_WALKER_GODOT_AGENT_DIR"
+    )
     if configured:
         candidate = Path(configured).expanduser()
         if candidate.exists():
@@ -66,7 +69,9 @@ def _default_modern_godot_agent_dir() -> Path | None:
     return None
 
 
-def _modern_godot_agent_skip_reason(agent_dir: Path | None, env: dict[str, str]) -> str | None:
+def _modern_godot_agent_skip_reason(
+    agent_dir: Path | None, env: dict[str, str]
+) -> str | None:
     if agent_dir is None:
         return "external godot-agent directory not found"
 
@@ -88,8 +93,12 @@ def _modern_godot_agent_skip_reason(agent_dir: Path | None, env: dict[str, str])
     if result.returncode == 0 and "modern_backend_ready" in result.stdout:
         return None
 
-    output = "\n".join(part for part in [result.stdout.strip(), result.stderr.strip()] if part)
-    return f"modern backend preflight failed: {output or f'exit code {result.returncode}'}"
+    output = "\n".join(
+        part for part in [result.stdout.strip(), result.stderr.strip()] if part
+    )
+    return (
+        f"modern backend preflight failed: {output or f'exit code {result.returncode}'}"
+    )
 
 
 def _godot_headless_skip_reason(env: dict[str, str]) -> str | None:
@@ -119,7 +128,9 @@ def _godot_headless_skip_reason(env: dict[str, str]) -> str | None:
     if result.returncode == 0 and "godot_headless_ready" in result.stdout:
         return None
 
-    output = "\n".join(part for part in [result.stdout.strip(), result.stderr.strip()] if part)
+    output = "\n".join(
+        part for part in [result.stdout.strip(), result.stderr.strip()] if part
+    )
     return f"real Godot headless smoke preflight failed: {output or f'exit code {result.returncode}'}"
 
 
@@ -219,7 +230,12 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
         SmokeCheck(
             name="skills list",
             command=[sys.executable, "-m", "agi_walker.cli", "skills", "list"],
-            expected_tokens=["可用 Skills", "robot-modeling", "parameter-optimizer", "urdf-generator"],
+            expected_tokens=[
+                "可用 Skills",
+                "robot-modeling",
+                "parameter-optimizer",
+                "urdf-generator",
+            ],
         ),
         SmokeCheck(
             name="skills validate",
@@ -241,7 +257,11 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
                 "--output-root",
                 str(mock_root),
             ],
-            expected_tokens=["执行结果: completed", "成功率: 100.0%", "执行策略: force"],
+            expected_tokens=[
+                "执行结果: completed",
+                "成功率: 100.0%",
+                "执行策略: force",
+            ],
             artifact_dir=mock_root,
         ),
         SmokeCheck(
@@ -258,7 +278,11 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
                 "--output-root",
                 str(real_root),
             ],
-            expected_tokens=["执行结果: completed", "成功率: 100.0%", "执行策略: force"],
+            expected_tokens=[
+                "执行结果: completed",
+                "成功率: 100.0%",
+                "执行策略: force",
+            ],
             artifact_dir=real_root,
         ),
         SmokeCheck(
@@ -296,7 +320,15 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
         ),
         SmokeCheck(
             name="godot headless integration smoke",
-            command=[sys.executable, "-m", "pytest", "tests/test_godot_headless_smoke.py", "-q", "-m", "integration"],
+            command=[
+                sys.executable,
+                "-m",
+                "pytest",
+                "tests/test_godot_headless_smoke.py",
+                "-q",
+                "-m",
+                "integration",
+            ],
             expected_tokens=["1 passed"],
             skip_reason=godot_headless_skip_reason,
         ),
@@ -327,7 +359,10 @@ def _run_check(check: SmokeCheck, env: dict[str, str]) -> tuple[bool, str]:
 
     missing = [token for token in check.expected_tokens if token not in combined_output]
     if missing:
-        return False, f"missing expected output: {', '.join(missing)}\n{combined_output}"
+        return (
+            False,
+            f"missing expected output: {', '.join(missing)}\n{combined_output}",
+        )
 
     if check.artifact_dir:
         artifact_summary = []
@@ -338,7 +373,9 @@ def _run_check(check: SmokeCheck, env: dict[str, str]) -> tuple[bool, str]:
         if export_dir.exists():
             artifact_summary.append(f"exports={export_dir}")
         if artifact_summary:
-            combined_output = f"{combined_output}\nartifacts: {', '.join(artifact_summary)}"
+            combined_output = (
+                f"{combined_output}\nartifacts: {', '.join(artifact_summary)}"
+            )
 
     return True, combined_output
 

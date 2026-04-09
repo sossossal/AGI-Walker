@@ -105,14 +105,18 @@ def _start_server(port: int) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Stub Godot headless server")
-    parser.add_argument("--version", action="store_true", help="Print emulated Godot version")
+    parser.add_argument(
+        "--version", action="store_true", help="Print emulated Godot version"
+    )
     args, unknown = parser.parse_known_args()
     if args.version:
         print("Godot Engine 4.2.2-stable (stub)")
         return
 
     tcp_port = _parse_tcp_port(unknown) or _parse_tcp_port(sys.argv) or 9000
-    server_thread = threading.Thread(target=_start_server, args=(tcp_port,), daemon=True)
+    server_thread = threading.Thread(
+        target=_start_server, args=(tcp_port,), daemon=True
+    )
     server_thread.start()
 
     try:

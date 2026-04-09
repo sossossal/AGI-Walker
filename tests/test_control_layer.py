@@ -13,13 +13,10 @@
 """
 
 import logging
-logger = logging.getLogger(__name__)
-import pytest
-import numpy as np
-from unittest.mock import Mock, MagicMock, patch
-from dataclasses import dataclass
-from typing import Dict, List, Optional
 
+import pytest
+
+logger = logging.getLogger(__name__)
 try:
     from agi_walker.core.api.control.parametric_control import ParametricController
     from agi_walker.core.api.control.gait_generator import GaitGenerator
@@ -395,7 +392,7 @@ class TestRealTimeControlIntegration:
     def test_concurrent_joint_control(self, robot_config) -> None:
         """测试：并发关节控制"""
         # Arrange
-        controller = ParametricController(robot_config)
+        ParametricController(robot_config)
 
         # Act
         commands = [0.1 * i for i in range(6)]  # 6个并发命令

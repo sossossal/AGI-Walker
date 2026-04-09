@@ -255,8 +255,15 @@ async def skills_pipeline(req: PipelineRequest) -> Dict[str, Any]:
         )
         model_res = await skills_model(model_req)
         if model_res["status"] != "success":
-            return {"status": "error", "step": "model", "message": model_res["message"], "log": log}
-        log.append(f"Model created: {model_res['robot_name']} ({model_res['parts_count']} parts)")
+            return {
+                "status": "error",
+                "step": "model",
+                "message": model_res["message"],
+                "log": log,
+            }
+        log.append(
+            f"Model created: {model_res['robot_name']} ({model_res['parts_count']} parts)"
+        )
 
         opt_req = OptimizeRequest(
             config_path=model_res["config_path"],
@@ -267,11 +274,15 @@ async def skills_pipeline(req: PipelineRequest) -> Dict[str, Any]:
         if opt_res["status"] != "success":
             log.append(f"Optimize skipped/failed: {opt_res['message']}")
         else:
-            log.append(f"Optimize completed: {opt_res['iterations']} iterations, success={opt_res['success']}")
+            log.append(
+                f"Optimize completed: {opt_res['iterations']} iterations, success={opt_res['success']}"
+            )
 
         urdf_path = None
         if req.export_urdf:
-            urdf_req = ExportURDFRequest(config_path=model_res["config_path"], output_name=req.name)
+            urdf_req = ExportURDFRequest(
+                config_path=model_res["config_path"], output_name=req.name
+            )
             urdf_res = await skills_export_urdf(urdf_req)
             if urdf_res["status"] != "success":
                 log.append(f"URDF export failed: {urdf_res['message']}")

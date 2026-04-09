@@ -115,16 +115,17 @@ async def handle_websocket(
     except WebSocketDisconnect:
         if websocket in active_connections.get(session_id, []):
             active_connections[session_id].remove(websocket)
-        if (
-            not active_connections.get(session_id)
-            and hasattr(godot_controller, "release_session")
+        if not active_connections.get(session_id) and hasattr(
+            godot_controller, "release_session"
         ):
             godot_controller.release_session(session_id)
         disconnect_msg = protocol_handler.push_connection_status(
             connected=False,
             details={"reason": "client_disconnected"},
         )
-        await broadcast_session(active_connections, session_id, disconnect_msg.to_dict())
+        await broadcast_session(
+            active_connections, session_id, disconnect_msg.to_dict()
+        )
     except Exception as exc:
         logger.info("WebSocket error for session %s: %s", session_id, exc)
         if websocket in active_connections.get(session_id, []):

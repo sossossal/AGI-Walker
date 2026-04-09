@@ -12,13 +12,15 @@ def test_start_simulation_merges_physics_overrides(
     monkeypatch.setattr(
         client,
         "send_command",
-        lambda command, data=None: recorded.update(
-            {
-                "command": command,
-                "data": data,
-            }
-        )
-        or True,
+        lambda command, data=None: (
+            recorded.update(
+                {
+                    "command": command,
+                    "data": data,
+                }
+            )
+            or True
+        ),
     )
 
     result = client.start_simulation(

@@ -1,7 +1,9 @@
+# ruff: noqa: E402
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
+
 import pytest
+
+logger = logging.getLogger(__name__)
 pytest.importorskip("fastapi")
 
 from fastapi.testclient import TestClient
@@ -14,7 +16,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Mock godot_controller BEFORE importing server
 import web_panel.server
-from web_panel.godot_controller import GodotController
 
 # Mock the client inside GodotController
 mock_client = MagicMock()
@@ -45,7 +46,7 @@ def test_endpoints() -> None:
     resp = client.get("/api/godot/status")
     logger.info(f"   Response: {resp.json()}")
     assert resp.status_code == 200
-    assert resp.json()["connected"] == True
+    assert resp.json()["connected"]
 
     # 3. Start
     logger.info("3. Testing /api/godot/start...")

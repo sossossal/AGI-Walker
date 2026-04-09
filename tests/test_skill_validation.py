@@ -4,13 +4,15 @@ Tests specific ValueError messages for invalid inputs.
 """
 
 import pytest
-from typing import Any, Optional, Dict, List, Tuple
 from pathlib import Path
 import tempfile
 import shutil
 import logging
-logger = logging.getLogger(__name__)
+
 from agi_walker.skills_loader import SkillsLoader
+
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture

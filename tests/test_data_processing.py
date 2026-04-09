@@ -14,16 +14,14 @@
 """
 
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
+
 import pytest
 import json
 import tempfile
 import numpy as np
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
-from datetime import datetime
 
+logger = logging.getLogger(__name__)
 try:
     from agi_walker.core.api.data.batch_generator import BatchGenerator
     from agi_walker.core.api.data.data_recorder import DataRecorder
@@ -49,9 +47,27 @@ def sample_trajectory():
     """示例轨迹数据"""
     return {
         "timestamps": [0.0, 0.1, 0.2, 0.3, 0.4],
-        "joint_positions": [[1.0, 2.0, 3.0], [1.1, 2.1, 3.1], [1.2, 2.2, 3.2], [1.3, 2.3, 3.3], [1.4, 2.4, 3.4]],
-        "joint_velocities": [[0.0, 0.0, 0.0], [0.1, 0.1, 0.1], [0.1, 0.1, 0.1], [0.1, 0.1, 0.1], [0.0, 0.0, 0.0]],
-        "forces": [[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [2.0, 2.0, 2.0], [1.0, 1.0, 1.0], [0.0, 0.0, 0.0]],
+        "joint_positions": [
+            [1.0, 2.0, 3.0],
+            [1.1, 2.1, 3.1],
+            [1.2, 2.2, 3.2],
+            [1.3, 2.3, 3.3],
+            [1.4, 2.4, 3.4],
+        ],
+        "joint_velocities": [
+            [0.0, 0.0, 0.0],
+            [0.1, 0.1, 0.1],
+            [0.1, 0.1, 0.1],
+            [0.1, 0.1, 0.1],
+            [0.0, 0.0, 0.0],
+        ],
+        "forces": [
+            [0.0, 0.0, 0.0],
+            [1.0, 1.0, 1.0],
+            [2.0, 2.0, 2.0],
+            [1.0, 1.0, 1.0],
+            [0.0, 0.0, 0.0],
+        ],
     }
 
 
@@ -136,7 +152,7 @@ class TestBatchGenerator:
     def test_save_batch_to_file(self, temp_data_dir) -> None:
         """测试：保存批次到文件"""
         # Arrange
-        gen = BatchGenerator(output_dir=str(temp_data_dir), batch_size=32)
+        BatchGenerator(output_dir=str(temp_data_dir), batch_size=32)
 
         # Act
         batch_file = temp_data_dir / "batch_001.json"
@@ -150,7 +166,7 @@ class TestBatchGenerator:
     def test_multiple_batches(self, temp_data_dir) -> None:
         """测试：生成多个批次"""
         # Arrange
-        gen = BatchGenerator(output_dir=str(temp_data_dir), batch_size=10)
+        BatchGenerator(output_dir=str(temp_data_dir), batch_size=10)
         num_batches = 5
 
         # Act
@@ -318,12 +334,12 @@ class TestDatasetManager:
     def test_export_dataset(self, temp_data_dir) -> None:
         """测试：导出数据集"""
         # Arrange
-        manager = DatasetManager(root_dir=str(temp_data_dir))
+        DatasetManager(root_dir=str(temp_data_dir))
         dataset_dir = temp_data_dir / "test_dataset"
         dataset_dir.mkdir()
 
         # Act
-        export_file = temp_data_dir / "export.zip"
+        temp_data_dir / "export.zip"
         # 模拟导出
 
         # Assert
@@ -332,7 +348,7 @@ class TestDatasetManager:
     def test_import_dataset(self, temp_data_dir) -> None:
         """测试：导入数据集"""
         # Arrange
-        manager = DatasetManager(root_dir=str(temp_data_dir))
+        DatasetManager(root_dir=str(temp_data_dir))
 
         # Act
         # 模拟导入

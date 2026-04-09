@@ -13,16 +13,14 @@
 """
 
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
+
 import pytest
-import json
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
-from dataclasses import dataclass
 
 # 这些是skills模块的相对导入
+
+logger = logging.getLogger(__name__)
 try:
     # 假设skills作为独立模块存在
     pass
@@ -90,12 +88,14 @@ class TestRobotModelConstruction:
         model = {"segments": []}
 
         # Act
-        model["segments"].append({
-            "name": "body",
-            "length": 0.4,
-            "width": 0.2,
-            "mass": 2.0,
-        })
+        model["segments"].append(
+            {
+                "name": "body",
+                "length": 0.4,
+                "width": 0.2,
+                "mass": 2.0,
+            }
+        )
 
         # Assert
         assert len(model["segments"]) == 1
@@ -107,12 +107,14 @@ class TestRobotModelConstruction:
 
         # Act
         for i in range(4):
-            model["legs"].append({
-                "id": i,
-                "type": "quadruped_leg",
-                "length": 0.3,
-                "mass": 0.5,
-            })
+            model["legs"].append(
+                {
+                    "id": i,
+                    "type": "quadruped_leg",
+                    "length": 0.3,
+                    "mass": 0.5,
+                }
+            )
 
         # Assert
         assert len(model["legs"]) == 4
@@ -126,12 +128,14 @@ class TestRobotModelConstruction:
         }
 
         # Act
-        model["joints"].append({
-            "parent": 0,
-            "child": 1,
-            "type": "revolute",
-            "axis": [0, 1, 0],
-        })
+        model["joints"].append(
+            {
+                "parent": 0,
+                "child": 1,
+                "type": "revolute",
+                "axis": [0, 1, 0],
+            }
+        )
 
         # Assert
         assert len(model["joints"]) == 1
@@ -190,6 +194,7 @@ class TestParameterOptimization:
 
     def test_objective_function(self) -> None:
         """测试：目标函数"""
+
         # Arrange
         def objective(x):
             return sum(xi**2 for xi in x)
@@ -207,10 +212,10 @@ class TestParameterOptimization:
         lr = 0.1  # 学习率
 
         def objective(x):
-            return x[0]**2 + x[1]**2
+            return x[0] ** 2 + x[1] ** 2
 
         def gradient(x):
-            return [2*x[0], 2*x[1]]
+            return [2 * x[0], 2 * x[1]]
 
         # Act
         for _ in range(10):
@@ -241,8 +246,7 @@ class TestParameterOptimization:
 
         # Act
         within_bounds = all(
-            bounds["min"][i] <= param[i] <= bounds["max"][i]
-            for i in range(len(param))
+            bounds["min"][i] <= param[i] <= bounds["max"][i] for i in range(len(param))
         )
 
         # Assert
@@ -259,9 +263,7 @@ class TestParameterOptimization:
 
         # Act
         weights = {"stability": 0.5, "energy": 0.3, "speed": 0.2}
-        combined = sum(
-            objectives[k] * weights.get(k, 0) for k in objectives
-        )
+        combined = sum(objectives[k] * weights.get(k, 0) for k in objectives)
 
         # Assert
         assert 0.0 <= combined <= 1.0
@@ -285,7 +287,7 @@ class TestURDFGeneration:
 
         # Act
         urdf_template = f"""<?xml version="1.0"?>
-<robot name="{model['name']}">
+<robot name="{model["name"]}">
   <link name="base_link"/>
 </robot>"""
 
@@ -317,7 +319,7 @@ class TestURDFGeneration:
             f'  <joint name="{j["name"]}" type="revolute">'
             f'<parent link="{j["parent"]}"/>'
             f'<child link="{j["child"]}"/>'
-            f'  </joint>'
+            f"  </joint>"
             for j in joints
         ]
 
@@ -336,8 +338,8 @@ class TestURDFGeneration:
         # Act
         is_valid = (
             '<?xml version="1.0"?>' in urdf_content
-            and '<robot' in urdf_content
-            and '</robot>' in urdf_content
+            and "<robot" in urdf_content
+            and "</robot>" in urdf_content
         )
 
         # Assert
@@ -415,13 +417,11 @@ class TestPerformanceValidation:
         """测试：内存效率"""
         # Arrange
         model = {
-            "segments": [{"id": i, "data": [] } for i in range(10)],
+            "segments": [{"id": i, "data": []} for i in range(10)],
         }
 
         # Act
-        total_elements = sum(
-            len(seg["data"]) for seg in model["segments"]
-        )
+        sum(len(seg["data"]) for seg in model["segments"])
 
         # Assert
         assert model is not None

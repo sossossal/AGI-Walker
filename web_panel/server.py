@@ -4,8 +4,10 @@ AGI-Walker Web 控制面板
 
 集成了 Web-Godot WebSocket 协议 (v1.0)，用于实时模拟控制和数据交互。
 """
+
+# ruff: noqa: E402
+
 import logging
-logger = logging.getLogger(__name__)
 
 import sys
 from pathlib import Path
@@ -17,6 +19,7 @@ import uvicorn
 import os
 from contextlib import asynccontextmanager
 
+logger = logging.getLogger(__name__)
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -81,7 +84,9 @@ Instrumentator().instrument(app).expose(app)
 app.mount("/static", StaticFiles(directory="web_panel/static"), name="static")
 os.makedirs("robots", exist_ok=True)
 app.mount("/robots", StaticFiles(directory="robots"), name="robots")
-app.mount("/docs", StaticFiles(directory="docs/build/html", html=True), name="docs")
+_docs_build_dir = Path("docs/build/html")
+if _docs_build_dir.exists():
+    app.mount("/docs", StaticFiles(directory=str(_docs_build_dir), html=True), name="docs")
 
 # 存储活跃的 WebSocket 连接（按 session_id 隔离封装）
 active_connections: Dict[str, List[WebSocket]] = {}
@@ -106,13 +111,16 @@ async def broadcast_all(message: Dict[str, Any]):
     """全局系统广播（针对通用任务）"""
     await broadcast_all_service(active_connections, message)
 
+
 async def broadcast_session(session_id: str, message: Dict[str, Any]):
     """精准路由广播（针对 Godot 特殊频道）"""
     await broadcast_session_service(active_connections, session_id, message)
 
 
 from web_panel.godot_controller import godot_controller
+
 app.state.godot_controller = godot_controller
+
 
 def godot_broadcast_adaptor(*args: Any):
     """将同步回调转换为异步广播"""
@@ -137,6 +145,7 @@ def godot_broadcast_adaptor(*args: Any):
             asyncio.run_coroutine_threadsafe(broadcast_all(message), loop)
     except Exception as e:
         logger.info(f"广播适配器错误: {e}")
+
 
 # --- Zenoh Monitor ---
 distributed_monitor = DistributedMonitor()
@@ -172,7 +181,7 @@ app.include_router(build_godot_session_router(_session_manager, broadcast_sessio
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Industrial persistence now managed via Alembic migrations
-    
+
     app.state.server_loop = asyncio.get_running_loop()
     godot_controller.set_broadcast_callback(godot_broadcast_adaptor)
     app.state.telemetry_task = asyncio.create_task(
@@ -204,6 +213,6 @@ if __name__ == "__main__":
     logger.info("启动 AGI-Walker Web 控制面板")
     logger.info("访问: http://localhost:8000")
     # 确保在 Windows 上循环策略正确 (Python 3.8+)
-    if os.name == 'nt':
+    if os.name == "nt":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     uvicorn.run(app, host="0.0.0.0", port=8000)

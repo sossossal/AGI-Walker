@@ -4,13 +4,14 @@
 """
 
 import logging
-logger = logging.getLogger(__name__)
+
 import time
 import numpy as np
 from typing import Dict, Any
 import sys
 import os
 
+logger = logging.getLogger(__name__)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -46,7 +47,7 @@ class PerformanceBenchmark:
         for _ in range(10000):
             start = time.perf_counter()
             serialized = json.dumps(test_data).encode()
-            deserialized = json.loads(serialized.decode())
+            json.loads(serialized.decode())
             json_times.append(time.perf_counter() - start)
 
         json_avg = np.mean(json_times) * 1e6
@@ -58,7 +59,7 @@ class PerformanceBenchmark:
             for _ in range(10000):
                 start = time.perf_counter()
                 serialized = msgpack.packb(test_data)
-                deserialized = msgpack.unpackb(serialized)
+                msgpack.unpackb(serialized)
                 msgpack_times.append(time.perf_counter() - start)
 
             msgpack_avg = np.mean(msgpack_times) * 1e6
@@ -116,7 +117,6 @@ class PerformanceBenchmark:
         logger.info("=" * 60)
 
         try:
-            from agi_walker.core.controllers.parallel_trainer import ParallelTrainingManager
             import gymnasium as gym
 
             # 单进程基准

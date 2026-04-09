@@ -1,22 +1,25 @@
 import logging
-logger = logging.getLogger(__name__)
+
 import gymnasium as gym
+import importlib
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
-import os
 import sys
 from pathlib import Path
+
+
+logger = logging.getLogger(__name__)
 
 
 def main():
     # Create dummy environment for testing
     # Using CartPole as a proxy if Walker2D is complex to setup
-    
+
     sys.path.insert(0, str(Path.cwd()))
 
     # Attempt to import package to register envs
     try:
-        import agi_walker
+        importlib.import_module("agi_walker")
     except ImportError:
         logger.warning("Exception occurred")
 

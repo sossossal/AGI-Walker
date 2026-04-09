@@ -14,6 +14,8 @@ eggs/
 lib/
 lib64/
 parts/
+!agi_walker/core/api/parts/
+!agi_walker/core/api/parts/**
 sdist/
 var/
 wheels/

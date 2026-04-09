@@ -69,7 +69,9 @@ async def delete_task(
     return {"status": "success", "message": "Task deleted"}
 
 
-def build_router(tasks_db: Dict[str, Dict[str, Any]], broadcast_all: BroadcastFn) -> APIRouter:
+def build_router(
+    tasks_db: Dict[str, Dict[str, Any]], broadcast_all: BroadcastFn
+) -> APIRouter:
     router = APIRouter()
 
     @router.get("/api/tasks")

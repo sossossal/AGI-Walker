@@ -4,13 +4,13 @@ AGI-Walker 集成测试套件
 """
 
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
+
 import sys
 import os
 import time
 import pytest
 
+logger = logging.getLogger(__name__)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # 需要 Zenoh/TCP/ROS2 等外部服务
@@ -28,6 +28,7 @@ def test_zenoh_import() -> None:
 
     try:
         import importlib
+
         zenoh_mod = importlib.import_module("python_api.comm.zenoh_interface")
         assert hasattr(zenoh_mod, "ZENOH_AVAILABLE"), "模块导出异常"
         if not getattr(zenoh_mod, "ZENOH_AVAILABLE", False):
@@ -37,6 +38,7 @@ def test_zenoh_import() -> None:
     except (ImportError, ModuleNotFoundError, Exception) as e:
         pytest.skip(f"Zenoh 模块导入失败 (环境限制): {e}")
 
+
 def test_zenoh_session() -> None:
     """测试 2: Zenoh 会话创建"""
     logger.info("\n" + "=" * 60)
@@ -45,9 +47,10 @@ def test_zenoh_session() -> None:
 
     try:
         import importlib
+
         zenoh_mod = importlib.import_module("python_api.comm.zenoh_interface")
         ZenohInterface = getattr(zenoh_mod, "ZenohInterface")
-        
+
         try:
             zenoh = ZenohInterface()
         except Exception as e:
@@ -60,6 +63,7 @@ def test_zenoh_session() -> None:
     except Exception as e:
         pytest.skip(f"Zenoh 会话逻辑测试失败: {e}")
 
+
 def test_zenoh_pubsub() -> None:
     """测试 3: Zenoh Pub/Sub"""
     logger.info("\n" + "=" * 60)
@@ -68,12 +72,14 @@ def test_zenoh_pubsub() -> None:
 
     try:
         from agi_walker.core.api.comm.zenoh_interface import ZenohInterface
+
         try:
             zenoh = ZenohInterface()
         except Exception as e:
             pytest.skip(f"无法创建 Zenoh 会话: {e}")
 
         received_data = []
+
         def callback(data):
             received_data.append(data)
 
@@ -93,6 +99,7 @@ def test_zenoh_pubsub() -> None:
     except Exception as e:
         pytest.skip(f"Zenoh Pub/Sub 测试失败 (环境限制): {e}")
 
+
 def test_tcp_zenoh_bridge() -> None:
     """测试 4: TCP-Zenoh 桥接器"""
     logger.info("\n" + "=" * 60)
@@ -101,6 +108,7 @@ def test_tcp_zenoh_bridge() -> None:
 
     try:
         from agi_walker.core.api.comm.tcp_zenoh_bridge import TcpZenohBridge
+
         try:
             bridge = TcpZenohBridge(tcp_port=9091)
             bridge.start()
@@ -115,6 +123,7 @@ def test_tcp_zenoh_bridge() -> None:
         test_results["passed"].append("TCP-Zenoh 桥接器")
     except Exception as e:
         pytest.skip(f"TCP-Zenoh 桥接器测试失败: {e}")
+
 
 def test_ros2_node() -> None:
     """测试 5: ROS 2 节点"""
@@ -142,6 +151,7 @@ def test_ros2_node() -> None:
     except Exception as e:
         pytest.skip(f"ROS 2 节点测试失败 (环境限制): {e}")
 
+
 def test_parts_manager() -> None:
     """测试 6: 零件管理器"""
     logger.info("\n" + "=" * 60)
@@ -150,6 +160,7 @@ def test_parts_manager() -> None:
 
     try:
         from agi_walker.core.api.parts.parts_manager import PartsManager
+
         pm = PartsManager()
         assert len(pm.parts_db) > 0, "零件库为空"
 

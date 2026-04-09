@@ -13,15 +13,16 @@
 """
 
 import logging
-logger = logging.getLogger(__name__)
+
 import pytest
 import numpy as np
 import sys
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch, PropertyMock
-from typing import Dict, List
+from unittest.mock import Mock, MagicMock, patch
 
 # 添加项目根目录到 Python 路径
+
+logger = logging.getLogger(__name__)
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -30,9 +31,11 @@ try:
     from agi_walker.core.api.control.parametric_control import ParametricRobotController
     from agi_walker.core.api.control.gait_generator import TrotGait, GallopGait
     from agi_walker.core.api.control.precision_adjuster import PrecisionAdjuster
+
     REAL_MODULES = True
-except ImportError as e:
+except ImportError:
     REAL_MODULES = False
+
     # 创建模拟类以便测试进行
     class ParametricRobotController:
         def __init__(self, env_id="AGI-Walker/Walker2D-v0"):
@@ -49,20 +52,25 @@ except ImportError as e:
                 "friction": 0.9,
                 "mass_multiplier": 1.0,
             }
+
         def add_joint(self, name, joint):
             self.joints[name] = joint
+
         def add_motor(self, name, motor):
             self.motors[name] = motor
+
         def set_physics_param(self, param_name, value):
             if param_name in self.physics_params:
                 self.physics_params[param_name] = value
             else:
                 raise ValueError(f"Unknown parameter: {param_name}")
+
         def get_state(self):
-            return {"position": np.array([0.0]*4), "velocity": np.array([0.0]*4)}
+            return {"position": np.array([0.0] * 4), "velocity": np.array([0.0] * 4)}
+
         def execute(self, actions):
             return {"reward": 1.0, "done": False}
-    
+
     class TrotGait:
         def __init__(self, frequency=1.0, step_height=0.05, stride_length=0.15):
             self.frequency = frequency
@@ -71,31 +79,40 @@ except ImportError as e:
             self.phase = 0.0
             self.phase_offsets = np.array([0.0, np.pi, np.pi, 0.0])  # 弧度制
             self.phases = np.array([0, np.pi, np.pi, 0])
+
         def update(self, dt):
             self.phase += self.frequency * dt
+
         def get_trajectory(self, t):
-            return np.array([np.sin(2*np.pi*self.frequency*t + p) for p in self.phases])
+            return np.array(
+                [np.sin(2 * np.pi * self.frequency * t + p) for p in self.phases]
+            )
+
         def get_foot_trajectory(self, leg_id, t):
             return np.array([0.05, 0.00, 0.02])
-    
+
     class GallopGait:
         def __init__(self, frequency=1.5, step_height=0.08, stride_length=0.25):
             self.frequency = frequency
             self.step_height = step_height
             self.stride_length = stride_length
             self.phase = 0.0
+
         def update(self, dt):
             self.phase = (self.phase + self.frequency * dt) % 1.0
+
         def get_trajectory(self, t):
-            return [np.sin(2*np.pi*self.frequency*t) for _ in range(4)]
-    
+            return [np.sin(2 * np.pi * self.frequency * t) for _ in range(4)]
+
     class PrecisionAdjuster:
         def __init__(self, num_joints=4):
             self.num_joints = num_joints
-            self.current = np.array([0.0]*num_joints)
-            self.target = np.array([0.0]*num_joints)
+            self.current = np.array([0.0] * num_joints)
+            self.target = np.array([0.0] * num_joints)
+
         def compute_adjustment(self, error):
             return np.array([-e * 0.1 for e in error])
+
         def adjust(self, error):
             return self.compute_adjustment(error)
 
@@ -379,7 +396,7 @@ class TestRealTimeControlLoop:
     def test_gait_continuity(self, trot_gait) -> None:
         """测试：步态连续性"""
         trajectories = []
-        for t in np.linspace(0, 2*np.pi, 100):
+        for t in np.linspace(0, 2 * np.pi, 100):
             traj = trot_gait.get_foot_trajectory(0, t)
             trajectories.append(traj)
         # 验证轨迹序列
@@ -405,7 +422,7 @@ class TestControlPerformance:
     def test_fast_trajectory_generation(self, trot_gait) -> None:
         """测试：快速轨迹生成"""
         count = 0
-        for t in np.linspace(0, 2*np.pi, 1000):
+        for t in np.linspace(0, 2 * np.pi, 1000):
             trot_gait.get_foot_trajectory(0, t)
             count += 1
         assert count == 1000
@@ -413,7 +430,7 @@ class TestControlPerformance:
     def test_parameter_impact_computation(self, robot_controller) -> None:
         """测试：参数影响计算"""
         for i in range(20):
-            robot_controller.set_physics_param("motor_power_multiplier", 1.0 + i*0.05)
+            robot_controller.set_physics_param("motor_power_multiplier", 1.0 + i * 0.05)
 
     def test_adaptive_frequency_adjustment(self, gallop_gait) -> None:
         """测试：自适应频率调整"""
@@ -425,7 +442,7 @@ class TestControlPerformance:
         """测试：批量轨迹生成"""
         trajectories = []
         for leg in range(4):
-            for t in np.linspace(0, 2*np.pi, 50):
+            for t in np.linspace(0, 2 * np.pi, 50):
                 traj = trot_gait.get_foot_trajectory(leg, t)
                 trajectories.append(traj)
         assert len(trajectories) == 200
@@ -458,6 +475,6 @@ class TestControlIntegration:
         """测试：完整控制工作流"""
         for i in range(10):
             # 更新策略
-            robot_controller.set_physics_param("motor_power_multiplier", 1.0 + i*0.1)
+            robot_controller.set_physics_param("motor_power_multiplier", 1.0 + i * 0.1)
             # 更新步态
             trot_gait.update(0.01)

@@ -14,16 +14,18 @@ Scenario:
 9. Disconnect
 """
 
+# ruff: noqa: E402
+
 import logging
-logger = logging.getLogger(__name__)
+
 import sys
-import os
 import time
-import threading
 import queue
 from pathlib import Path
 
 # Add project root to path
+
+logger = logging.getLogger(__name__)
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agi_walker.core.api.comm.godot_client import GodotSimulationClient, MockGodotServer

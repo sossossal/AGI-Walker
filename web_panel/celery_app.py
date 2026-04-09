@@ -8,7 +8,7 @@ celery_app = Celery(
     "agi_walker_worker",
     broker=REDIS_URL,
     backend=REDIS_URL,
-    include=["web_panel.workflow_worker_task"]
+    include=["web_panel.workflow_worker_task"],
 )
 
 # 生产级优化配置

@@ -77,7 +77,9 @@ def main() -> int:
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind((args.host, args.port))
         server_socket.listen(1)
-        logger.info("listening on %s:%s for actor %s", args.host, args.port, args.actor_id)
+        logger.info(
+            "listening on %s:%s for actor %s", args.host, args.port, args.actor_id
+        )
 
         client, address = server_socket.accept()
         logger.info("client connected from %s:%s", address[0], address[1])
@@ -103,7 +105,11 @@ def main() -> int:
                 elif message_type == "step":
                     step_count += 1
                     last_action = list(message.get("action", []))
-                    logger.info("received step #%s with %s actions", step_count, len(last_action))
+                    logger.info(
+                        "received step #%s with %s actions",
+                        step_count,
+                        len(last_action),
+                    )
                 else:
                     logger.info("received message type %s", message_type)
 

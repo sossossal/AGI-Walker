@@ -1,10 +1,11 @@
 import logging
-logger = logging.getLogger(__name__)
+
 import socket
 import struct
 import json
-import threading
-import time
+
+
+logger = logging.getLogger(__name__)
 
 
 class MockGodotServer:
@@ -27,7 +28,7 @@ class MockGodotServer:
                 self._handle_client(client)
             except socket.timeout:
                 continue
-            except Exception as e:
+            except Exception:
                 # logger.info(f"Server error: {e}")
                 pass
 
@@ -43,7 +44,7 @@ class MockGodotServer:
                 length = struct.unpack("<I", len_bytes)[0]
                 data = self._recv_all(client, length)
 
-                cmd = json.loads(data.decode("utf-8"))
+                json.loads(data.decode("utf-8"))
                 # logger.info(f"🎭 Received: {cmd}")
 
                 # Mock Response

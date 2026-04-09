@@ -4,15 +4,15 @@
 """
 
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
+
 import pytest
 import json
-import os
-from pathlib import Path
 
 # 假设的导入路径，实际需要调整
 # from godot_robot_env import PartsDatabase
+
+
+logger = logging.getLogger(__name__)
 
 
 class TestPartsDatabase:
@@ -90,7 +90,6 @@ class TestPartsDatabase:
     def test_part_json_schema_validation(self, parts_db_path) -> None:
         """测试零件JSON格式验证"""
         # 测试必需字段
-        invalid_part = {"part_id": "invalid"}  # 缺少必需字段
 
         # 实际应该抛出验证错误
         # with pytest.raises(ValidationError):

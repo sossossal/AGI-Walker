@@ -1,6 +1,9 @@
 import logging
-logger = logging.getLogger(__name__)
+
 import sys
+
+
+logger = logging.getLogger(__name__)
 
 
 def verify():

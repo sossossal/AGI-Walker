@@ -6,23 +6,21 @@ Enhanced Skills Loader Tests - 覆盖关键路径和异常处理
 """
 
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
+
 import pytest
 from pathlib import Path
 import tempfile
 import shutil
-import yaml
-from unittest.mock import patch
 
 from agi_walker.skills_loader import (
     SkillsLoader,
-    SkillMetadata,
     get_skills_loader,
     list_skills,
     search_skills,
     get_skill_doc,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -37,7 +35,7 @@ def temp_skills_dir():
 def reset_singleton():
     """重置全局单例（在测试间隔隔离状态）"""
     import agi_walker.skills_loader as module
-    
+
     original = module._skills_loader_instance
     module._skills_loader_instance = None
     yield
@@ -56,7 +54,7 @@ class TestSkillsLoaderInit:
         """测试：初始化时创建不存在的目录"""
         skills_dir = tmp_path / "new_skills"
         assert not skills_dir.exists()
-        
+
         loader = SkillsLoader(str(skills_dir))
         assert skills_dir.exists()
         assert loader.skills_dir == skills_dir
@@ -92,7 +90,7 @@ class TestSkillMetadataParsing:
         """测试：解析有效的 SKILL.md"""
         skill_dir = temp_skills_dir / "valid-skill"
         skill_dir.mkdir()
-        
+
         (skill_dir / "SKILL.md").write_text(
             """---
 name: valid-skill
@@ -108,33 +106,35 @@ metadata:
 # Documentation
 Content here.
 """,
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
         loader = SkillsLoader(str(temp_skills_dir))
         assert len(loader) == 1
-        
+
         skill = loader.get_skill("valid-skill")
         assert skill.name == "valid-skill"
         assert skill.description == "A valid skill"
         assert skill.emoji == "🚀"
         assert skill.category == "modeling"
-        assert skill.requires == {
-            "python_modules": ["numpy", "scipy"],
-            "bins": ["git"]
-        }
+        assert skill.requires == {"python_modules": ["numpy", "scipy"], "bins": ["git"]}
 
-    @pytest.mark.parametrize("invalid_content,error_msg", [
-        # 缺少 frontmatter (行 115)
-        ("# No frontmatter", "无效的 SKILL.md: 缺少 YAML frontmatter"),
-        # 格式错误 (行 119)
-        ("---\nno closing fence", "无效的 SKILL.md: frontmatter 格式错误"),
-        # 缺少 name (行 122)
-        ("---\ndescription: test\n---\n", "SKILL.md 缺少 'name' 字段"),
-        # 缺少 description (行 124)
-        ("---\nname: test\n---\n", "SKILL.md 缺少 'description' 字段"),
-    ])
-    def test_parse_invalid_metadata_format(self, temp_skills_dir, invalid_content, error_msg) -> None:
+    @pytest.mark.parametrize(
+        "invalid_content,error_msg",
+        [
+            # 缺少 frontmatter (行 115)
+            ("# No frontmatter", "无效的 SKILL.md: 缺少 YAML frontmatter"),
+            # 格式错误 (行 119)
+            ("---\nno closing fence", "无效的 SKILL.md: frontmatter 格式错误"),
+            # 缺少 name (行 122)
+            ("---\ndescription: test\n---\n", "SKILL.md 缺少 'name' 字段"),
+            # 缺少 description (行 124)
+            ("---\nname: test\n---\n", "SKILL.md 缺少 'description' 字段"),
+        ],
+    )
+    def test_parse_invalid_metadata_format(
+        self, temp_skills_dir, invalid_content, error_msg
+    ) -> None:
         """测试：各种无效格式的 SKILL.md"""
         skill_dir = temp_skills_dir / "invalid-skill"
         skill_dir.mkdir()
@@ -147,14 +147,14 @@ Content here.
         """测试：description 必须是字符串（行 127）"""
         skill_dir = temp_skills_dir / "bad-desc"
         skill_dir.mkdir()
-        
+
         (skill_dir / "SKILL.md").write_text(
             """---
 name: bad-desc
 description: 123
 ---
 """,
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
         loader = SkillsLoader(str(temp_skills_dir))
@@ -164,14 +164,14 @@ description: 123
         """测试：description 不能是空白字符串（行 130）"""
         skill_dir = temp_skills_dir / "empty-desc"
         skill_dir.mkdir()
-        
+
         (skill_dir / "SKILL.md").write_text(
             """---
 name: empty-desc
 description: "   "
 ---
 """,
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
         loader = SkillsLoader(str(temp_skills_dir))
@@ -190,7 +190,7 @@ class TestDependencyValidation:
         """测试：所有依赖都存在"""
         skill_dir = temp_skills_dir / "valid-deps"
         skill_dir.mkdir()
-        
+
         (skill_dir / "SKILL.md").write_text(
             """---
 name: valid-deps
@@ -202,12 +202,12 @@ metadata:
       bins: ["python"]
 ---
 """,
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
         loader = SkillsLoader(str(temp_skills_dir))
         missing = loader.validate_skill_dependencies("valid-deps")
-        
+
         assert missing["python_modules"] == []
         assert len(missing.get("bins", [])) <= 1  # python 可能在路径中
 
@@ -215,7 +215,7 @@ metadata:
         """测试：缺失 Python 模块（行 283-286）"""
         skill_dir = temp_skills_dir / "missing-module"
         skill_dir.mkdir()
-        
+
         (skill_dir / "SKILL.md").write_text(
             """---
 name: missing-module
@@ -226,19 +226,19 @@ metadata:
       python_modules: ["nonexistent_package_xyz_12345"]
 ---
 """,
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
         loader = SkillsLoader(str(temp_skills_dir))
         missing = loader.validate_skill_dependencies("missing-module")
-        
+
         assert "nonexistent_package_xyz_12345" in missing["python_modules"]
 
     def test_validate_dependencies_nonexistent_skill(self, temp_skills_dir) -> None:
         """测试：验证不存在的 skill（行 270）"""
         loader = SkillsLoader(str(temp_skills_dir))
         missing = loader.validate_skill_dependencies("nonexistent-skill")
-        
+
         assert "error" in missing
         assert "不存在" in missing["error"][0]
 
@@ -246,7 +246,7 @@ metadata:
         """测试：requires 为 None 的情况（行 151-152）"""
         skill_dir = temp_skills_dir / "none-requires"
         skill_dir.mkdir()
-        
+
         (skill_dir / "SKILL.md").write_text(
             """---
 name: none-requires
@@ -256,7 +256,7 @@ metadata:
     requires: null
 ---
 """,
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
         loader = SkillsLoader(str(temp_skills_dir))
@@ -272,17 +272,20 @@ metadata:
 class TestRequiresValidation:
     """requires 字段格式和类型检查"""
 
-    @pytest.mark.parametrize("invalid_requires", [
-        # requires 不是字典/None
-        "string_instead_of_dict",
-        123,
-        ["list"],
-    ])
+    @pytest.mark.parametrize(
+        "invalid_requires",
+        [
+            # requires 不是字典/None
+            "string_instead_of_dict",
+            123,
+            ["list"],
+        ],
+    )
     def test_requires_invalid_type(self, temp_skills_dir, invalid_requires) -> None:
         """测试：requires 值不是有效格式"""
         skill_dir = temp_skills_dir / "bad-requires"
         skill_dir.mkdir()
-        
+
         with open(skill_dir / "SKILL.md", "w", encoding="utf-8") as f:
             f.write("---\n")
             f.write("name: bad-requires\n")
@@ -305,7 +308,7 @@ class TestRequiresValidation:
         """测试：requires 列表项必须是字符串（行 160）"""
         skill_dir = temp_skills_dir / "int-require"
         skill_dir.mkdir()
-        
+
         (skill_dir / "SKILL.md").write_text(
             """---
 name: int-require
@@ -316,7 +319,7 @@ metadata:
       python_modules: ["numpy", 123, "scipy"]
 ---
 """,
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
         loader = SkillsLoader(str(temp_skills_dir))
@@ -340,7 +343,7 @@ class TestSearchAndFilter:
             ("urdf-gen", "Generate URDF files", "转换", "📝"),
             ("sim-run", "Run simulations", "仿真", "🌐"),
         ]
-        
+
         for name, desc, cat, emoji in config:
             skill_dir = temp_skills_dir / name
             skill_dir.mkdir()
@@ -353,11 +356,11 @@ metadata:
     category: "{cat}"
     emoji: "{emoji}"
 ---
-# {name.replace('-', ' ').title()}
+# {name.replace("-", " ").title()}
 """,
-                encoding="utf-8"
+                encoding="utf-8",
             )
-        
+
         return SkillsLoader(str(temp_skills_dir))
 
     def test_search_by_name(self, multi_skills) -> None:
@@ -422,7 +425,7 @@ class TestDocExtraction:
         """测试：文档提取去除 frontmatter（行 205-210）"""
         skill_dir = temp_skills_dir / "doc-skill"
         skill_dir.mkdir()
-        
+
         (skill_dir / "SKILL.md").write_text(
             """---
 name: doc-skill
@@ -435,16 +438,16 @@ This is the content.
 ## Subsection
 More content here.
 """,
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
         loader = SkillsLoader(str(temp_skills_dir))
         doc = loader.get_skill_doc("doc-skill")
-        
+
         # 检查 frontmatter 已移除
         assert "---" not in doc
         assert "name: doc-skill" not in doc
-        
+
         # 检查内容保留
         assert "# Main Heading" in doc
         assert "This is the content" in doc
@@ -452,7 +455,7 @@ More content here.
     def test_get_skill_doc_nonexistent(self, temp_skills_dir) -> None:
         """测试：获取不存在的 skill 文档"""
         loader = SkillsLoader(str(temp_skills_dir))
-        
+
         with pytest.raises(FileNotFoundError):
             loader.get_skill_doc("nonexistent")
 
@@ -478,11 +481,15 @@ class TestEdgeCases:
         """测试：跳过隐藏目录"""
         # 创建隐藏目录
         (temp_skills_dir / ".hidden").mkdir()
-        (temp_skills_dir / ".hidden" / "SKILL.md").write_text("---\nname: hidden\ndescription: test\n---\n")
-        
+        (temp_skills_dir / ".hidden" / "SKILL.md").write_text(
+            "---\nname: hidden\ndescription: test\n---\n"
+        )
+
         # 创建 __pycache__ 目录
         (temp_skills_dir / "__pycache__").mkdir()
-        (temp_skills_dir / "__pycache__" / "SKILL.md").write_text("---\nname: pycache\ndescription: test\n---\n")
+        (temp_skills_dir / "__pycache__" / "SKILL.md").write_text(
+            "---\nname: pycache\ndescription: test\n---\n"
+        )
 
         loader = SkillsLoader(str(temp_skills_dir))
         assert len(loader) == 0
@@ -491,7 +498,7 @@ class TestEdgeCases:
         """测试：YAML 解析错误处理（行 84-85 的异常）"""
         skill_dir = temp_skills_dir / "bad-yaml"
         skill_dir.mkdir()
-        
+
         (skill_dir / "SKILL.md").write_text(
             """---
 name: bad-yaml
@@ -499,7 +506,7 @@ description: test
 invalid: [unclosed list
 ---
 """,
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
         loader = SkillsLoader(str(temp_skills_dir))
@@ -514,13 +521,14 @@ invalid: [unclosed list
 class TestModuleLevelFunctions:
     """模块级便捷函数"""
 
-    def test_singleton_get_skills_loader(self, temp_skills_dir, reset_singleton) -> None:
+    def test_singleton_get_skills_loader(
+        self, temp_skills_dir, reset_singleton
+    ) -> None:
         """测试：get_skills_loader 单例模式"""
-        import agi_walker.skills_loader as module
-        
+
         loader1 = get_skills_loader(str(temp_skills_dir))
         loader2 = get_skills_loader(str(temp_skills_dir))
-        
+
         assert loader1 is loader2  # 应该返回同一实例
 
     def test_convenience_functions(self, temp_skills_dir, reset_singleton) -> None:
@@ -535,16 +543,17 @@ description: "Test skill"
 ---
 # Docs
 """,
-            encoding="utf-8"
+            encoding="utf-8",
         )
-        
+
         # 重置单例
         import agi_walker.skills_loader as module
+
         module._skills_loader_instance = None
-        
+
         # 测试便捷函数
-        skills = list_skills()  # 这会使用默认路径，可能为空
-        
+        list_skills()  # 这会使用默认路径，可能为空
+
         # 这些函数会自动创建加载器
         assert callable(search_skills)
         assert callable(get_skill_doc)
@@ -572,12 +581,12 @@ metadata:
     category: "test"
 ---
 """,
-                encoding="utf-8"
+                encoding="utf-8",
             )
-        
+
         loader = SkillsLoader(str(temp_skills_dir))
         assert len(loader) == 50
-        
+
         # 检查搜索性能
         results = loader.search_skills("skill-042")
         assert len(results) == 1
@@ -586,10 +595,12 @@ metadata:
         """测试：处理大型文档"""
         skill_dir = temp_skills_dir / "large-doc"
         skill_dir.mkdir()
-        
+
         # 创建大型文档
-        large_content = "\n".join([f"## Section {i}\n\nContent {i}" for i in range(100)])
-        
+        large_content = "\n".join(
+            [f"## Section {i}\n\nContent {i}" for i in range(100)]
+        )
+
         (skill_dir / "SKILL.md").write_text(
             f"""---
 name: large-doc
@@ -597,12 +608,12 @@ description: "Large documentation"
 ---
 {large_content}
 """,
-            encoding="utf-8"
+            encoding="utf-8",
         )
-        
+
         loader = SkillsLoader(str(temp_skills_dir))
         doc = loader.get_skill_doc("large-doc")
-        
+
         assert len(doc) > 1000
         assert "Section 50" in doc
 

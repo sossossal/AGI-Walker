@@ -76,7 +76,9 @@ def get_parts_market() -> Dict[str, Any]:
             for file in files:
                 if file.endswith(".json"):
                     try:
-                        with open(os.path.join(root, file), "r", encoding="utf-8") as pf:
+                        with open(
+                            os.path.join(root, file), "r", encoding="utf-8"
+                        ) as pf:
                             part_data = json.load(pf)
                             parts_list.append(
                                 {
@@ -97,7 +99,9 @@ def get_parts_market() -> Dict[str, Any]:
 
 
 def import_part(req: ImportPartRequest) -> Dict[str, Any]:
-    source_path = os.path.join("parts_library", "cloud_repo_mock", "parts", req.category)
+    source_path = os.path.join(
+        "parts_library", "cloud_repo_mock", "parts", req.category
+    )
     target_file = None
     if os.path.exists(source_path):
         for file in os.listdir(source_path):

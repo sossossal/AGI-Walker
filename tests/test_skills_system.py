@@ -3,9 +3,10 @@ AGI-Walker Skills System Tests
 Converts the old script-style tests to proper pytest functions.
 """
 
+# ruff: noqa: E402
+
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
+
 import pytest
 import sys
 import os
@@ -14,6 +15,8 @@ import importlib.util
 import shutil
 
 # Add project root to path
+
+logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -128,7 +131,9 @@ class TestURDFGenerator:
         yield temp_dir
         shutil.rmtree(temp_dir)
 
-    def test_urdf_generation(self, robot_modeling_skill, urdf_gen_skill, workspace) -> None:
+    def test_urdf_generation(
+        self, robot_modeling_skill, urdf_gen_skill, workspace
+    ) -> None:
         robot = robot_modeling_skill.load_template("biped_basic")
 
         test_json = workspace / "test_config.json"
@@ -141,7 +146,9 @@ class TestURDFGenerator:
         assert test_urdf.exists()
         assert test_urdf.stat().st_size > 0
 
-    def test_urdf_validation(self, robot_modeling_skill, urdf_gen_skill, workspace) -> None:
+    def test_urdf_validation(
+        self, robot_modeling_skill, urdf_gen_skill, workspace
+    ) -> None:
         robot = robot_modeling_skill.load_template("biped_basic")
         test_json = workspace / "test_val.json"
         test_urdf = workspace / "test_val.urdf"

@@ -3,18 +3,19 @@
 测试所有参数调整和反馈功能
 """
 
+# ruff: noqa: E402
+
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
+
 import sys
 import os
 
+logger = logging.getLogger(__name__)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from agi_walker.core.api.parts.custom_parts import (
     CustomMotor,
     CustomJoint,
-    CustomSensor,
     PartCustomizer,
 )
 
@@ -37,7 +38,7 @@ def test_motor_customization() -> None:
     )
 
     logger.info("\n✓ 初始配置创建成功")
-    logger.info(f"  功率: 500W, 减速比: 50:1")
+    logger.info("  功率: 500W, 减速比: 50:1")
 
     # 获取初始性能
     initial_torque = motor.performance_metrics["output_torque_nm"]
@@ -86,7 +87,7 @@ def test_joint_customization() -> None:
     )
 
     logger.info("\n✓ 谐波减速器创建成功")
-    logger.info(f"  减速比: 100:1, 回差: 0.05°")
+    logger.info("  减速比: 100:1, 回差: 0.05°")
 
     # 获取初始性能
     initial_accuracy = joint.performance_metrics["positioning_accuracy_deg"]
@@ -105,7 +106,9 @@ def test_joint_customization() -> None:
     accuracy_improvement = (initial_accuracy - new_accuracy) / initial_accuracy * 100
     cost_increase = new_cost - initial_cost
 
-    logger.info(f"  新定位精度: {new_accuracy:.6f}° (提升: {accuracy_improvement:.1f}%)")
+    logger.info(
+        f"  新定位精度: {new_accuracy:.6f}° (提升: {accuracy_improvement:.1f}%)"
+    )
     logger.info(f"  新成本: ${new_cost:.2f} (增加: +${cost_increase:.2f})")
     logger.info(f"  影响反馈: {result['impact']}")
 
@@ -124,7 +127,7 @@ def test_stiffness_impact() -> None:
     joint = CustomJoint({"stiffness": 3000, "weight": 0.3})
 
     initial_bandwidth = joint.performance_metrics["control_bandwidth_hz"]
-    logger.info(f"\n初始刚度: 3000 Nm/rad")
+    logger.info("\n初始刚度: 3000 Nm/rad")
     logger.info(f"初始控制带宽: {initial_bandwidth:.2f} Hz")
 
     # 增加刚度
@@ -134,7 +137,9 @@ def test_stiffness_impact() -> None:
     new_bandwidth = joint.performance_metrics["control_bandwidth_hz"]
     bandwidth_increase = (new_bandwidth - initial_bandwidth) / initial_bandwidth * 100
 
-    logger.info(f"新控制带宽: {new_bandwidth:.2f} Hz (提升: +{bandwidth_increase:.1f}%)")
+    logger.info(
+        f"新控制带宽: {new_bandwidth:.2f} Hz (提升: +{bandwidth_increase:.1f}%)"
+    )
 
     # 验证
     assert new_bandwidth > initial_bandwidth, "❌ 控制带宽应该增加"
@@ -148,7 +153,7 @@ def test_configuration_comparison() -> None:
     logger.info("=" * 70)
 
     customizer = PartCustomizer()
-    motor = customizer.create_motor("test_motor")
+    customizer.create_motor("test_motor")
 
     configs = [
         {"power": 200, "gear_ratio": 30},

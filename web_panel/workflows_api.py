@@ -15,7 +15,6 @@ import json
 import logging
 import os
 import subprocess
-import sys
 import threading
 import time
 from datetime import datetime, timedelta
@@ -27,12 +26,15 @@ from uuid import uuid4
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response
 from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 
 from agi_walker.workflow_orchestrator import get_workflow_orchestrator
+from web_panel.auth_api import get_current_user
 from web_panel.core_api import DEFAULT_GODOT_SESSION_ID
+from web_panel.database import AsyncSessionLocal
+from web_panel.models import User, WorkflowRun
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/api/workflows", tags=["workflows"])
 WEB_PANEL_ENV_FILE_ENV_VAR = "AGI_WALKER_WEB_ENV_FILE"
 
@@ -110,7 +112,9 @@ MAX_HISTORY_ITEMS = 50
 DEFAULT_RUNS_PAGE_SIZE = _read_int_env("AGI_WALKER_WEB_RUNS_PAGE_SIZE", 20)
 MAX_RUNS_PAGE_SIZE = _read_int_env("AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE", 100)
 ARCHIVE_RETENTION_MAX_RUNS = _read_int_env("AGI_WALKER_WEB_ARCHIVE_MAX_RUNS", 200)
-ARCHIVE_RETENTION_MAX_AGE_DAYS = _read_int_env("AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS", 30)
+ARCHIVE_RETENTION_MAX_AGE_DAYS = _read_int_env(
+    "AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS", 30
+)
 VALID_EXECUTION_STRATEGIES = {"resume", "force"}
 TERMINAL_RUN_STATUSES = {"completed", "failed", "cancelled", "timed_out"}
 RUN_MONITOR_INTERVAL_SECONDS = 0.2
@@ -119,20 +123,19 @@ MAX_RUN_EVENTS = 200
 MAX_LIVE_LOG_TAIL_LINES = 120
 VALID_RUN_SCOPES = {"active", "archive", "all"}
 
-from sqlalchemy import select, update as sa_update, delete as sa_delete
-from web_panel.database import AsyncSessionLocal
-from web_panel.models import WorkflowRun
 
 def _run_async(coro: Any) -> Any:
     """Helper to run an async coroutine from a synchronous thread using the app's event loop."""
     from web_panel.server import app
+
     loop = getattr(app.state, "server_loop", None)
     if loop is None:
         # Fallback if loop is not yet available (e.g. during startup)
         return asyncio.run(coro)
-    
+
     future = asyncio.run_coroutine_threadsafe(coro, loop)
     return future.result()
+
 
 # In-memory execution tracking for the current web server process (Legacy V1)
 execution_history: List[Dict[str, Any]] = []
@@ -211,7 +214,9 @@ def _list_legacy_logs() -> List[str]:
     logs = [
         entry.name
         for entry in log_dir.iterdir()
-        if entry.is_file() and entry.name.startswith("workflow_log_") and entry.suffix == ".json"
+        if entry.is_file()
+        and entry.name.startswith("workflow_log_")
+        and entry.suffix == ".json"
     ]
     return sorted(logs, reverse=True)
 
@@ -245,7 +250,9 @@ def _run_source_rank(run_source: str) -> int:
     }.get(run_source, 0)
 
 
-def _publish_run_event_unlocked(run_id: str, event_type: str, record: Dict[str, Any]) -> None:
+def _publish_run_event_unlocked(
+    run_id: str, event_type: str, record: Dict[str, Any]
+) -> None:
     """Append one run event and notify all stream listeners."""
     event_id = run_event_counters.get(run_id, 0) + 1
     run_event_counters[run_id] = event_id
@@ -263,7 +270,9 @@ def _publish_run_event_unlocked(run_id: str, event_type: str, record: Dict[str, 
     run_events_condition.notify_all()
 
 
-def _get_run_events_since_unlocked(run_id: str, after_event_id: int) -> List[Dict[str, Any]]:
+def _get_run_events_since_unlocked(
+    run_id: str, after_event_id: int
+) -> List[Dict[str, Any]]:
     """Return all cached run events strictly newer than the given event id."""
     return [
         _snapshot_json(event)
@@ -272,7 +281,9 @@ def _get_run_events_since_unlocked(run_id: str, after_event_id: int) -> List[Dic
     ]
 
 
-def _wait_for_run_events(run_id: str, after_event_id: int, timeout_seconds: float) -> List[Dict[str, Any]]:
+def _wait_for_run_events(
+    run_id: str, after_event_id: int, timeout_seconds: float
+) -> List[Dict[str, Any]]:
     """Block until at least one newer event exists or the timeout expires."""
     deadline = time.monotonic() + timeout_seconds
     with run_events_condition:
@@ -313,7 +324,9 @@ async def _get_run_record(run_id: str) -> Dict[str, Any]:
         candidates.append(_copy_run_record(archived_record, "archive"))
 
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(WorkflowRun).where(WorkflowRun.run_id == run_id))
+        result = await session.execute(
+            select(WorkflowRun).where(WorkflowRun.run_id == run_id)
+        )
         db_run = result.scalar_one_or_none()
         if db_run:
             candidates.append(_copy_run_record(db_run.to_dict(), "database"))
@@ -335,8 +348,12 @@ def _archive_run_path(run_id: str) -> Path:
 def _get_archive_retention_policy() -> Dict[str, Any]:
     """Return the normalized archive retention policy exposed to callers."""
     return {
-        "max_runs": ARCHIVE_RETENTION_MAX_RUNS if ARCHIVE_RETENTION_MAX_RUNS > 0 else None,
-        "max_age_days": ARCHIVE_RETENTION_MAX_AGE_DAYS if ARCHIVE_RETENTION_MAX_AGE_DAYS > 0 else None,
+        "max_runs": ARCHIVE_RETENTION_MAX_RUNS
+        if ARCHIVE_RETENTION_MAX_RUNS > 0
+        else None,
+        "max_age_days": ARCHIVE_RETENTION_MAX_AGE_DAYS
+        if ARCHIVE_RETENTION_MAX_AGE_DAYS > 0
+        else None,
         "archive_root": str(WORKFLOW_ARCHIVE_ROOT),
         "env_file": str(WEB_PANEL_ENV_FILE) if WEB_PANEL_ENV_FILE is not None else None,
     }
@@ -394,9 +411,7 @@ def _enforce_archive_retention_policy() -> Dict[str, Any]:
             if _delete_archive_file(path):
                 removed_run_ids.append(path.stem)
         archive_entries = [
-            (path, path.stat().st_mtime)
-            for path, _ in archive_entries
-            if path.exists()
+            (path, path.stat().st_mtime) for path, _ in archive_entries if path.exists()
         ]
 
     max_runs = policy["max_runs"]
@@ -412,9 +427,7 @@ def _enforce_archive_retention_policy() -> Dict[str, Any]:
             if _delete_archive_file(path):
                 removed_run_ids.append(path.stem)
         archive_entries = [
-            (path, path.stat().st_mtime)
-            for path, _ in archive_entries
-            if path.exists()
+            (path, path.stat().st_mtime) for path, _ in archive_entries if path.exists()
         ]
 
     return {
@@ -505,7 +518,9 @@ def _record_filter_timestamp(record: Dict[str, Any]) -> datetime:
     return _record_timestamp(record)
 
 
-def _prefer_run_record(existing: Dict[str, Any], candidate: Dict[str, Any]) -> Dict[str, Any]:
+def _prefer_run_record(
+    existing: Dict[str, Any], candidate: Dict[str, Any]
+) -> Dict[str, Any]:
     """Pick the fresher run record across active memory, archive, and database sources."""
     existing_timestamp = _record_timestamp(existing)
     candidate_timestamp = _record_timestamp(candidate)
@@ -522,7 +537,8 @@ def _prefer_run_record(existing: Dict[str, Any], candidate: Dict[str, Any]) -> D
 
     return (
         candidate
-        if _run_source_rank(candidate.get("run_source", "")) > _run_source_rank(existing.get("run_source", ""))
+        if _run_source_rank(candidate.get("run_source", ""))
+        > _run_source_rank(existing.get("run_source", ""))
         else existing
     )
 
@@ -545,7 +561,11 @@ def _record_matches_filters(
         return False
     if mode and record.get("mode") != mode:
         return False
-    if only_failures and record.get("status") not in {"failed", "timed_out", "cancelled"}:
+    if only_failures and record.get("status") not in {
+        "failed",
+        "timed_out",
+        "cancelled",
+    }:
         return False
 
     filter_timestamp = _record_filter_timestamp(record)
@@ -589,12 +609,11 @@ async def _collect_run_records(scope: str) -> List[Dict[str, Any]]:
     """Collect run records for one listing scope, preferring live memory and archive data."""
     normalized_scope = _normalize_run_scope(scope)
     with execution_lock:
-        active_records = [
-            _copy_run_record(run, "active")
-            for run in execution_history
-        ]
+        active_records = [_copy_run_record(run, "active") for run in execution_history]
 
-    archived_records = [_copy_run_record(run, "archive") for run in _load_all_archived_run_records()]
+    archived_records = [
+        _copy_run_record(run, "archive") for run in _load_all_archived_run_records()
+    ]
     database_records = await _load_database_run_records()
     merged: Dict[str, Dict[str, Any]] = {}
 
@@ -609,19 +628,25 @@ async def _collect_run_records(scope: str) -> List[Dict[str, Any]]:
         for candidate in candidate_group:
             run_id = candidate["run_id"]
             existing = merged.get(run_id)
-            merged[run_id] = candidate if existing is None else _prefer_run_record(existing, candidate)
+            merged[run_id] = (
+                candidate
+                if existing is None
+                else _prefer_run_record(existing, candidate)
+            )
 
     records = list(merged.values())
     if normalized_scope == "active":
-        return [run for run in records if run.get("status") not in TERMINAL_RUN_STATUSES]
+        return [
+            run for run in records if run.get("status") not in TERMINAL_RUN_STATUSES
+        ]
     if normalized_scope == "archive":
         return [run for run in records if run.get("status") in TERMINAL_RUN_STATUSES]
     return records
 
 
-
-
-async def _store_run_record(record: Dict[str, Any], user_id: Optional[int] = None) -> None:
+async def _store_run_record(
+    record: Dict[str, Any], user_id: Optional[int] = None
+) -> None:
     """Persist a run record to database and keep in-memory history for SSE (V2.0)."""
     # 1. Persist to Database
     try:
@@ -660,9 +685,13 @@ async def _store_run_record(record: Dict[str, Any], user_id: Optional[int] = Non
                 message=record.get("message"),
                 worker_pid=record.get("worker_pid"),
                 exit_reason=record.get("exit_reason"),
-                preferred_godot_transport_mode=record.get("preferred_godot_transport_mode"),
+                preferred_godot_transport_mode=record.get(
+                    "preferred_godot_transport_mode"
+                ),
                 parameters=record.get("parameters", {}),
-                created_at=datetime.fromisoformat(record["created_at"]) if record.get("created_at") else datetime.now(),
+                created_at=datetime.fromisoformat(record["created_at"])
+                if record.get("created_at")
+                else datetime.now(),
                 started_at=started_at,
                 finished_at=finished_at,
                 duration=record.get("duration") or 0.0,
@@ -698,29 +727,37 @@ async def _store_run_record(record: Dict[str, Any], user_id: Optional[int] = Non
     _archive_run_record(archived_record)
 
 
-async def _update_run_record(run_id: str, event_type: Optional[str] = None, **changes: Any) -> Dict[str, Any]:
+async def _update_run_record(
+    run_id: str, event_type: Optional[str] = None, **changes: Any
+) -> Dict[str, Any]:
     """Apply in-place updates to database and memory, notifying listeners (V2.0)."""
     # 1. Update Database
     updated_record = None
     try:
         async with AsyncSessionLocal() as session:
-            result = await session.execute(select(WorkflowRun).where(WorkflowRun.run_id == run_id))
+            result = await session.execute(
+                select(WorkflowRun).where(WorkflowRun.run_id == run_id)
+            )
             db_run = result.scalar_one_or_none()
             if db_run:
                 for key, value in changes.items():
                     if hasattr(db_run, key):
                         # Handle datetime conversions
-                        if key in ("started_at", "finished_at") and isinstance(value, str):
+                        if key in ("started_at", "finished_at") and isinstance(
+                            value, str
+                        ):
                             try:
                                 value = datetime.fromisoformat(value)
                             except ValueError:
                                 continue
                         setattr(db_run, key, value)
-                
+
                 # Recalculate duration if possible
                 if db_run.started_at and db_run.finished_at:
-                    db_run.duration = (db_run.finished_at - db_run.started_at).total_seconds()
-                
+                    db_run.duration = (
+                        db_run.finished_at - db_run.started_at
+                    ).total_seconds()
+
                 await session.commit()
                 updated_record = db_run.to_dict()
     except Exception as e:
@@ -733,7 +770,7 @@ async def _update_run_record(run_id: str, event_type: Optional[str] = None, **ch
         record = _find_run_record_unlocked(run_id)
         if record is not None:
             record.update(changes)
-            
+
             # Keep duration in sync
             if record.get("started_at") and record.get("finished_at"):
                 try:
@@ -742,7 +779,7 @@ async def _update_run_record(run_id: str, event_type: Optional[str] = None, **ch
                     record["duration"] = (f - s).total_seconds()
                 except (ValueError, TypeError):
                     pass
-            
+
             if event_type:
                 _publish_run_event_unlocked(run_id, event_type, record)
 
@@ -793,7 +830,9 @@ def _normalize_page_size(page_size: Optional[int], limit: Optional[int]) -> int:
     return max(1, min(requested_size, max_page_size))
 
 
-def _parse_filter_datetime(value: Optional[str], *, end_of_day: bool = False) -> Optional[datetime]:
+def _parse_filter_datetime(
+    value: Optional[str], *, end_of_day: bool = False
+) -> Optional[datetime]:
     """Parse an ISO datetime or date-only filter value."""
     if not value:
         return None
@@ -804,7 +843,9 @@ def _parse_filter_datetime(value: Optional[str], *, end_of_day: bool = False) ->
 
     is_date_only = "T" not in normalized and " " not in normalized
     if is_date_only:
-        normalized = f"{normalized}T23:59:59.999999" if end_of_day else f"{normalized}T00:00:00"
+        normalized = (
+            f"{normalized}T23:59:59.999999" if end_of_day else f"{normalized}T00:00:00"
+        )
 
     try:
         parsed = datetime.fromisoformat(normalized)
@@ -814,10 +855,6 @@ def _parse_filter_datetime(value: Optional[str], *, end_of_day: bool = False) ->
             detail=f"Invalid datetime filter '{value}'. Use ISO date or datetime.",
         ) from None
     return parsed
-
-
-
-
 
 
 def _build_steps_snapshot(steps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -878,7 +915,9 @@ def _build_failure_diagnostics(
         "step_errors": step_errors,
         "worker_error_message": worker_error_message,
         "worker_traceback": worker_traceback,
-        "diagnostic_summary": worker_error_message or failed_step_error or result_error_message,
+        "diagnostic_summary": worker_error_message
+        or failed_step_error
+        or result_error_message,
     }
 
 
@@ -898,12 +937,18 @@ def _collect_artifacts_from_result_dict(
 
         artifact_path = Path(output_file)
         normalized_path = str(artifact_path)
-        if normalized_path in seen_paths or not artifact_path.exists() or not artifact_path.is_file():
+        if (
+            normalized_path in seen_paths
+            or not artifact_path.exists()
+            or not artifact_path.is_file()
+        ):
             continue
 
         seen_paths.add(normalized_path)
         artifact_index = len(artifacts)
-        artifact_metadata = _build_artifact_metadata(artifact_path, run_id, artifact_index)
+        artifact_metadata = _build_artifact_metadata(
+            artifact_path, run_id, artifact_index
+        )
         artifacts.append(
             {
                 "artifact_index": artifact_index,
@@ -932,10 +977,14 @@ def _is_robot_config_payload(payload: Optional[Dict[str, Any]]) -> bool:
     """Return whether a JSON payload looks like a robot config understood by Godot."""
     if not isinstance(payload, dict):
         return False
-    return isinstance(payload.get("parts"), list) and isinstance(payload.get("connections"), list)
+    return isinstance(payload.get("parts"), list) and isinstance(
+        payload.get("connections"), list
+    )
 
 
-def _build_artifact_metadata(artifact_path: Path, run_id: str, artifact_index: int) -> Dict[str, Any]:
+def _build_artifact_metadata(
+    artifact_path: Path, run_id: str, artifact_index: int
+) -> Dict[str, Any]:
     """Attach preview/load capabilities to one workflow artifact."""
     artifact_type = "file"
     preview_mode = None
@@ -953,7 +1002,9 @@ def _build_artifact_metadata(artifact_path: Path, run_id: str, artifact_index: i
         if _is_robot_config_payload(payload):
             artifact_type = "robot_config"
             godot_load_supported = True
-            godot_load_url = f"/api/workflows/runs/{run_id}/artifacts/{artifact_index}/godot-load"
+            godot_load_url = (
+                f"/api/workflows/runs/{run_id}/artifacts/{artifact_index}/godot-load"
+            )
             preferred_godot_transport_mode = "session_bridge"
         else:
             artifact_type = "json"
@@ -1078,7 +1129,9 @@ async def _finalize_run_from_result(
         last_event="workflow_finished",
         progress_updated_at=result_dict.get("end_time") or _now().isoformat(),
         steps_snapshot=steps_snapshot,
-        status_detail="Workflow finished successfully." if status == "completed" else (error_message or "Workflow finished with errors."),
+        status_detail="Workflow finished successfully."
+        if status == "completed"
+        else (error_message or "Workflow finished with errors."),
         message=error_message,
         exit_reason="workflow_result",
         log_path=log_path,
@@ -1140,7 +1193,10 @@ async def _mark_run_terminal(
         step_errors=step_errors or [],
         worker_error_message=worker_error_message,
         worker_traceback=worker_traceback,
-        diagnostic_summary=diagnostic_summary or worker_error_message or failed_step_error or message,
+        diagnostic_summary=diagnostic_summary
+        or worker_error_message
+        or failed_step_error
+        or message,
         result=None,
     )
 
@@ -1150,7 +1206,9 @@ def _get_run_artifact(run: Dict[str, Any], artifact_index: int) -> Dict[str, Any
     try:
         return run["artifacts"][artifact_index]
     except IndexError as exc:
-        raise HTTPException(status_code=404, detail="Workflow artifact not found") from exc
+        raise HTTPException(
+            status_code=404, detail="Workflow artifact not found"
+        ) from exc
 
 
 def _get_recommended_godot_artifact(run: Dict[str, Any]) -> Dict[str, Any]:
@@ -1158,18 +1216,27 @@ def _get_recommended_godot_artifact(run: Dict[str, Any]) -> Dict[str, Any]:
     for artifact in run.get("artifacts", []):
         if artifact.get("godot_load_supported"):
             return artifact
-    raise HTTPException(status_code=404, detail="No Godot-loadable robot config artifact found for this run")
+    raise HTTPException(
+        status_code=404,
+        detail="No Godot-loadable robot config artifact found for this run",
+    )
 
 
 def _load_robot_config_from_artifact(artifact: Dict[str, Any]) -> Dict[str, Any]:
     """Read and validate a robot config artifact payload."""
     if not artifact.get("godot_load_supported"):
-        raise HTTPException(status_code=400, detail="Selected artifact is not a Godot-loadable robot config")
+        raise HTTPException(
+            status_code=400,
+            detail="Selected artifact is not a Godot-loadable robot config",
+        )
 
     artifact_path = Path(artifact["path"])
     payload = _read_json_file(artifact_path)
     if not _is_robot_config_payload(payload):
-        raise HTTPException(status_code=400, detail="Artifact JSON does not contain parts/connections robot config")
+        raise HTTPException(
+            status_code=400,
+            detail="Artifact JSON does not contain parts/connections robot config",
+        )
     return payload
 
 
@@ -1218,14 +1285,15 @@ def _build_godot_delivery_record(
         "headless": payload.headless,
         "auto_connect": payload.auto_connect,
         "launch_if_needed": payload.launch_if_needed,
-        "transport_status_url": _build_godot_transport_status_url(transport_mode, session_id),
+        "transport_status_url": _build_godot_transport_status_url(
+            transport_mode, session_id
+        ),
         "artifact_retry_url": f"/api/workflows/runs/{run_id}/artifacts/{artifact['artifact_index']}/godot-load",
         "recommended_sync_url": f"/api/workflows/runs/{run_id}/godot-sync",
-        "delivery_target": _build_godot_delivery_target_summary(transport_mode, session_id),
-        "message": (
-            f"Artifact '{artifact['name']}' delivered via "
-            f"{transport_mode}."
+        "delivery_target": _build_godot_delivery_target_summary(
+            transport_mode, session_id
         ),
+        "message": (f"Artifact '{artifact['name']}' delivered via {transport_mode}."),
     }
 
 
@@ -1253,10 +1321,14 @@ def _build_godot_delivery_failure_record(
         "headless": payload.headless,
         "auto_connect": payload.auto_connect,
         "launch_if_needed": payload.launch_if_needed,
-        "transport_status_url": _build_godot_transport_status_url(payload.transport_mode, payload.session_id),
+        "transport_status_url": _build_godot_transport_status_url(
+            payload.transport_mode, payload.session_id
+        ),
         "artifact_retry_url": f"/api/workflows/runs/{run_id}/artifacts/{artifact['artifact_index']}/godot-load",
         "recommended_sync_url": f"/api/workflows/runs/{run_id}/godot-sync",
-        "delivery_target": _build_godot_delivery_target_summary(payload.transport_mode, payload.session_id),
+        "delivery_target": _build_godot_delivery_target_summary(
+            payload.transport_mode, payload.session_id
+        ),
         "failure_stage": classification["failure_stage"],
         "retry_hint": classification["retry_hint"],
         "message": detail,
@@ -1281,7 +1353,9 @@ def _build_godot_delivery_target_summary(transport_mode: str, session_id: str) -
     return f"session bridge {normalized_session_id}"
 
 
-def _classify_godot_delivery_failure(detail: str, transport_mode: str) -> Dict[str, str]:
+def _classify_godot_delivery_failure(
+    detail: str, transport_mode: str
+) -> Dict[str, str]:
     """Classify one delivery error into a smaller set of UI-facing failure stages."""
     lowered = detail.lower()
     normalized_mode = _normalize_transport_mode(transport_mode)
@@ -1336,11 +1410,16 @@ def _load_robot_via_legacy_controller(
     """Send one robot config to the legacy Godot controller transport."""
     godot_controller = getattr(request.app.state, "godot_controller", None)
     if godot_controller is None:
-        raise HTTPException(status_code=500, detail="Legacy Godot controller is not available on app state")
+        raise HTTPException(
+            status_code=500,
+            detail="Legacy Godot controller is not available on app state",
+        )
 
     connected = godot_controller.is_connected(payload.session_id)
     if not connected and payload.auto_connect:
-        connected = godot_controller.connect(payload.host, payload.port, session_id=payload.session_id)
+        connected = godot_controller.connect(
+            payload.host, payload.port, session_id=payload.session_id
+        )
 
     if not connected:
         raise HTTPException(
@@ -1354,7 +1433,10 @@ def _load_robot_via_legacy_controller(
         session_id=payload.session_id,
     )
     if not success:
-        raise HTTPException(status_code=502, detail="Failed to send robot config to legacy Godot controller")
+        raise HTTPException(
+            status_code=502,
+            detail="Failed to send robot config to legacy Godot controller",
+        )
 
     return {
         "transport_mode": "legacy_controller",
@@ -1374,7 +1456,10 @@ async def _load_robot_via_session_bridge(
     """Send one robot config to the session-bridge Godot transport."""
     session_manager = getattr(request.app.state, "godot_session_manager", None)
     if session_manager is None:
-        raise HTTPException(status_code=500, detail="Godot session manager is not available on app state")
+        raise HTTPException(
+            status_code=500,
+            detail="Godot session manager is not available on app state",
+        )
 
     bridge = session_manager.get_or_create(payload.session_id)
     launch_result = None
@@ -1407,7 +1492,9 @@ async def _load_robot_via_session_bridge(
             detail=f"Godot session bridge rejected robot config: {json.dumps(load_result, ensure_ascii=False)}",
         )
 
-    schema = await bridge.wait_until_schema(timeout_seconds=min(payload.wait_for_tcp_seconds, 5.0))
+    schema = await bridge.wait_until_schema(
+        timeout_seconds=min(payload.wait_for_tcp_seconds, 5.0)
+    )
     return {
         "transport_mode": "session_bridge",
         "session_id": payload.session_id,
@@ -1520,7 +1607,9 @@ async def _consume_live_log_delta(run_id: str, live_log_path: Path, offset: int)
     return new_offset
 
 
-async def _apply_progress_snapshot(run_id: str, progress_payload: Dict[str, Any]) -> Dict[str, Any]:
+async def _apply_progress_snapshot(
+    run_id: str, progress_payload: Dict[str, Any]
+) -> Dict[str, Any]:
     """Merge a worker progress payload into the public run record."""
     current_step = progress_payload.get("current_step") or {}
     total_steps = progress_payload.get("total_steps")
@@ -1537,9 +1626,7 @@ async def _apply_progress_snapshot(run_id: str, progress_payload: Dict[str, Any]
     if event == "step_started" and current_step_name and step_index and total_steps:
         status_detail = f"Running step {step_index}/{total_steps}: {current_step_name}"
     elif event == "step_finished" and current_step_name and step_index and total_steps:
-        status_detail = (
-            f"Finished step {step_index}/{total_steps}: {current_step_name} ({current_step.get('status')})"
-        )
+        status_detail = f"Finished step {step_index}/{total_steps}: {current_step_name} ({current_step.get('status')})"
     elif event == "workflow_started":
         status_detail = "Workflow worker started executing steps."
     elif event == "workflow_finished":
@@ -1585,9 +1672,9 @@ async def _start_background_run(
 ) -> Dict[str, Any]:
     """Dispatch a production Celery task for workflow execution (V2.0)."""
     from web_panel.workflow_worker_task import run_workflow_task
-    
+
     live_log_path = _build_live_log_path(output_root, run_id)
-    
+
     # Payload for the remote worker
     task_payload = {
         "run_id": run_id,
@@ -1604,7 +1691,9 @@ async def _start_background_run(
         logger.info(f"Dispatched Celery task {task.id} for run {run_id}")
     except Exception as e:
         logger.error(f"Failed to dispatch Celery task: {e}")
-        raise HTTPException(status_code=500, detail="Task queue unavailable (Redis down?)")
+        raise HTTPException(
+            status_code=500, detail="Task queue unavailable (Redis down?)"
+        )
 
     # Initial DB update
     await _update_run_record(
@@ -1612,7 +1701,7 @@ async def _start_background_run(
         event_type="run_started",
         status="running",
         status_detail="Workflow queued in Celery.",
-        worker_pid=None, # Not applicable for remote workers
+        worker_pid=None,  # Not applicable for remote workers
     )
 
     return await _get_run_record(run_id)
@@ -1637,7 +1726,9 @@ def _monitor_background_run(run_id: str) -> None:
     if progress_payload:
         _run_async(_apply_progress_snapshot(run_id, progress_payload))
 
-    new_offset = _run_async(_consume_live_log_delta(run_id, live_log_path, live_log_offset))
+    new_offset = _run_async(
+        _consume_live_log_delta(run_id, live_log_path, live_log_offset)
+    )
     with execution_lock:
         if run_id in active_run_processes:
             active_run_processes[run_id]["live_log_offset"] = new_offset
@@ -1683,7 +1774,9 @@ def _monitor_background_run(run_id: str) -> None:
 
     worker_result = _read_worker_result(result_path)
     if worker_result:
-        if worker_result.get("status") in {"ok", "success"} and isinstance(worker_result.get("result"), dict):
+        if worker_result.get("status") in {"ok", "success"} and isinstance(
+            worker_result.get("result"), dict
+        ):
             _run_async(_finalize_run_from_result(run_id, worker_result["result"]))
         else:
             worker_error_message = (
@@ -1716,9 +1809,13 @@ def _monitor_background_run(run_id: str) -> None:
                 if exit_code == 0
                 else "Workflow worker exited with a non-zero status."
             ),
-            message=None if exit_code == 0 else f"Workflow worker exited with code {exit_code}.",
+            message=None
+            if exit_code == 0
+            else f"Workflow worker exited with code {exit_code}.",
             exit_reason="worker_exit" if exit_code == 0 else "worker_exit_nonzero",
-            diagnostic_summary=None if exit_code == 0 else f"Workflow worker exited with code {exit_code}.",
+            diagnostic_summary=None
+            if exit_code == 0
+            else f"Workflow worker exited with code {exit_code}.",
         )
     )
     _cleanup_active_run(run_id)
@@ -1783,7 +1880,9 @@ async def list_runs(
     total_count = len(filtered_runs)
     offset = (normalized_page - 1) * normalized_page_size
     runs = filtered_runs[offset : offset + normalized_page_size]
-    total_pages = max(1, (total_count + normalized_page_size - 1) // normalized_page_size)
+    total_pages = max(
+        1, (total_count + normalized_page_size - 1) // normalized_page_size
+    )
 
     return {
         "status": "success",
@@ -1866,7 +1965,9 @@ async def stream_run_events(run_id: str, request: Request):
     try:
         last_event_id = int(last_event_id_raw) if last_event_id_raw else 0
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid Last-Event-ID header") from exc
+        raise HTTPException(
+            status_code=400, detail="Invalid Last-Event-ID header"
+        ) from exc
 
     def event_stream():
         next_after_event_id = last_event_id
@@ -1934,7 +2035,9 @@ async def download_run_artifact(run_id: str, artifact_index: int):
 
     artifact_path = Path(artifact["path"])
     if not artifact_path.exists():
-        raise HTTPException(status_code=404, detail="Artifact file no longer exists on disk")
+        raise HTTPException(
+            status_code=404, detail="Artifact file no longer exists on disk"
+        )
 
     return FileResponse(artifact_path, filename=artifact["name"])
 
@@ -1954,7 +2057,9 @@ async def load_run_artifact_into_godot(
     transport_mode = _normalize_transport_mode(normalized_payload.transport_mode)
 
     try:
-        transport_result = await _execute_godot_delivery(request, artifact, normalized_payload)
+        transport_result = await _execute_godot_delivery(
+            request, artifact, normalized_payload
+        )
     except HTTPException as exc:
         await _update_run_record(
             run_id,
@@ -1962,7 +2067,9 @@ async def load_run_artifact_into_godot(
             godot_delivery=_build_godot_delivery_failure_record(
                 run_id,
                 artifact,
-                normalized_payload.model_copy(update={"transport_mode": transport_mode}),
+                normalized_payload.model_copy(
+                    update={"transport_mode": transport_mode}
+                ),
                 str(exc.detail),
                 auto_selected=False,
             ),
@@ -2011,10 +2118,14 @@ async def sync_run_into_godot(
         if normalized_payload.artifact_index is not None
         else _get_recommended_godot_artifact(run)
     )
-    normalized_payload = normalized_payload.model_copy(update={"transport_mode": transport_mode})
+    normalized_payload = normalized_payload.model_copy(
+        update={"transport_mode": transport_mode}
+    )
 
     try:
-        transport_result = await _execute_godot_delivery(request, artifact, normalized_payload)
+        transport_result = await _execute_godot_delivery(
+            request, artifact, normalized_payload
+        )
     except HTTPException as exc:
         await _update_run_record(
             run_id,
@@ -2063,7 +2174,9 @@ async def get_run_live_log(run_id: str):
 
     resolved_log = Path(live_log_path)
     if not resolved_log.exists():
-        raise HTTPException(status_code=404, detail="Live log file no longer exists on disk")
+        raise HTTPException(
+            status_code=404, detail="Live log file no longer exists on disk"
+        )
 
     return PlainTextResponse(resolved_log.read_text(encoding="utf-8"))
 
@@ -2078,7 +2191,9 @@ async def download_run_log(run_id: str):
 
     resolved_log = Path(log_path)
     if not resolved_log.exists():
-        raise HTTPException(status_code=404, detail="Workflow log file no longer exists on disk")
+        raise HTTPException(
+            status_code=404, detail="Workflow log file no longer exists on disk"
+        )
 
     return FileResponse(resolved_log, filename=resolved_log.name)
 
@@ -2103,7 +2218,9 @@ async def get_log_detail(filename: str):
         with open(log_path, "r", encoding="utf-8") as handle:
             return json.load(handle)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Error reading log: {exc}") from exc
+        raise HTTPException(
+            status_code=500, detail=f"Error reading log: {exc}"
+        ) from exc
 
 
 @router.get("/{name}")
@@ -2123,9 +2240,6 @@ async def get_workflow_detail(name: str) -> Dict[str, Any]:
         },
     }
 
-
-from web_panel.auth_api import get_current_user
-from web_panel.models import User
 
 @router.post("/{name}/run", status_code=202)
 async def run_workflow(
@@ -2164,7 +2278,9 @@ async def run_workflow(
     await _store_run_record(record, user_id=current_user.id)
 
     try:
-        started_record = await _start_background_run(run_id, name, normalized_request, output_root)
+        started_record = await _start_background_run(
+            run_id, name, normalized_request, output_root
+        )
     except Exception as exc:
         response.status_code = 500
         failed_record = await _mark_run_terminal(

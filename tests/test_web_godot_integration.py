@@ -5,18 +5,16 @@ Web-Godot 集成测试套件
 
 运行方式:
     pytest tests/test_web_godot_integration.py -v
-    
+
 或使用 pytest-asyncio:
     pytest tests/test_web_godot_integration.py -v --asyncio-mode=auto
 """
 
 import logging
-logger = logging.getLogger(__name__)
+
 import pytest
-import asyncio
 import json
 import time
-from typing import Dict, Any
 from datetime import datetime
 
 # 导入被测试的模块
@@ -24,8 +22,10 @@ from web_panel.ws_protocol import (
     WsMessage,
     WebSocketProtocolHandler,
     MessageType,
-    get_protocol_handler
+    get_protocol_handler,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TestWebSocketProtocol:
@@ -35,7 +35,7 @@ class TestWebSocketProtocol:
         """测试消息序列化"""
         msg = WsMessage(
             type=MessageType.SIMULATION_START.value,
-            payload={"physics": {"gravity": 9.81}}
+            payload={"physics": {"gravity": 9.81}},
         )
         json_str = msg.to_json()
         assert isinstance(json_str, str)
@@ -52,14 +52,14 @@ class TestWebSocketProtocol:
         """测试消息 ID 匹配"""
         msg1 = WsMessage(type="request", payload={})
         msg2 = WsMessage(type="response", payload={})
-        
+
         # 验证 ID 是唯一的
         assert msg1.id != msg2.id
 
     def test_protocol_handler_initialization(self) -> None:
         """测试协议处理器初始化"""
         handler = WebSocketProtocolHandler()
-        
+
         assert handler is not None
         assert len(handler.handlers) >= 4
         assert MessageType.PING.value in [h for h in handler.handlers.keys()]
@@ -78,29 +78,29 @@ class TestWebSocketProtocol:
         handler = WebSocketProtocolHandler()
         msg = WsMessage(type=MessageType.PING.value, payload={})
         response = handler.route_message(msg)
-        
+
         assert response.status == "success"
         assert response.type == MessageType.PONG.value
 
     def test_command_routing(self) -> None:
         """测试命令路由"""
         handler = WebSocketProtocolHandler()
-        
+
         # 设置回调
         called = {"start": False}
-        
+
         def mock_start(physics):
             called["start"] = True
-        
+
         handler.on_start_simulation = mock_start
-        
+
         # 发送命令
         msg = WsMessage(
             type=MessageType.SIMULATION_START.value,
-            payload={"physics": {"gravity": 9.81}}
+            payload={"physics": {"gravity": 9.81}},
         )
         response = handler.route_message(msg)
-        
+
         # 验证
         assert response.status == "success"
         assert called["start"] is True
@@ -108,14 +108,11 @@ class TestWebSocketProtocol:
     def test_telemetry_push(self) -> None:
         """测试遥测数据推送"""
         handler = WebSocketProtocolHandler()
-        
-        telemetry_data = {
-            "sensors": {"imu": [1, 2, 3]},
-            "position": [0, 0, 1]
-        }
-        
+
+        telemetry_data = {"sensors": {"imu": [1, 2, 3]}, "position": [0, 0, 1]}
+
         msg = handler.push_telemetry(telemetry_data)
-        
+
         assert msg.type == MessageType.TELEMETRY_UPDATE.value
         assert msg.status == "push"
         assert msg.payload["data"] == telemetry_data
@@ -123,9 +120,9 @@ class TestWebSocketProtocol:
     def test_error_push(self) -> None:
         """测试错误消息推送"""
         handler = WebSocketProtocolHandler()
-        
+
         msg = handler.push_error("Test error", "test")
-        
+
         assert msg.type == MessageType.SIMULATION_ERROR.value
         assert msg.payload["error"] == "Test error"
         assert msg.payload["error_type"] == "test"
@@ -133,10 +130,10 @@ class TestWebSocketProtocol:
     def test_unknown_command(self) -> None:
         """测试未知命令处理"""
         handler = WebSocketProtocolHandler()
-        
+
         msg = WsMessage(type="unknown_command", payload={})
         response = handler.route_message(msg)
-        
+
         assert response.status == "error"
         assert "Unknown" in response.payload.get("error", "")
 
@@ -147,27 +144,24 @@ class TestMessageFlow:
     def test_simulation_lifecycle(self) -> None:
         """测试完整的仿真生命周期"""
         handler = WebSocketProtocolHandler()
-        
+
         # 跟踪调用
         calls = []
-        
+
         handler.on_start_simulation = lambda p: calls.append(("start", p))
         handler.on_stop_simulation = lambda: calls.append(("stop", None))
-        
+
         # 启动仿真
         start_msg = WsMessage(
             type=MessageType.SIMULATION_START.value,
-            payload={"physics": {"gravity": 9.81}}
+            payload={"physics": {"gravity": 9.81}},
         )
         handler.route_message(start_msg)
-        
+
         # 停止仿真
-        stop_msg = WsMessage(
-            type=MessageType.SIMULATION_STOP.value,
-            payload={}
-        )
+        stop_msg = WsMessage(type=MessageType.SIMULATION_STOP.value, payload={})
         handler.route_message(stop_msg)
-        
+
         # 验证调用顺序
         assert len(calls) == 2
         assert calls[0][0] == "start"
@@ -176,24 +170,19 @@ class TestMessageFlow:
     def test_parameter_update_sequence(self) -> None:
         """测试参数更新序列"""
         handler = WebSocketProtocolHandler()
-        
+
         updates = []
         handler.on_update_params = lambda p: updates.append(p)
-        
+
         # 发送多个参数更新
-        params_list = [
-            {"speed": 1.0},
-            {"speed": 1.5},
-            {"speed": 2.0}
-        ]
-        
+        params_list = [{"speed": 1.0}, {"speed": 1.5}, {"speed": 2.0}]
+
         for params in params_list:
             msg = WsMessage(
-                type=MessageType.PARAMS_UPDATE.value,
-                payload={"params": params}
+                type=MessageType.PARAMS_UPDATE.value, payload={"params": params}
             )
             handler.route_message(msg)
-        
+
         assert len(updates) == 3
         assert updates[0]["speed"] == 1.0
         assert updates[2]["speed"] == 2.0
@@ -201,18 +190,18 @@ class TestMessageFlow:
     def test_telemetry_stream(self) -> None:
         """测试遥测数据流"""
         handler = WebSocketProtocolHandler()
-        
+
         # 生成多个遥测消息
         telemetry_stream = []
         for i in range(10):
             data = {
                 "timestamp": i * 0.01,
                 "position": [i * 0.1, 0, 0],
-                "velocity": [1.0, 0, 0]
+                "velocity": [1.0, 0, 0],
             }
             msg = handler.push_telemetry(data)
             telemetry_stream.append(msg)
-        
+
         # 验证
         assert len(telemetry_stream) == 10
         for msg in telemetry_stream:
@@ -225,13 +214,10 @@ class TestProtocolCompliance:
 
     def test_message_has_required_fields(self) -> None:
         """测试消息包含必需字段"""
-        msg = WsMessage(
-            type="test",
-            payload={"data": "test"}
-        )
-        
+        msg = WsMessage(type="test", payload={"data": "test"})
+
         msg_dict = msg.to_dict()
-        
+
         assert "type" in msg_dict
         assert "id" in msg_dict
         assert "timestamp" in msg_dict
@@ -241,11 +227,11 @@ class TestProtocolCompliance:
         """测试时间戳为 ISO 格式"""
         msg = WsMessage(type="test", payload={})
         msg_dict = msg.to_dict()
-        
+
         # 验证 ISO 时间戳格式
         timestamp = msg_dict["timestamp"]
         try:
-            datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+            datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
             assert True
         except ValueError:
             assert False, f"Invalid ISO timestamp: {timestamp}"
@@ -254,19 +240,15 @@ class TestProtocolCompliance:
         """测试 payload 是字典"""
         msg = WsMessage(type="test", payload={"key": "value"})
         msg_dict = msg.to_dict()
-        
+
         assert isinstance(msg_dict["payload"], dict)
 
     def test_status_field_values(self) -> None:
         """测试 status 字段值"""
         valid_statuses = ["success", "error", "push"]
-        
+
         for status in valid_statuses:
-            msg = WsMessage(
-                type="test",
-                payload={},
-                status=status
-            )
+            msg = WsMessage(type="test", payload={}, status=status)
             msg_dict = msg.to_dict()
             assert msg_dict["status"] == status
 
@@ -276,12 +258,12 @@ class TestErrorHandling:
 
     def test_invalid_json_handling(self) -> None:
         """测试无效 JSON 处理"""
-        handler = WebSocketProtocolHandler()
-        
+        WebSocketProtocolHandler()
+
         # 这应该在实际应用中由 WebSocket 层处理
         # 这里测试协议处理器的鲁棒性
         try:
-            msg = WsMessage.from_json("invalid json")
+            WsMessage.from_json("invalid json")
             assert False, "Should have raised an error"
         except json.JSONDecodeError:
             assert True
@@ -290,26 +272,25 @@ class TestErrorHandling:
         """测试缺少必需字段"""
         # 最少需要 type 和 payload
         msg = WsMessage(type="", payload={})
-        
+
         # 应该仍然能够创建消息
         assert msg is not None
 
     def test_callback_exception_handling(self) -> None:
         """测试回调异常处理"""
         handler = WebSocketProtocolHandler()
-        
+
         # 设置会抛出异常的回调
         def bad_callback(params):
             raise ValueError("Test error")
-        
+
         handler.on_update_params = bad_callback
-        
+
         # 这不应该导致崩溃
         msg = WsMessage(
-            type=MessageType.PARAMS_UPDATE.value,
-            payload={"params": {"test": "value"}}
+            type=MessageType.PARAMS_UPDATE.value, payload={"params": {"test": "value"}}
         )
-        
+
         try:
             response = handler.route_message(msg)
             # 应该返回错误响应
@@ -325,51 +306,45 @@ class TestPerformance:
     def test_message_creation_speed(self) -> None:
         """测试消息创建速度"""
         start = time.time()
-        
+
         for i in range(1000):
-            msg = WsMessage(
-                type="test",
-                payload={"index": i}
-            )
-        
+            WsMessage(type="test", payload={"index": i})
+
         elapsed = time.time() - start
-        
+
         # 应该在 100ms 内创建 1000 个消息
         assert elapsed < 0.1
 
     def test_routing_speed(self) -> None:
         """测试消息路由速度"""
         handler = WebSocketProtocolHandler()
-        
+
         start = time.time()
-        
+
         for i in range(1000):
-            msg = WsMessage(
-                type=MessageType.PING.value,
-                payload={}
-            )
+            msg = WsMessage(type=MessageType.PING.value, payload={})
             handler.route_message(msg)
-        
+
         elapsed = time.time() - start
-        
+
         # 应该在 500ms 内路由 1000 个消息
         assert elapsed < 0.5
 
     def test_telemetry_push_volume(self) -> None:
         """测试遥测推送容量"""
         handler = WebSocketProtocolHandler()
-        
+
         telemetry_size = 100  # 字节
         telemetry_count = 100  # 每秒 100 条消息
-        
+
         start = time.time()
-        
+
         for i in range(telemetry_count):
             data = {"index": i, "data": "x" * telemetry_size}
             handler.push_telemetry(data)
-        
+
         elapsed = time.time() - start
-        
+
         # 应该能处理高容量的遥测数据
         assert elapsed < 0.5
 

@@ -12,7 +12,9 @@ class FakeGodotAgentBackend:
         return {"status": "success", "message": command, "project_path": project_path}
 
     def execute_pipeline(self, commands, context=None):
-        return [{"status": "success", "success": True, "message": cmd} for cmd in commands]
+        return [
+            {"status": "success", "success": True, "message": cmd} for cmd in commands
+        ]
 
     def get_roles_info(self):
         return [{"name": "developer", "description": "dev", "capabilities": ["code"]}]
@@ -34,14 +36,20 @@ class FakeGodotAgentBackend:
     def list_templates(self):
         return {
             "status": "success",
-            "templates": [{"id": "ai/patrol.gd", "type": "template", "source_kind": "template"}],
+            "templates": [
+                {"id": "ai/patrol.gd", "type": "template", "source_kind": "template"}
+            ],
             "backend_mode": "fake",
         }
 
     def get_template(self, template_id):
         return {
             "status": "success",
-            "data": {"id": template_id, "type": "template", "content": "extends Node\n"},
+            "data": {
+                "id": template_id,
+                "type": "template",
+                "content": "extends Node\n",
+            },
             "backend_mode": "fake",
         }
 
@@ -77,7 +85,11 @@ class FakeGodotAgentBackend:
             "status": "success",
             "ok": True,
             "message": "Godot editor launching",
-            "data": {"project_path": project_path, "scene_path": scene_path, "pid": 1234},
+            "data": {
+                "project_path": project_path,
+                "scene_path": scene_path,
+                "pid": 1234,
+            },
         }
 
 
@@ -105,9 +117,24 @@ class FakeNightlyStatusProvider:
                 "skipped_jobs": 0,
             },
             "jobs": {
-                "smoke": {"name": "smoke", "present": True, "status": "completed", "conclusion": "success"},
-                "distributed-smoke": {"name": "distributed-smoke", "present": True, "status": "completed", "conclusion": "success"},
-                "godot-headless-smoke": {"name": "godot-headless-smoke", "present": True, "status": "completed", "conclusion": "success"},
+                "smoke": {
+                    "name": "smoke",
+                    "present": True,
+                    "status": "completed",
+                    "conclusion": "success",
+                },
+                "distributed-smoke": {
+                    "name": "distributed-smoke",
+                    "present": True,
+                    "status": "completed",
+                    "conclusion": "success",
+                },
+                "godot-headless-smoke": {
+                    "name": "godot-headless-smoke",
+                    "present": True,
+                    "status": "completed",
+                    "conclusion": "success",
+                },
             },
         }
 
@@ -249,7 +276,9 @@ def test_godot_skills_endpoints_smoke():
     assert any(skill.get("id") == "biped_3d_robot" for skill in data["skills"])
     assert data["compatibility_alias"] is False
 
-    response = client.post("/api/godot_skills/apply", json={"skill_id": "biped_3d_robot"})
+    response = client.post(
+        "/api/godot_skills/apply", json={"skill_id": "biped_3d_robot"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "success"
@@ -265,7 +294,11 @@ def test_godot_agent_management_routes(monkeypatch):
     assert response.status_code == 200
     status_data = response.json()
     assert status_data["godot_agent"]["status"] == "ready"
-    assert status_data["godot_agent"]["backend_mode"] in {"legacy", "godot-agent", "fake"}
+    assert status_data["godot_agent"]["backend_mode"] in {
+        "legacy",
+        "godot-agent",
+        "fake",
+    }
     assert status_data["godot_agent"]["roles_count"] >= 0
     assert status_data["nightly_regressions"]["summary"]["passed_jobs"] == 3
 
@@ -290,7 +323,9 @@ def test_godot_agent_management_routes(monkeypatch):
     assert data["count"] == 1
     assert data["items"][0]["task_id"] == "task-1"
 
-    response = client.get("/api/godot-agent/doctor", params={"godot_project_path": "D:/tmp/project"})
+    response = client.get(
+        "/api/godot-agent/doctor", params={"godot_project_path": "D:/tmp/project"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "success"
@@ -299,7 +334,10 @@ def test_godot_agent_management_routes(monkeypatch):
 
     response = client.post(
         "/api/godot-agent/launch",
-        json={"godot_project_path": "D:/tmp/project", "scene_path": "res://scenes/Main.tscn"},
+        json={
+            "godot_project_path": "D:/tmp/project",
+            "scene_path": "res://scenes/Main.tscn",
+        },
     )
     assert response.status_code == 200
     data = response.json()
@@ -360,11 +398,13 @@ def test_distributed_monitor_prunes_stale_actors() -> None:
         @staticmethod
         def now():
             from datetime import datetime
+
             return datetime.fromisoformat("2026-04-01T10:00:12")
 
         @staticmethod
         def fromisoformat(value):
             from datetime import datetime
+
             return datetime.fromisoformat(value)
 
     import web_panel.distributed_monitor as distributed_monitor_module

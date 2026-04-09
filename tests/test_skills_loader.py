@@ -3,14 +3,16 @@ Skills 加载器单元测试
 """
 
 import logging
-from typing import Any, Optional, Dict, List, Tuple
-logger = logging.getLogger(__name__)
+
 import pytest
 from pathlib import Path
 import tempfile
 import shutil
 
 from agi_walker.skills_loader import SkillsLoader, SkillMetadata
+
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -303,5 +305,3 @@ metadata:
     skill = loader.get_skill("null-req")
     assert skill.requires["python_modules"] == []
     assert skill.requires["bins"] == []
-
-

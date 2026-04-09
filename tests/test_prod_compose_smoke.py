@@ -27,7 +27,9 @@ def _reserve_tcp_port() -> int:
     return port
 
 
-def _compose_env(web_port: int, prometheus_port: int, grafana_port: int) -> dict[str, str]:
+def _compose_env(
+    web_port: int, prometheus_port: int, grafana_port: int
+) -> dict[str, str]:
     env = os.environ.copy()
     env.update(
         {
@@ -41,8 +43,18 @@ def _compose_env(web_port: int, prometheus_port: int, grafana_port: int) -> dict
     return env
 
 
-def _run_compose(project_name: str, env: dict[str, str], *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
-    command = ["docker", "compose", "-f", "docker-compose.prod.yml", "-p", project_name, *args]
+def _run_compose(
+    project_name: str, env: dict[str, str], *args: str, check: bool = True
+) -> subprocess.CompletedProcess[str]:
+    command = [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.prod.yml",
+        "-p",
+        project_name,
+        *args,
+    ]
     completed = subprocess.run(
         command,
         cwd=".",
@@ -81,7 +93,9 @@ def _http_request(
         body = urllib.parse.urlencode(form_body).encode("utf-8")
         request_headers["Content-Type"] = "application/x-www-form-urlencoded"
 
-    request = urllib.request.Request(url, data=body, method=method, headers=request_headers)
+    request = urllib.request.Request(
+        url, data=body, method=method, headers=request_headers
+    )
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return response.status, response.read()
@@ -89,22 +103,30 @@ def _http_request(
         return exc.code, exc.read()
 
 
-def _wait_for_http_ready(base_url: str, *, timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS) -> dict[str, Any]:
+def _wait_for_http_ready(
+    base_url: str, *, timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
+) -> dict[str, Any]:
     deadline = time.monotonic() + timeout_seconds
     last_error: str | None = None
     while time.monotonic() < deadline:
         try:
-            status, payload = _http_request(f"{base_url}/api/system/status", timeout=5.0)
+            status, payload = _http_request(
+                f"{base_url}/api/system/status", timeout=5.0
+            )
             if status == 200:
                 return json.loads(payload.decode("utf-8"))
             last_error = f"unexpected status {status}: {payload.decode('utf-8', errors='ignore')}"
         except Exception as exc:  # pragma: no cover - exercised only on startup races
             last_error = str(exc)
         time.sleep(2.0)
-    raise AssertionError(f"web-api did not become ready within {timeout_seconds}s: {last_error}")
+    raise AssertionError(
+        f"web-api did not become ready within {timeout_seconds}s: {last_error}"
+    )
 
 
-def _wait_for_status_code(url: str, *, expected_status: int = 200, timeout_seconds: float = 120.0) -> bytes:
+def _wait_for_status_code(
+    url: str, *, expected_status: int = 200, timeout_seconds: float = 120.0
+) -> bytes:
     """Wait until one HTTP endpoint consistently returns the expected status code."""
     deadline = time.monotonic() + timeout_seconds
     last_error: str | None = None
@@ -117,14 +139,20 @@ def _wait_for_status_code(url: str, *, expected_status: int = 200, timeout_secon
         except Exception as exc:  # pragma: no cover - exercised only on startup races
             last_error = str(exc)
         time.sleep(2.0)
-    raise AssertionError(f"endpoint {url} did not return {expected_status} within {timeout_seconds}s: {last_error}")
+    raise AssertionError(
+        f"endpoint {url} did not return {expected_status} within {timeout_seconds}s: {last_error}"
+    )
 
 
-def _wait_for_terminal_run(base_url: str, run_id: str, *, timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS) -> dict[str, Any]:
+def _wait_for_terminal_run(
+    base_url: str, run_id: str, *, timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
+) -> dict[str, Any]:
     deadline = time.monotonic() + timeout_seconds
     last_payload: dict[str, Any] | None = None
     while time.monotonic() < deadline:
-        status, payload = _http_request(f"{base_url}/api/workflows/runs/{run_id}/status", timeout=5.0)
+        status, payload = _http_request(
+            f"{base_url}/api/workflows/runs/{run_id}/status", timeout=5.0
+        )
         if status != 200:
             time.sleep(2.0)
             continue
@@ -139,7 +167,9 @@ def _wait_for_terminal_run(base_url: str, run_id: str, *, timeout_seconds: float
 @pytest.mark.integration
 def test_prod_compose_stack_runs_authenticated_workflow() -> None:
     if os.getenv(ENABLE_ENV_VAR) != "1":
-        pytest.skip(f"set {ENABLE_ENV_VAR}=1 to enable the production compose smoke test")
+        pytest.skip(
+            f"set {ENABLE_ENV_VAR}=1 to enable the production compose smoke test"
+        )
     if shutil.which("docker") is None:
         pytest.skip("docker CLI is not available in PATH")
 
@@ -157,7 +187,9 @@ def test_prod_compose_stack_runs_authenticated_workflow() -> None:
         assert system_status["status"] == "running"
 
         _wait_for_status_code(f"http://127.0.0.1:{prometheus_port}/-/healthy")
-        grafana_payload = _wait_for_status_code(f"http://127.0.0.1:{grafana_port}/api/health")
+        grafana_payload = _wait_for_status_code(
+            f"http://127.0.0.1:{grafana_port}/api/health"
+        )
         assert json.loads(grafana_payload.decode("utf-8"))["database"] == "ok"
 
         username = f"prod_user_{uuid.uuid4().hex[:8]}"
@@ -198,7 +230,9 @@ def test_prod_compose_stack_runs_authenticated_workflow() -> None:
         assert terminal_run["status"] == "completed", terminal_run
         assert terminal_run["worker_pid"] is None
 
-        detail_status, detail_payload = _http_request(f"{base_url}/api/workflows/runs/{run_id}", timeout=10.0)
+        detail_status, detail_payload = _http_request(
+            f"{base_url}/api/workflows/runs/{run_id}", timeout=10.0
+        )
         assert detail_status == 200, detail_payload.decode("utf-8", errors="ignore")
         detail = json.loads(detail_payload.decode("utf-8"))["run"]
         assert detail["status"] == "completed"
