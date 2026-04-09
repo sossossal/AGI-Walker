@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 
 import pytest
@@ -213,8 +214,7 @@ def test_websocket_legacy_commands_bind_controller_session(
     }
 
 
-@pytest.mark.asyncio
-async def test_session_bridge_get_sensors_polls_with_step(
+async def _run_session_bridge_get_sensors_polls_with_step(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     bridge = GodotBridge("session-test", 9000)
@@ -231,3 +231,9 @@ async def test_session_bridge_get_sensors_polls_with_step(
     assert observed["payload"] == {"type": "step", "action": []}
     assert response == {"vector": [0.1, 0.2]}
     assert bridge.last_sensor == {"vector": [0.1, 0.2]}
+
+
+def test_session_bridge_get_sensors_polls_with_step(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    asyncio.run(_run_session_bridge_get_sensors_polls_with_step(monkeypatch))

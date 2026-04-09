@@ -140,8 +140,7 @@ def _fail(
 
 
 @pytest.mark.integration
-@pytest.mark.asyncio
-async def test_godot_headless_smoke_lifecycle():
+async def _run_godot_headless_smoke_lifecycle() -> None:
     artifact_dir = _artifact_dir()
     session_id = f"smoke_test_{int(time.time())}"
     port = _reserve_free_tcp_port()
@@ -293,5 +292,9 @@ async def test_godot_headless_smoke_lifecycle():
         _write_report(artifact_dir, report)
 
 
+def test_godot_headless_smoke_lifecycle() -> None:
+    asyncio.run(_run_godot_headless_smoke_lifecycle())
+
+
 if __name__ == "__main__":
-    asyncio.run(test_godot_headless_smoke_lifecycle())
+    asyncio.run(_run_godot_headless_smoke_lifecycle())
