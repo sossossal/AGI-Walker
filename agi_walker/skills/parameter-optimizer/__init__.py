@@ -9,11 +9,113 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List
+from types import SimpleNamespace
 
 import numpy as np
-from scipy.optimize import minimize, differential_evolution
+
+try:
+    from scipy.optimize import minimize, differential_evolution
+
+    SCIPY_AVAILABLE = True
+except ModuleNotFoundError:
+    SCIPY_AVAILABLE = False
+
+    def _clip_to_bounds(
+        values: np.ndarray, bounds: List[tuple[float, float]]
+    ) -> np.ndarray:
+        clipped = np.array(values, dtype=float, copy=True)
+        for index, (lower, upper) in enumerate(bounds):
+            clipped[index] = np.clip(clipped[index], lower, upper)
+        return clipped
+
+    def minimize(
+        func,
+        x0,
+        method: str | None = None,
+        bounds: List[tuple[float, float]] | None = None,
+        options: Dict[str, Any] | None = None,
+        **kwargs,
+    ):
+        """Fallback local search used when scipy is unavailable."""
+        del method, kwargs
+        x = np.array(x0, dtype=float)
+        search_bounds = bounds or [(-np.inf, np.inf)] * len(x)
+        x = _clip_to_bounds(x, search_bounds)
+        best_x = x.copy()
+        best_value = float(func(best_x))
+
+        maxiter = int((options or {}).get("maxiter", 100))
+        spans = np.array(
+            [
+                upper - lower if np.isfinite(upper - lower) else 1.0
+                for lower, upper in search_bounds
+            ],
+            dtype=float,
+        )
+        step_sizes = np.maximum(spans * 0.1, 0.05)
+        nit = 0
+
+        for iteration in range(maxiter):
+            improved = False
+            for index in range(len(best_x)):
+                for direction in (-1.0, 1.0):
+                    candidate = best_x.copy()
+                    candidate[index] += direction * step_sizes[index]
+                    candidate = _clip_to_bounds(candidate, search_bounds)
+                    candidate_value = float(func(candidate))
+                    if candidate_value < best_value:
+                        best_x = candidate
+                        best_value = candidate_value
+                        improved = True
+            nit = iteration + 1
+            if not improved:
+                step_sizes *= 0.5
+                if np.all(step_sizes < 1e-3):
+                    break
+
+        return SimpleNamespace(x=best_x, success=True, nit=max(1, nit), fun=best_value)
+
+    def differential_evolution(
+        func,
+        bounds: List[tuple[float, float]],
+        maxiter: int = 100,
+        popsize: int = 15,
+        seed: int | None = None,
+        **kwargs,
+    ):
+        """Fallback random search used when scipy is unavailable."""
+        del kwargs
+        rng = np.random.default_rng(seed)
+        population = max(popsize, len(bounds) * 4)
+        best_x = None
+        best_value = float("inf")
+
+        for _ in range(maxiter):
+            for _ in range(population):
+                candidate = np.array(
+                    [rng.uniform(lower, upper) for lower, upper in bounds], dtype=float
+                )
+                candidate_value = float(func(candidate))
+                if candidate_value < best_value:
+                    best_x = candidate
+                    best_value = candidate_value
+
+        if best_x is None:
+            best_x = np.array(
+                [(lower + upper) / 2.0 for lower, upper in bounds], dtype=float
+            )
+            best_value = float(func(best_x))
+
+        return SimpleNamespace(
+            x=best_x, success=True, nit=max(1, maxiter), fun=best_value
+        )
+
 
 logger = logging.getLogger(__name__)
+if not SCIPY_AVAILABLE:
+    logger.info(
+        "scipy is unavailable; parameter-optimizer is using lightweight fallback solvers"
+    )
 
 
 @dataclass
