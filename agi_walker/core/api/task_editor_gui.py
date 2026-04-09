@@ -13,7 +13,6 @@ try:
         QWidget,
         QVBoxLayout,
         QHBoxLayout,
-        QLabel,
         QLineEdit,
         QComboBox,
         QPushButton,
@@ -23,7 +22,6 @@ try:
         QDoubleSpinBox,
         QGroupBox,
     )
-    from PyQt6.QtCore import Qt
 
     PYQT_AVAILABLE = True
 except ImportError:

@@ -241,9 +241,9 @@ class URDFGenerator:
         etree.SubElement(inertial, "mass", value=str(link.mass))
 
         inertia_elem = etree.SubElement(inertial, "inertia")
-        inertia_elem.set("ixx", f"{link.inertia[0,0]:.6f}")
-        inertia_elem.set("iyy", f"{link.inertia[1,1]:.6f}")
-        inertia_elem.set("izz", f"{link.inertia[2,2]:.6f}")
+        inertia_elem.set("ixx", f"{link.inertia[0, 0]:.6f}")
+        inertia_elem.set("iyy", f"{link.inertia[1, 1]:.6f}")
+        inertia_elem.set("izz", f"{link.inertia[2, 2]:.6f}")
         inertia_elem.set("ixy", "0")
         inertia_elem.set("ixz", "0")
         inertia_elem.set("iyz", "0")
@@ -401,7 +401,7 @@ def convert_to_sdf(input_file: str, output_file: str, world_file: bool = False) 
 <sdf version="1.6">
   <model name="agi_walker_robot">
     <!-- Generated from URDF -->
-    {urdf_content.split('?>')[-1].strip()}
+    {urdf_content.split("?>")[-1].strip()}
   </model>
 </sdf>"""
 

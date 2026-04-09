@@ -140,7 +140,9 @@ class EnergyManager:
         motor_power = parts_config.get("motor_power_multiplier", 1.0)
         num_motors = parts_config.get("num_motors", 6)
         for i in range(num_motors):
-            self.consumers.append(PowerConsumer(f"电机_{i+1}", 500 * motor_power, 0.6))
+            self.consumers.append(
+                PowerConsumer(f"电机_{i + 1}", 500 * motor_power, 0.6)
+            )
 
         # 控制器
         self.consumers.append(PowerConsumer("主控制器", 15, 1.0))
@@ -207,7 +209,7 @@ class EnergyManager:
         report.append(
             f"  当前电量: {self.battery.current_charge_wh:.1f} Wh ({soc:.1f}%)"
         )
-        report.append(f"  健康度: {self.battery.health*100:.1f}%")
+        report.append(f"  健康度: {self.battery.health * 100:.1f}%")
         report.append(f"  充电周期: {self.battery.charge_cycles}")
 
         report.append("\n功耗统计:")
@@ -221,7 +223,7 @@ class EnergyManager:
             if remaining_time >= 1:
                 report.append(f"  剩余时间: {remaining_time:.2f} 小时")
             else:
-                report.append(f"  剩余时间: {remaining_time*60:.1f} 分钟")
+                report.append(f"  剩余时间: {remaining_time * 60:.1f} 分钟")
         else:
             report.append("  剩余时间: 无限（无负载）")
 
@@ -282,7 +284,7 @@ if __name__ == "__main__":
 
         if i % 100 == 0:
             print(
-                f"时间: {i*0.01:.1f}s, 功耗: {result['total_power_w']:.1f}W, "
+                f"时间: {i * 0.01:.1f}s, 功耗: {result['total_power_w']:.1f}W, "
                 f"电量: {result['battery_soc']:.1f}%"
             )
 

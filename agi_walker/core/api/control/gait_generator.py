@@ -9,14 +9,40 @@ import numpy as np
 class GaitGenerator:
     """步态生成器基类"""
 
-    def __init__(self, frequency=1.0):
-        self.frequency = frequency
+    def __init__(self, frequency=1.0, step_height=0.05, stride_length=0.15, duty_cycle=0.6):
+        if isinstance(frequency, dict):
+            config = frequency
+            self.frequency = float(config.get("frequency", 1.0))
+            self.step_height = float(config.get("step_height", 0.05))
+            self.stride_length = float(config.get("stride_length", 0.15))
+            self.duty_cycle = float(config.get("duty_cycle", 0.6))
+        else:
+            self.frequency = float(frequency)
+            self.step_height = float(step_height)
+            self.stride_length = float(stride_length)
+            self.duty_cycle = float(duty_cycle)
         self.phase = 0.0
 
     def update(self, dt):
         """更新相位"""
         self.phase += 2 * np.pi * self.frequency * dt
         self.phase = self.phase % (2 * np.pi)
+
+    def generate(self, duration, num_samples):
+        """Generate a simple periodic joint-space trajectory for compatibility."""
+        sample_count = max(int(num_samples), 1)
+        duration = float(duration)
+        timeline = np.linspace(0.0, duration, sample_count, endpoint=False)
+        trajectory = []
+        for t in timeline:
+            base = 2 * np.pi * self.frequency * t
+            trajectory.append(
+                [
+                    float(self.stride_length * np.sin(base + joint * 0.35))
+                    for joint in range(6)
+                ]
+            )
+        return trajectory
 
     def get_foot_position(self, leg_id, time):
         """获取指定腿的足端位置"""

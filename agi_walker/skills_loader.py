@@ -10,9 +10,14 @@ Skills 是包含 SKILL.md 文件的目录,提供特定领域的专业知识和�
 import logging
 import yaml
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
-from .core.api.skill_contract import SkillContract, SkillParameter, ParameterType, SkillCatalog
+from .core.api.skill_contract import (
+    SkillContract,
+    SkillParameter,
+    ParameterType,
+    SkillCatalog,
+)
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -38,8 +43,8 @@ class SkillMetadata:
     category: str = "其他"
     emoji: str = "📦"
     requires: Dict[str, List[str]] = field(default_factory=dict)
-    inputs: List[SkillParameter] = field(default_factory=list)   # V2.5
-    outputs: List[SkillParameter] = field(default_factory=list) # V2.5
+    inputs: List[SkillParameter] = field(default_factory=list)  # V2.5
+    outputs: List[SkillParameter] = field(default_factory=list)  # V2.5
     skill_dir: Optional[Path] = None
 
     @property
@@ -102,6 +107,65 @@ class SkillsLoader:
             except Exception as e:
                 logger.error(f"加载 skill {skill_path.name} 失败: {e}")
 
+    def _parse_frontmatter(self, content: str) -> Dict:
+        if not content.startswith("---"):
+            raise ValueError("无效的 SKILL.md: 缺少 YAML frontmatter")
+
+        parts = content.split("---", 2)
+        if len(parts) < 3:
+            raise ValueError("无效的 SKILL.md: frontmatter 格式错误")
+
+        data = yaml.safe_load(parts[1])
+        if not isinstance(data, dict):
+            raise ValueError("无效的 SKILL.md: frontmatter 必须是对象")
+        return data
+
+    def _validate_description(self, value: Any) -> str:
+        if not isinstance(value, str):
+            raise ValueError("description必须是字符串")
+        if not value.strip():
+            raise ValueError("description不能抛为空")
+        return value
+
+    def _normalize_requires(self, raw_requires: Any) -> Dict[str, List[str]]:
+        if raw_requires is None:
+            return {}
+        if not isinstance(raw_requires, dict):
+            raise ValueError("requires必须是字典")
+
+        normalized: Dict[str, List[str]] = {}
+        for key, value in raw_requires.items():
+            if value is None:
+                normalized[key] = []
+                continue
+            if not isinstance(value, list):
+                raise ValueError(f"requires.{key}必须是列表")
+            if not all(isinstance(item, str) for item in value):
+                raise ValueError(f"requires.{key} 元素必须是字符串")
+            normalized[key] = value
+        return normalized
+
+    def _parse_parameters(self, raw_parameters: Any) -> List[SkillParameter]:
+        if raw_parameters in (None, {}):
+            return []
+        if not isinstance(raw_parameters, dict):
+            raise ValueError("inputs/outputs 必须是对象")
+
+        parameters: List[SkillParameter] = []
+        for p_name, p_cfg in raw_parameters.items():
+            if not isinstance(p_cfg, dict):
+                raise ValueError(f"参数 {p_name} 定义必须是对象")
+            parameters.append(
+                SkillParameter(
+                    name=p_name,
+                    type=ParameterType(p_cfg.get("type", "string")),
+                    description=str(p_cfg.get("description", "")),
+                    default=p_cfg.get("default"),
+                    required=p_cfg.get("required", True),
+                )
+            )
+        return parameters
+
     def parse_skill_metadata(self, skill_md: Path) -> SkillMetadata:
         """解析 SKILL.md 的 YAML frontmatter 并提取 I/O 契约
 
@@ -112,48 +176,30 @@ class SkillsLoader:
             SkillMetadata 对象
         """
         content = skill_md.read_text(encoding="utf-8")
+        data = self._parse_frontmatter(content)
 
-        # 提取 YAML frontmatter
-        if not content.startswith("---"):
-            raise ValueError("无效的 SKILL.md: 缺少 YAML frontmatter")
+        if "name" not in data:
+            raise ValueError("SKILL.md 缺少 'name' 字段")
+        if "description" not in data:
+            raise ValueError("SKILL.md 缺少 'description' 字段")
 
-        parts = content.split("---", 2)
-        if len(parts) < 3:
-            raise ValueError("无效的 SKILL.md: frontmatter 格式错误")
-
-        data = yaml.safe_load(parts[1])
-
-        if "name" not in data or "description" not in data:
-            raise ValueError("SKILL.md 缺少 'name' 或 'description' 字段")
+        name = data["name"]
+        description = self._validate_description(data["description"])
 
         # 1. 提取 I/O 契约 (V2.5)
-        inputs = []
-        for p_name, p_cfg in data.get("inputs", {}).items():
-            inputs.append(SkillParameter(
-                name=p_name,
-                type=ParameterType(p_cfg.get("type", "string")),
-                description=p_cfg.get("description", ""),
-                default=p_cfg.get("default"),
-                required=p_cfg.get("required", True)
-            ))
-
-        outputs = []
-        for p_name, p_cfg in data.get("outputs", {}).items():
-            outputs.append(SkillParameter(
-                name=p_name,
-                type=ParameterType(p_cfg.get("type", "string")),
-                description=p_cfg.get("description", "")
-            ))
+        inputs = self._parse_parameters(data.get("inputs"))
+        outputs = self._parse_parameters(data.get("outputs"))
 
         # 2. 提取元数据
         metadata = data.get("metadata", {}).get("agi_walker", {})
+        requires = self._normalize_requires(metadata.get("requires"))
 
         return SkillMetadata(
-            name=data["name"],
-            description=data["description"],
+            name=name,
+            description=description,
             emoji=data.get("emoji") or metadata.get("emoji", "📦"),
             category=data.get("category") or metadata.get("category", "其他"),
-            requires=metadata.get("requires", {}),
+            requires=requires,
             inputs=inputs,
             outputs=outputs,
         )
@@ -162,15 +208,17 @@ class SkillsLoader:
         """导出为可视化编辑器专用的 SkillCatalog"""
         contracts = []
         for meta in self.get_skills_list():
-            contracts.append(SkillContract(
-                name=meta.name,
-                version="1.0.0",
-                description=meta.description,
-                category=meta.category,
-                emoji=meta.emoji,
-                inputs=meta.inputs,
-                outputs=meta.outputs
-            ))
+            contracts.append(
+                SkillContract(
+                    name=meta.name,
+                    version="1.0.0",
+                    description=meta.description,
+                    category=meta.category,
+                    emoji=meta.emoji,
+                    inputs=meta.inputs,
+                    outputs=meta.outputs,
+                )
+            )
         return SkillCatalog(skills=contracts)
 
     def get_skill(self, name: str) -> Optional[SkillMetadata]:

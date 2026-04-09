@@ -1,20 +1,21 @@
 import psutil
-import time
 import logging
 from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
+
 
 class OffloadingScheduler:
     """
     AGI-Walker V2.5 Cloud-Edge Offloading Scheduler.
     Determines whether to run AI inference locally or offload to the cloud.
     """
+
     def __init__(
-        self, 
-        cpu_threshold: float = 85.0, 
+        self,
+        cpu_threshold: float = 85.0,
         latency_threshold_ms: float = 50.0,
-        mem_threshold: float = 90.0
+        mem_threshold: float = 90.0,
     ):
         self.cpu_threshold = cpu_threshold
         self.latency_threshold = latency_threshold_ms
@@ -31,17 +32,21 @@ class OffloadingScheduler:
         """
         cpu_usage = psutil.cpu_percent()
         mem_usage = psutil.virtual_memory().percent
-        
+
         # 1. Hardware Pressure Check
-        is_locally_pressed = cpu_usage > self.cpu_threshold or mem_usage > self.mem_threshold
-        
+        is_locally_pressed = (
+            cpu_usage > self.cpu_threshold or mem_usage > self.mem_threshold
+        )
+
         # 2. Network Viability Check
-        is_cloud_viable = self.cloud_available and (self.last_rtt < self.latency_threshold)
-        
+        is_cloud_viable = self.cloud_available and (
+            self.last_rtt < self.latency_threshold
+        )
+
         if is_locally_pressed and is_cloud_viable:
             logger.info(f"⚖️ Offloading: CPU={cpu_usage}%, RTT={self.last_rtt:.1f}ms")
             return True
-            
+
         return False
 
     def update_cloud_stats(self, rtt_ms: float, available: bool):
@@ -55,5 +60,5 @@ class OffloadingScheduler:
             "mem": psutil.virtual_memory().percent,
             "cloud_available": self.cloud_available,
             "last_rtt": self.last_rtt,
-            "mode": "offloading" if self.should_offload() else "local"
+            "mode": "offloading" if self.should_offload() else "local",
         }

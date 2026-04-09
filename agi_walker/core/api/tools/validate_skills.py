@@ -4,7 +4,6 @@ AGI-Walker Skills 端到端验证与索引生成工具
 用于 CI 质量门禁阶段，扫描所有 Skills 的一致性和资产完整性。
 """
 
-import os
 import sys
 import logging
 from pathlib import Path

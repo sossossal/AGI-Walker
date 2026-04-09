@@ -343,7 +343,7 @@ class AsyncController:
         load_stats = self.load_monitor.get_stats()
         logger.info("\n负载监控:")
         logger.info(f"  EMA延迟: {load_stats['ema_latency_ms']:.1f}ms")
-        logger.info(f"  超标率: {load_stats['over_threshold_rate']*100:.1f}%")
+        logger.info(f"  超标率: {load_stats['over_threshold_rate'] * 100:.1f}%")
         logger.info(f"  模式切换: {load_stats['mode_switches']}次")
 
         # 关闭资源

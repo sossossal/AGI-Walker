@@ -239,8 +239,6 @@ class RealRobotModelingExecutor(SkillExecutor):
         try:
             from agi_walker.skills.robot_modeling import (
                 load_template,
-                list_templates,
-                RobotConfig,
             )
         except ImportError as e:
             return {

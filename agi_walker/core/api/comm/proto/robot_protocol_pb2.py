@@ -4,43 +4,47 @@
 # source: agi_walker/core/api/comm/proto/robot_protocol.proto
 # Protobuf Python Version: 6.31.1
 """Generated protocol buffer code."""
+
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
+
 _runtime_version.ValidateProtobufRuntimeVersion(
     _runtime_version.Domain.PUBLIC,
     6,
     31,
     1,
-    '',
-    'agi_walker/core/api/comm/proto/robot_protocol.proto'
+    "",
+    "agi_walker/core/api/comm/proto/robot_protocol.proto",
 )
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-
-
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n3agi_walker/core/api/comm/proto/robot_protocol.proto\x12\nagi_walker\"}\n\x0cMotorCommand\x12\x10\n\x08motor_id\x18\x01 \x01(\x05\x12\x12\n\ntarget_pos\x18\x02 \x01(\x02\x12\x12\n\ntarget_vel\x18\x03 \x01(\x02\x12\n\n\x02kp\x18\x04 \x01(\x02\x12\n\n\x02kd\x18\x05 \x01(\x02\x12\x1b\n\x13\x66\x65\x65\x64_forward_torque\x18\x06 \x01(\x02\"\x81\x01\n\x07IMUData\x12\n\n\x02qx\x18\x01 \x01(\x02\x12\n\n\x02qy\x18\x02 \x01(\x02\x12\n\n\x02qz\x18\x03 \x01(\x02\x12\n\n\x02qw\x18\x04 \x01(\x02\x12\n\n\x02gx\x18\x05 \x01(\x02\x12\n\n\x02gy\x18\x06 \x01(\x02\x12\n\n\x02gz\x18\x07 \x01(\x02\x12\n\n\x02\x61x\x18\x08 \x01(\x02\x12\n\n\x02\x61y\x18\t \x01(\x02\x12\n\n\x02\x61z\x18\n \x01(\x02\"C\n\nFootSensor\x12\x0f\n\x07\x66oot_id\x18\x01 \x01(\x05\x12\x10\n\x08pressure\x18\x02 \x01(\x02\x12\x12\n\nis_contact\x18\x03 \x01(\x08\"\xce\x01\n\rRobotFeedback\x12\x11\n\ttimestamp\x18\x01 \x01(\x04\x12 \n\x03imu\x18\x02 \x01(\x0b\x32\x13.agi_walker.IMUData\x12$\n\x04\x66oot\x18\x03 \x03(\x0b\x32\x16.agi_walker.FootSensor\x12\x11\n\tmotor_pos\x18\x04 \x03(\x02\x12\x11\n\tmotor_vel\x18\x05 \x03(\x02\x12\x17\n\x0f\x62\x61ttery_voltage\x18\x06 \x01(\x02\x12\x11\n\tcpu_usage\x18\x07 \x01(\x02\x12\x10\n\x08temp_max\x18\x08 \x01(\x02\"\xfa\x01\n\x0cRobotMessage\x12+\n\x04type\x18\x01 \x01(\x0e\x32\x1d.agi_walker.RobotMessage.Type\x12\x0e\n\x06msg_id\x18\x02 \x01(\x04\x12*\n\x08\x63ommands\x18\x03 \x03(\x0b\x32\x18.agi_walker.MotorCommand\x12+\n\x08\x66\x65\x65\x64\x62\x61\x63k\x18\x04 \x01(\x0b\x32\x19.agi_walker.RobotFeedback\x12\x17\n\x0f\x64iagnostic_info\x18\x05 \x01(\t\";\n\x04Type\x12\x08\n\x04PING\x10\x00\x12\x0b\n\x07\x43OMMAND\x10\x01\x12\x0c\n\x08\x46\x45\x45\x44\x42\x41\x43K\x10\x02\x12\x0e\n\nDIAGNOSTIC\x10\x03\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n3agi_walker/core/api/comm/proto/robot_protocol.proto\x12\nagi_walker"}\n\x0cMotorCommand\x12\x10\n\x08motor_id\x18\x01 \x01(\x05\x12\x12\n\ntarget_pos\x18\x02 \x01(\x02\x12\x12\n\ntarget_vel\x18\x03 \x01(\x02\x12\n\n\x02kp\x18\x04 \x01(\x02\x12\n\n\x02kd\x18\x05 \x01(\x02\x12\x1b\n\x13\x66\x65\x65\x64_forward_torque\x18\x06 \x01(\x02"\x81\x01\n\x07IMUData\x12\n\n\x02qx\x18\x01 \x01(\x02\x12\n\n\x02qy\x18\x02 \x01(\x02\x12\n\n\x02qz\x18\x03 \x01(\x02\x12\n\n\x02qw\x18\x04 \x01(\x02\x12\n\n\x02gx\x18\x05 \x01(\x02\x12\n\n\x02gy\x18\x06 \x01(\x02\x12\n\n\x02gz\x18\x07 \x01(\x02\x12\n\n\x02\x61x\x18\x08 \x01(\x02\x12\n\n\x02\x61y\x18\t \x01(\x02\x12\n\n\x02\x61z\x18\n \x01(\x02"C\n\nFootSensor\x12\x0f\n\x07\x66oot_id\x18\x01 \x01(\x05\x12\x10\n\x08pressure\x18\x02 \x01(\x02\x12\x12\n\nis_contact\x18\x03 \x01(\x08"\xce\x01\n\rRobotFeedback\x12\x11\n\ttimestamp\x18\x01 \x01(\x04\x12 \n\x03imu\x18\x02 \x01(\x0b\x32\x13.agi_walker.IMUData\x12$\n\x04\x66oot\x18\x03 \x03(\x0b\x32\x16.agi_walker.FootSensor\x12\x11\n\tmotor_pos\x18\x04 \x03(\x02\x12\x11\n\tmotor_vel\x18\x05 \x03(\x02\x12\x17\n\x0f\x62\x61ttery_voltage\x18\x06 \x01(\x02\x12\x11\n\tcpu_usage\x18\x07 \x01(\x02\x12\x10\n\x08temp_max\x18\x08 \x01(\x02"\xfa\x01\n\x0cRobotMessage\x12+\n\x04type\x18\x01 \x01(\x0e\x32\x1d.agi_walker.RobotMessage.Type\x12\x0e\n\x06msg_id\x18\x02 \x01(\x04\x12*\n\x08\x63ommands\x18\x03 \x03(\x0b\x32\x18.agi_walker.MotorCommand\x12+\n\x08\x66\x65\x65\x64\x62\x61\x63k\x18\x04 \x01(\x0b\x32\x19.agi_walker.RobotFeedback\x12\x17\n\x0f\x64iagnostic_info\x18\x05 \x01(\t";\n\x04Type\x12\x08\n\x04PING\x10\x00\x12\x0b\n\x07\x43OMMAND\x10\x01\x12\x0c\n\x08\x46\x45\x45\x44\x42\x41\x43K\x10\x02\x12\x0e\n\nDIAGNOSTIC\x10\x03\x62\x06proto3'
+)
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'agi_walker.core.api.comm.proto.robot_protocol_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(
+    DESCRIPTOR, "agi_walker.core.api.comm.proto.robot_protocol_pb2", _globals
+)
 if not _descriptor._USE_C_DESCRIPTORS:
-  DESCRIPTOR._loaded_options = None
-  _globals['_MOTORCOMMAND']._serialized_start=67
-  _globals['_MOTORCOMMAND']._serialized_end=192
-  _globals['_IMUDATA']._serialized_start=195
-  _globals['_IMUDATA']._serialized_end=324
-  _globals['_FOOTSENSOR']._serialized_start=326
-  _globals['_FOOTSENSOR']._serialized_end=393
-  _globals['_ROBOTFEEDBACK']._serialized_start=396
-  _globals['_ROBOTFEEDBACK']._serialized_end=602
-  _globals['_ROBOTMESSAGE']._serialized_start=605
-  _globals['_ROBOTMESSAGE']._serialized_end=855
-  _globals['_ROBOTMESSAGE_TYPE']._serialized_start=796
-  _globals['_ROBOTMESSAGE_TYPE']._serialized_end=855
+    DESCRIPTOR._loaded_options = None
+    _globals["_MOTORCOMMAND"]._serialized_start = 67
+    _globals["_MOTORCOMMAND"]._serialized_end = 192
+    _globals["_IMUDATA"]._serialized_start = 195
+    _globals["_IMUDATA"]._serialized_end = 324
+    _globals["_FOOTSENSOR"]._serialized_start = 326
+    _globals["_FOOTSENSOR"]._serialized_end = 393
+    _globals["_ROBOTFEEDBACK"]._serialized_start = 396
+    _globals["_ROBOTFEEDBACK"]._serialized_end = 602
+    _globals["_ROBOTMESSAGE"]._serialized_start = 605
+    _globals["_ROBOTMESSAGE"]._serialized_end = 855
+    _globals["_ROBOTMESSAGE_TYPE"]._serialized_start = 796
+    _globals["_ROBOTMESSAGE_TYPE"]._serialized_end = 855
 # @@protoc_insertion_point(module_scope)

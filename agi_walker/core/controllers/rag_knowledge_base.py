@@ -6,16 +6,18 @@ V3.0: 切换为纯 JSON 存储并使用隔离的 RuntimePaths。
 import json
 import logging
 import numpy as np
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional
 from dataclasses import dataclass
 from pathlib import Path
 from agi_walker.core.utils.paths import RuntimePaths
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class KnowledgeEntry:
     """文本知识条目"""
+
     id: str
     category: str
     title: str
@@ -23,15 +25,18 @@ class KnowledgeEntry:
     keywords: List[str]
     embedding: Optional[List[float]] = None
 
+
 @dataclass
 class ExperienceEntry:
     """具身智能经验条目 (轨迹数据)"""
+
     id: str
     scenario: str
     outcome: str
     state_pattern: List[float]
     action_ref: List[float]
     source_file: str
+
 
 class PhysicsKnowledgeBase:
     """
@@ -54,7 +59,7 @@ class PhysicsKnowledgeBase:
     ]
 
     def __init__(self, index_path: Optional[Path] = None, use_embeddings: bool = True):
-        self.index_path = index_path or RuntimePaths.KNOWLEDGE
+        self.index_path = Path(index_path) if index_path else RuntimePaths.KNOWLEDGE
         self.use_embeddings = use_embeddings
         self.entries: List[KnowledgeEntry] = []
         self.experiences: List[ExperienceEntry] = []
@@ -83,7 +88,14 @@ class PhysicsKnowledgeBase:
     def _save_index(self) -> None:
         self.index_path.mkdir(parents=True, exist_ok=True)
         data = [
-            {"id": e.id, "category": e.category, "title": e.title, "content": e.content, "keywords": e.keywords, "embedding": e.embedding}
+            {
+                "id": e.id,
+                "category": e.category,
+                "title": e.title,
+                "content": e.content,
+                "keywords": e.keywords,
+                "embedding": e.embedding,
+            }
             for e in self.entries
         ]
         with open(self.index_path / "index.json", "w", encoding="utf-8") as f:
@@ -91,35 +103,82 @@ class PhysicsKnowledgeBase:
 
     def index_historical_trajectories(self, trajectories_dir: Optional[Path] = None):
         target_dir = trajectories_dir or RuntimePaths.TRAJECTORIES
-        if not target_dir.exists(): return
-        
+        if not target_dir.exists():
+            return
+
         logger.info(f"🧠 扫描历史轨迹: {target_dir}")
         for traj_file in target_dir.glob("*.json"):
             try:
-                with open(traj_file, "r") as f: data = json.load(f)
-                if not data: continue
-                orientations = [d["state"]["sensors"]["imu"]["orient"] for d in data if "state" in d]
-                avg_orient = np.mean(orientations, axis=0).tolist() if orientations else [0,0,0]
-                self.experiences.append(ExperienceEntry(
-                    id=traj_file.stem, scenario="recovery", outcome="success",
-                    state_pattern=avg_orient, action_ref=[0.5]*12, source_file=str(traj_file)
-                ))
-            except Exception: continue
+                with open(traj_file, "r") as f:
+                    data = json.load(f)
+                if not data:
+                    continue
+                orientations = [
+                    d["state"]["sensors"]["imu"]["orient"] for d in data if "state" in d
+                ]
+                avg_orient = (
+                    np.mean(orientations, axis=0).tolist()
+                    if orientations
+                    else [0, 0, 0]
+                )
+                self.experiences.append(
+                    ExperienceEntry(
+                        id=traj_file.stem,
+                        scenario="recovery",
+                        outcome="success",
+                        state_pattern=avg_orient,
+                        action_ref=[0.5] * 12,
+                        source_file=str(traj_file),
+                    )
+                )
+            except Exception:
+                continue
         logger.info(f"✅ 加载了 {len(self.experiences)} 条运行经验")
 
-    def retrieve_experience(self, current_sensor: dict, top_k: int = 1) -> List[ExperienceEntry]:
-        if not self.experiences: return []
-        curr_orient = current_sensor.get("sensors", {}).get("imu", {}).get("orient", [0,0,0])
-        def dist(exp): return np.linalg.norm(np.array(exp.state_pattern) - np.array(curr_orient))
+    def retrieve(self, query: str, top_k: int = 3) -> List[KnowledgeEntry]:
+        normalized_query = query.strip().lower()
+        if not normalized_query:
+            return self.entries[:top_k]
+
+        def score(entry: KnowledgeEntry) -> int:
+            entry_text = " ".join(
+                [entry.title, entry.content, *entry.keywords, entry.category]
+            ).lower()
+            keyword_hits = sum(
+                2 for keyword in entry.keywords if keyword.lower() in normalized_query
+            )
+            query_hit = 3 if normalized_query in entry_text else 0
+            char_hits = sum(1 for char in normalized_query if char and char in entry_text)
+            return query_hit + keyword_hits + char_hits
+
+        ranked = sorted(self.entries, key=score, reverse=True)
+        return [entry for entry in ranked if score(entry) > 0][:top_k] or ranked[:top_k]
+
+    def retrieve_experience(
+        self, current_sensor: dict, top_k: int = 1
+    ) -> List[ExperienceEntry]:
+        if not self.experiences:
+            return []
+        curr_orient = (
+            current_sensor.get("sensors", {}).get("imu", {}).get("orient", [0, 0, 0])
+        )
+
+        def dist(exp):
+            return np.linalg.norm(np.array(exp.state_pattern) - np.array(curr_orient))
+
         return sorted(self.experiences, key=dist)[:top_k]
 
     def augment_prompt(self, base_prompt: str, sensor_data: dict) -> str:
-        context = " ".join([e.content for e in self.entries[:2]])
+        knowledge_entries = self.retrieve(base_prompt, top_k=2)
+        context = " ".join([entry.content for entry in knowledge_entries])
         exp_context = ""
         exps = self.retrieve_experience(sensor_data)
         if exps:
             exp_context = f"历史参考: 在姿态 {exps[0].state_pattern} 附近，执行动作 {exps[0].action_ref} 成功。"
-        return f"{base_prompt}\n\n物理背景: {context}\n{exp_context}"
+        return f"{base_prompt}\n\n物理知识: {context}\n{exp_context}".strip()
 
     def get_stats(self) -> dict:
-        return {"knowledge_count": len(self.entries), "experience_count": len(self.experiences)}
+        return {
+            "knowledge_count": len(self.entries),
+            "experience_count": len(self.experiences),
+        }

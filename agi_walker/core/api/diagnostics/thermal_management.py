@@ -114,7 +114,7 @@ class ThermalManager:
         # 电机
         for i in range(num_motors):
             motor = ThermalComponent(
-                f"电机_{i+1}",
+                f"电机_{i + 1}",
                 thermal_resistance=15.0,  # °C/W
                 thermal_capacity=50.0,  # J/°C
             )
@@ -127,7 +127,7 @@ class ThermalManager:
         # 电机驱动器
         for i in range(num_motors // 2):
             driver = ThermalComponent(
-                f"驱动器_{i+1}", thermal_resistance=10.0, thermal_capacity=30.0
+                f"驱动器_{i + 1}", thermal_resistance=10.0, thermal_capacity=30.0
             )
             driver.max_temp = 90.0
             driver.warning_temp = 75.0
@@ -244,7 +244,7 @@ class ThermalManager:
         report.append(f"节流状态: {'激活' if self.throttling_active else '未激活'}")
         if self.throttling_active:
             report.append(
-                f"节流因子: {self.throttle_factor:.2f} ({(1-self.throttle_factor)*100:.0f}% 功率降低)"
+                f"节流因子: {self.throttle_factor:.2f} ({(1 - self.throttle_factor) * 100:.0f}% 功率降低)"
             )
 
         report.append("\n组件温度:")
@@ -308,7 +308,7 @@ if __name__ == "__main__":
 
         if i % 100 == 0:
             print(
-                f"时间: {i*0.1:.1f}s, 最高温度: {result['max_temp']:.1f}°C, "
+                f"时间: {i * 0.1:.1f}s, 最高温度: {result['max_temp']:.1f}°C, "
                 f"节流: {result['throttling']}"
             )
 

@@ -10,7 +10,6 @@ try:
     from rclpy.node import Node
     from sensor_msgs.msg import JointState
     from std_msgs.msg import Float64MultiArray, Header
-    from builtin_interfaces.msg import Time
 
     ROS2_AVAILABLE = True
 except ImportError:

@@ -5,7 +5,7 @@
 
 import gymnasium as gym
 import numpy as np
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 from agi_walker.core.api.parts.custom_parts import CustomMotor, CustomJoint
 
 
@@ -90,37 +90,37 @@ class ParametricRobotController:
         change_ratio = (new_value - old_value) / old_value if old_value != 0 else 0
 
         if param_name == "motor_power_multiplier":
-            impact["max_torque"] = f"{change_ratio*100:+.1f}%"
-            impact["max_speed"] = f"{change_ratio*100:+.1f}%"
-            impact["energy_consumption"] = f"{change_ratio*100:+.1f}%"
+            impact["max_torque"] = f"{change_ratio * 100:+.1f}%"
+            impact["max_speed"] = f"{change_ratio * 100:+.1f}%"
+            impact["energy_consumption"] = f"{change_ratio * 100:+.1f}%"
             impact["expected_behavior"] = (
                 "更强的驱动力" if new_value > old_value else "更弱的驱动力"
             )
 
         elif param_name == "joint_stiffness":
-            impact["position_accuracy"] = f"{change_ratio*50:+.1f}%"
-            impact["response_time"] = f"{-change_ratio*30:+.1f}%"
+            impact["position_accuracy"] = f"{change_ratio * 50:+.1f}%"
+            impact["response_time"] = f"{-change_ratio * 30:+.1f}%"
             impact["expected_behavior"] = (
                 "更精确但可能更震荡" if new_value > old_value else "更柔和但精度降低"
             )
 
         elif param_name == "joint_damping":
-            impact["oscillation"] = f"{-change_ratio*60:+.1f}%"
-            impact["settling_time"] = f"{change_ratio*40:+.1f}%"
+            impact["oscillation"] = f"{-change_ratio * 60:+.1f}%"
+            impact["settling_time"] = f"{change_ratio * 40:+.1f}%"
             impact["expected_behavior"] = (
                 "更稳定但响应慢" if new_value > old_value else "响应快但可能震荡"
             )
 
         elif param_name == "friction":
-            impact["滑动阻力"] = f"{change_ratio*100:+.1f}%"
-            impact["能量损失"] = f"{change_ratio*50:+.1f}%"
+            impact["滑动阻力"] = f"{change_ratio * 100:+.1f}%"
+            impact["能量损失"] = f"{change_ratio * 50:+.1f}%"
             impact["expected_behavior"] = (
                 "更稳定但能耗高" if new_value > old_value else "能耗低但可能打滑"
             )
 
         elif param_name == "mass_multiplier":
-            impact["惯性"] = f"{change_ratio*100:+.1f}%"
-            impact["required_torque"] = f"{change_ratio*100:+.1f}%"
+            impact["惯性"] = f"{change_ratio * 100:+.1f}%"
+            impact["required_torque"] = f"{change_ratio * 100:+.1f}%"
             impact["expected_behavior"] = (
                 "更稳定但需要更大力矩" if new_value > old_value else "灵活但稳定性降低"
             )
@@ -259,7 +259,7 @@ class ParametricRobotController:
                 best_reward = result["total_reward"]
                 best_params = test_params.copy()
 
-            print(f"  试验 {trial+1}/{n_trials}: 奖励 = {result['total_reward']:.2f}")
+            print(f"  试验 {trial + 1}/{n_trials}: 奖励 = {result['total_reward']:.2f}")
 
         # 恢复最优参数
         for param_name, value in best_params.items():
@@ -340,3 +340,73 @@ class InteractiveParameterTuner:
 if __name__ == "__main__":
     print("Parametric robot control system")
     print("Run example: examples/parametric_control_demo.py")
+
+
+class ParametricController:
+    """Compatibility controller exposing the legacy test API."""
+
+    def __init__(self, robot_config: Optional[Dict[str, Any]] = None):
+        self.robot_config = robot_config or {}
+        joint_limits = self.robot_config.get("joint_limits", {})
+        mins = list(joint_limits.get("min", []))
+        maxs = list(joint_limits.get("max", []))
+        self.num_joints = int(
+            self.robot_config.get("num_joints", max(len(mins), len(maxs), 6))
+        )
+        if not mins:
+            mins = [-3.14] * self.num_joints
+        if not maxs:
+            maxs = [3.14] * self.num_joints
+        self.min_limits = mins
+        self.max_limits = maxs
+        self.kp = 10.0
+        self.kd = 5.0
+        self.ki = 0.1
+
+    def set_parameters(self, params: Dict[str, float]) -> None:
+        self.kp = float(params.get("kp", self.kp))
+        self.kd = float(params.get("kd", self.kd))
+        self.ki = float(params.get("ki", self.ki))
+
+    def compute_pid(
+        self, error: float, velocity_error: float = 0.0, integral_error: float = 0.0
+    ) -> float:
+        return float(
+            self.kp * float(error)
+            + self.kd * float(velocity_error)
+            + self.ki * float(integral_error)
+        )
+
+    def limit_command(self, command) -> list[float]:
+        values = list(command)
+        limited = []
+        for index in range(self.num_joints):
+            raw = float(values[index]) if index < len(values) else 0.0
+            limited.append(
+                max(self.min_limits[index], min(self.max_limits[index], raw))
+            )
+        return limited
+
+    def compute_output(
+        self, current_state: Dict[str, Any], control_target: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        current_pos = list(current_state.get("position", [0.0] * self.num_joints))
+        current_vel = list(current_state.get("velocity", [0.0] * self.num_joints))
+        target_pos = list(control_target.get("position", [0.0] * self.num_joints))
+        target_vel = list(control_target.get("velocity", [0.0] * self.num_joints))
+
+        command = []
+        for index in range(self.num_joints):
+            position_error = float(target_pos[index]) - float(current_pos[index])
+            velocity_error = float(target_vel[index]) - float(current_vel[index])
+            command.append(self.compute_pid(position_error, velocity_error, 0.0))
+
+        limited = self.limit_command(command)
+        return {"motors": limited, "position": limited}
+
+    def estimate_state(self, measurements: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "position": list(measurements.get("position", [0.0] * self.num_joints)),
+            "velocity": list(measurements.get("velocity", [0.0] * self.num_joints)),
+            "force": list(measurements.get("force", [0.0] * self.num_joints)),
+        }

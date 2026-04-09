@@ -157,11 +157,11 @@ def benchmark_serialization():
             msgpack.packb(test_data, use_bin_type=True)
             msgpack_times.append(time.perf_counter() - start)
 
-        print(f"JSON 平均时间:    {np.mean(json_times)*1e6:.2f} μs")
-        print(f"msgpack 平均时间: {np.mean(msgpack_times)*1e6:.2f} μs")
-        print(f"性能提升:         {np.mean(json_times)/np.mean(msgpack_times):.2f}x")
+        print(f"JSON 平均时间:    {np.mean(json_times) * 1e6:.2f} μs")
+        print(f"msgpack 平均时间: {np.mean(msgpack_times) * 1e6:.2f} μs")
+        print(f"性能提升:         {np.mean(json_times) / np.mean(msgpack_times):.2f}x")
     else:
-        print(f"JSON 平均时间:    {np.mean(json_times)*1e6:.2f} μs")
+        print(f"JSON 平均时间:    {np.mean(json_times) * 1e6:.2f} μs")
         print("msgpack 未安装，无法对比")
 
 

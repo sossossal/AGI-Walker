@@ -6,12 +6,13 @@ from .proto import robot_protocol_pb2
 
 logger = logging.getLogger(__name__)
 
+
 class BinaryGodotClient:
     """
     AGI-Walker V2.0 High-Performance Binary Client using Protobuf.
     Replaces JSON-based communication to reduce CPU overhead and latency.
     """
-    
+
     def __init__(self, host: str = "127.0.0.1", port: int = 4242):
         self.host = host
         self.port = port
@@ -33,7 +34,7 @@ class BinaryGodotClient:
     def send_message(self, msg: robot_protocol_pb2.RobotMessage) -> bool:
         if not self.is_connected or not self.sock:
             return False
-        
+
         try:
             # 序列化 Protobuf 消息
             data = msg.SerializeToString()
@@ -58,9 +59,9 @@ class BinaryGodotClient:
             header = self.sock.recv(4)
             if not header:
                 return None
-            
+
             msg_len = struct.unpack(">I", header)[0]
-            
+
             # 2. 读取完整的消息体
             chunks = []
             bytes_recvd = 0
@@ -70,14 +71,14 @@ class BinaryGodotClient:
                     raise ConnectionError("Socket closed during read")
                 chunks.append(chunk)
                 bytes_recvd += len(chunk)
-            
+
             full_data = b"".join(chunks)
-            
+
             # 3. 解析 Protobuf
             msg = robot_protocol_pb2.RobotMessage()
             msg.ParseFromString(full_data)
             return msg
-            
+
         except BlockingIOError:
             # 无数据可用
             return None

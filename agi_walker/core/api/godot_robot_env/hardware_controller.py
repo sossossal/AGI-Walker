@@ -103,7 +103,6 @@ class IMC22Controller:
             msg.arbitration_id >= self.ID_STATUS_BASE
             and msg.arbitration_id < self.ID_COMMAND_BASE
         ):
-
             node_id = msg.arbitration_id - self.ID_STATUS_BASE
 
             # 解析数据 (假设格式: angle:int16, current:uint16, error:int16)

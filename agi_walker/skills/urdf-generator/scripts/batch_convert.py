@@ -9,7 +9,6 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 
 
 def _add_repo_root_to_path() -> None:
@@ -23,15 +22,18 @@ def _add_repo_root_to_path() -> None:
 
 _add_repo_root_to_path()
 
-from agi_walker.skills.urdf_generator import (
-    convert_to_urdf,
-    validate_urdf,
-)  # noqa: E402
-
 logger = logging.getLogger(__name__)
 
 
+def _load_urdf_tools():
+    from agi_walker.skills.urdf_generator import convert_to_urdf, validate_urdf
+
+    return convert_to_urdf, validate_urdf
+
+
 def main() -> None:
+    convert_to_urdf, validate_urdf = _load_urdf_tools()
+
     parser = argparse.ArgumentParser(description="批量转换机器人配置为URDF/SDF")
     parser.add_argument("--input", required=True, help="输入目录或文件")
     parser.add_argument("--output", required=True, help="输出目录")

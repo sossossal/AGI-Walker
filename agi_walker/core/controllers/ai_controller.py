@@ -6,64 +6,80 @@ AI驱动的机器人控制器
 import time
 import threading
 import logging
+import math
 import numpy as np
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from .tcp_client import GodotClient
 from .onnx_inference import ONNXInferenceEngine
-from .ai_model import create_ai_model, BaseAIModel
+from .ai_model import create_ai_model
 from .load_monitor import SystemMonitor
 
 logger = logging.getLogger(__name__)
 
+
 class SafetyChecker:
     """AGI-Walker V2.0 工业级安全检查器"""
+
     def __init__(self) -> None:
         # 关节限位 (弧度)
         self.joint_limits = {"hip_left": (-0.8, 1.5), "hip_right": (-0.8, 1.5)}
         # 速度限制 (rad/s)
-        self.max_velocity = 5.0 
+        self.max_velocity = 5.0
         self.last_pos = {}
         self.last_time = time.time()
+
+    def _coerce_position(self, value: Any) -> float:
+        try:
+            position = float(value)
+        except (TypeError, ValueError):
+            return 0.0
+        if not math.isfinite(position):
+            return 0.0
+        return position
 
     def check(self, action: Dict[str, Any]) -> Dict[str, Any]:
         """高频安全校验"""
         now = time.time()
-        dt = now - self.last_time
+        dt = max(now - self.last_time, 1e-6)
         safe_action = {"motors": {}}
 
         for joint, pos in action.get("motors", {}).items():
+            pos = self._coerce_position(pos)
             if joint in self.joint_limits:
                 low, high = self.joint_limits[joint]
                 pos = max(low, min(high, pos))
 
-            if joint in self.last_pos and dt > 0:
+            if joint in self.last_pos:
                 vel = (pos - self.last_pos[joint]) / dt
                 if abs(vel) > self.max_velocity:
                     pos = self.last_pos[joint] + np.sign(vel) * self.max_velocity * dt
 
-            safe_action["motors"][joint] = pos
-            self.last_pos[joint] = pos
+            safe_pos = float(pos)
+            safe_action["motors"][joint] = safe_pos
+            self.last_pos[joint] = safe_pos
 
         self.last_time = now
         return safe_action
+
 
 class AIController:
     """
     AGI-Walker V2.0 Decoupled AI Controller with Adaptive Degradation.
     Prioritizes hardware safety by falling back to pre-defined safe modes.
     """
+
     def __init__(
         self,
         model_path: Optional[str] = None,
         backend: str = "onnx",
-        strategy: str = "balanced_standing"
+        strategy: str = "balanced_standing",
     ):
         self.client = GodotClient()
         self.safety = SafetyChecker()
         self.monitor = SystemMonitor()
         self.strategy = strategy
         self.backend_type = backend
-        
+
         # 推理后端初始化
         if backend == "onnx" and model_path:
             self.engine = ONNXInferenceEngine(model_path)
@@ -76,7 +92,7 @@ class AIController:
         self.running = False
         self.degraded_mode = False
         self.lock = threading.Lock()
-        
+
         # 统计
         self.ctrl_count = 0
         self.inf_count = 0
@@ -85,7 +101,7 @@ class AIController:
         """低频 AI 推理线程 (支持自适应挂起)"""
         interval = 1.0 / hz
         logger.info(f"Inference thread started at {hz} Hz")
-        
+
         while self.running:
             if self.degraded_mode:
                 # 降级模式下暂停 AI 推理，减少 CPU 压力
@@ -95,17 +111,21 @@ class AIController:
             start_time = time.time()
             with self.lock:
                 sensors = self.sensor_buffer.copy()
-            
+
             if sensors:
-                action = self.engine.predict(sensors) if hasattr(self.engine, 'predict') else {}
+                action = (
+                    self.engine.predict(sensors)
+                    if hasattr(self.engine, "predict")
+                    else {}
+                )
                 with self.lock:
                     self.latest_action = action
                     self.inf_count += 1
-            
+
             elapsed = time.time() - start_time
             # 性能预警
-            if elapsed > 0.1: # 超过 100ms 则认为推理太慢
-                logger.warning(f"Extreme Inference Latency: {elapsed*1000:.1f}ms")
+            if elapsed > 0.1:  # 超过 100ms 则认为推理太慢
+                logger.warning(f"Extreme Inference Latency: {elapsed * 1000:.1f}ms")
 
             time.sleep(max(0, interval - elapsed))
 
@@ -135,7 +155,7 @@ class AIController:
                 sensors = self.client.get_latest_sensors()
                 if not sensors:
                     continue
-                
+
                 with self.lock:
                     self.sensor_buffer = sensors
                     if not self.degraded_mode:
@@ -167,7 +187,7 @@ class AIController:
     def _check_hardware_health(self):
         """硬件健康检查逻辑"""
         is_overloaded = self.monitor.is_overloaded()
-        
+
         if is_overloaded and not self.degraded_mode:
             self.degraded_mode = True
             logger.error("SYSTEM OVERLOAD: FALLING BACK TO SAFE MODE!")
@@ -175,8 +195,9 @@ class AIController:
             # 自动恢复 (如果硬件负载回到正常范围)
             self.degraded_mode = False
             logger.info("Hardware recovered: Resuming AI Inference.")
-        
+
         self.monitor.report()
+
 
 if __name__ == "__main__":
     controller = AIController()

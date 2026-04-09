@@ -411,7 +411,7 @@ class Sim2RealGapEstimator:
             total_loss = epoch_loss / len(valid_pairs)
 
             if (epoch + 1) % 10 == 0:
-                logger.info(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss:.6f}")
+                logger.info(f"Epoch {epoch + 1}/{epochs}, Loss: {total_loss:.6f}")
 
         self.gap_model.trained = True
         return total_loss

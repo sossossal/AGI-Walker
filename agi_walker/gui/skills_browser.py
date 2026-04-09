@@ -28,8 +28,8 @@ try:
         QComboBox,
         QMessageBox,
     )
-    from PyQt6.QtCore import Qt, QSize
-    from PyQt6.QtGui import QFont, QIcon
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtGui import QFont
 except ImportError:
     logger.warning("PyQt6未安装,GUI功能不可用")
     logger.info("安装命令: pip install PyQt6")

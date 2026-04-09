@@ -246,6 +246,6 @@ if __name__ == "__main__":
 
     report = analyzer.analyze_gap()
     logger.info("\n=== 分析报告 ===")
-    logger.info(f"平均效率偏差: {report.avg_efficiency_gap*100:.1f}%")
+    logger.info(f"平均效率偏差: {report.avg_efficiency_gap * 100:.1f}%")
     logger.info(f"建议转矩缩放: {report.torque_scale_factor:.3f}")
-    logger.info(f"响应滞后: {report.avg_response_lag*1000:.1f}ms")
+    logger.info(f"响应滞后: {report.avg_response_lag * 1000:.1f}ms")

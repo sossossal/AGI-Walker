@@ -2,21 +2,14 @@
 AGI-Walker 硬件驱动测试 (Mock 模式)
 验证 RealRobotDriver 和 SysID 数据采集在 Mock 模式下的正确性。
 """
+
 import unittest
-import sys
 import os
 import csv
+from agi_walker.core.drivers.real_robot_driver import RealRobotDriver
+from agi_walker.core.drivers.collect_sysid_data import collect_data
 
-# 确保项目根目录和 drivers 目录都在 sys.path 中
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-_PROJECT_ROOT = os.path.dirname(_THIS_DIR)
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, _PROJECT_ROOT)
-if _THIS_DIR not in sys.path:
-    sys.path.insert(0, _THIS_DIR)
-
-from real_robot_driver import RealRobotDriver
-from collect_sysid_data import collect_data
 
 
 class TestRealRobotDriver(unittest.TestCase):
@@ -33,27 +26,27 @@ class TestRealRobotDriver(unittest.TestCase):
         driver = RealRobotDriver(mock=True)
         driver.connect()
 
-        cmd = {'motor_1': 1.57, 'motor_2': -0.5, 'motor_3': 0.0}
+        cmd = {"motor_1": 1.57, "motor_2": -0.5, "motor_3": 0.0}
         self.assertTrue(driver.send_motor_commands(cmd))
 
         state = driver.get_state()
-        self.assertIn('motor_1', state['motors'])
-        self.assertAlmostEqual(state['motors']['motor_1']['pos'], 1.57)
-        self.assertAlmostEqual(state['motors']['motor_2']['pos'], -0.5)
+        self.assertIn("motor_1", state["motors"])
+        self.assertAlmostEqual(state["motors"]["motor_1"]["pos"], 1.57)
+        self.assertAlmostEqual(state["motors"]["motor_2"]["pos"], -0.5)
 
         driver.disconnect()
 
     def test_get_state_structure(self):
         driver = RealRobotDriver(mock=True)
         driver.connect()
-        driver.send_motor_commands({'motor_1': 0.5})
+        driver.send_motor_commands({"motor_1": 0.5})
 
         state = driver.get_state()
-        self.assertIn('motors', state)
-        self.assertIn('imu', state)
-        self.assertIn('rpy', state['imu'])
-        self.assertIn('acc', state['imu'])
-        self.assertIn('gyro', state['imu'])
+        self.assertIn("motors", state)
+        self.assertIn("imu", state)
+        self.assertIn("rpy", state["imu"])
+        self.assertIn("acc", state["imu"])
+        self.assertIn("gyro", state["imu"])
 
         driver.disconnect()
 
@@ -71,13 +64,18 @@ class TestSysIDCollection(unittest.TestCase):
 
         self.assertTrue(os.path.exists(out_file))
 
-        with open(out_file, 'r') as f:
+        with open(out_file, "r") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
             self.assertGreater(len(rows), 5, "应至少采集 5 个样本")
             # 检查所有必需列
-            expected_cols = ['time', 'target_pos', 'actual_pos',
-                             'actual_vel', 'actual_torque']
+            expected_cols = [
+                "time",
+                "target_pos",
+                "actual_pos",
+                "actual_vel",
+                "actual_torque",
+            ]
             for col in expected_cols:
                 self.assertIn(col, rows[0], f"缺少列: {col}")
 
@@ -85,5 +83,5 @@ class TestSysIDCollection(unittest.TestCase):
         os.remove(out_file)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)

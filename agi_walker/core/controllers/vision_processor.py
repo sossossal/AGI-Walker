@@ -138,7 +138,7 @@ if __name__ == "__main__":
     duration = time.time() - start
 
     logger.info(f"编码维度: {emb.shape}")
-    logger.info(f"耗时: {duration*1000:.1f}ms")
+    logger.info(f"耗时: {duration * 1000:.1f}ms")
 
     # 模拟 VLA 场景
     cmd = "Walk forward"

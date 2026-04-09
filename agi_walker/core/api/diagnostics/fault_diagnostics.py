@@ -271,7 +271,7 @@ class FaultDiagnostics:
         if component.wear_level > 0.7:
             return {
                 "severity": "CRITICAL",
-                "message": f"{component.name} 需要立即维护 (磨损 {component.wear_level*100:.0f}%)",
+                "message": f"{component.name} 需要立即维护 (磨损 {component.wear_level * 100:.0f}%)",
                 "recommendation": "安排紧急维护或更换",
             }
         elif hours_since_maintenance > 1000:
@@ -307,7 +307,7 @@ class FaultDiagnostics:
                 {
                     "component": component.name,
                     "health": health.value,
-                    "wear": f"{component.wear_level*100:.0f}%",
+                    "wear": f"{component.wear_level * 100:.0f}%",
                     "remaining_life_hours": remaining_life,
                     "urgency": urgency,
                     "action": action,
@@ -344,7 +344,7 @@ class FaultDiagnostics:
             report.append(
                 f"{component.name:<20} "
                 f"{component.operating_hours:<12.1f}h "
-                f"{component.wear_level*100:<10.0f}% "
+                f"{component.wear_level * 100:<10.0f}% "
                 f"{health.value:<10} "
                 f"{remaining_str:<15}"
             )

@@ -4,13 +4,28 @@ AI模型包装器
 """
 
 import json
+import math
 import time
-from typing import Dict, Optional, Literal
+from typing import Any, Dict, Optional, Literal
 from abc import ABC, abstractmethod
 
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _coerce_float(value: Any, default: float = 0.0) -> float:
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return default
+    if not math.isfinite(result):
+        return default
+    return result
+
+
+def _clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
 
 
 class BaseAIModel(ABC):
@@ -31,23 +46,33 @@ class OllamaModel(BaseAIModel):
     """Ollama AI模型"""
 
     def __init__(self, model_name: str = "phi3:mini") -> None:
+        self.ollama = None
         try:
             import ollama
 
             self.ollama = ollama
         except ImportError:
-            raise ImportError("请安装ollama: pip install ollama")
-
+            self.ollama = None
         self.model = model_name
         self.schema = self._create_schema()
+        self._use_fallback = False
+        self._fallback_reason = ""
 
         # 统计
         self.total_predictions = 0
         self.total_time = 0.0
         self.errors = 0
 
-        # 验证模型可用
-        self._verify_model()
+        if self.ollama is None:
+            self._enable_fallback("ollama 未安装")
+        else:
+            self._verify_model()
+
+    def _enable_fallback(self, reason: str) -> None:
+        if not self._use_fallback:
+            logger.warning("OllamaModel fallback enabled: %s", reason)
+        self._use_fallback = True
+        self._fallback_reason = reason
 
     def _verify_model(self) -> None:
         """验证模型是否可用"""
@@ -56,17 +81,15 @@ class OllamaModel(BaseAIModel):
             available = [m["name"] for m in models.get("models", [])]
 
             if not any(self.model in m for m in available):
-                logger.info(f"⚠️ 模型 {self.model} 未找到")
-                logger.info(f"可用模型: {available}")
-                logger.info(f"\n请运行: ollama pull {self.model}")
-                raise ValueError(f"模型 {self.model} 不可用")
+                self._enable_fallback(
+                    f"模型 {self.model} 不可用，可用模型: {available or ['<none>']}"
+                )
+                return
 
-            logger.info(f"✅ 模型 {self.model} 已加载")
+            logger.info("模型 %s 已加载", self.model)
 
-        except Exception:
-            logger.info("❌ 无法连接到Ollama服务")
-            logger.info("请确保Ollama正在运行: https://ollama.com/")
-            raise
+        except Exception as exc:
+            self._enable_fallback(f"Ollama 服务不可用: {exc}")
 
     def _create_schema(self) -> Dict:
         """创建JSON Schema"""
@@ -114,6 +137,11 @@ class OllamaModel(BaseAIModel):
         """
         start_time = time.time()
 
+        if self._use_fallback:
+            action = self._predict_fallback(sensor_data)
+            self._record_prediction(start_time)
+            return action
+
         try:
             prompt = self._build_prompt(sensor_data, strategy)
 
@@ -132,22 +160,28 @@ class OllamaModel(BaseAIModel):
             # 解析JSON
             action = json.loads(response["response"])
 
-            # 更新统计
-            self.total_predictions += 1
-            self.total_time += time.time() - start_time
+            self._record_prediction(start_time)
 
             return action
 
         except json.JSONDecodeError as e:
-            logger.info(f"❌ JSON解析错误: {e}")
-            logger.info(f"   原始响应: {response.get('response', 'N/A')[:200]}")
+            logger.info(f"JSON解析错误: {e}")
+            logger.info(f"原始响应: {response.get('response', 'N/A')[:200]}")
             self.errors += 1
+            self._record_prediction(start_time)
             return self._default_action()
 
         except Exception as e:
-            logger.info(f"❌ AI推理错误: {e}")
+            logger.info(f"AI推理错误: {e}")
             self.errors += 1
-            return self._default_action()
+            self._enable_fallback(f"推理失败: {e}")
+            action = self._predict_fallback(sensor_data)
+            self._record_prediction(start_time)
+            return action
+
+    def _record_prediction(self, start_time: float) -> None:
+        self.total_predictions += 1
+        self.total_time += time.time() - start_time
 
     def _build_prompt(self, sensor_data: Dict, strategy: str) -> str:
         """构建Prompt"""
@@ -164,8 +198,8 @@ class OllamaModel(BaseAIModel):
 - Roll（左右倾斜）: {orient[0]:.2f}度
 - Pitch（前后倾斜）: {orient[1]:.2f}度  
 - Yaw（旋转）: {orient[2]:.2f}度
-- 左髋关节当前角度: {joints['hip_left']['angle']:.2f}度
-- 右髋关节当前角度: {joints['hip_right']['angle']:.2f}度
+- 左髋关节当前角度: {joints["hip_left"]["angle"]:.2f}度
+- 右髋关节当前角度: {joints["hip_right"]["angle"]:.2f}度
 - 躯干高度: {height:.2f}米
 
 ## 控制目标
@@ -184,6 +218,27 @@ class OllamaModel(BaseAIModel):
         """默认安全动作"""
         return {"motors": {"hip_left": 0.0, "hip_right": 0.0}, "confidence": 0.0}
 
+    def _predict_fallback(self, sensor_data: Dict) -> Dict:
+        """在缺少外部模型服务时使用确定性本地控制，保持接口可用。"""
+        sensors = sensor_data.get("sensors", {})
+        orient = sensors.get("imu", {}).get("orient", [0.0, 0.0, 0.0])
+        roll = _coerce_float(orient[0] if len(orient) > 0 else 0.0)
+        pitch = _coerce_float(orient[1] if len(orient) > 1 else 0.0)
+        height = _coerce_float(sensor_data.get("torso_height", 0.8), default=0.8)
+        height_correction = _clamp((0.8 - height) * 18.0, -10.0, 10.0)
+
+        hip_left = _clamp(-(0.8 * roll + 0.5 * pitch) + height_correction, -45.0, 90.0)
+        hip_right = _clamp((0.8 * roll - 0.5 * pitch) + height_correction, -45.0, 90.0)
+
+        return {
+            "motors": {
+                "hip_left": float(hip_left),
+                "hip_right": float(hip_right),
+            },
+            "confidence": 0.35,
+            "mode": "deterministic_fallback",
+        }
+
     def get_stats(self) -> Dict:
         """获取统计信息"""
         avg_time = (
@@ -201,6 +256,8 @@ class OllamaModel(BaseAIModel):
                 if self.total_predictions > 0
                 else 0
             ),
+            "fallback_mode": self._use_fallback,
+            "fallback_reason": self._fallback_reason,
         }
 
 
@@ -277,8 +334,8 @@ class LlamaCppModel(BaseAIModel):
 Current state:
 - Roll: {orient[0]:.2f}°
 - Pitch: {orient[1]:.2f}°  
-- Hip Left: {joints['hip_left']['angle']:.2f}°
-- Hip Right: {joints['hip_right']['angle']:.2f}°
+- Hip Left: {joints["hip_left"]["angle"]:.2f}°
+- Hip Right: {joints["hip_right"]["angle"]:.2f}°
 
 Strategy: {strategy}
 
@@ -357,4 +414,4 @@ if __name__ == "__main__":
     stats = ai.get_stats()
     logger.info("\n统计信息:")
     logger.info(f"  推理次数: {stats['total_predictions']}")
-    logger.info(f"  平均耗时: {stats['avg_inference_time']*1000:.2f}ms")
+    logger.info(f"  平均耗时: {stats['avg_inference_time'] * 1000:.2f}ms")

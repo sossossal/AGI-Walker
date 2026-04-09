@@ -10,7 +10,7 @@ Task Planning System
 """
 
 import numpy as np
-from typing import Dict, List, Optional, Any, Callable, Set
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from enum import Enum
 import heapq
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 # --- V2.1 TaskGraph & Planner Evolution ---
 
+
 class TaskNodeStatus(Enum):
     PENDING = "pending"
     RUNNING = "running"
@@ -28,9 +29,11 @@ class TaskNodeStatus(Enum):
     FAILURE = "failure"
     SKIPPED = "skipped"
 
+
 @dataclass
 class TaskNode:
     """A single executable unit in a TaskGraph"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     name: str = "unnamed_task"
     skill: str = ""
@@ -40,18 +43,22 @@ class TaskNode:
     output: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
 
+
 @dataclass
 class TaskEdge:
     """A directed edge between nodes with an execution condition"""
+
     from_node_id: str
     to_node_id: str
     condition: str = "on_success"  # "on_success", "on_failure", "always"
+
 
 class TaskGraph:
     """
     Manages a collection of TaskNodes and TaskEdges.
     Supports complex execution flows (DAG).
     """
+
     def __init__(self):
         self.nodes: Dict[str, TaskNode] = {}
         self.edges: List[TaskEdge] = []
@@ -72,36 +79,53 @@ class TaskGraph:
         for node_id, node in self.nodes.items():
             if node.status != TaskNodeStatus.PENDING:
                 continue
-            
+
             # Check incoming edges
             incoming = [e for e in self.edges if e.to_node_id == node_id]
             if not incoming:
                 runnable.append(node)
                 continue
-            
+
             # Dependency resolution logic
             met = True
             for edge in incoming:
                 parent = self.nodes[edge.from_node_id]
-                if edge.condition == "on_success" and parent.status != TaskNodeStatus.SUCCESS:
+                if (
+                    edge.condition == "on_success"
+                    and parent.status != TaskNodeStatus.SUCCESS
+                ):
                     met = False
-                elif edge.condition == "on_failure" and parent.status != TaskNodeStatus.FAILURE:
+                elif (
+                    edge.condition == "on_failure"
+                    and parent.status != TaskNodeStatus.FAILURE
+                ):
                     met = False
-                elif edge.condition == "always" and parent.status not in [TaskNodeStatus.SUCCESS, TaskNodeStatus.FAILURE]:
+                elif edge.condition == "always" and parent.status not in [
+                    TaskNodeStatus.SUCCESS,
+                    TaskNodeStatus.FAILURE,
+                ]:
                     met = False
-                
-                if not met: break
-            
-            if met: runnable.append(node)
-            
+
+                if not met:
+                    break
+
+            if met:
+                runnable.append(node)
+
         return runnable
+
 
 class BasePlanner:
     """Abstract base class for Planners (LLM, Rule-based, etc.)"""
-    def plan(self, instruction: str, context: Optional[Dict[str, Any]] = None) -> TaskGraph:
+
+    def plan(
+        self, instruction: str, context: Optional[Dict[str, Any]] = None
+    ) -> TaskGraph:
         raise NotImplementedError("Planners must implement the plan() method")
 
+
 # --- End of V2.1 Additions ---
+
 
 @dataclass
 class Point:
@@ -193,7 +217,6 @@ class AStarPlanner:
                     self.min_x <= new_point.x <= self.max_x
                     and self.min_y <= new_point.y <= self.max_y
                 ):
-
                     # 检查碰撞
                     if self.is_collision_free(new_point):
                         neighbors.append(new_point)
@@ -384,7 +407,7 @@ class TaskScheduler:
 
 
 if __name__ == "__main__":
-    setup_logging()
+    logging.basicConfig(level=logging.INFO)
     logger.info("任务规划系统加载完成")
 
     # 示例1: A*路径规划

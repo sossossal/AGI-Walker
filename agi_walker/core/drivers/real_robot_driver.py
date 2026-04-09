@@ -7,7 +7,7 @@ import time
 import struct
 import logging
 import threading
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 # 通信协议:
 # Head (2B): 0xAA 0x55
@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 # Len (1B): Payload 长度
 # Payload (N)
 # CRC (1B): 校验和
+
 
 class RealRobotDriver:
     """真实硬件驱动 — 通过串口/TCP 控制机器人"""
@@ -26,19 +27,19 @@ class RealRobotDriver:
         self.ser: Optional[Any] = None
         self.running = False
         self.lock = threading.Lock()
-        
+
         # Robot State
-        self.motor_states: Dict[str, Dict] = {} # {id: {pos, vel, torque, temp}}
-        self.imu_data = {'rpy': [0,0,0], 'acc': [0,0,0], 'gyro': [0,0,0]}
-        
+        self.motor_states: Dict[str, Dict] = {}  # {id: {pos, vel, torque, temp}}
+        self.imu_data = {"rpy": [0, 0, 0], "acc": [0, 0, 0], "gyro": [0, 0, 0]}
+
         self.logger = logging.getLogger("RealRobotDriver")
-        
+
     def connect(self) -> bool:
         if self.mock:
             self.logger.info(f"[Mock] Connected to {self.port}")
             self.running = True
             return True
-            
+
         try:
             self.ser = serial.Serial(self.port, self.baudrate, timeout=0.1)
             self.running = True
@@ -54,7 +55,7 @@ class RealRobotDriver:
         self.running = False
         if self.ser:
             self.ser.close()
-            
+
     def send_motor_commands(self, commands: Dict[str, float]) -> bool:
         """
         Send motor position/torque commands.
@@ -64,10 +65,11 @@ class RealRobotDriver:
             # Update mock state directly
             with self.lock:
                 for mid, val in commands.items():
-                    if mid not in self.motor_states: self.motor_states[mid] = {}
-                    self.motor_states[mid]['pos'] = val
-                    self.motor_states[mid]['vel'] = 0.0
-                    self.motor_states[mid]['torque'] = 0.0
+                    if mid not in self.motor_states:
+                        self.motor_states[mid] = {}
+                    self.motor_states[mid]["pos"] = val
+                    self.motor_states[mid]["vel"] = 0.0
+                    self.motor_states[mid]["torque"] = 0.0
             return True
 
         # Pack data (Example: 0x01 + Count + [ID, Pos_High, Pos_Low]...)
@@ -79,10 +81,10 @@ class RealRobotDriver:
             payload.append(len(commands))
             for mid, pos in commands.items():
                 # Assuming ID is int suffix of 'motor_X'
-                motor_id = int(mid.split('_')[-1]) if '_' in mid else 0
+                motor_id = int(mid.split("_")[-1]) if "_" in mid else 0
                 payload.append(motor_id)
-                payload.extend(struct.pack('f', pos))
-            
+                payload.extend(struct.pack("f", pos))
+
             self._send_packet(0x01, payload)
             return True
         except Exception as e:
@@ -90,8 +92,9 @@ class RealRobotDriver:
             return False
 
     def _send_packet(self, cmd: int, payload: bytes):
-        if not self.ser: return
-        
+        if not self.ser:
+            return
+
         frame = bytearray([0xAA, 0x55, cmd, len(payload)])
         frame.extend(payload)
         checksum = sum(frame) % 256
@@ -103,14 +106,11 @@ class RealRobotDriver:
             # Implement reading logic (Head sync -> Read Lenovo -> Read Payload -> CRC)
             # For now, just a placeholder
             if self.ser.in_waiting:
-                data = self.ser.read(self.ser.in_waiting)
+                self.ser.read(self.ser.in_waiting)
                 # Parse data...
                 pass
             time.sleep(0.001)
 
     def get_state(self):
         with self.lock:
-            return {
-                'motors': self.motor_states.copy(),
-                'imu': self.imu_data.copy()
-            }
+            return {"motors": self.motor_states.copy(), "imu": self.imu_data.copy()}

@@ -178,8 +178,8 @@ class MediumModel(BaseAIModel):
 ## 传感器数据
 - Roll: {orient[0]:.2f}度
 - Pitch: {orient[1]:.2f}度
-- 左髋角度: {joints['hip_left']['angle']:.2f}度
-- 右髋角度: {joints['hip_right']['angle']:.2f}度
+- 左髋角度: {joints["hip_left"]["angle"]:.2f}度
+- 右髋角度: {joints["hip_right"]["angle"]:.2f}度
 - 躯干高度: {height:.2f}米
 
 ## 最近错误事件
@@ -402,6 +402,6 @@ if __name__ == "__main__":
     stats = medium.get_stats()
     logger.info("\n统计信息:")
     logger.info(f"  推理次数: {stats['total_predictions']}")
-    logger.info(f"  平均耗时: {stats['avg_inference_time']*1000:.2f}ms")
+    logger.info(f"  平均耗时: {stats['avg_inference_time'] * 1000:.2f}ms")
     logger.info(f"  日志过滤: {stats['logs_filtered']}")
     logger.info(f"  上报事件: {stats['events_escalated']}")

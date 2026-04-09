@@ -317,7 +317,7 @@ class SensorFusion:
             report.append(
                 f"  {name:<15} {sensor.sensor_type.value:<10} "
                 f"噪声: {sensor.noise_std:.4f}, "
-                f"延迟: {sensor.delay_s*1000:.1f}ms, "
+                f"延迟: {sensor.delay_s * 1000:.1f}ms, "
                 f"状态: {status}"
             )
 
@@ -339,7 +339,7 @@ class SensorFusion:
         report.append(f"  总读数: {self.total_readings}")
         report.append(f"  失败读数: {self.failed_readings}")
         quality = 1.0 - (self.failed_readings / max(self.total_readings, 1))
-        report.append(f"  数据质量: {quality*100:.1f}%")
+        report.append(f"  数据质量: {quality * 100:.1f}%")
 
         return "\n".join(report)
 
@@ -366,7 +366,7 @@ if __name__ == "__main__":
 
         if i % 20 == 0:
             state = fusion.get_fused_state()
-            print(f"\n时间 {i*dt:.2f}s:")
+            print(f"\n时间 {i * dt:.2f}s:")
             print(f"  位置: {state['position']}")
             print(f"  速度: {state['velocity']}")
             print(f"  姿态: {state['orientation_deg']}°")

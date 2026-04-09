@@ -8,7 +8,7 @@ import logging
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -284,8 +284,7 @@ def load_template(template_name: str) -> RobotConfig:
         available = list((skill_dir / "assets" / "templates").glob("*.json"))
         available_names = [p.stem for p in available]
         raise FileNotFoundError(
-            f"模板 '{template_name}' 不存在。\n"
-            f"可用模板: {', '.join(available_names)}"
+            f"模板 '{template_name}' 不存在。\n可用模板: {', '.join(available_names)}"
         )
 
     # 加载模板

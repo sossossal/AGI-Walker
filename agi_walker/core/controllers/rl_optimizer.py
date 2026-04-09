@@ -25,7 +25,7 @@ def _init_sb3() -> None:
     if sb3 is None:
         try:
             import stable_baselines3 as _sb3
-            from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+            from stable_baselines3.common.vec_env import DummyVecEnv
 
             sb3 = _sb3
             VecEnv = DummyVecEnv

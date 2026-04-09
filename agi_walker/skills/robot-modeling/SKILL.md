@@ -1,124 +1,100 @@
 ---
 name: robot-modeling
-description: "快速创建双�?四足/轮式机器人模�?支持预设模板和参数化定制。适用�?(1)新建机器人项�?(2)修改现有设计 (3)批量生成变体 (4)导出到Godot仿真"
+description: "快速创建双足和四足机器人配置，支持模板加载、参数化建模和 JSON 导出。"
+category: 建模
+emoji: "🤖"
+inputs:
+  robot_name:
+    type: string
+    description: 机器人名称
+    required: false
+  template_name:
+    type: string
+    description: 模板名称，如 biped_basic 或 quadruped_dog
+    required: false
+  torso_height:
+    type: number
+    description: 躯干高度
+    required: false
+  torso_mass:
+    type: number
+    description: 躯干质量
+    required: false
+outputs:
+  robot_config:
+    type: dict
+    description: 机器人配置对象
+  output_file:
+    type: file_path
+    description: 导出的 JSON 配置文件
 metadata:
   agi_walker:
-    emoji: "🤖"
-    category: "建模"
     requires:
-      python_modules: ["numpy", "pydantic"]
+      python_modules:
+        - numpy
+        - pydantic
 ---
 
 # Robot Modeling Skill
 
-快速创建参数化机器人模�?无需手写代码�?
-## 快速开�?
-### 方式 1: 代码创建
+用于快速构建机器人结构配置，减少手写 JSON 的成本。
+
+当前 skill 的真实入口位于 `__init__.py`，核心接口包括：
+
+- `RobotBuilder`
+- `load_template(...)`
+- `list_templates()`
+
+## 适用场景
+
+- 新建基础双足机器人配置
+- 基于模板快速派生变体
+- 为参数优化、URDF 导出等后续流程准备输入
+
+## 方式一：使用 RobotBuilder 构建
 
 ```python
-from agi_walker import RobotBuilder
+from agi_walker.skills.robot_modeling import RobotBuilder
 
-# 创建双足机器�?robot = (
+robot = (
     RobotBuilder("my_biped")
     .add_torso(height=0.5, mass=5.0)
-    .add_leg_pair(
-        thigh_length=0.3,
-        shin_length=0.3,
-        hip_joint="revolute"
-    )
+    .add_leg_pair(thigh_length=0.3, shin_length=0.3)
+    .set_joint_damping(0.2)
     .build()
 )
 
-# 保存配置
 robot.save("configs/my_biped.json")
 ```
 
-### 方式 2: 使用预设模板
+## 方式二：加载模板
 
 ```python
-from agi_walker.skills import robot_modeling
+from agi_walker.skills.robot_modeling import load_template
 
-# 加载模板
-robot = robot_modeling.load_template("biped_basic")
-
-# 自定义参�?robot.customize(
-    leg_length=0.35,
-    torso_mass=6.0
-)
-
-# 保存
-robot.save("configs/custom_biped.json")
+robot = load_template("biped_basic")
+robot.save("configs/biped_from_template.json")
 ```
 
-### 方式 3: GUI 可视化配�?
-```bash
-python -m agi_walker.skills.robot_modeling.gui
-```
+## 当前可用模板
 
-## 预设模板
+- `biped_basic`
+- `quadruped_dog`
 
-### biped_basic
-基础双足机器�?适合步行研究�?
-- 腿长: 0.3m
-- 躯干高度: 0.5m
-- 总质�? 5kg
-- 自由�? 6 DoF (髋关节x2 + 膝关节x2 + 踝关节x2)
+可以通过 `list_templates()` 查看模板清单。
 
-### quadruped_dog
-四足犬形机器�?适合跑步/跳跃研究�?
-- 腿长: 0.25m
-- 躯干长度: 0.6m
-- 总质�? 8kg
-- 自由�? 12 DoF
+## 已实现能力
 
-### wheeled_base
-轮式底盘,适合移动机器人研究�?
-- 轮距: 0.4m
-- 轮径: 0.1m
-- 总质�? 3kg
-- 自由�? 2 DoF (左右轮�?
+- 添加躯干
+- 添加双腿
+- 添加双臂
+- 设置关节阻尼
+- 设置关节限位
+- 在 `metadata` 中写入自定义参数
+- 导出为 JSON 配置
 
-### humanoid_upper
-类人上半�?适合操作研究�?
-- 臂长: 0.4m
-- 肩宽: 0.3m
-- 总质�? 4kg
-- 自由�? 7 DoF × 2
+## 说明
 
-## API 参�?
-详见: `references/api.md`
-
-## 常见问题
-
-**Q: 如何调整关节限位?**
-A: 使用 `.set_joint_limits(joint_name, min_angle, max_angle)` 方法�?
-**Q: 如何添加传感�?**
-A: 使用 `.add_sensor(sensor_type, mount_link)` 方法�?
-**Q: 如何导出�?Godot?**
-A: 调用 `robot.export_godot("path/to/godot_project")` 自动生成场景文件�?
-## 示例: 创建竞速机器人
-
-```python
-from agi_walker import RobotBuilder
-
-robot = (
-    RobotBuilder("racer")
-    .add_torso(height=0.3, mass=3.0)  # 低重�?    .add_leg_pair(
-        thigh_length=0.4,  # 长腿
-        shin_length=0.4,
-        hip_width=0.2  # 窄髋
-    )
-    .set_joint_damping(0.5)  # 降低阻尼提高速度
-    .build()
-)
-```
-
-## 下一�?
-创建完成�?可以:
-
-1. **仿真验证**: 使用 Godot 查看运动�?2. **参数优化**: 使用 `parameter-optimizer` skill 调优
-3. **数据生成**: 使用 `simulation-runner` skill 生成训练数据
-
----
-
-**相关 Skills**: `parameter-optimizer`, `urdf-generator`, `simulation-runner`
+- 本 skill 生成的是 AGI-Walker 内部配置格式，不是 URDF
+- 如果需要接入 Gazebo、PyBullet 或 ROS 2，请继续使用 `urdf-generator`
+- 更详细的 API 说明可见 `references/api.md`

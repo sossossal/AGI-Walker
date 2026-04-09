@@ -188,7 +188,7 @@ class PIDTuner:
         best_score = 0.0
 
         for i in range(iterations):
-            logger.info(f"\n=== 迭代 {i+1}/{iterations} ===")
+            logger.info(f"\n=== 迭代 {i + 1}/{iterations} ===")
 
             # 测试当前参数
             result = self.test_pid_configuration(

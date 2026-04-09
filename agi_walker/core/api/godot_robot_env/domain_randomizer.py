@@ -1,21 +1,22 @@
 import random
 import logging
-import numpy as np
-from typing import Dict, Any, List, Tuple
+from typing import Dict, List, Tuple
 
 logger = logging.getLogger(__name__)
+
 
 class RandomizationManager:
     """
     AGI-Walker V2.0 Auto-Domain Randomization (ADR).
     Dynamically adjusts simulation randomization ranges based on performance.
     """
+
     def __init__(self, initial_ranges: Dict[str, Tuple[float, float]]):
         # 初始随机化范围: {"mass": (0.8, 1.2), "friction": (0.5, 1.5)}
         self.ranges = initial_ranges
         self.success_history: List[bool] = []
-        self.window_size = 50 # 评估窗口
-        self.expansion_step = 0.05 # 扩充比例
+        self.window_size = 50  # 评估窗口
+        self.expansion_step = 0.05  # 扩充比例
 
     def get_randomized_config(self) -> Dict[str, float]:
         """
@@ -41,24 +42,24 @@ class RandomizationManager:
         成功率高则扩大范围 (增加难度)，成功率低则缩小范围。
         """
         success_rate = sum(self.success_history) / self.window_size
-        
+
         if success_rate > 0.90:
             # 表现优异，扩大范围
             for param in self.ranges:
                 low, high = self.ranges[param]
                 center = (low + high) / 2
                 half_width = (high - low) / 2
-                half_width *= (1 + self.expansion_step)
+                half_width *= 1 + self.expansion_step
                 self.ranges[param] = (center - half_width, center + half_width)
             logger.info(f"ADR: Success rate {success_rate:.1f} - Expanding ranges.")
-            
+
         elif success_rate < 0.70:
             # 表现欠佳，缩小范围
             for param in self.ranges:
                 low, high = self.ranges[param]
                 center = (low + high) / 2
                 half_width = (high - low) / 2
-                half_width *= (1 - self.expansion_step)
+                half_width *= 1 - self.expansion_step
                 self.ranges[param] = (center - half_width, center + half_width)
             logger.warning(f"ADR: Success rate {success_rate:.1f} - Shrinking ranges.")
 

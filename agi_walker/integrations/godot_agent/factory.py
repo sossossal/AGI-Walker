@@ -76,5 +76,6 @@ def create_godot_agent_backend(
         "Expected one of: legacy, godot-agent, modern."
     )
 
+
 # Alias for compatibility with agent_api
 get_godot_agent_backend = create_godot_agent_backend

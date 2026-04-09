@@ -92,7 +92,7 @@ class RLBenchmark:
             print(f"  平均长度: {result['mean_length']:.1f}")
             print(f"  评估时间: {eval_time:.2f}s")
             if result["success_rate"] is not None:
-                print(f"  成功率: {result['success_rate']*100:.1f}%")
+                print(f"  成功率: {result['success_rate'] * 100:.1f}%")
 
         # 可视化
         self._plot_comparison(results, save_path)

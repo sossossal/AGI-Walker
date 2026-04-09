@@ -7,11 +7,14 @@ import argparse
 import logging
 from pathlib import Path
 import time
-from typing import Any, Dict, List, Optional, Tuple
 
 # 导入核心模块 - 使用绝对导入
 from agi_walker.core.controllers.tcp_client import GodotClient
-from agi_walker.core.controllers.load_monitor import LoadMonitor, SimplePIDController, ControlMode
+from agi_walker.core.controllers.load_monitor import (
+    LoadMonitor,
+    SimplePIDController,
+    ControlMode,
+)
 from agi_walker.core.controllers.model_orchestrator import create_orchestrator
 from agi_walker.core.controllers.rag_knowledge_base import PhysicsKnowledgeBase
 from agi_walker.core.controllers.predictive_safety import PredictiveSafetyChecker
@@ -192,7 +195,9 @@ class EnhancedController:
 
                 # 4. 预测性安全过滤 (V2.1 MPC Safety Shell)
                 if action and "motors" in action:
-                    action = self.safety_supervisor.check_and_filter(sensor_data, action)
+                    action = self.safety_supervisor.check_and_filter(
+                        sensor_data, action
+                    )
 
                 # 5. 记录延迟
                 self.load_monitor.record_latency(ai_time * 1000)
@@ -340,7 +345,7 @@ class EnhancedController:
             f"\r[{elapsed:6.1f}s] {mode_text} {mode:6s} | "
             f"Roll: {orient[0]:+6.1f}° Pitch: {orient[1]:+6.1f}° | "
             f"Height: {height:.2f}m | "
-            f"AI latency: {ai_time*1000:5.1f}ms | "
+            f"AI latency: {ai_time * 1000:5.1f}ms | "
             f"FPS: {fps:.0f}",
             end="",
         )
@@ -358,13 +363,13 @@ class EnhancedController:
         logger.info(f"运行时长: {elapsed:.1f}秒")
         logger.info(f"总循环数: {self.stats['total_loops']}")
         logger.info(
-            f"AI控制: {self.stats['ai_loops']} ({100*self.stats['ai_loops']/max(1,self.stats['total_loops']):.1f}%)"
+            f"AI控制: {self.stats['ai_loops']} ({100 * self.stats['ai_loops'] / max(1, self.stats['total_loops']):.1f}%)"
         )
         logger.info(
-            f"PID控制: {self.stats['pid_loops']} ({100*self.stats['pid_loops']/max(1,self.stats['total_loops']):.1f}%)"
+            f"PID控制: {self.stats['pid_loops']} ({100 * self.stats['pid_loops'] / max(1, self.stats['total_loops']):.1f}%)"
         )
         logger.info(
-            f"混合模式: {self.stats['hybrid_loops']} ({100*self.stats['hybrid_loops']/max(1,self.stats['total_loops']):.1f}%)"
+            f"混合模式: {self.stats['hybrid_loops']} ({100 * self.stats['hybrid_loops'] / max(1, self.stats['total_loops']):.1f}%)"
         )
         logger.info(f"错误数: {self.stats['errors']}")
 
@@ -372,7 +377,7 @@ class EnhancedController:
         logger.info("\n负载监控:")
         load_stats = self.load_monitor.get_stats()
         logger.info(f"  EMA延迟: {load_stats['ema_latency_ms']:.1f}ms")
-        logger.info(f"  超标率: {load_stats['over_threshold_rate']*100:.1f}%")
+        logger.info(f"  超标率: {load_stats['over_threshold_rate'] * 100:.1f}%")
         logger.info(f"  模式切换: {load_stats['mode_switches']}次")
 
         # 模型编排统计

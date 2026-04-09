@@ -1,240 +1,116 @@
 ---
 name: parameter-optimizer
-description: "自动优化机器人参�?质量分布/关节限位/PID增益),使用遗传算法或梯度方法。适用�?(1)优化重心位置以提高稳定�?(2)调优控制器参�?(3)多目标优�?(4)自动化参数搜�?
+description: "自动优化机器人质量分布与 PID 控制参数，支持梯度法、遗传算法和批量调优。"
+category: 优化
+emoji: "⚙️"
+inputs:
+  robot_config:
+    type: file_path
+    description: 机器人配置文件路径，或等价的配置对象
+  target_com_height:
+    type: number
+    description: 目标重心高度
+    required: false
+  joint_name:
+    type: string
+    description: 需要调优的关节名称
+    required: false
+  method:
+    type: string
+    description: 优化方法，如 gradient、genetic、ziegler_nichols
+    required: false
+outputs:
+  optimization_result:
+    type: dict
+    description: 质量分布优化结果
+  pid_gains:
+    type: dict
+    description: PID 调优结果
 metadata:
   agi_walker:
-    emoji: "⚙️"
-    category: "优化"
     requires:
-      python_modules: ["scipy", "numpy"]
+      python_modules:
+        - scipy
+        - numpy
 ---
 
 # Parameter Optimizer Skill
 
-自动优化机器人参�?提升性能和稳定性�?
+用于优化机器人参数，重点覆盖质量分布和 PID 控制器增益。
 
-## 快速开�?
+当前 skill 的真实入口位于 `__init__.py`，核心能力包括：
 
-### 优化重心位置
+- `optimize_mass_distribution(...)`
+- `tune_pid_controller(...)`
+- `batch_optimize_pid(...)`
+
+## 适用场景
+
+- 调整各部件质量以逼近目标重心高度
+- 为单个关节自动生成 PID 初始增益
+- 批量调优多个关节的控制参数
+
+## 质量分布优化
+
+质量分布优化由 `MassDistributionOptimizer` 实现。
+
+- 输入：机器人配置、目标重心高度、迭代次数、优化方法
+- 输出：质量分布、重心位置、重心误差、是否成功
+
+支持的方法：
+
+- `gradient`: 基于 `scipy.optimize.minimize`
+- `genetic`: 基于 `scipy.optimize.differential_evolution`
+
+示例：
 
 ```python
 from agi_walker.skills.parameter_optimizer import optimize_mass_distribution
 
 result = optimize_mass_distribution(
-    robot_config="configs/my_robot.json",
-    target_com_height=0.25,  # 期望重心高度(�?
-    max_iterations=100
+    "configs/my_robot.json",
+    target_com_height=0.25,
+    max_iterations=100,
+    method="gradient",
 )
 
-print(f"优化后质量分�? {result.mass_distribution}")
-print(f"重心偏移: {result.com_error:.4f} m")
+print(result.mass_distribution)
+print(result.com_error)
 ```
 
-### PID参数自动调优
+## PID 调优
+
+PID 调优由 `PIDTuner` 实现。
+
+支持的方法：
+
+- `ziegler_nichols`: 快速生成工程可用的初始增益
+- `genetic`: 通过遗传算法搜索更优参数
+
+示例：
 
 ```python
 from agi_walker.skills.parameter_optimizer import tune_pid_controller
 
 gains = tune_pid_controller(
-    robot_config="configs/my_robot.json",
+    "configs/my_robot.json",
     joint_name="hip_flex",
-    method="ziegler_nichols",  # �?"genetic"
-    simulation_steps=1000
+    method="ziegler_nichols",
 )
 
-print(f"优化PID增益: Kp={gains.kp}, Ki={gains.ki}, Kd={gains.kd}")
+print(gains.kp, gains.ki, gains.kd)
 ```
 
-## 优化方法
+## 批量调优
 
-### 1. 质量分布优化
-
-**目标**: 调整各部件质�?使重心达到期望位置�?
-
-**算法**: 
-- 梯度下降�?(快�?局部最�?
-- 遗传算法 (慢�?全局最�?
-
-**使用场景**:
-- 提高双足机器人稳定�?(降低重心)
-- 平衡四足机器人重量分�?
-- 满足硬件约束 (总质量限�?
-
-### 2. PID增益调优
-
-**支持方法**:
-
-#### Ziegler-Nichols�?
-经典工程方法,快速获得初始增益�?
+可通过 `batch_optimize_pid(...)` 为多个关节一次性生成参数：
 
 ```python
-gains = tune_pid_controller(
-    robot_config="configs/robot.json",
-    joint_name="knee",
-    method="ziegler_nichols"
+from agi_walker.skills.parameter_optimizer import batch_optimize_pid
+
+results = batch_optimize_pid(
+    "configs/my_robot.json",
+    joint_names=["hip_left", "hip_right", "knee_left", "knee_right"],
+    method="ziegler_nichols",
 )
 ```
-
-#### 遗传算法
-搜索全局最优增�?适合复杂系统�?
-
-```python
-gains = tune_pid_controller(
-    robot_config="configs/robot.json",
-    joint_name="knee",
-    method="genetic",
-    population_size=50,
-    generations=100,
-    fitness_metric="ise"  # ISE/IAE/ITAE
-)
-```
-
-### 3. 多目标优�?
-
-同时优化多个指标 (速度/稳定�?能�?�?
-
-```python
-from agi_walker.skills.parameter_optimizer import multi_objective_optimize
-
-result = multi_objective_optimize(
-    robot_config="configs/robot.json",
-    objectives=[
-        {"name": "speed", "weight": 0.5, "target": "maximize"},
-        {"name": "stability", "weight": 0.3, "target": "maximize"},
-        {"name": "energy", "weight": 0.2, "target": "minimize"}
-    ],
-    method="nsga2"  # NSGA-II算法
-)
-
-# 获取帕累托前�?
-pareto_solutions = result.pareto_front
-```
-
-## 命令行工�?
-
-### 批量优化
-
-```bash
-python -m agi_walker.skills.parameter_optimizer.batch_optimize \
-    --config configs/robot.json \
-    --optimize mass,pid,damping \
-    --output results/optimized.json
-```
-
-### 参数扫描
-
-```bash
-python -m agi_walker.skills.parameter_optimizer.param_sweep \
-    --config configs/robot.json \
-    --param leg_length \
-    --range 0.2,0.5,0.05 \
-    --metric stability
-```
-
-## 配置文件
-
-创建优化配置 `optimization_config.yaml`:
-
-```yaml
-robot_config: "configs/my_robot.json"
-
-optimizations:
-  - type: mass_distribution
-    target_com_height: 0.25
-    constraints:
-      total_mass: [5.0, 10.0]  # 最�?最�?
-    
-  - type: pid_tuning
-    joints: ["hip_flex", "knee_flex", "ankle_flex"]
-    method: genetic
-    
-  - type: joint_damping
-    range: [0.1, 1.0]
-    optimize_for: stability
-```
-
-运行:
-```bash
-python -m agi_walker.skills.parameter_optimizer.run_config \
-    --config optimization_config.yaml
-```
-
-## API参�?
-
-详见: `references/api.md`
-
-## 常见问题
-
-**Q: 优化需要多长时�?**
-A: 
-- 梯度�? 通常 <1分钟
-- 遗传算法: 5-30分钟 (取决于种群和代数)
-- 多目标优�? 10-60分钟
-
-**Q: 如何选择优化方法?**
-A:
-- 快速原�? 使用梯度�?
-- 精确结果: 使用遗传算法
-- 复杂系统: 使用多目标优�?
-
-**Q: 优化结果不理想怎么�?**
-A:
-1. 增加迭代次数
-2. 调整约束范围
-3. 更换优化算法
-4. 检查仿真精�?
-
-## 示例: 完整优化流程
-
-```python
-from agi_walker.skills.robot_modeling import load_template
-from agi_walker.skills.parameter_optimizer import (
-    optimize_mass_distribution,
-    tune_pid_controller
-)
-
-# 1. 加载机器�?
-robot = load_template("biped_basic")
-
-# 2. 优化质量分布
-mass_result = optimize_mass_distribution(
-    robot,
-    target_com_height=0.22,
-    max_iterations=200
-)
-
-# 应用优化结果
-for part_id, new_mass in mass_result.mass_distribution.items():
-    robot.update_part_mass(part_id, new_mass)
-
-# 3. 调优PID
-for joint in ["hip_flex_left", "hip_flex_right", "knee_left", "knee_right"]:
-    gains = tune_pid_controller(
-        robot,
-        joint_name=joint,
-        method="ziegler_nichols"
-    )
-    robot.set_pid_gains(joint, gains.kp, gains.ki, gains.kd)
-
-# 4. 保存优化后的配置
-robot.save("configs/optimized_biped.json")
-```
-
-## 性能优化建议
-
-1. **并行�?*: 使用多进程加速参数扫�?
-2. **早停**: 设置收敛阈值避免过度优�?
-3. **缓存**: 复用相似配置的仿真结�?
-4. **精度权衡**: 减少仿真步数换取速度 (初期优化)
-
-## 下一�?
-
-优化完成�?可以:
-
-1. **仿真验证**: 使用 Godot 查看优化效果
-2. **生成数据**: 使用 `simulation-runner` skill 生成训练数据
-3. **格式转换**: 使用 `urdf-generator` skill 导出到其他平�?
-
----
-
-**相关 Skills**: `robot-modeling`, `simulation-runner`, `urdf-generator`

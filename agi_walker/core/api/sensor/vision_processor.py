@@ -391,8 +391,6 @@ def create_vision_processor(config: Optional[VisionConfig] = None) -> VisionProc
     如果OpenCV不可用，返回虚拟处理器
     """
     try:
-        import cv2
-
         return VisionProcessor(config)
     except ImportError:
         return DummyVisionProcessor(config)
@@ -442,7 +440,7 @@ if __name__ == "__main__":
             processor.process_frame(test_frame)
         elapsed = time.time() - start
 
-        print(f"\n性能测试: {100/elapsed:.1f} FPS")
+        print(f"\n性能测试: {100 / elapsed:.1f} FPS")
 
     # 统计
     print("\n=== 统计信息 ===")
