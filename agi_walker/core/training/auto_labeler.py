@@ -180,9 +180,9 @@ class AutoLabeler:
             "avg_velocity": trajectory.get("avg_velocity", 0),
             "total_distance": trajectory.get("total_distance", 0),
             "energy_usage": np.mean(action_magnitudes) if action_magnitudes else 0,
-            "action_variance": np.var(action_magnitudes)
-            if len(action_magnitudes) > 1
-            else 0,
+            "action_variance": (
+                np.var(action_magnitudes) if len(action_magnitudes) > 1 else 0
+            ),
             "terminated": trajectory.get("terminated", False),
         }
 

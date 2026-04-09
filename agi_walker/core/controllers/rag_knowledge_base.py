@@ -148,7 +148,9 @@ class PhysicsKnowledgeBase:
                 2 for keyword in entry.keywords if keyword.lower() in normalized_query
             )
             query_hit = 3 if normalized_query in entry_text else 0
-            char_hits = sum(1 for char in normalized_query if char and char in entry_text)
+            char_hits = sum(
+                1 for char in normalized_query if char and char in entry_text
+            )
             return query_hit + keyword_hits + char_hits
 
         ranked = sorted(self.entries, key=score, reverse=True)

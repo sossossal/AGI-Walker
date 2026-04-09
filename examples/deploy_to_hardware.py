@@ -105,7 +105,9 @@ def step4_test_on_hardware():
     print("=" * 60)
 
     try:
-        from agi_walker.core.api.godot_robot_env.hardware_controller import HardwareEnvironment
+        from agi_walker.core.api.godot_robot_env.hardware_controller import (
+            HardwareEnvironment,
+        )
 
         # 创建硬件环境
         print("\n连接硬件中...")

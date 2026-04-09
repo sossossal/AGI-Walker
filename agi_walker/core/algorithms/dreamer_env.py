@@ -90,9 +90,7 @@ class DreamerEnv(gym.Env):
         done = obs.pop("done", False)
         truncated = False
 
-        info = {
-            "latency": (time.time() - start_time) * 1000.0  # ms
-        }
+        info = {"latency": (time.time() - start_time) * 1000.0}  # ms
 
         return obs, reward, done, truncated, info
 

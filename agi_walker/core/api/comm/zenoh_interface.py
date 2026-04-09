@@ -151,8 +151,12 @@ def _install_legacy_module_alias() -> None:
     """
 
     module = sys.modules[__name__]
-    python_api_pkg = sys.modules.setdefault("python_api", types.ModuleType("python_api"))
-    comm_pkg = sys.modules.setdefault("python_api.comm", types.ModuleType("python_api.comm"))
+    python_api_pkg = sys.modules.setdefault(
+        "python_api", types.ModuleType("python_api")
+    )
+    comm_pkg = sys.modules.setdefault(
+        "python_api.comm", types.ModuleType("python_api.comm")
+    )
 
     if not hasattr(python_api_pkg, "__path__"):
         python_api_pkg.__path__ = []

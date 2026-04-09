@@ -20,7 +20,10 @@ def _configure_stdio() -> None:
         stream = getattr(sys, stream_name, None)
         # Keep pipe/subprocess encoding aligned with the parent process locale on
         # Windows; forcing UTF-8 for captured output breaks `subprocess.run(..., text=True)`.
-        if hasattr(stream, "reconfigure") and getattr(stream, "isatty", lambda: False)():
+        if (
+            hasattr(stream, "reconfigure")
+            and getattr(stream, "isatty", lambda: False)()
+        ):
             stream.reconfigure(encoding="utf-8", errors="replace")
 
 

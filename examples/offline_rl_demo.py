@@ -5,7 +5,10 @@
 
 import gymnasium as gym
 from stable_baselines3 import PPO
-from agi_walker.core.api.learning.offline_rl import ExpertDataCollector, OfflineRLTrainer
+from agi_walker.core.api.learning.offline_rl import (
+    ExpertDataCollector,
+    OfflineRLTrainer,
+)
 
 
 def main():

@@ -9,7 +9,9 @@ import numpy as np
 class GaitGenerator:
     """步态生成器基类"""
 
-    def __init__(self, frequency=1.0, step_height=0.05, stride_length=0.15, duty_cycle=0.6):
+    def __init__(
+        self, frequency=1.0, step_height=0.05, stride_length=0.15, duty_cycle=0.6
+    ):
         if isinstance(frequency, dict):
             config = frequency
             self.frequency = float(config.get("frequency", 1.0))

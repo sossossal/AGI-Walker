@@ -8,7 +8,10 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from agi_walker.core.api.data.batch_generator import BatchDataGenerator, GenerationConfig
+from agi_walker.core.api.data.batch_generator import (
+    BatchDataGenerator,
+    GenerationConfig,
+)
 from agi_walker.core.api.data.dataset_manager import DatasetManager
 
 
@@ -29,7 +32,7 @@ def demo_small_batch():
     )
 
     generator = BatchDataGenerator(config)
-    report = generator.generate()
+    generator.generate()
 
     return config.output_dir
 
@@ -51,7 +54,7 @@ def demo_medium_batch():
     )
 
     generator = BatchDataGenerator(config)
-    report = generator.generate()
+    generator.generate()
 
     return config.output_dir
 
@@ -84,9 +87,7 @@ def demo_dataset_management():
     print("\n" + "-" * 70)
     print("2. 分割数据集")
     print("-" * 70)
-    splits = manager.split_dataset(
-        train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, seed=42
-    )
+    manager.split_dataset(train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, seed=42)
 
     # 3. 格式转换
     print("\n" + "-" * 70)
@@ -184,7 +185,7 @@ def main():
         demo_parameter_sweep()
     elif choice == "6":
         print("\n运行所有演示...")
-        dataset_dir = demo_small_batch()
+        demo_small_batch()
         demo_dataset_management()
         demo_resume()
     else:

@@ -9,7 +9,6 @@ from typing import Any, Dict, Optional
 
 import psutil
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -49,8 +48,12 @@ class SimplePIDController:
             pitch_error, self._integral_pitch, self._last_pitch, dt
         )
 
-        hip_left = max(-self.output_limit, min(self.output_limit, -(roll_cmd + pitch_cmd)))
-        hip_right = max(-self.output_limit, min(self.output_limit, roll_cmd - pitch_cmd))
+        hip_left = max(
+            -self.output_limit, min(self.output_limit, -(roll_cmd + pitch_cmd))
+        )
+        hip_right = max(
+            -self.output_limit, min(self.output_limit, roll_cmd - pitch_cmd)
+        )
         return float(hip_left), float(hip_right)
 
 
@@ -162,12 +165,12 @@ class LoadMonitor:
         elif self.current_mode == ControlMode.PID and self._low_latency_streak >= 10:
             self._set_mode(ControlMode.AI)
 
-    def get_control_action(self, sensor_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def get_control_action(
+        self, sensor_data: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         sensor_data = sensor_data or {}
         orient = (
-            sensor_data.get("sensors", {})
-            .get("imu", {})
-            .get("orient", [0.0, 0.0, 0.0])
+            sensor_data.get("sensors", {}).get("imu", {}).get("orient", [0.0, 0.0, 0.0])
         )
         roll = float(orient[0]) if len(orient) > 0 else 0.0
         pitch = float(orient[1]) if len(orient) > 1 else 0.0

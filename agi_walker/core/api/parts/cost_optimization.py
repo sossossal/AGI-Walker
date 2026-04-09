@@ -261,9 +261,7 @@ class ROICalculator:
             else float("inf")
         )
         payback_years = (
-            initial_investment / annual_savings
-            if annual_savings > 0
-            else float("inf")
+            initial_investment / annual_savings if annual_savings > 0 else float("inf")
         )
         return {
             "initial_investment": float(initial_investment),

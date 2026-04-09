@@ -65,7 +65,9 @@ def load_agent_attribute(agent_dir: str, module_name: str, attribute_name: str):
             pass
 
     if not _module_exists_under_agent_dir(agent_dir, module_name):
-        raise ImportError(f"Module '{module_name}' not found under '{Path(agent_dir).resolve()}'")
+        raise ImportError(
+            f"Module '{module_name}' not found under '{Path(agent_dir).resolve()}'"
+        )
 
     module = importlib.import_module(module_name)
     try:

@@ -35,7 +35,9 @@ class CustomPart:
     def _recalculate_performance(self) -> None:
         raise NotImplementedError
 
-    def _calculate_impact(self, param_name: str, old_value, new_value) -> Dict[str, str]:
+    def _calculate_impact(
+        self, param_name: str, old_value, new_value
+    ) -> Dict[str, str]:
         return {}
 
     def get_performance_report(self) -> str:
@@ -94,18 +96,28 @@ class CustomMotor(CustomPart):
             "estimated_cost_usd": float(estimated_cost_usd),
         }
 
-    def _calculate_impact(self, param_name: str, old_value, new_value) -> Dict[str, str]:
+    def _calculate_impact(
+        self, param_name: str, old_value, new_value
+    ) -> Dict[str, str]:
         impact: Dict[str, str] = {}
         if param_name == "gear_ratio":
-            ratio_change = (float(new_value) - float(old_value)) / max(float(old_value), 1e-6)
+            ratio_change = (float(new_value) - float(old_value)) / max(
+                float(old_value), 1e-6
+            )
             impact["torque_change"] = f"{ratio_change * 100:+.1f}%"
             impact["speed_change"] = f"{-ratio_change * 100:+.1f}%"
-            impact["cost_change"] = f"+${abs(float(new_value) - float(old_value)) * 0.5:.2f}"
+            impact["cost_change"] = (
+                f"+${abs(float(new_value) - float(old_value)) * 0.5:.2f}"
+            )
         elif param_name == "power":
-            power_change = (float(new_value) - float(old_value)) / max(float(old_value), 1e-6)
+            power_change = (float(new_value) - float(old_value)) / max(
+                float(old_value), 1e-6
+            )
             impact["torque_change"] = f"{power_change * 100:+.1f}%"
             impact["heat_change"] = f"{power_change * 100:+.1f}%"
-            impact["cost_change"] = f"+${abs(float(new_value) - float(old_value)) * 0.15:.2f}"
+            impact["cost_change"] = (
+                f"+${abs(float(new_value) - float(old_value)) * 0.15:.2f}"
+            )
         elif param_name == "efficiency":
             efficiency_change = float(new_value) - float(old_value)
             impact["torque_change"] = f"{efficiency_change * 100:+.1f}%"
@@ -147,10 +159,7 @@ class CustomJoint(CustomPart):
         output_power_w = max_torque * (max_speed * 2.0 * np.pi / 60.0)
         power_loss_w = output_power_w * (1.0 - efficiency) / efficiency
         estimated_cost_usd = (
-            80.0
-            + ratio * 0.3
-            + max_torque * 1.5
-            + (1.0 / backlash) * 10.0
+            80.0 + ratio * 0.3 + max_torque * 1.5 + (1.0 / backlash) * 10.0
         )
 
         self.performance_metrics = {
@@ -162,19 +171,31 @@ class CustomJoint(CustomPart):
             "control_bandwidth_hz": float(resonance_frequency_hz * 0.1),
         }
 
-    def _calculate_impact(self, param_name: str, old_value, new_value) -> Dict[str, str]:
+    def _calculate_impact(
+        self, param_name: str, old_value, new_value
+    ) -> Dict[str, str]:
         impact: Dict[str, str] = {}
         if param_name == "reduction_ratio":
-            ratio_change = (float(new_value) - float(old_value)) / max(float(old_value), 1e-6)
+            ratio_change = (float(new_value) - float(old_value)) / max(
+                float(old_value), 1e-6
+            )
             impact["output_torque"] = f"{ratio_change * 100:+.1f}%"
             impact["positioning_accuracy"] = f"{ratio_change * 100:+.1f}%"
-            impact["cost_change"] = f"+${abs(float(new_value) - float(old_value)) * 0.3:.2f}"
+            impact["cost_change"] = (
+                f"+${abs(float(new_value) - float(old_value)) * 0.3:.2f}"
+            )
         elif param_name == "backlash":
-            improvement = (float(old_value) - float(new_value)) / max(float(old_value), 1e-6)
+            improvement = (float(old_value) - float(new_value)) / max(
+                float(old_value), 1e-6
+            )
             impact["positioning_accuracy"] = f"{improvement * 100:+.1f}%"
-            impact["cost_change"] = f"+${abs((1.0 / float(new_value)) - (1.0 / float(old_value))) * 10.0:.2f}"
+            impact["cost_change"] = (
+                f"+${abs((1.0 / float(new_value)) - (1.0 / float(old_value))) * 10.0:.2f}"
+            )
         elif param_name == "stiffness":
-            stiffness_change = (float(new_value) - float(old_value)) / max(float(old_value), 1e-6)
+            stiffness_change = (float(new_value) - float(old_value)) / max(
+                float(old_value), 1e-6
+            )
             impact["dynamic_response"] = f"{stiffness_change * 50:+.1f}%"
             impact["control_bandwidth"] = f"{stiffness_change * 50:+.1f}%"
         return impact
@@ -239,7 +260,9 @@ class PartCustomizer:
         self.parts[name] = sensor
         return sensor
 
-    def compare_configurations(self, part_name: str, configs: Iterable[Dict]) -> list[Dict]:
+    def compare_configurations(
+        self, part_name: str, configs: Iterable[Dict]
+    ) -> list[Dict]:
         if part_name not in self.parts:
             raise ValueError(f"Unknown part: {part_name}")
 

@@ -28,7 +28,11 @@ except ImportError:
 
 from agi_walker.core.training.auto_labeler import AutoLabeler  # noqa: E402
 from agi_walker.core.training.dataset_cleaner import DatasetCleaner  # noqa: E402
-from agi_walker.core.training.peft_trainer import PEFTTrainer, PEFTConfig, PEFTMethod  # noqa: E402
+from agi_walker.core.training.peft_trainer import (
+    PEFTTrainer,
+    PEFTConfig,
+    PEFTMethod,
+)  # noqa: E402
 
 
 @dataclass
