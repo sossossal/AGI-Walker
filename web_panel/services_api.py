@@ -9,12 +9,17 @@ from typing import Any, Dict, List
 
 import pydantic
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 
 
 def _get_root_dir() -> str:
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _quick_design_script_path() -> Path:
+    return Path(_get_root_dir()) / "tools" / "quick_design.py"
 
 
 def _ensure_root_on_path() -> str:
@@ -65,12 +70,20 @@ class PipelineRequest(pydantic.BaseModel):
     export_urdf: bool = True
 
 
-def generate_robot(params: Dict[str, Any]) -> Dict[str, Any] | tuple[Dict[str, Any], int]:
+def generate_robot(params: Dict[str, Any]) -> tuple[Dict[str, Any], int]:
     logger.info(f"收到生成请求: {params}")
 
+    script_path = _quick_design_script_path()
+    if not script_path.exists():
+        return {
+            "status": "error",
+            "message": "quick_design 脚本不存在",
+            "error": str(script_path),
+        }, 500
+
     cmd = [
-        "python",
-        "quick_design.py",
+        sys.executable,
+        str(script_path),
         "--non-interactive",
         "--name",
         params.get("name", "web_robot"),
@@ -91,6 +104,7 @@ def generate_robot(params: Dict[str, Any]) -> Dict[str, Any] | tuple[Dict[str, A
         root_dir = _get_root_dir()
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONUTF8"] = "1"
 
         process = subprocess.Popen(
             cmd,
@@ -116,13 +130,14 @@ def generate_robot(params: Dict[str, Any]) -> Dict[str, Any] | tuple[Dict[str, A
         except UnicodeEncodeError:
             logger.info(output_log.encode("gbk", "replace").decode("gbk"))
 
+        robot_name = params.get("name", "web_robot")
         return {
             "status": "success",
             "message": "机器人生成成功",
-            "config_path": f"configs/generated/{params.get('name', 'web_robot')}.json",
-            "urdf_path": f"exports/{params.get('name', 'web_robot')}.urdf",
+            "config_path": f"configs/generated/{robot_name}.json",
+            "urdf_path": f"exports/{robot_name}.urdf",
             "log": output_log,
-        }
+        }, 200
     except subprocess.CalledProcessError as e:
         logger.info(f"生成失败: {e.stderr}")
         return {
@@ -281,7 +296,8 @@ def build_router() -> APIRouter:
     @router.post("/api/generate_robot")
     async def generate_robot_route(params: Dict[str, Any]):
         """生成机器人配置 (调用 quick_design.py)"""
-        return generate_robot(params)
+        payload, status_code = generate_robot(params)
+        return JSONResponse(status_code=status_code, content=payload)
 
     @router.get("/api/skills/list")
     async def skills_list_route():

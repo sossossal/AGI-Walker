@@ -20,8 +20,27 @@ from pathlib import Path
 # ==========================================
 # 1. 环境设置 & 依赖加载
 # ==========================================
-project_root = Path(__file__).resolve().parent
-sys.path.insert(0, str(project_root))
+
+
+def _find_repo_root() -> Path:
+    current = Path(__file__).resolve()
+    for candidate in current.parents:
+        if (candidate / "pyproject.toml").exists() and (candidate / "agi_walker").exists():
+            return candidate
+    return current.parent
+
+
+def _configure_stdio() -> None:
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
+_configure_stdio()
+project_root = _find_repo_root()
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 BOLD = "\033[1m"
 GREEN = "\033[92m"
