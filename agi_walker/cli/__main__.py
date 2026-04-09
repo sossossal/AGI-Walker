@@ -15,7 +15,17 @@ logger = logging.getLogger(__name__)
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
+def _configure_stdio() -> None:
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        # Keep pipe/subprocess encoding aligned with the parent process locale on
+        # Windows; forcing UTF-8 for captured output breaks `subprocess.run(..., text=True)`.
+        if hasattr(stream, "reconfigure") and getattr(stream, "isatty", lambda: False)():
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main():
+    _configure_stdio()
     parser = argparse.ArgumentParser(
         prog="agi_walker",
         description="AGI-Walker - 智能机器人建模工具",

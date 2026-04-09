@@ -49,29 +49,45 @@ class GodotController:
     def _resolve_session_id(self, session_id: Optional[str] = None) -> str:
         return session_id or DEFAULT_GODOT_SESSION_ID
 
+    def _bind_client_callbacks(
+        self, client: GodotSimulationClient, session_id: str
+    ) -> GodotSimulationClient:
+        def on_data(data: Any):
+            if self.broadcast_callback:
+                msg = WsMessage(
+                    type=MessageType.TELEMETRY_UPDATE.value,
+                    payload={"data": data},
+                    status="push",
+                ).to_dict()
+                self._broadcast(msg, session_id=session_id)
+
+        if hasattr(client, "set_data_callback"):
+            client.set_data_callback(on_data)
+        try:
+            client.data_callback = on_data
+        except Exception:
+            pass
+        return client
+
     def get_client(self, session_id: Optional[str] = None) -> GodotSimulationClient:
         target = self._resolve_session_id(session_id)
         if target not in self.clients:
-            self.clients[target] = GodotSimulationClient()
-            
-            # 捕获循环变量绑定
-            def make_on_data(sid: str):
-                def on_data(data: Any):
-                    if self.broadcast_callback:
-                        msg = WsMessage(
-                            type=MessageType.TELEMETRY_UPDATE.value,
-                            payload={"data": data},
-                            status="push",
-                        ).to_dict()
-                        self._broadcast(msg, session_id=sid)
-                return on_data
-                
-            self.clients[target].set_data_callback(make_on_data(target))
+            self.clients[target] = self._bind_client_callbacks(
+                GodotSimulationClient(),
+                target,
+            )
         return self.clients[target]
 
     @property
     def client(self) -> GodotSimulationClient:
         return self.get_client(self.legacy_session_id)
+
+    @client.setter
+    def client(self, value: GodotSimulationClient) -> None:
+        self.clients[self.legacy_session_id] = self._bind_client_callbacks(
+            value,
+            self.legacy_session_id,
+        )
 
     @property
     def cached_robot_config(self) -> Dict[str, Any]:
