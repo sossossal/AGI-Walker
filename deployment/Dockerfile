@@ -2,21 +2,20 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Install system dependencies
-# gcc/python3-dev might be needed for some pip packages
-RUN apt-get update && apt-get install -y \
-    gcc \
-    python3-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Set PYTHONPATH and pip defaults
+ENV PYTHONPATH=/app \
+    PIP_DEFAULT_TIMEOUT=300 \
+    PIP_RETRIES=10 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Keep pip current so it can resolve modern wheels where available.
+RUN python -m pip install --upgrade pip setuptools wheel
 
 # Install Zenoh and ML libs
 # Note: Zenoh Python wrapper is 'eclipse-zenoh'
-RUN pip install eclipse-zenoh numpy torch gymnasium
+RUN pip install eclipse-zenoh numpy torch gymnasium psutil
 
 # Copy application code
 COPY . /app
 
-# Set PYTHONPATH
-ENV PYTHONPATH=/app
-
-CMD ["python", "distributed/run_learner.py"]
+CMD ["python", "-m", "agi_walker.core.distributed.run_learner"]

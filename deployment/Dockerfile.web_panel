@@ -4,7 +4,10 @@ WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    PIP_DEFAULT_TIMEOUT=300 \
+    PIP_RETRIES=10 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 COPY deployment/requirements.web_panel.txt /app/deployment/requirements.web_panel.txt
 COPY deployment/requirements.web_panel.distributed.txt /app/deployment/requirements.web_panel.distributed.txt
@@ -18,7 +21,8 @@ RUN if [ -n "$WEB_PANEL_APT_PACKAGES" ]; then \
     rm -rf /var/lib/apt/lists/*; \
     fi
 
-RUN pip install --no-cache-dir -r "$WEB_PANEL_REQUIREMENTS_FILE"
+RUN python -m pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r "$WEB_PANEL_REQUIREMENTS_FILE"
 
 COPY . /app
 

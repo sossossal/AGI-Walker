@@ -81,10 +81,10 @@ class SmartSidecar:
     Implements Cloud-Edge Dynamic Offloading.
     """
 
-    def __init__(self, actor_id, godot_port, zenoh_router):
+    def __init__(self, actor_id, godot_host, godot_port, zenoh_router):
         self.id = actor_id
         self.scheduler = OffloadingScheduler()
-        self.godot = GodotClient("127.0.0.1", godot_port)
+        self.godot = GodotClient(godot_host, godot_port)
 
         # Zenoh Setup
         conf = zenoh.Config()
@@ -145,13 +145,23 @@ class SmartSidecar:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--id", type=str, default="actor1")
+    parser.add_argument(
+        "--godot-host",
+        type=str,
+        default=os.environ.get("AGI_WALKER_GODOT_HOST", "127.0.0.1"),
+    )
     parser.add_argument("--godot-port", type=int, default=9000)
     parser.add_argument(
         "--zenoh-router", type=str, default=os.environ.get("ZENOH_ROUTER")
     )
     args = parser.parse_args()
 
-    agent = SmartSidecar(args.id, args.godot_port, args.zenoh_router)
+    agent = SmartSidecar(
+        args.id,
+        args.godot_host,
+        args.godot_port,
+        args.zenoh_router,
+    )
     agent.run()
 
 

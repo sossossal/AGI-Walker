@@ -27,7 +27,6 @@ import pytest
 
 from web_panel.godot_session_bridge import GODOT_PROJECT_DIR, GodotBridge
 
-
 ARTIFACT_DIR_ENV = "AGI_WALKER_GODOT_HEADLESS_ARTIFACT_DIR"
 DEFAULT_ARTIFACT_DIR = Path("test_env") / "godot_headless_smoke"
 DEFAULT_SCENE = "demo_generated_biped.tscn"
@@ -139,7 +138,6 @@ def _fail(
     pytest.fail(message)
 
 
-@pytest.mark.integration
 async def _run_godot_headless_smoke_lifecycle() -> None:
     artifact_dir = _artifact_dir()
     session_id = f"smoke_test_{int(time.time())}"
@@ -292,6 +290,7 @@ async def _run_godot_headless_smoke_lifecycle() -> None:
         _write_report(artifact_dir, report)
 
 
+@pytest.mark.integration
 def test_godot_headless_smoke_lifecycle() -> None:
     asyncio.run(_run_godot_headless_smoke_lifecycle())
 

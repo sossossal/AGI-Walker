@@ -12,7 +12,7 @@ services:
     build:
       context: ..
       dockerfile: deployment/Dockerfile.distributed_runtime
-    command: ["python", "-u", "distributed/run_learner.py"]
+    command: ["python", "-u", "-m", "agi_walker.core.distributed.run_learner"]
     depends_on:
       - zenoh-router
     environment:
@@ -30,11 +30,14 @@ services:
     command:
       - python
       - -u
-      - distributed/sidecar.py
+      - -m
+      - agi_walker.core.distributed.sidecar
       - --id
       - ${AGI_WALKER_SIDECAR_ACTOR_ID:-actor_docker_1}
       - --godot-host
       - ${AGI_WALKER_GODOT_HOST:-host.docker.internal}
+      - --godot-port
+      - ${AGI_WALKER_GODOT_PORT:-9000}
       - --zenoh-router
       - tcp/zenoh-router:7447
     depends_on:
@@ -97,7 +100,7 @@ services:
       context: ..
       dockerfile: deployment/Dockerfile.web_panel
       args:
-        WEB_PANEL_APT_PACKAGES: build-essential
+        WEB_PANEL_APT_PACKAGES: ""
         WEB_PANEL_REQUIREMENTS_FILE: /app/deployment/requirements.web_panel.distributed.txt
     image: deployment-web-panel-distributed
     command: ["python", "-m", "uvicorn", "web_panel.server:app", "--host", "0.0.0.0", "--port", "8000"]
