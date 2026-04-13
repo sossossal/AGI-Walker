@@ -367,6 +367,7 @@ def test_dev_release_policy_allows_open_opt_in_evidence(tmp_path: Path):
 
 
 def test_stable_release_requires_explicit_approval(tmp_path: Path):
+    repo_source = _init_git_repo(tmp_path)
     payload = build_release_manifest_artifact(
         build_id="build-20260412-008",
         version="2026.04.12",
@@ -374,7 +375,7 @@ def test_stable_release_requires_explicit_approval(tmp_path: Path):
         release_summary="稳定通道验证。",
         generated_at="2026-04-12T12:00:00+00:00",
         project_root=tmp_path,
-        source_root=PROJECT_ROOT,
+        source_root=repo_source["root"],
     )
 
     assert payload["release_policy"] == {
@@ -395,14 +396,16 @@ def test_stable_release_requires_explicit_approval(tmp_path: Path):
         "commit_sha": None,
         "notes": None,
     }
-    assert payload["release_source"] == _repo_git_source("2026.04.12")
+    assert payload["release_source"] == {
+        key: value for key, value in repo_source.items() if key != "root"
+    }
     assert payload["release_gate_status"] == "blocked"
     assert payload["release_gate"]["release_approval_required"] == 1
     assert payload["release_gate"]["release_approval_ready"] == 0
     assert payload["release_gate"]["release_source_required"] == 1
     assert payload["release_gate"]["release_source_ready"] == 0
     assert payload["release_gate"]["release_worktree_required"] == 1
-    assert payload["release_gate"]["release_worktree_ready"] == 0
+    assert payload["release_gate"]["release_worktree_ready"] == 1
     assert payload["release_gate"]["release_version_tag_required"] == 1
     assert payload["release_gate"]["release_version_tag_ready"] == 0
 
@@ -472,6 +475,7 @@ def test_stable_release_becomes_ready_after_approval_and_live_evidence(tmp_path:
 
 
 def test_stable_release_blocks_when_approval_commit_does_not_match_head(tmp_path: Path):
+    repo_source = _init_git_repo(tmp_path, tag="2026.04.12")
     reports = {
         tmp_path / "test_env" / "distributed_smoke" / "distributed_smoke_report.json": {
             "schema_version": "1.0",
@@ -503,17 +507,18 @@ def test_stable_release_blocks_when_approval_commit_does_not_match_head(tmp_path
             "notes": "stable signoff",
         },
         project_root=tmp_path,
-        source_root=PROJECT_ROOT,
+        source_root=repo_source["root"],
     )
 
     assert payload["release_gate_status"] == "blocked"
     assert payload["release_gate"]["release_approval_ready"] == 1
     assert payload["release_gate"]["release_source_ready"] == 0
-    assert payload["release_gate"]["release_worktree_ready"] == 0
+    assert payload["release_gate"]["release_worktree_ready"] == 1
+    assert payload["release_gate"]["release_version_tag_ready"] == 1
 
 
 def test_stable_release_blocks_without_matching_version_tag(tmp_path: Path):
-    repo_source = _repo_git_source("2026.04.12")
+    repo_source = _init_git_repo(tmp_path)
     reports = {
         tmp_path / "test_env" / "distributed_smoke" / "distributed_smoke_report.json": {
             "schema_version": "1.0",
@@ -543,14 +548,13 @@ def test_stable_release_blocks_without_matching_version_tag(tmp_path: Path):
             "approved_at": "2026-04-12T12:30:00+00:00",
             "notes": "stable signoff",
         },
-        release_source=repo_source,
         project_root=tmp_path,
-        source_root=PROJECT_ROOT,
+        source_root=repo_source["root"],
     )
 
     assert payload["release_gate_status"] == "blocked"
     assert payload["release_gate"]["release_source_ready"] == 1
-    assert payload["release_gate"]["release_worktree_ready"] == 0
+    assert payload["release_gate"]["release_worktree_ready"] == 1
     assert payload["release_gate"]["release_version_tag_ready"] == 0
 
 
