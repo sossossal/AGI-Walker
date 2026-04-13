@@ -184,6 +184,12 @@ python tools/run_release_rehearsal.py --version 2026.04.12-rehearsal --build-id 
 python tools/check_release_readiness.py
 ```
 
+如果 stable manifest 已经生成，而且你想让 readiness 直接复用其中的签核元数据，而不是重复传 `--approval-status/--approved-by/...`，可以运行：
+
+```bash
+python tools/check_release_readiness.py --approval-manifest test_env/release/release_manifest_stable.json
+```
+
 该脚本会：
 
 - 预览当前 `rc` manifest
@@ -223,6 +229,12 @@ python tools/build_tracked_artifact_review_report.py
 python tools/build_stable_promotion_checklist.py
 ```
 
+如果 stable manifest 已经存在，并且你希望 checklist 直接识别“当前 HEAD 已有 ready manifest”，可以运行：
+
+```bash
+python tools/build_stable_promotion_checklist.py --approval-manifest test_env/release/release_manifest_stable.json
+```
+
 该脚本会：
 
 - 读取或刷新当前 `release_readiness_report.json`
@@ -230,6 +242,7 @@ python tools/build_stable_promotion_checklist.py
 - 固定列出 evidence、diagnostic domain、stable approval、Git HEAD 绑定、clean worktree、版本 tag 和最终 builder step
 - 区分 `blocking` 前置项与“已可执行但尚未执行”的最终 stable builder
 - 在 dirty worktree 场景下，`clean_worktree` step 会直接给出 `build_worktree_cleanup_report.py` 命令
+- 在传入 `--approval-manifest` 时，直接复用已有 stable manifest 的签核元数据，并在 manifest 已 ready 且匹配当前 HEAD 时把最终 builder step 标记为已完成
 
 ## 验收标准
 

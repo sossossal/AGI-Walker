@@ -32,6 +32,8 @@ AGI-Walker 当前可用的主入口已经恢复到可读、可执行、可验证
 - Worktree Cleanup Report：`python tools/build_worktree_cleanup_report.py`
 - Tracked Artifact Review Report：`python tools/build_tracked_artifact_review_report.py`
 - Stable Promotion Checklist：`python tools/build_stable_promotion_checklist.py`
+- 已有 stable manifest 反哺预检：`python tools/check_release_readiness.py --approval-manifest test_env/release/release_manifest_stable.json`
+- 已有 stable manifest 反哺 checklist：`python tools/build_stable_promotion_checklist.py --approval-manifest test_env/release/release_manifest_stable.json`
 
 ## 已验证项
 

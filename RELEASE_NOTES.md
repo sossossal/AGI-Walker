@@ -49,6 +49,7 @@
 - 已新增 `tools/build_worktree_cleanup_report.py`，用于把 dirty worktree 转成结构化清理报告，而不是只看 `git status --short`。
 - 已新增 `tools/build_tracked_artifact_review_report.py`，用于继续聚焦 tracked 的 runtime/generated 候选并输出 diff 摘要。
 - 已新增 `tools/build_stable_promotion_checklist.py`，用于把当前 HEAD 的 stable 阻塞项转成结构化 promotion checklist。
+- `tools/check_release_readiness.py` 和 `tools/build_stable_promotion_checklist.py` 现在都支持 `--approval-manifest`，可直接复用已有 stable manifest 的签核元数据。
 - 已新增 `tools/run_release_rehearsal.py`，用于显式演练“匹配版本 tag 的 stable 发布会变为 ready”。
 - 当前真实仓库的 cleanup report 已显示 `189` 个待处理路径，其中运行时产物 `6`、生成物候选 `1`、源码/文档人工审查项 `182`；新增 `.gitignore` 规则后，untracked runtime / generated 噪音已先被压缩。
 - 当前 tracked artifact review report 已锁定 `7` 个 tracked 候选，供下一步人工决策。

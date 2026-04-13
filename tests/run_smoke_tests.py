@@ -262,10 +262,13 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
     mock_root = output_root / "robot_creation_mock"
     real_root = output_root / "robot_creation_real"
     release_root = output_root / "release"
+    stable_release_root = output_root / "release_stable"
     release_readiness_root = output_root / "release_readiness"
+    release_readiness_approved_root = output_root / "release_readiness_approved"
     worktree_cleanup_root = output_root / "worktree_cleanup"
     tracked_artifact_review_root = output_root / "tracked_artifact_review"
     stable_promotion_root = output_root / "stable_promotion"
+    stable_promotion_approved_root = output_root / "stable_promotion_approved"
     release_rehearsal_root = output_root / "release_rehearsal"
     ros2_smoke_root = output_root / "ros2_bridge_smoke"
     modern_godot_agent_dir = _default_modern_godot_agent_dir()
@@ -375,6 +378,34 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
             artifact_dir=release_root,
         ),
         SmokeCheck(
+            name="stable release artifact",
+            command=[
+                sys.executable,
+                "tools/build_release_artifact.py",
+                "--version",
+                "2026.04.12",
+                "--channel",
+                "stable",
+                "--build-id",
+                "smoke-stable-build",
+                "--approval-status",
+                "approved",
+                "--approved-by",
+                "smoke-release-manager",
+                "--approved-at",
+                "2026-04-12T12:30:00+00:00",
+                "--approval-notes",
+                "smoke stable signoff",
+                "--output",
+                str(stable_release_root / "release_manifest_stable.json"),
+            ],
+            expected_tokens=[
+                "release_manifest_written=",
+                "release_gate_status=ready",
+            ],
+            artifact_dir=stable_release_root,
+        ),
+        SmokeCheck(
             name="release readiness",
             command=[
                 sys.executable,
@@ -388,6 +419,22 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
                 "stable_release_gate=",
             ],
             artifact_dir=release_readiness_root,
+        ),
+        SmokeCheck(
+            name="approved release readiness",
+            command=[
+                sys.executable,
+                "tools/check_release_readiness.py",
+                "--output-root",
+                str(release_readiness_approved_root),
+                "--approval-manifest",
+                str(stable_release_root / "release_manifest_stable.json"),
+            ],
+            expected_tokens=[
+                "release_readiness_written=",
+                "stable_release_gate=ready",
+            ],
+            artifact_dir=release_readiness_approved_root,
         ),
         SmokeCheck(
             name="worktree cleanup report",
@@ -437,6 +484,23 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
                 "stable_promotion_blocking_steps=",
             ],
             artifact_dir=stable_promotion_root,
+        ),
+        SmokeCheck(
+            name="approved stable promotion checklist",
+            command=[
+                sys.executable,
+                "tools/build_stable_promotion_checklist.py",
+                "--output-root",
+                str(stable_promotion_approved_root),
+                "--approval-manifest",
+                str(stable_release_root / "release_manifest_stable.json"),
+            ],
+            expected_tokens=[
+                "stable_promotion_checklist_written=",
+                "stable_promotion_gate=ready",
+                "stable_promotion_ready_to_promote=true",
+            ],
+            artifact_dir=stable_promotion_approved_root,
         ),
         SmokeCheck(
             name="stable release rehearsal",

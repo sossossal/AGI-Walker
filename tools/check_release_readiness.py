@@ -110,6 +110,49 @@ def _build_release_approval_payload(args: argparse.Namespace) -> dict[str, str |
     }
 
 
+def _load_approval_manifest(path: str, *, stable_version: str) -> tuple[dict[str, Any], Path]:
+    manifest_path = _resolve_project_path(path, str(PROJECT_ROOT))
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if payload.get("artifact_type") != "release_manifest":
+        raise ValueError(
+            f"--approval-manifest must point to a release_manifest artifact: {manifest_path}"
+        )
+    if payload.get("channel") != "stable":
+        raise ValueError(
+            f"--approval-manifest must point to a stable manifest: {manifest_path}"
+        )
+    if payload.get("version") != stable_version:
+        raise ValueError(
+            "--approval-manifest version does not match --stable-version: "
+            f"{payload.get('version')} != {stable_version}"
+        )
+    release_approval = payload.get("release_approval")
+    if not isinstance(release_approval, dict):
+        raise ValueError(
+            f"--approval-manifest is missing a valid release_approval object: {manifest_path}"
+        )
+    return payload, manifest_path
+
+
+def _resolve_release_approval(
+    args: argparse.Namespace,
+    *,
+    stable_version: str,
+) -> tuple[dict[str, str | None] | None, str | None]:
+    explicit = _build_release_approval_payload(args)
+    if not args.approval_manifest:
+        return explicit, None
+
+    manifest_payload, manifest_path = _load_approval_manifest(
+        args.approval_manifest,
+        stable_version=stable_version,
+    )
+    approval = dict(manifest_payload["release_approval"])
+    if explicit is not None:
+        approval.update({key: value for key, value in explicit.items() if value is not None})
+    return approval, str(manifest_path)
+
+
 def _default_build_id(channel: str, version: str) -> str:
     normalized_version = re.sub(r"[^A-Za-z0-9._-]+", "-", version)
     return f"{channel}-readiness-{normalized_version}"
@@ -304,6 +347,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--approved-at", default=None)
     parser.add_argument("--commit-sha", default=None)
     parser.add_argument("--approval-notes", default=None)
+    parser.add_argument(
+        "--approval-manifest",
+        default=None,
+        help="Optional stable release manifest used to import release_approval metadata.",
+    )
     return parser
 
 
@@ -331,7 +379,13 @@ def main(argv: list[str] | None = None) -> int:
     stable_version = args.stable_version or _derive_stable_version(current_version)
     changelog_title = metadata.get("title", "AGI-Walker Release Notes")
     summary = metadata.get("release_summary", "Release readiness preview.")
-    release_approval = _build_release_approval_payload(args)
+    try:
+        release_approval, approval_manifest_path = _resolve_release_approval(
+            args,
+            stable_version=stable_version,
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
 
     previews = [
         _build_preview(
@@ -370,6 +424,7 @@ def main(argv: list[str] | None = None) -> int:
         "source_root": args.source_root,
         "current_version": current_version,
         "stable_version": stable_version,
+        "approval_manifest_path": approval_manifest_path,
         "report_path": str(report_path),
         "previews": previews,
         "next_step_plan": next_step_plan,

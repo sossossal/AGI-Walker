@@ -187,6 +187,7 @@ python -m pytest -m "not live" -q
 - 已新增 `tools/build_worktree_cleanup_report.py`，用于把 dirty worktree 非破坏性分类成运行时产物、生成物候选和源码/文档人工审查项。
 - 已新增 `tools/build_tracked_artifact_review_report.py`，用于继续聚焦 tracked 的 runtime/generated 候选，给出 diff 摘要和建议动作。
 - 已新增 `tools/build_stable_promotion_checklist.py`，用于把当前 HEAD 的 stable 阻塞项转成结构化 promotion checklist，并接入 smoke / targeted 回归。
+- `tools/check_release_readiness.py` 和 `tools/build_stable_promotion_checklist.py` 现在都支持 `--approval-manifest`，可直接复用已生成 stable manifest 的签核元数据，避免重复手填 approval 参数。
 - 已新增 `tools/run_release_rehearsal.py`，用于在临时 Git repo 中显式演练匹配版本 tag 的 stable 正向路径，并接入 smoke / targeted 回归。
 - 当前真实仓库的 cleanup report 已显示 `189` 个待处理路径，其中运行时产物 `6`、生成物候选 `1`、源码/文档人工审查项 `182`；新增 `.gitignore` 规则后，untracked runtime / generated 噪音已被明显压缩，这一步已经把“先清理什么”从口头建议变成结构化报告。
 - 当前 tracked artifact review report 已进一步锁定 `7` 个 tracked 候选，需要人工决定回退、保留还是改成不跟踪。

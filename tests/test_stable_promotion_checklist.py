@@ -5,6 +5,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+from agi_walker.core.api.release_contracts import (
+    build_release_manifest_artifact,
+    write_release_manifest_artifact,
+)
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -72,6 +77,27 @@ def _seed_live_evidence(project_root: Path) -> None:
             json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
+
+
+def _write_ready_stable_manifest(project_root: Path, source_root: Path) -> Path:
+    manifest_path = project_root / "test_env" / "release" / "release_manifest_stable.json"
+    payload = build_release_manifest_artifact(
+        build_id="build-20260412-stable",
+        version="2026.04.12",
+        channel="stable",
+        release_summary="stable signoff",
+        generated_at="2026-04-12T12:31:00+00:00",
+        release_approval={
+            "status": "approved",
+            "approved_by": "release-manager",
+            "approved_at": "2026-04-12T12:30:00+00:00",
+            "notes": "stable signoff",
+        },
+        project_root=project_root,
+        source_root=source_root,
+    )
+    assert payload["release_gate_status"] == "ready"
+    return write_release_manifest_artifact(payload, manifest_path)
 
 
 def test_stable_promotion_checklist_reports_pending_prerequisites(tmp_path: Path) -> None:
@@ -229,3 +255,48 @@ def test_stable_promotion_checklist_blocks_on_dirty_worktree(tmp_path: Path) -> 
     assert "tools/build_worktree_cleanup_report.py" in step_ids["clean_worktree"]["command"]
     assert step_ids["version_tag"]["status"] == "done"
     assert step_ids["build_stable_manifest"]["ready_to_run"] is False
+
+
+def test_stable_promotion_checklist_accepts_approval_manifest(tmp_path: Path) -> None:
+    project_root = tmp_path / "project_root"
+    project_root.mkdir(parents=True, exist_ok=True)
+    source_root, head = _init_git_repo(tmp_path, tag="2026.04.12")
+    _seed_live_evidence(project_root)
+    approval_manifest = _write_ready_stable_manifest(project_root, source_root)
+    report_path = project_root / "test_env" / "stable_promotion" / "checklist.json"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "tools/build_stable_promotion_checklist.py",
+            "--current-version",
+            "2026.04.12-rc6",
+            "--stable-version",
+            "2026.04.12",
+            "--project-root",
+            str(project_root),
+            "--source-root",
+            str(source_root),
+            "--approval-manifest",
+            str(approval_manifest),
+            "--report-file",
+            str(report_path),
+        ],
+        cwd=str(PROJECT_ROOT),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "stable_promotion_gate=ready" in result.stdout
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    assert payload["ready_to_promote"] is True
+    assert payload["approval_manifest_path"] == str(approval_manifest)
+    assert payload["current_head_commit"] == head
+
+    step_ids = {step["id"]: step for step in payload["steps"]}
+    assert step_ids["build_stable_manifest"]["status"] == "done"
+    assert "ready stable manifest" in step_ids["build_stable_manifest"]["summary"]
+    assert step_ids["build_stable_manifest"]["command"] is None

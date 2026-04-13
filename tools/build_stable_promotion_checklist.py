@@ -71,6 +71,7 @@ def _run_readiness_command(
     source_root: str,
     changelog: str,
     approval_args: dict[str, str | None],
+    approval_manifest: str | None,
 ) -> tuple[dict[str, Any], str, str]:
     command = [
         sys.executable,
@@ -90,6 +91,8 @@ def _run_readiness_command(
         command.extend(["--current-version", current_version])
     if stable_version:
         command.extend(["--stable-version", stable_version])
+    if approval_manifest:
+        command.extend(["--approval-manifest", approval_manifest])
     for option, value in approval_args.items():
         if value:
             command.extend([option, value])
@@ -122,6 +125,7 @@ def _load_readiness_report(
     source_root: str,
     changelog: str,
     approval_args: dict[str, str | None],
+    approval_manifest: str | None,
 ) -> tuple[dict[str, Any], str, str]:
     if readiness_report_path.is_file() and not refresh_readiness:
         payload = json.loads(readiness_report_path.read_text(encoding="utf-8"))
@@ -134,6 +138,7 @@ def _load_readiness_report(
         source_root=source_root,
         changelog=changelog,
         approval_args=approval_args,
+        approval_manifest=approval_manifest,
     )
 
 
@@ -143,6 +148,30 @@ def _stable_preview(readiness_payload: dict[str, Any]) -> dict[str, Any]:
 
 def _load_manifest(path: str) -> dict[str, Any]:
     return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _matches_ready_stable_manifest(
+    approval_manifest: dict[str, Any] | None,
+    *,
+    stable_preview: dict[str, Any],
+) -> bool:
+    if not isinstance(approval_manifest, dict):
+        return False
+    if approval_manifest.get("artifact_type") != "release_manifest":
+        return False
+    if approval_manifest.get("channel") != "stable":
+        return False
+    if approval_manifest.get("release_gate_status") != "ready":
+        return False
+    if approval_manifest.get("version") != stable_preview.get("version"):
+        return False
+    manifest_source = approval_manifest.get("release_source", {})
+    preview_source = stable_preview.get("release_source", {})
+    return (
+        manifest_source.get("commit_sha") == preview_source.get("commit_sha")
+        and manifest_source.get("matched_version_tag")
+        == preview_source.get("matched_version_tag")
+    )
 
 
 def _evidence_step_title(name: str) -> str:
@@ -316,7 +345,30 @@ def _build_final_step(
     manifest: dict[str, Any],
     stable_preview: dict[str, Any],
     prerequisite_steps: list[dict[str, Any]],
+    approval_manifest: dict[str, Any] | None,
+    approval_manifest_path: str | None,
 ) -> dict[str, Any]:
+    if _matches_ready_stable_manifest(approval_manifest, stable_preview=stable_preview):
+        return {
+            "id": "build_stable_manifest",
+            "category": "release",
+            "title": "生成 stable release manifest",
+            "status": "done",
+            "required": True,
+            "blocking": False,
+            "summary": (
+                "已存在与当前 HEAD 匹配的 ready stable manifest。"
+                + (
+                    f" 来源: {approval_manifest_path}"
+                    if approval_manifest_path
+                    else ""
+                )
+            ),
+            "command": None,
+            "ready_to_run": False,
+            "depends_on": [],
+        }
+
     pending_blockers = [
         step["id"] for step in prerequisite_steps if step["blocking"] and step["status"] != "done"
     ]
@@ -378,6 +430,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--approved-at", default=None)
     parser.add_argument("--commit-sha", default=None)
     parser.add_argument("--approval-notes", default=None)
+    parser.add_argument(
+        "--approval-manifest",
+        default=None,
+        help="Optional ready stable release manifest used to import approval metadata.",
+    )
     return parser
 
 
@@ -413,9 +470,13 @@ def main(argv: list[str] | None = None) -> int:
         source_root=args.source_root,
         changelog=args.changelog,
         approval_args=approval_args,
+        approval_manifest=args.approval_manifest,
     )
     stable_preview = _stable_preview(readiness_payload)
     manifest = _load_manifest(stable_preview["manifest_path"])
+    approval_manifest = (
+        _load_manifest(args.approval_manifest) if args.approval_manifest else None
+    )
 
     evidence_steps = _build_evidence_steps(manifest)
     domain_steps = _build_domain_steps(manifest)
@@ -430,6 +491,8 @@ def main(argv: list[str] | None = None) -> int:
         manifest=manifest,
         stable_preview=stable_preview,
         prerequisite_steps=blocking_steps_list,
+        approval_manifest=approval_manifest,
+        approval_manifest_path=args.approval_manifest,
     )
     steps = blocking_steps_list + [final_step]
     blocking_steps = sum(
@@ -452,6 +515,7 @@ def main(argv: list[str] | None = None) -> int:
         "matched_version_tag": stable_preview["release_source"].get("matched_version_tag"),
         "readiness_report_path": str(readiness_report_path),
         "stable_preview_manifest_path": stable_preview["manifest_path"],
+        "approval_manifest_path": args.approval_manifest,
         "blocking_steps": blocking_steps,
         "completed_steps": completed_steps,
         "pending_steps": pending_steps,
