@@ -3,14 +3,21 @@
 基于Stable-Baselines3，集成Godot仿真环境
 """
 
-import time
-import json
 import argparse
-from pathlib import Path
-from dataclasses import dataclass
-from typing import Callable, Optional
-import numpy as np
+import json
 import logging
+import time
+from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Callable, Optional
+
+import numpy as np
+
+from agi_walker.core.api.training_contracts import (
+    build_training_run_artifact,
+    write_training_run_artifact,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -173,6 +180,10 @@ class RLOptimizer:
         eval_freq: int = 10000,
         n_eval_episodes: int = 5,
         callback: Optional[Callable] = None,
+        run_id: Optional[str] = None,
+        run_type: Optional[str] = None,
+        hardware_required: bool = False,
+        hardware_enabled: bool = False,
     ) -> dict:
         """
         训练RL代理
@@ -190,6 +201,7 @@ class RLOptimizer:
         logger.info(f"   总步数: {total_timesteps}")
         logger.info(f"   评估频率: {eval_freq}")
 
+        started_at = datetime.now(timezone.utc).isoformat()
         start_time = time.time()
 
         # 创建回调
@@ -235,15 +247,71 @@ class RLOptimizer:
         logger.info(f"✅ 模型已保存: {final_path}")
 
         # 记录历史
+        resolved_run_type = run_type or self._infer_run_type(hardware_required)
+        manifest = build_training_run_artifact(
+            run_id=run_id or f"{self.config.algorithm.lower()}:{resolved_run_type}",
+            run_type=resolved_run_type,
+            stage="rl_policy_training",
+            status="completed",
+            algorithm=self.config.algorithm,
+            environment=self._environment_metadata(resolved_run_type),
+            inputs={
+                "total_timesteps": total_timesteps,
+                "eval_freq": eval_freq,
+                "n_eval_episodes": n_eval_episodes,
+                "config": asdict(self.config),
+            },
+            metrics={
+                "total_timesteps": total_timesteps,
+                "training_time_seconds": training_time,
+            },
+            artifacts=[
+                {
+                    "name": "rl_model",
+                    "path": str(final_path),
+                    "artifact_type": "model",
+                },
+                {
+                    "name": "checkpoints",
+                    "path": str(self.save_dir / "checkpoints"),
+                    "artifact_type": "checkpoint_directory",
+                },
+            ],
+            hardware_required=hardware_required,
+            hardware_enabled=hardware_enabled,
+            started_at=started_at,
+            finished_at=datetime.now(timezone.utc).isoformat(),
+            duration_seconds=training_time,
+        )
+        manifest_path = write_training_run_artifact(
+            manifest, self.save_dir / "training_run_manifest.json"
+        )
+
         result = {
             "algorithm": self.config.algorithm,
             "total_timesteps": total_timesteps,
             "training_time": training_time,
             "model_path": str(final_path),
+            "run_type": resolved_run_type,
+            "training_run_artifact": str(manifest_path),
         }
         self.training_history.append(result)
 
         return result
+
+    def _infer_run_type(self, hardware_required: bool) -> str:
+        if hardware_required:
+            return "hardware_in_the_loop"
+        if self.env.__class__.__name__ == "DummyEnv":
+            return "mock_training"
+        return "sim_training"
+
+    def _environment_metadata(self, run_type: str) -> dict:
+        return {
+            "kind": run_type,
+            "name": self.env.__class__.__name__,
+            "vectorized": self.vec_env is not None,
+        }
 
     def evaluate(self, n_episodes: int = 10) -> dict:
         """评估当前策略"""

@@ -156,5 +156,5 @@ if __name__ == "__main__":
 
         status = " " if info["opened"] else " "
         print(
-            f"Episode {episode+1}: {status}, ={np.rad2deg(info['door_angle']):.1f}°, Reward={total_reward:.2f}"
+            f"Episode {episode + 1}: {status}, ={np.rad2deg(info['door_angle']):.1f}°, Reward={total_reward:.2f}"
         )

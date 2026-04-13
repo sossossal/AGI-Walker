@@ -43,6 +43,7 @@ http://localhost:8000/docs
 ### 系统与概览
 
 - `GET /api/system/status`
+- `GET /api/capabilities/matrix`
 - `GET /api/godot/capabilities`
 - `GET /api/distributed/status`
 - `GET /api/nightly/regressions`
@@ -200,6 +201,7 @@ Nightly 跟踪的 job：
 - `smoke`
 - `distributed-smoke`
 - `godot-headless-smoke`
+- `ros2-bridge-smoke`
 
 ### Godot Agent Backend
 
@@ -260,7 +262,14 @@ python tests/run_smoke_tests.py
 
 ```powershell
 $env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
-python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
+python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live" --tb=short -vv
+```
+
+可选的 ROS2 bridge smoke：
+
+```powershell
+$env:AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE='1'
+python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live" --tb=short -vv
 ```
 
 常用 headless 调整项：

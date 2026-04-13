@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
@@ -17,10 +18,10 @@ if config.config_file_name is not None:
 import sys
 import os
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from web_panel.database import Base
-from web_panel.models import WorkflowRun  # Ensure models are loaded
 
 # target_metadata = None
 target_metadata = Base.metadata
@@ -28,11 +29,15 @@ target_metadata = Base.metadata
 
 def _resolve_database_url() -> str:
     """Resolve the Alembic database URL from environment or ini, using sync drivers."""
-    configured_url = os.getenv("AGI_WALKER_DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    configured_url = os.getenv("AGI_WALKER_DATABASE_URL") or config.get_main_option(
+        "sqlalchemy.url"
+    )
     normalized = configured_url.strip()
 
     if normalized.startswith("postgresql+asyncpg://"):
-        normalized = normalized.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+        normalized = normalized.replace(
+            "postgresql+asyncpg://", "postgresql+psycopg2://", 1
+        )
     elif normalized.startswith("postgresql://"):
         normalized = normalized.replace("postgresql://", "postgresql+psycopg2://", 1)
     elif normalized.startswith("sqlite+aiosqlite:///"):
@@ -84,9 +89,9 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, 
+            connection=connection,
             target_metadata=target_metadata,
-            render_as_batch=True  # 启用 Batch Mode 以支持 SQLite 外键修改
+            render_as_batch=True,  # 启用 Batch Mode 以支持 SQLite 外键修改
         )
 
         with context.begin_transaction():

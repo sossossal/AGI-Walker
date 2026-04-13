@@ -1,6 +1,6 @@
 # Offline RL
 
-更新日期：`2026-04-08`
+更新日期：`2026-04-12`
 
 本页说明 AGI-Walker 当前的离线强化学习模块。它已经有真实代码，但仍依赖额外三方库和可用环境，不属于默认主线路径。
 
@@ -45,6 +45,12 @@ python -m pytest tests/test_offline_rl.py -q
 4. 用 CQL 训练
 5. 必要时再在线 fine-tune
 
+`OfflineRLTrainer.train_offline()` 当前会在 `save_dir` 下写出：
+
+- `training_run_manifest.json`
+
+该 manifest 使用 `training_run` artifact v1，记录 `offline_dataset_training` 的算法、环境、输入数据摘要、训练步数、训练耗时、模型目录和硬件边界。该路径默认 `hardware_required=false`、`hardware_enabled=false`，不应访问真实硬件。
+
 ## 4. 推荐的起步方式
 
 不要一开始就用仓库里的历史占位环境 ID。建议先从标准 Gym 环境验证工具链，例如：
@@ -56,6 +62,12 @@ collector = ExpertDataCollector("CartPole-v1")
 ```
 
 这也是当前测试里采用的更稳妥路径。
+
+如果只验证 manifest 契约和离线训练写盘逻辑，可运行：
+
+```bash
+python -m pytest tests/test_training_contracts.py tests/test_offline_rl.py -q
+```
 
 ## 5. 关于示例脚本
 

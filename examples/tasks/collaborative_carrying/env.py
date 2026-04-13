@@ -30,7 +30,10 @@ class CollaborativeCarryingEnv(gym.Env):
             low=-np.inf, high=np.inf, shape=(60,), dtype=np.float32
         )
         self.action_space = gym.spaces.Box(
-            low=-1.0, high=1.0, shape=(16,), dtype=np.float32  # 2 robots x 8 joints
+            low=-1.0,
+            high=1.0,
+            shape=(16,),
+            dtype=np.float32,  # 2 robots x 8 joints
         )
 
         #
@@ -145,5 +148,5 @@ if __name__ == "__main__":
 
         status = " " if info["distance"] >= 5.0 else f"⏱ {info['distance']:.2f}m/5.0m"
         print(
-            f"Episode {episode+1}: {status}, ={info['both_grasped']}, Reward={total_reward:.2f}"
+            f"Episode {episode + 1}: {status}, ={info['both_grasped']}, Reward={total_reward:.2f}"
         )

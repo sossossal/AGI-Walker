@@ -1,6 +1,7 @@
 """
 LevelDesignerRole — 关卡/地图生成角色
 """
+
 from typing import Dict, List, Any
 from .base import BaseRole
 
@@ -10,7 +11,13 @@ class LevelDesignerRole(BaseRole):
         return "关卡设计专家，程序化生成地图/关卡/地牢脚本"
 
     def get_capabilities(self) -> List[str]:
-        return ["程序化关卡生成", "地牢/迷宫算法", "TileMap 铺设脚本", "关卡数据 JSON", "房间连接生成"]
+        return [
+            "程序化关卡生成",
+            "地牢/迷宫算法",
+            "TileMap 铺设脚本",
+            "关卡数据 JSON",
+            "房间连接生成",
+        ]
 
     def execute(self, command: str, context: Dict[str, Any]) -> Dict[str, Any]:
         cmd = command.lower()
@@ -99,12 +106,17 @@ func apply_to_tilemap(tilemap: TileMap, floor_tile: Vector2i, wall_tile: Vector2
 			var tile = wall_tile if grid[y][x] == WALL else floor_tile
 			tilemap.set_cell(0, Vector2i(x, y), 0, tile)
 '''
-        return self._success_result("地牢生成器已生成",
-            {"script_name": "dungeon_generator.gd", "code": code,
-             "tips": "将此节点添加到场景，调用 generate()，再调用 apply_to_tilemap() 写入 TileMap"})
+        return self._success_result(
+            "地牢生成器已生成",
+            {
+                "script_name": "dungeon_generator.gd",
+                "code": code,
+                "tips": "将此节点添加到场景，调用 generate()，再调用 apply_to_tilemap() 写入 TileMap",
+            },
+        )
 
     def _gen_tilemap_helper(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # tilemap_helper.gd — TileMap 操作辅助
 extends Node
 
@@ -118,6 +130,7 @@ func clear_layer(tilemap: TileMap, layer: int) -> void:
 
 func world_to_map(tilemap: TileMap, world_pos: Vector2) -> Vector2i:
 	return tilemap.local_to_map(tilemap.to_local(world_pos))
-'''
-        return self._success_result("TileMap 辅助脚本已生成",
-            {"script_name": "tilemap_helper.gd", "code": code})
+"""
+        return self._success_result(
+            "TileMap 辅助脚本已生成", {"script_name": "tilemap_helper.gd", "code": code}
+        )

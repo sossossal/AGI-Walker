@@ -7,7 +7,7 @@ def test_nightly_status_provider_returns_not_configured_without_repo():
 
     assert snapshot["status"] == "not_configured"
     assert snapshot["configured"] is False
-    assert snapshot["summary"]["missing_jobs"] == 3
+    assert snapshot["summary"]["missing_jobs"] == 4
 
 
 def test_nightly_status_provider_parses_github_runs_and_jobs():
@@ -61,6 +61,14 @@ def test_nightly_status_provider_parses_github_runs_and_jobs():
                         "started_at": "2026-04-01T02:07:00Z",
                         "completed_at": "2026-04-01T02:12:00Z",
                     },
+                    {
+                        "name": "ros2-bridge-smoke",
+                        "status": "completed",
+                        "conclusion": "success",
+                        "html_url": "https://example.invalid/job/ros2",
+                        "started_at": "2026-04-01T02:08:00Z",
+                        "completed_at": "2026-04-01T02:11:00Z",
+                    },
                 ]
             }
         raise AssertionError(f"Unexpected URL: {url}")
@@ -78,7 +86,8 @@ def test_nightly_status_provider_parses_github_runs_and_jobs():
     assert first["configured"] is True
     assert first["latest_run"]["run_number"] == 88
     assert first["jobs"]["smoke"]["conclusion"] == "success"
-    assert first["summary"]["passed_jobs"] == 3
+    assert first["jobs"]["ros2-bridge-smoke"]["conclusion"] == "success"
+    assert first["summary"]["passed_jobs"] == 4
     assert first["summary"]["failed_jobs"] == 0
     assert first["cache_state"] == "miss"
     assert second["cache_state"] == "hit"
@@ -94,6 +103,18 @@ def test_nightly_status_provider_parses_github_runs_and_jobs():
     assert (
         dashboard["job_catalog"]["distributed-smoke"]["artifact_name"]
         == "distributed-smoke-artifacts"
+    )
+    assert (
+        dashboard["job_catalog"]["distributed-smoke"]["local_repro_command"]
+        == "python tests/run_distributed_smoke.py --build --stop-after --report-file test_env/distributed_smoke/distributed_smoke_report.json"
+    )
+    assert (
+        dashboard["job_catalog"]["ros2-bridge-smoke"]["artifact_name"]
+        == "ros2-bridge-smoke-artifacts"
+    )
+    assert (
+        dashboard["job_catalog"]["ros2-bridge-smoke"]["local_repro_command"]
+        == 'AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE=1 python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live"'
     )
     assert calls["count"] == 6
 
@@ -130,6 +151,11 @@ def test_nightly_status_provider_marks_degraded_when_job_fails():
                     },
                     {
                         "name": "godot-headless-smoke",
+                        "status": "completed",
+                        "conclusion": "success",
+                    },
+                    {
+                        "name": "ros2-bridge-smoke",
                         "status": "completed",
                         "conclusion": "success",
                     },

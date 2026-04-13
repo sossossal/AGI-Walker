@@ -35,6 +35,7 @@ python -m agi_walker.mcp.server
 - `godot_agent_plan`
 - `godot_agent_doctor`
 - `godot_agent_history`
+- `capability_matrix_get`
 
 ## 工具能力范围
 
@@ -42,6 +43,7 @@ python -m agi_walker.mcp.server
 - `workflow_*`：读取和执行内置 workflow
 - `skills_*`：读取 `SKILL.md` 元数据和正文
 - `godot_agent_*`：读取 Godot Agent backend 状态、模板、计划、自检和历史
+- `capability_matrix_get`：读取发布面 capability matrix、契约版本和已知限制
 
 ## 验证
 

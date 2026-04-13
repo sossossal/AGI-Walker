@@ -7,6 +7,7 @@
 import logging
 
 import unittest
+import socket
 import time
 import pytest
 from agi_walker.core.api.comm.godot_client import GodotSimulationClient, MockGodotServer
@@ -17,14 +18,21 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.integration
 
 
+def _find_unused_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+
+
 class TestGodotClient(unittest.TestCase):
     """Godot客户端测试"""
 
     @classmethod
     def setUpClass(cls):
         """启动模拟服务器"""
-        cls.server = MockGodotServer(port=9998)
-        cls.server.start()
+        cls.server = MockGodotServer(port=0)
+        assert cls.server.start()
+        cls.port = cls.server.port
         time.sleep(0.5)  # 等待服务器启动
 
     @classmethod
@@ -34,7 +42,7 @@ class TestGodotClient(unittest.TestCase):
 
     def test_connection(self) -> None:
         """测试连接"""
-        client = GodotSimulationClient(port=9998)
+        client = GodotSimulationClient(port=self.port)
 
         # 连接应该成功
         self.assertTrue(client.connect())
@@ -47,14 +55,14 @@ class TestGodotClient(unittest.TestCase):
     def test_connection_timeout(self) -> None:
         """测试连接超时"""
         # 连接到不存在的服务器
-        client = GodotSimulationClient(port=9997)  # 错误端口
+        client = GodotSimulationClient(port=_find_unused_port())
 
         # 应该失败
         self.assertFalse(client.connect(timeout=1.0))
 
     def test_send_commands(self) -> None:
         """测试发送命令"""
-        client = GodotSimulationClient(port=9998)
+        client = GodotSimulationClient(port=self.port)
 
         if client.connect():
             # 加载配置
@@ -81,7 +89,7 @@ class TestGodotClient(unittest.TestCase):
 
     def test_data_callback(self) -> None:
         """测试数据回调"""
-        client = GodotSimulationClient(port=9998)
+        client = GodotSimulationClient(port=self.port)
 
         received_data = []
 

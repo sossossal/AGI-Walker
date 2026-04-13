@@ -11,6 +11,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
+from agi_walker.core.api.workflow_contracts import WORKFLOW_CONTRACT_VERSION
 from agi_walker.workflow_orchestrator import (
     StepStatus,
     WorkflowResult,
@@ -125,6 +126,9 @@ class FakeWorkflowOrchestrator:
     def get_workflow(self, name: str) -> dict | None:
         return self.workflows.get(name)
 
+    def validate_workflow(self, name: str) -> tuple[bool, str]:
+        return (True, "Valid") if name in self.workflows else (False, "Not found")
+
     def execute_workflow(
         self,
         name: str,
@@ -180,8 +184,8 @@ def _build_completed_workflow_result(tmp_path: Path) -> WorkflowResult:
     created_robot.write_text(
         json.dumps(
             {
-                "robot_name": "web_panel_bot",
-                "parts": [{"id": "torso", "type": "body"}],
+                "name": "web_panel_bot",
+                "parts": [{"id": "torso", "type": "body", "params": {}}],
                 "connections": [],
             },
             indent=2,
@@ -216,7 +220,14 @@ def _build_completed_workflow_result(tmp_path: Path) -> WorkflowResult:
                 skill_executor="urdf_generator",
                 action="export_to_format",
                 status=StepStatus.COMPLETED,
-                output={"output_file": str(robot_urdf)},
+                output={
+                    "status": "success",
+                    "action": "export_to_format",
+                    "output_file": str(robot_urdf),
+                    "format": "urdf",
+                    "output_generated": True,
+                    "file_size": robot_urdf.stat().st_size,
+                },
                 start_time=first_end,
                 end_time=second_end,
             ),
@@ -404,10 +415,12 @@ def test_workflow_routes_list_execute_and_download_artifacts(
         workflows = workflows_response.json()
         assert workflows == [
             {
+                "schema_version": WORKFLOW_CONTRACT_VERSION,
                 "name": "robot_creation_pipeline",
                 "description": "Create a robot and export it",
                 "steps_count": 2,
                 "step_names": ["create_model", "export_urdf"],
+                "validation": {"valid": True, "message": "Valid"},
             }
         ]
 
@@ -449,6 +462,10 @@ def test_workflow_routes_list_execute_and_download_artifacts(
         assert run["success_rate"] == 100.0
         assert run["last_event"] == "workflow_finished"
         assert run["steps_snapshot"][0]["status"] == "completed"
+        assert run["steps_snapshot"][0]["output_file"].endswith("created_robot.json")
+        assert run["workflow_contract_version"] == WORKFLOW_CONTRACT_VERSION
+        assert run["workflow_result_schema_version"] == WORKFLOW_CONTRACT_VERSION
+        assert run["workflow_result_artifact_type"] == "workflow_result"
         assert len(run["artifacts"]) == 2
         assert run["log_download_url"] == f"/api/workflows/runs/{run['run_id']}/log"
         assert (
@@ -487,6 +504,14 @@ def test_workflow_routes_list_execute_and_download_artifacts(
         assert (
             run_detail_response.json()["run"]["artifacts"][0]["godot_load_supported"]
             is True
+        )
+        assert (
+            run_detail_response.json()["run"]["artifacts"][0]["contract"]["valid"]
+            is True
+        )
+        assert (
+            run_detail_response.json()["run"]["artifacts"][0]["schema_version"]
+            == WORKFLOW_CONTRACT_VERSION
         )
         assert (
             run_detail_response.json()["run"]["artifacts"][1]["artifact_type"] == "urdf"
@@ -598,7 +623,7 @@ def test_workflow_artifact_godot_load_uses_legacy_controller(
             "host": "127.0.0.1",
             "port": 9999,
             "connect_session_id": "design-tab-1",
-            "parts": [{"id": "torso", "type": "body"}],
+            "parts": [{"id": "torso", "type": "body", "params": {}}],
             "connections": [],
             "load_session_id": "design-tab-1",
         }
@@ -670,6 +695,14 @@ def test_workflow_artifact_godot_load_uses_session_bridge(
             def get_process_diagnostics(self) -> dict[str, object]:
                 return {"running": self._running}
 
+            def get_status_payload(self) -> dict[str, object]:
+                return {
+                    "schema_version": "1.0",
+                    "session_state": "schema_ready",
+                    "engine_running": self._running,
+                    "tcp_connected": True,
+                }
+
         fake_bridge = FakeBridge()
 
         class FakeSessionManager:
@@ -695,6 +728,7 @@ def test_workflow_artifact_godot_load_uses_session_bridge(
         assert payload["status"] == "success"
         assert payload["transport"]["transport_mode"] == "session_bridge"
         assert payload["transport"]["schema_available"] is True
+        assert payload["transport"]["session_state"] == "schema_ready"
         assert payload["transport"]["launch_result"]["status"] == "launched"
         assert payload["godot_delivery"]["schema_keys"] == ["actuators", "sensors"]
         assert payload["godot_delivery"]["transport_status_url"].endswith(
@@ -711,8 +745,8 @@ def test_workflow_artifact_godot_load_uses_session_bridge(
             "headless": True,
         }
         assert observed["robot_config"] == {
-            "robot_name": "web_panel_bot",
-            "parts": [{"id": "torso", "type": "body"}],
+            "name": "web_panel_bot",
+            "parts": [{"id": "torso", "type": "body", "params": {}}],
             "connections": [],
         }
     finally:
@@ -778,6 +812,14 @@ def test_workflow_godot_sync_uses_recommended_artifact_and_persists_delivery(
             def get_process_diagnostics(self) -> dict[str, object]:
                 return {"running": True}
 
+            def get_status_payload(self) -> dict[str, object]:
+                return {
+                    "schema_version": "1.0",
+                    "session_state": "schema_ready",
+                    "engine_running": True,
+                    "tcp_connected": True,
+                }
+
         class FakeSessionManager:
             def get_or_create(self, session_id):
                 observed["session_id"] = session_id
@@ -804,8 +846,8 @@ def test_workflow_godot_sync_uses_recommended_artifact_and_persists_delivery(
         )
         assert observed["session_id"] == "official-session"
         assert observed["robot_config"] == {
-            "robot_name": "web_panel_bot",
-            "parts": [{"id": "torso", "type": "body"}],
+            "name": "web_panel_bot",
+            "parts": [{"id": "torso", "type": "body", "params": {}}],
             "connections": [],
         }
 
@@ -1231,6 +1273,9 @@ def test_workflow_routes_support_status_polling_and_cancel_request(
             "worker_error_message": None,
             "diagnostic_summary": None,
             "worker_pid": 9988,
+            "workflow_contract_version": WORKFLOW_CONTRACT_VERSION,
+            "workflow_result_schema_version": None,
+            "workflow_result_artifact_type": None,
             "godot_delivery": None,
             "preferred_godot_transport_mode": "session_bridge",
             "recommended_godot_sync_url": f"/api/workflows/runs/{run['run_id']}/godot-sync",

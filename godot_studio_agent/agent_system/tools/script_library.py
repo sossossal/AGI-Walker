@@ -2,6 +2,7 @@
 ScriptLibrary — GDScript 模板库
 存储所有单机游戏常用 GDScript 代码模板，供 CodeGeneratorRole 调用
 """
+
 from typing import Dict
 
 
@@ -9,9 +10,8 @@ class ScriptLibrary:
     """GDScript 模板集中管理"""
 
     _templates: Dict[str, str] = {
-
         # ─── 玩家移动 ──────────────────────────────────────────────────────────
-        "player_2d": '''\
+        "player_2d": """\
 # player_controller_2d.gd — 2D 玩家控制器
 extends CharacterBody2D
 
@@ -38,9 +38,8 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.x = move_toward(velocity.x, 0, friction * delta)
 	move_and_slide()
-''',
-
-        "player_3d": '''\
+""",
+        "player_3d": """\
 # player_controller_3d.gd — 3D 玩家控制器（第三人称）
 extends CharacterBody3D
 
@@ -74,10 +73,9 @@ func _physics_process(delta: float) -> void:
 	velocity.x = dir.x * speed
 	velocity.z = dir.z * speed
 	move_and_slide()
-''',
-
+""",
         # ─── 血量系统 ──────────────────────────────────────────────────────────
-        "health_system": '''\
+        "health_system": """\
 # health_system.gd
 extends Node
 class_name HealthSystem
@@ -107,10 +105,9 @@ func is_alive() -> bool:
 
 func get_ratio() -> float:
 	return float(current_health) / max_health
-''',
-
+""",
         # ─── 存档系统 ──────────────────────────────────────────────────────────
-        "save_system": '''\
+        "save_system": """\
 # save_system.gd — 存档/读档系统单例
 extends Node
 
@@ -155,10 +152,9 @@ func has_save() -> bool:
 
 func delete_save() -> void:
 	DirAccess.remove_absolute(SAVE_PATH)
-''',
-
+""",
         # ─── 状态机 ────────────────────────────────────────────────────────────
-        "state_machine": '''\
+        "state_machine": """\
 # state_machine.gd — 通用有限状态机
 extends Node
 class_name StateMachine
@@ -199,10 +195,9 @@ func _process(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	if current_state: current_state.physics_update(delta)
-''',
-
+""",
         # ─── 背包系统 ──────────────────────────────────────────────────────────
-        "inventory": '''\
+        "inventory": """\
 # inventory.gd — 背包系统单例
 extends Node
 
@@ -254,10 +249,9 @@ func get_item(item_id: String) -> Dictionary:
 		if item["id"] == item_id:
 			return item
 	return {}
-''',
-
+""",
         # ─── 战斗系统 ──────────────────────────────────────────────────────────
-        "combat_system": '''\
+        "combat_system": """\
 # combat_system.gd — 战斗伤害计算系统
 extends Node
 class_name CombatSystem
@@ -279,10 +273,9 @@ static func calculate_damage(
 static func apply_knockback(target: CharacterBody2D, from: Vector2, force: float) -> void:
 	var dir = (target.global_position - from).normalized()
 	target.velocity += dir * force
-''',
-
+""",
         # ─── 技能/冷却 ─────────────────────────────────────────────────────────
-        "skill_system": '''\
+        "skill_system": """\
 # skill_system.gd — 技能冷却管理
 extends Node
 
@@ -315,10 +308,9 @@ func get_cooldown_ratio(skill_id: String) -> float:
 	if not skill_id in skills: return 0.0
 	var s = skills[skill_id]
 	return s["remaining"] / s["cooldown"] if s["cooldown"] > 0 else 0.0
-''',
-
+""",
         # ─── 全局事件总线 ──────────────────────────────────────────────────────
-        "event_bus": '''\
+        "event_bus": """\
 # event_bus.gd — 全局事件总线单例
 extends Node
 
@@ -336,10 +328,9 @@ signal level_up(new_level: int)
 signal checkpoint_reached(checkpoint_id: String)
 signal cutscene_started(cutscene_id: String)
 signal cutscene_ended()
-''',
-
+""",
         # ─── 对象池 ────────────────────────────────────────────────────────────
-        "object_pool": '''\
+        "object_pool": """\
 # 请参见 optimizer 角色生成的对象池
 # 快速版本（单场景）：
 extends Node
@@ -363,10 +354,9 @@ func get_obj() -> Node:
 
 func release(n: Node) -> void:
 	n.hide(); _pool.append(n)
-''',
-
+""",
         # ─── 摄像机抖动 ────────────────────────────────────────────────────────
-        "camera_shake": '''\
+        "camera_shake": """\
 # camera_shake.gd — 摄像机抖动效果（挂载到 Camera2D）
 extends Camera2D
 
@@ -389,10 +379,9 @@ func _process(delta: float) -> void:
 		)
 	else:
 		offset = Vector2.ZERO
-''',
-
+""",
         # ─── 游戏管理单例 ──────────────────────────────────────────────────────
-        "game_manager": '''\
+        "game_manager": """\
 # game_manager.gd — 全局游戏管理单例
 extends Node
 
@@ -440,12 +429,14 @@ func restart_level() -> void:
 
 func go_to_scene(path: String) -> void:
 	get_tree().change_scene_to_file(path)
-''',
+""",
     }
 
     def get(self, key: str) -> str:
         """获取模板代码，找不到时返回空模板"""
-        return self._templates.get(key, "extends Node\n\nfunc _ready() -> void:\n\tpass\n")
+        return self._templates.get(
+            key, "extends Node\n\nfunc _ready() -> void:\n\tpass\n"
+        )
 
     def list_templates(self) -> list:
         """列出所有可用模板键名"""

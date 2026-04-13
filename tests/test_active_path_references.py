@@ -11,6 +11,12 @@ QUICK_START_BAT = Path("scripts/quick_start.bat")
 INSTALL_SH = Path("scripts/install.sh")
 INSTALL_BAT = Path("scripts/install.bat")
 ROOT_RELEASE_NOTES = Path("RELEASE_NOTES.md")
+GITIGNORE = Path(".gitignore")
+API_REFERENCE = Path("docs/API_REFERENCE.md")
+MCP_GUIDE = Path("docs/mcp.md")
+WEB_PANEL_GUIDE = Path("docs/guides/WEB_PANEL_GUIDE.md")
+RELEASE_GUIDE = Path("docs/guides/RELEASE_GUIDE.md")
+RELEASE_BUILDER = Path("tools/build_release_artifact.py")
 ROS2_WORKSPACE_README = Path("hardware/ros2_ws/README.md")
 CORE_API_README = Path("agi_walker/core/api/README.md")
 GODOT_STUDIO_SETUP = Path("godot_studio_agent/setup.bat")
@@ -24,6 +30,8 @@ DISTIBUTED_RUNTIME_REQUIREMENTS = Path(
 )
 DISTIBUTED_SIDECAR = Path("agi_walker/core/distributed/sidecar.py")
 HEADLESS_SMOKE_TEST = Path("tests/test_godot_headless_smoke.py")
+RUN_SMOKE_TESTS = Path("tests/run_smoke_tests.py")
+CI_WORKFLOW = Path(".github/workflows/ci.yml")
 
 
 def test_dockerfile_does_not_reference_removed_source_layout() -> None:
@@ -100,6 +108,34 @@ def test_active_docs_do_not_reintroduce_removed_root_requirements_or_python_api_
     )
 
 
+def test_root_release_notes_track_current_release_gate_and_evidence() -> None:
+    release_notes = ROOT_RELEASE_NOTES.read_text(encoding="utf-8")
+
+    assert "发布摘要：" in release_notes
+    assert "release_gate_status=ready" in release_notes
+    assert "test_env/release/release_manifest.json" in release_notes
+    assert "distributed_runtime_live=passed" in release_notes
+    assert "godot_headless_live=passed" in release_notes
+    assert "ros2_bridge_live=passed" in release_notes
+    assert "release_approval.status=approved" in release_notes
+    assert "release_source" in release_notes
+    assert "Industrial Titan" not in release_notes
+    assert "Enterprise Ready" not in release_notes
+
+
+def test_gitignore_covers_runtime_and_generated_cleanup_noise() -> None:
+    content = GITIGNORE.read_text(encoding="utf-8")
+
+    assert ".agi_data/sessions/" in content
+    assert ".agi_data/trajectories/" in content
+    assert ".agi_data/workflows/artifacts/" in content
+    assert "agi_walker.db" in content
+    assert "configs/generated/" in content
+    assert "knowledge/test_index/" in content
+    assert "godot_project/.godot_agent_index.json" in content
+    assert "agi_walker/core/api/parts/**/__pycache__/" in content
+
+
 def test_godot_studio_agent_setup_targets_real_cli_entrypoint() -> None:
     setup_content = GODOT_STUDIO_SETUP.read_text(encoding="utf-8")
     main_content = GODOT_STUDIO_MAIN.read_text(encoding="utf-8")
@@ -145,22 +181,108 @@ def test_distributed_runtime_uses_current_package_entrypoints() -> None:
     assert "distributed/run_learner.py" not in distributed_dockerfile
     assert "agi_walker.core.distributed.run_learner" in runtime_dockerfile
     assert "agi_walker.core.distributed.run_learner" in distributed_dockerfile
+    assert "pip install --no-cache-dir ." in runtime_dockerfile
     assert "build-essential" not in runtime_dockerfile
     assert "python -m pip install --upgrade pip setuptools wheel" in runtime_dockerfile
     assert (
         "python -m pip install --upgrade pip setuptools wheel" in distributed_dockerfile
     )
     assert "psutil" in runtime_requirements
+    assert "pyyaml" in runtime_requirements
     assert '"--godot-host"' in sidecar_content
     assert "AGI_WALKER_GODOT_HOST" in sidecar_content
 
 
-def test_godot_headless_smoke_wrapper_keeps_integration_marker() -> None:
+def test_godot_headless_smoke_wrapper_keeps_live_and_integration_markers() -> None:
     content = HEADLESS_SMOKE_TEST.read_text(encoding="utf-8").replace("\r\n", "\n")
 
     assert "@pytest.mark.asyncio" not in content
+    assert "@pytest.mark.live\n@pytest.mark.integration" in content
     assert (
         "@pytest.mark.integration\ndef test_godot_headless_smoke_lifecycle() -> None:\n"
         in content
     )
     assert "asyncio.run(_run_godot_headless_smoke_lifecycle())" in content
+
+
+def test_smoke_runner_exposes_opt_in_ros2_bridge_smoke() -> None:
+    content = RUN_SMOKE_TESTS.read_text(encoding="utf-8")
+
+    assert "AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE" in content
+    assert "tests/test_ros2_bridge_smoke.py" in content
+    assert '"integration and live"' in content
+    assert "ros2_bridge_smoke_report.json" in content
+
+
+def test_distributed_smoke_ci_uploads_structured_report() -> None:
+    content = CI_WORKFLOW.read_text(encoding="utf-8")
+
+    command = (
+        "python tests/run_distributed_smoke.py --build --stop-after --report-file "
+        "test_env/distributed_smoke/distributed_smoke_report.json"
+    )
+    assert "distributed-smoke:" in content
+    assert "timeout-minutes: 25" in content
+    assert "docker version" in content
+    assert "docker compose version" in content
+    assert command in content
+    assert "name: distributed-smoke-artifacts" in content
+    assert "path: test_env/distributed_smoke" in content
+
+
+def test_ros2_bridge_smoke_ci_job_uploads_structured_report() -> None:
+    content = CI_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "ros2-bridge-smoke:" in content
+    assert 'runs-on: ubuntu-22.04' in content
+    assert 'AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE: "1"' in content
+    assert 'AGI_WALKER_ROS2_BRIDGE_SMOKE_ARTIFACT_DIR: "test_env/ros2_bridge_smoke"' in content
+    assert "ros-humble-ros-base" in content
+    assert (
+        'python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live" --tb=short -vv'
+        in content
+    )
+    assert "name: ros2-bridge-smoke-artifacts" in content
+    assert "path: test_env/ros2_bridge_smoke" in content
+
+
+def test_capability_matrix_is_exposed_through_current_docs_and_routes() -> None:
+    api_reference = API_REFERENCE.read_text(encoding="utf-8")
+    mcp_guide = MCP_GUIDE.read_text(encoding="utf-8")
+    web_panel_guide = WEB_PANEL_GUIDE.read_text(encoding="utf-8")
+
+    assert "GET /api/capabilities/matrix" in api_reference
+    assert "GET /api/capabilities/matrix" in web_panel_guide
+    assert "`capability_matrix_get`" in mcp_guide
+
+
+def test_release_guide_uses_current_release_builder_and_active_docs() -> None:
+    release_guide = RELEASE_GUIDE.read_text(encoding="utf-8")
+    release_builder = RELEASE_BUILDER.read_text(encoding="utf-8")
+    smoke_runner = RUN_SMOKE_TESTS.read_text(encoding="utf-8")
+
+    assert "python tools/build_release_artifact.py" in release_guide
+    assert "release_manifest.json" in release_guide
+    assert "docs/archive_and_reports/" in release_guide
+    assert "release_policy" in release_guide
+    assert "release_source" in release_guide
+    assert "worktree" in release_guide
+    assert "--approval-status" in release_guide
+    assert "Git HEAD" in release_guide
+    assert "v{version}" in release_guide
+    assert "python tools/check_release_readiness.py" in release_guide
+    assert "python tools/build_worktree_cleanup_report.py" in release_guide
+    assert "python tools/build_tracked_artifact_review_report.py" in release_guide
+    assert "python tools/build_stable_promotion_checklist.py" in release_guide
+    assert "python tools/run_release_rehearsal.py" in release_guide
+    assert "def main(argv: list[str] | None = None) -> int:" in release_builder
+    assert "--release-summary" in release_builder
+    assert "--approval-status" in release_builder
+    assert "--source-root" in release_builder
+    assert "tools/check_release_readiness.py" in smoke_runner
+    assert "tools/build_worktree_cleanup_report.py" in smoke_runner
+    assert "tools/build_tracked_artifact_review_report.py" in smoke_runner
+    assert "tools/build_stable_promotion_checklist.py" in smoke_runner
+    assert "tools/run_release_rehearsal.py" in smoke_runner
+    assert "tools/build_release_artifact.py" in smoke_runner
+    assert "release_gate_status=" in smoke_runner

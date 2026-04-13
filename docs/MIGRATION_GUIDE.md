@@ -132,7 +132,7 @@ Godot headless smoke 现在是显式 opt-in：
 
 ```powershell
 $env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
-python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
+python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live" --tb=short -vv
 ```
 
 附加变量：

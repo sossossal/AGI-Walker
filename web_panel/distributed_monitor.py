@@ -9,6 +9,18 @@ DEFAULT_ZENOH_ENDPOINT = "tcp/127.0.0.1:7447"
 ZENOH_ENDPOINT_ENV_VAR = "AGI_WALKER_ZENOH_ENDPOINT"
 ACTOR_TTL_ENV_VAR = "AGI_WALKER_DISTRIBUTED_ACTOR_TTL_SECONDS"
 DEFAULT_ACTOR_TTL_SECONDS = 30.0
+DISTRIBUTED_MONITOR_SCHEMA_VERSION = "1.0"
+DISTRIBUTED_OBS_SUBSCRIPTION = "ag/*/obs"
+
+
+def _payload_to_bytes(payload: Any) -> bytes:
+    if isinstance(payload, bytes):
+        return payload
+    if isinstance(payload, str):
+        return payload.encode("utf-8")
+    if hasattr(payload, "to_bytes"):
+        return payload.to_bytes()
+    return bytes(payload)
 
 
 class DistributedMonitor:
@@ -61,10 +73,13 @@ class DistributedMonitor:
     def capabilities(self) -> Dict[str, Any]:
         self._prune_stale_actors()
         return {
+            "schema_version": DISTRIBUTED_MONITOR_SCHEMA_VERSION,
             "endpoint": self.endpoint,
+            "subscription": DISTRIBUTED_OBS_SUBSCRIPTION,
             "zenoh_available": self.zenoh_available,
             "monitor_active": self.monitor_active,
             "actors_count": len(self.actors),
+            "actor_ids": sorted(self.actors),
             "actor_ttl_seconds": self.actor_ttl_seconds,
             "last_pruned_at": self.last_pruned_at,
             "last_pruned_count": self.last_pruned_count,
@@ -98,11 +113,7 @@ class DistributedMonitor:
 
                     import zlib
 
-                    raw_bytes = (
-                        sample.payload.to_bytes()
-                        if hasattr(sample.payload, "to_bytes")
-                        else sample.payload
-                    )
+                    raw_bytes = _payload_to_bytes(sample.payload)
                     if len(raw_bytes) > 0:
                         header = raw_bytes[0]
                         data_content = raw_bytes[1:]
@@ -134,8 +145,8 @@ class DistributedMonitor:
                 except Exception as e:
                     logger.info(f"[Zenoh] Error processing obs: {e}")
 
-            logger.info("   [OK] Subscribing to ag/*/obs")
-            self.zenoh_session.declare_subscriber("ag/*/obs", on_obs)
+            logger.info("   [OK] Subscribing to %s", DISTRIBUTED_OBS_SUBSCRIPTION)
+            self.zenoh_session.declare_subscriber(DISTRIBUTED_OBS_SUBSCRIPTION, on_obs)
         except ImportError as e:
             self.zenoh_available = False
             self.last_error = f"Zenoh dependency unavailable: {e}"

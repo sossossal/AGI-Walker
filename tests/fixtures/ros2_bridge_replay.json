@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "latest_data": {
+    "joint_names": [
+      "hip_left",
+      "knee_left",
+      "hip_right",
+      "knee_right"
+    ],
+    "joint_positions": [
+      0.1,
+      -0.2,
+      0.3,
+      -0.4
+    ],
+    "joint_velocities": [
+      1.0,
+      1.1,
+      1.2,
+      1.3
+    ],
+    "joint_efforts": [
+      0.01,
+      0.02,
+      0.03,
+      0.04
+    ],
+    "battery": 87.5
+  },
+  "cmd_vel": {
+    "linear_x": 0.2,
+    "linear_y": -0.05,
+    "angular_z": 0.1
+  }
+}

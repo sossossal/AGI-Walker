@@ -3,12 +3,8 @@
 支持关键词路由 + LLM 语义路由（可选）+ 插件化角色扩展
 """
 
-import re
-import importlib
-import pkgutil
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
-from pathlib import Path
 import yaml
 
 from .roles.base import BaseRole
@@ -28,23 +24,81 @@ from .tools.godot_cli import GodotCLI
 
 # ─── 关键词词典（未来可按需扩展） ───────────────────────────────────────────
 DEFAULT_KEYWORDS: Dict[str, List[str]] = {
-    "developer":        ["创建", "添加", "场景", "节点", "项目", "新建", "初始化"],
-    "code_generator":   ["生成", "代码", "脚本", "写", "实现", "存档", "状态机", "单例", "血量", "移动", "物品", "背包", "战斗", "冷却"],
-    "tester":           ["测试", "验证", "检查", "断言", "运行", "QA"],
-    "ai_controller":    ["AI", "智能", "行为", "巡逻", "追击", "BOSS", "状态机", "NPC行为", "导航"],
+    "developer": ["创建", "添加", "场景", "节点", "项目", "新建", "初始化"],
+    "code_generator": [
+        "生成",
+        "代码",
+        "脚本",
+        "写",
+        "实现",
+        "存档",
+        "状态机",
+        "单例",
+        "血量",
+        "移动",
+        "物品",
+        "背包",
+        "战斗",
+        "冷却",
+    ],
+    "tester": ["测试", "验证", "检查", "断言", "运行", "QA"],
+    "ai_controller": [
+        "AI",
+        "智能",
+        "行为",
+        "巡逻",
+        "追击",
+        "BOSS",
+        "状态机",
+        "NPC行为",
+        "导航",
+    ],
     "resource_manager": ["资源", "优化", "导入", "纹理", "压缩", "整理"],
-    "simulation":       ["仿真", "物理", "TCP", "通信", "传感", "PID", "平衡", "机器人"],
-    "narrative":        ["剧情", "对话", "任务", "故事", "NPC", "支线", "主线", "台词", "对白", "对话树"],
-    "ui_designer":      ["UI", "界面", "血条", "HUD", "菜单", "暂停", "背包界面", "技能栏", "小地图", "控件"],
-    "audio_manager":    ["音频", "音效", "BGM", "音乐", "声音", "背景音"],
-    "level_designer":   ["关卡", "地图", "房间", "地块", "TileMap", "地牢", "迷宫", "关卡生成", "程序化"],
-    "optimizer":        ["优化", "卡顿", "帧率", "性能", "内存", "对象池", "LOD", "Draw Call"],
+    "simulation": ["仿真", "物理", "TCP", "通信", "传感", "PID", "平衡", "机器人"],
+    "narrative": [
+        "剧情",
+        "对话",
+        "任务",
+        "故事",
+        "NPC",
+        "支线",
+        "主线",
+        "台词",
+        "对白",
+        "对话树",
+    ],
+    "ui_designer": [
+        "UI",
+        "界面",
+        "血条",
+        "HUD",
+        "菜单",
+        "暂停",
+        "背包界面",
+        "技能栏",
+        "小地图",
+        "控件",
+    ],
+    "audio_manager": ["音频", "音效", "BGM", "音乐", "声音", "背景音"],
+    "level_designer": [
+        "关卡",
+        "地图",
+        "房间",
+        "地块",
+        "TileMap",
+        "地牢",
+        "迷宫",
+        "关卡生成",
+        "程序化",
+    ],
+    "optimizer": ["优化", "卡顿", "帧率", "性能", "内存", "对象池", "LOD", "Draw Call"],
 }
 
 
 @dataclass
 class RoleMatch:
     """角色路由匹配结果"""
+
     role_name: str
     confidence: float
     matched_keywords: List[str] = field(default_factory=list)
@@ -70,7 +124,8 @@ class GodotStudioRouter:
         self.config = self._load_config(config_path)
         self.godot_cli = GodotCLI(
             executable_path=self.config.get("godot", {}).get("executable_path"),
-            project_path=godot_project_path or self.config.get("godot", {}).get("project_path"),
+            project_path=godot_project_path
+            or self.config.get("godot", {}).get("project_path"),
         )
         self._roles: Dict[str, BaseRole] = {}
         self._init_builtin_roles()
@@ -94,24 +149,26 @@ class GodotStudioRouter:
     def _init_builtin_roles(self):
         """初始化所有内置角色"""
         builtin = {
-            "developer":        DeveloperRole,
-            "code_generator":   CodeGeneratorRole,
-            "tester":           TesterRole,
-            "ai_controller":    AIControllerRole,
+            "developer": DeveloperRole,
+            "code_generator": CodeGeneratorRole,
+            "tester": TesterRole,
+            "ai_controller": AIControllerRole,
             "resource_manager": ResourceManagerRole,
-            "simulation":       SimulationRole,
-            "narrative":        NarrativeRole,
-            "ui_designer":      UIDesignerRole,
-            "audio_manager":    AudioManagerRole,
-            "level_designer":   LevelDesignerRole,
-            "optimizer":        OptimizerRole,
+            "simulation": SimulationRole,
+            "narrative": NarrativeRole,
+            "ui_designer": UIDesignerRole,
+            "audio_manager": AudioManagerRole,
+            "level_designer": LevelDesignerRole,
+            "optimizer": OptimizerRole,
         }
         for name, cls in builtin.items():
             self._roles[name] = cls(self.godot_cli)
 
     # ─── 插件化角色扩展 ──────────────────────────────────────────────────────
 
-    def register_role(self, name: str, role: BaseRole, keywords: List[str] = None) -> None:
+    def register_role(
+        self, name: str, role: BaseRole, keywords: List[str] = None
+    ) -> None:
         """
         动态注册自定义角色（支持运行时热插拔）
 
@@ -144,7 +201,9 @@ class GodotStudioRouter:
             matched = [kw for kw in keywords if kw.lower() in prompt.lower()]
             if matched:
                 confidence = len(matched) / len(keywords)
-                matches.append(RoleMatch(role_name, min(confidence + 0.05, 1.0), matched))
+                matches.append(
+                    RoleMatch(role_name, min(confidence + 0.05, 1.0), matched)
+                )
         matches.sort(key=lambda x: x.confidence, reverse=True)
         return matches
 
@@ -203,7 +262,9 @@ class GodotStudioRouter:
 
         best = matches[0]
         role = self._roles[best.role_name]
-        print(f"📋 路由 → {best.role_name}（置信度 {best.confidence:.2f}，关键词: {best.matched_keywords}）")
+        print(
+            f"📋 路由 → {best.role_name}（置信度 {best.confidence:.2f}，关键词: {best.matched_keywords}）"
+        )
 
         try:
             result = role.execute(prompt, merged_ctx)
@@ -212,7 +273,9 @@ class GodotStudioRouter:
                 "role": best.role_name,
                 "confidence": best.confidence,
                 "matched_keywords": best.matched_keywords,
-                "all_matches": [{"role": m.role_name, "conf": m.confidence} for m in matches],
+                "all_matches": [
+                    {"role": m.role_name, "conf": m.confidence} for m in matches
+                ],
             }
         except Exception as e:
             result = {
@@ -225,7 +288,9 @@ class GodotStudioRouter:
         self._record(prompt, best.role_name, best.confidence, result)
         return result
 
-    def execute_pipeline(self, commands: List[str], context: Optional[Dict] = None) -> List[Dict[str, Any]]:
+    def execute_pipeline(
+        self, commands: List[str], context: Optional[Dict] = None
+    ) -> List[Dict[str, Any]]:
         """
         执行命令流水线（多步骤顺序执行，结果自动传递为上下文）
 
@@ -238,7 +303,7 @@ class GodotStudioRouter:
         """
         if context:
             self.session_context.update(context)
-            
+
         results = []
         for cmd in commands:
             result = self.execute(cmd)
@@ -251,13 +316,15 @@ class GodotStudioRouter:
     # ─── 辅助方法 ────────────────────────────────────────────────────────────
 
     def _record(self, prompt, role, confidence, result):
-        self.history.append({
-            "prompt": prompt,
-            "role": role,
-            "confidence": confidence,
-            "success": result.get("success", False),
-            "message": result.get("message", ""),
-        })
+        self.history.append(
+            {
+                "prompt": prompt,
+                "role": role,
+                "confidence": confidence,
+                "success": result.get("success", False),
+                "message": result.get("message", ""),
+            }
+        )
 
     def get_history(self, limit: int = 20) -> List[Dict]:
         return self.history[-limit:]

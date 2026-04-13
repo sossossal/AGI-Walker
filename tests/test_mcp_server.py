@@ -61,6 +61,13 @@ class FakeProvider:
     def get_godot_history(self, limit=20):
         return {"status": "success", "count": 1, "limit": limit}
 
+    def get_capability_matrix(self):
+        return {
+            "schema_version": "1.0",
+            "artifact_type": "capability_matrix",
+            "summary": {"total_domains": 5},
+        }
+
 
 def test_build_tool_list_contains_extended_surface() -> None:
     tool_definitions = get_tool_definitions(FakeProvider())
@@ -71,7 +78,8 @@ def test_build_tool_list_contains_extended_surface() -> None:
     assert "workflow_execute" in names
     assert "skills_list" in names
     assert "godot_agent_status" in names
-    assert len(names) == 13
+    assert "capability_matrix_get" in names
+    assert len(names) == 14
 
 
 def test_call_tool_returns_json_text_content() -> None:
@@ -89,6 +97,16 @@ def test_call_tool_returns_json_text_content() -> None:
     payload = json.loads(result[0].text)
     assert payload["status"] == "awaiting_confirmation"
     assert payload["project_path"] == "D:/tmp/project"
+
+
+def test_capability_matrix_tool_returns_contract_payload() -> None:
+    tool_definitions = get_tool_definitions(FakeProvider())
+
+    result = asyncio.run(call_tool(tool_definitions, "capability_matrix_get", {}))
+
+    payload = json.loads(result[0].text)
+    assert payload["artifact_type"] == "capability_matrix"
+    assert payload["summary"]["total_domains"] == 5
 
 
 def test_call_tool_rejects_unknown_name() -> None:

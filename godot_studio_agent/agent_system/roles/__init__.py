@@ -1,6 +1,7 @@
 """
 所有 Agent 角色模块
 """
+
 from .developer import DeveloperRole
 from .code_generator import CodeGeneratorRole
 from .tester import TesterRole
@@ -14,8 +15,15 @@ from .level_designer import LevelDesignerRole
 from .optimizer import OptimizerRole
 
 __all__ = [
-    "DeveloperRole", "CodeGeneratorRole", "TesterRole",
-    "AIControllerRole", "ResourceManagerRole", "SimulationRole",
-    "NarrativeRole", "UIDesignerRole", "AudioManagerRole",
-    "LevelDesignerRole", "OptimizerRole"
+    "DeveloperRole",
+    "CodeGeneratorRole",
+    "TesterRole",
+    "AIControllerRole",
+    "ResourceManagerRole",
+    "SimulationRole",
+    "NarrativeRole",
+    "UIDesignerRole",
+    "AudioManagerRole",
+    "LevelDesignerRole",
+    "OptimizerRole",
 ]

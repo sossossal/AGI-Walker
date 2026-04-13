@@ -1,4 +1,6 @@
 import asyncio
+import json
+import struct
 import uuid
 
 import pytest
@@ -8,8 +10,11 @@ pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
 import web_panel.server
-from web_panel.godot_session_bridge import GodotBridge
-from web_panel.godot_session_bridge import GODOT_PROJECT_DIR
+from web_panel.godot_session_bridge import (
+    GODOT_PROJECT_DIR,
+    GODOT_SESSION_STATUS_SCHEMA_VERSION,
+    GodotBridge,
+)
 from web_panel.ws_protocol import MessageType, WsMessage
 
 
@@ -42,10 +47,20 @@ def test_godot_capabilities_exposes_both_modes(client: TestClient) -> None:
         "load_robot",
     ]
     assert payload["modes"]["session_bridge"]["status"] == "preferred"
+    assert payload["modes"]["session_bridge"]["status_schema_version"] == "1.0"
+    assert payload["modes"]["session_bridge"]["session_states"] == [
+        "disconnected",
+        "launching",
+        "connected",
+        "schema_ready",
+        "running",
+        "failed",
+    ]
     assert (
         payload["modes"]["workflow_bridge"]["preferred_transport_mode"]
         == "session_bridge"
     )
+    assert payload["modes"]["workflow_bridge"]["artifact_contract_version"] == "1.0"
     assert "canonical websocket pushes" in payload["note"]
 
 
@@ -55,11 +70,14 @@ def test_session_bridge_status_defaults_to_disconnected(client: TestClient) -> N
     response = client.get(f"/api/godot/{session_id}/status")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "engine_running": False,
-        "tcp_connected": False,
-        "last_sensor": {},
-    }
+    payload = response.json()
+    assert payload["schema_version"] == GODOT_SESSION_STATUS_SCHEMA_VERSION
+    assert payload["session_id"] == session_id
+    assert payload["session_state"] == "disconnected"
+    assert payload["engine_running"] is False
+    assert payload["tcp_connected"] is False
+    assert payload["schema_available"] is False
+    assert payload["last_sensor"] == {}
 
 
 def test_session_bridge_launch_without_godot_exe_returns_real_error(
@@ -72,8 +90,11 @@ def test_session_bridge_launch_without_godot_exe_returns_real_error(
     response = client.post(f"/api/godot/{session_id}/launch", json={})
 
     assert response.status_code == 200
-    assert response.json()["status"] == "error"
-    assert "Godot" in response.json()["message"]
+    payload = response.json()
+    assert payload["status"] == "error"
+    assert payload["session_state"] == "failed"
+    assert payload["session"]["failure_stage"] == "launch"
+    assert "Godot" in payload["message"]
 
 
 def test_session_bridge_control_without_session_returns_error(
@@ -87,8 +108,11 @@ def test_session_bridge_control_without_session_returns_error(
     )
 
     assert response.status_code == 200
-    assert response.json()["status"] == "error"
-    assert "Session" in response.json()["message"]
+    payload = response.json()
+    assert payload["status"] == "error"
+    assert payload["session_state"] == "disconnected"
+    assert payload["session"]["session_state"] == "disconnected"
+    assert "Session" in payload["message"]
 
 
 def test_godot_bridge_launch_uses_scene_flag(
@@ -136,6 +160,7 @@ def test_godot_bridge_launch_uses_scene_flag(
     assert observed["task_created"] is True
     assert bridge.get_pid() == 4242
     assert bridge._log_file_path.endswith("launch-scene-flag_run_rl_server.log")
+    assert bridge.get_status_payload()["session_state"] == "launching"
 
 
 def test_websocket_ping_round_trip(client: TestClient) -> None:
@@ -231,9 +256,79 @@ async def _run_session_bridge_get_sensors_polls_with_step(
     assert observed["payload"] == {"type": "step", "action": []}
     assert response == {"vector": [0.1, 0.2]}
     assert bridge.last_sensor == {"vector": [0.1, 0.2]}
+    assert bridge.get_status_payload()["session_state"] == "running"
+
+
+async def _run_session_bridge_schema_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    bridge = GodotBridge("schema-test", 9001)
+
+    async def fake_send_recv(payload):
+        if payload["type"] == "get_schema":
+            return {"sensors": {}, "actuators": {}}
+        return {}
+
+    monkeypatch.setattr(bridge, "_send_recv", fake_send_recv)
+
+    schema = await bridge.wait_until_schema(timeout_seconds=0.1)
+
+    assert schema == {"sensors": {}, "actuators": {}}
+    status = bridge.get_status_payload()
+    assert status["session_state"] == "schema_ready"
+    assert status["schema_available"] is True
+    assert sorted(status["schema"]) == ["actuators", "sensors"]
 
 
 def test_session_bridge_get_sensors_polls_with_step(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     asyncio.run(_run_session_bridge_get_sensors_polls_with_step(monkeypatch))
+
+
+def test_session_bridge_schema_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    asyncio.run(_run_session_bridge_schema_state(monkeypatch))
+
+
+async def _run_session_bridge_send_recv_uses_little_endian() -> None:
+    bridge = GodotBridge("framing-test", 9002)
+    request = {"type": "get_schema"}
+    response = {"sensors": {}, "actuators": {}}
+    response_body = json.dumps(response).encode("utf-8")
+
+    class FakeWriter:
+        def __init__(self) -> None:
+            self.buffer = b""
+
+        def write(self, data: bytes) -> None:
+            self.buffer += data
+
+        async def drain(self) -> None:
+            return None
+
+        def is_closing(self) -> bool:
+            return False
+
+    class FakeReader:
+        def __init__(self) -> None:
+            self.parts = [
+                struct.pack("<I", len(response_body)),
+                response_body,
+            ]
+
+        async def readexactly(self, size: int) -> bytes:
+            chunk = self.parts.pop(0)
+            assert len(chunk) == size
+            return chunk
+
+    bridge.writer = FakeWriter()
+    bridge.reader = FakeReader()
+
+    payload = await bridge._send_recv(request)
+
+    request_body = json.dumps(request).encode("utf-8")
+    assert bridge.writer.buffer[:4] == struct.pack("<I", len(request_body))
+    assert bridge.writer.buffer[4:] == request_body
+    assert payload == response
+
+
+def test_session_bridge_send_recv_uses_little_endian() -> None:
+    asyncio.run(_run_session_bridge_send_recv_uses_little_endian())

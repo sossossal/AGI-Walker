@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "frames": [
+    {
+      "node_id": 1,
+      "angle": 0.0,
+      "current": 0.1,
+      "error": 0.0
+    },
+    {
+      "node_id": 2,
+      "angle": 0.0,
+      "current": 0.1,
+      "error": 0.0
+    },
+    {
+      "node_id": 1,
+      "angle": 1.0,
+      "current": 0.11,
+      "error": 0.0
+    },
+    {
+      "node_id": 2,
+      "angle": -1.0,
+      "current": 0.12,
+      "error": 0.0
+    },
+    {
+      "node_id": 1,
+      "angle": 1.5,
+      "current": 0.2,
+      "error": 0.01
+    },
+    {
+      "node_id": 2,
+      "angle": -1.5,
+      "current": 0.25,
+      "error": 0.02
+    }
+  ]
+}

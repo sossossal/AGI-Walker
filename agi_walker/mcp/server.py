@@ -191,6 +191,12 @@ def get_tool_definitions(
                 limit=int(args.get("limit", 20))
             ),
         ),
+        "capability_matrix_get": ToolDefinition(
+            name="capability_matrix_get",
+            description="读取发布面 capability matrix 及其契约版本。",
+            input_schema={"type": "object", "properties": {}},
+            handler=lambda args: active_provider.get_capability_matrix(),
+        ),
     }
 
 

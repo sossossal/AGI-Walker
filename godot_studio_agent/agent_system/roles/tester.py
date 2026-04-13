@@ -1,6 +1,7 @@
 """
 TesterRole，ResourceManagerRole，SimulationRole — 简洁实现
 """
+
 # tester.py
 from typing import Dict, List, Any
 from .base import BaseRole
@@ -14,7 +15,7 @@ class TesterRole(BaseRole):
         return ["GUT 单元测试", "场景功能测试", "性能压力测试", "输入模拟测试"]
 
     def execute(self, command: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # test_player.gd — GUT 单元测试示例（需安装 GUT 插件）
 extends GutTest
 
@@ -39,7 +40,12 @@ func test_player_takes_damage():
 func test_player_dies_at_zero_hp():
 	player.take_damage(player.max_health)
 	assert_true(player.is_dead, "血量归零后应死亡")
-'''
-        return self._success_result("GUT 测试脚本已生成",
-            {"script_name": "test_player.gd", "code": code,
-             "tips": "需要在 Godot 中安装 GUT 插件（https://github.com/bitwes/Gut）"})
+"""
+        return self._success_result(
+            "GUT 测试脚本已生成",
+            {
+                "script_name": "test_player.gd",
+                "code": code,
+                "tips": "需要在 Godot 中安装 GUT 插件（https://github.com/bitwes/Gut）",
+            },
+        )

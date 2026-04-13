@@ -14,7 +14,6 @@ from typing import Any
 
 import pytest
 
-
 ENABLE_ENV_VAR = "AGI_WALKER_ENABLE_PROD_COMPOSE_SMOKE"
 DEFAULT_TIMEOUT_SECONDS = 240.0
 
@@ -164,6 +163,7 @@ def _wait_for_terminal_run(
     raise AssertionError(f"workflow run did not reach a terminal state: {last_payload}")
 
 
+@pytest.mark.live
 @pytest.mark.integration
 def test_prod_compose_stack_runs_authenticated_workflow() -> None:
     if os.getenv(ENABLE_ENV_VAR) != "1":

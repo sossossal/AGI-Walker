@@ -34,22 +34,23 @@ def _recv_exactly(sock: socket.socket, size: int) -> bytes:
 
 def _send_message(sock: socket.socket, payload: dict) -> None:
     body = json.dumps(payload).encode("utf-8")
-    sock.sendall(struct.pack("!I", len(body)))
+    sock.sendall(struct.pack("<I", len(body)))
     sock.sendall(body)
 
 
 def _recv_message(sock: socket.socket) -> dict:
-    length = struct.unpack("!I", _recv_exactly(sock, 4))[0]
+    length = struct.unpack("<I", _recv_exactly(sock, 4))[0]
     body = _recv_exactly(sock, length)
     return json.loads(body.decode("utf-8"))
 
 
-def verify_api(host: str = "127.0.0.1", port: int = 9996) -> bool:
+def verify_api(host: str = "127.0.0.1", port: int = 0) -> bool:
     logger.info("=== Godot TCP API Verification ===")
     server = MockGodotServer(port=port)
     if not server.start():
         logger.error("FAIL: Could not start mock server")
         return False
+    port = server.port
 
     sock: socket.socket | None = None
     try:

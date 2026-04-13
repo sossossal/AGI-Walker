@@ -4,8 +4,9 @@
 """
 
 import gymnasium as gym
-from stable_baselines3 import PPO
+import numpy as np
 import time
+from stable_baselines3 import PPO
 
 print("=" * 70)
 print("  测试我的机器人")
@@ -27,7 +28,7 @@ print("  模式: 人类可视化 (如果支持)")
 
 try:
     env = gym.make("AGI-Walker/Walker2D-v0", render_mode="human")
-except:
+except Exception:
     # 如果不支持渲染，使用普通模式
     env = gym.make("AGI-Walker/Walker2D-v0")
     print("  注意: 当前环境不支持可视化渲染")
@@ -73,19 +74,16 @@ for episode in range(n_episodes):
     episode_lengths.append(step_count)
 
     print()
-    print(f"  结果:")
+    print("  结果:")
     print(f"    - 步数: {step_count}")
     print(f"    - 奖励: {episode_reward:.2f}")
 
     if step_count >= 1000:
         print("    - 状态: 成功完成1000步")
     else:
-        print(f"    - 状态: 提前终止")
+        print("    - 状态: 提前终止")
 
 env.close()
-
-# ============ 统计结果 ============
-import numpy as np
 
 print("\n" + "=" * 70)
 print("  测试结果统计")

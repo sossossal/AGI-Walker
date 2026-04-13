@@ -134,6 +134,36 @@ def _godot_headless_skip_reason(env: dict[str, str]) -> str | None:
     return f"real Godot headless smoke preflight failed: {output or f'exit code {result.returncode}'}"
 
 
+def _ros2_bridge_smoke_skip_reason(env: dict[str, str]) -> str | None:
+    if env.get("AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE") != "1":
+        return "real ROS2 bridge smoke is opt-in; set AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE=1 to enable it"
+
+    probe = (
+        "import rclpy; "
+        "import sensor_msgs.msg; "
+        "import geometry_msgs.msg; "
+        "import std_srvs.srv; "
+        "import tf2_ros; "
+        "print('ros2_bridge_smoke_ready')"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", probe],
+        cwd=str(PROJECT_ROOT),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+    )
+    if result.returncode == 0 and "ros2_bridge_smoke_ready" in result.stdout:
+        return None
+
+    output = "\n".join(
+        part for part in [result.stdout.strip(), result.stderr.strip()] if part
+    )
+    return f"real ROS2 bridge smoke preflight failed: {output or f'exit code {result.returncode}'}"
+
+
 def _fake_godot_agent_check_script() -> str:
     return """
 from fastapi.testclient import TestClient
@@ -209,12 +239,39 @@ print("godot_agent_modern_skills_alias_ok")
 """.strip()
 
 
+def _capability_matrix_check_script() -> str:
+    return """
+from fastapi.testclient import TestClient
+from web_panel.server import app
+
+client = TestClient(app)
+system_status = client.get("/api/system/status").json()
+matrix = client.get("/api/capabilities/matrix").json()
+
+assert system_status["capability_matrix"]["route"] == "/api/capabilities/matrix"
+assert matrix["artifact_type"] == "capability_matrix"
+assert matrix["summary"]["total_domains"] == 5
+assert any(domain["id"] == "mcp" for domain in matrix["domains"])
+
+print("capability_matrix_ok")
+print("capability_matrix_summary_ok")
+""".strip()
+
+
 def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
     mock_root = output_root / "robot_creation_mock"
     real_root = output_root / "robot_creation_real"
+    release_root = output_root / "release"
+    release_readiness_root = output_root / "release_readiness"
+    worktree_cleanup_root = output_root / "worktree_cleanup"
+    tracked_artifact_review_root = output_root / "tracked_artifact_review"
+    stable_promotion_root = output_root / "stable_promotion"
+    release_rehearsal_root = output_root / "release_rehearsal"
+    ros2_smoke_root = output_root / "ros2_bridge_smoke"
     modern_godot_agent_dir = _default_modern_godot_agent_dir()
     modern_skip_reason = _modern_godot_agent_skip_reason(modern_godot_agent_dir, env)
     godot_headless_skip_reason = _godot_headless_skip_reason(env)
+    ros2_bridge_skip_reason = _ros2_bridge_smoke_skip_reason(env)
 
     web_check = (
         "from web_panel.server import app; "
@@ -291,6 +348,115 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
             expected_tokens=["ws_message_compat_ok", "web_panel_import_ok"],
         ),
         SmokeCheck(
+            name="capability matrix",
+            command=[sys.executable, "-c", _capability_matrix_check_script()],
+            expected_tokens=["capability_matrix_ok", "capability_matrix_summary_ok"],
+        ),
+        SmokeCheck(
+            name="release artifact",
+            command=[
+                sys.executable,
+                "tools/build_release_artifact.py",
+                "--version",
+                "smoke-2026.04.12",
+                "--channel",
+                "dev",
+                "--build-id",
+                "smoke-build",
+                "--release-summary",
+                "Smoke release gate validation.",
+                "--output",
+                str(release_root / "release_manifest.json"),
+            ],
+            expected_tokens=[
+                "release_manifest_written=",
+                "release_gate_status=",
+            ],
+            artifact_dir=release_root,
+        ),
+        SmokeCheck(
+            name="release readiness",
+            command=[
+                sys.executable,
+                "tools/check_release_readiness.py",
+                "--output-root",
+                str(release_readiness_root),
+            ],
+            expected_tokens=[
+                "release_readiness_written=",
+                "rc_release_gate=",
+                "stable_release_gate=",
+            ],
+            artifact_dir=release_readiness_root,
+        ),
+        SmokeCheck(
+            name="worktree cleanup report",
+            command=[
+                sys.executable,
+                "tools/build_worktree_cleanup_report.py",
+                "--source-root",
+                str(PROJECT_ROOT),
+                "--output-root",
+                str(worktree_cleanup_root),
+            ],
+            expected_tokens=[
+                "worktree_cleanup_report_written=",
+                "worktree_cleanup_total_paths=",
+            ],
+            artifact_dir=worktree_cleanup_root,
+        ),
+        SmokeCheck(
+            name="tracked artifact review report",
+            command=[
+                sys.executable,
+                "tools/build_tracked_artifact_review_report.py",
+                "--source-root",
+                str(PROJECT_ROOT),
+                "--cleanup-report",
+                str(worktree_cleanup_root / "worktree_cleanup_report.json"),
+                "--output-root",
+                str(tracked_artifact_review_root),
+            ],
+            expected_tokens=[
+                "tracked_artifact_review_report_written=",
+                "tracked_artifact_review_candidates=",
+            ],
+            artifact_dir=tracked_artifact_review_root,
+        ),
+        SmokeCheck(
+            name="stable promotion checklist",
+            command=[
+                sys.executable,
+                "tools/build_stable_promotion_checklist.py",
+                "--output-root",
+                str(stable_promotion_root),
+            ],
+            expected_tokens=[
+                "stable_promotion_checklist_written=",
+                "stable_promotion_gate=",
+                "stable_promotion_blocking_steps=",
+            ],
+            artifact_dir=stable_promotion_root,
+        ),
+        SmokeCheck(
+            name="stable release rehearsal",
+            command=[
+                sys.executable,
+                "tools/run_release_rehearsal.py",
+                "--version",
+                "smoke-stable-2026.04.12",
+                "--build-id",
+                "smoke-stable-release-rehearsal",
+                "--output-root",
+                str(release_rehearsal_root),
+            ],
+            expected_tokens=[
+                "release_rehearsal_written=",
+                "release_rehearsal_gate=ready",
+            ],
+            artifact_dir=release_rehearsal_root,
+        ),
+        SmokeCheck(
             name="godot agent fake backend",
             command=[sys.executable, "-c", _fake_godot_agent_check_script()],
             expected_tokens=[
@@ -327,10 +493,29 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
                 "tests/test_godot_headless_smoke.py",
                 "-q",
                 "-m",
-                "integration",
+                "integration and live",
             ],
             expected_tokens=["1 passed"],
             skip_reason=godot_headless_skip_reason,
+        ),
+        SmokeCheck(
+            name="ros2 bridge live smoke",
+            command=[
+                sys.executable,
+                "-m",
+                "pytest",
+                "tests/test_ros2_bridge_smoke.py",
+                "-q",
+                "-m",
+                "integration and live",
+            ],
+            expected_tokens=["1 passed"],
+            artifact_dir=ros2_smoke_root,
+            env_overrides={
+                "AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE": "1",
+                "AGI_WALKER_ROS2_BRIDGE_SMOKE_ARTIFACT_DIR": str(ros2_smoke_root),
+            },
+            skip_reason=ros2_bridge_skip_reason,
         ),
     ]
 
@@ -368,10 +553,37 @@ def _run_check(check: SmokeCheck, env: dict[str, str]) -> tuple[bool, str]:
         artifact_summary = []
         output_dir = check.artifact_dir / ".output"
         export_dir = check.artifact_dir / "exports"
+        report_file = check.artifact_dir / "ros2_bridge_smoke_report.json"
+        release_manifest = check.artifact_dir / "release_manifest.json"
+        release_readiness_report = check.artifact_dir / "release_readiness_report.json"
+        stable_promotion_checklist = check.artifact_dir / "stable_promotion_checklist.json"
+        worktree_cleanup_report = check.artifact_dir / "worktree_cleanup_report.json"
+        tracked_artifact_review_report = (
+            check.artifact_dir / "tracked_artifact_review_report.json"
+        )
+        release_rehearsal_report = check.artifact_dir / "release_rehearsal_report.json"
         if output_dir.exists():
             artifact_summary.append(f".output={output_dir}")
         if export_dir.exists():
             artifact_summary.append(f"exports={export_dir}")
+        if report_file.exists():
+            artifact_summary.append(f"report={report_file}")
+        if release_manifest.exists():
+            artifact_summary.append(f"release_manifest={release_manifest}")
+        if release_readiness_report.exists():
+            artifact_summary.append(f"release_readiness_report={release_readiness_report}")
+        if stable_promotion_checklist.exists():
+            artifact_summary.append(
+                f"stable_promotion_checklist={stable_promotion_checklist}"
+            )
+        if worktree_cleanup_report.exists():
+            artifact_summary.append(f"worktree_cleanup_report={worktree_cleanup_report}")
+        if tracked_artifact_review_report.exists():
+            artifact_summary.append(
+                f"tracked_artifact_review_report={tracked_artifact_review_report}"
+            )
+        if release_rehearsal_report.exists():
+            artifact_summary.append(f"release_rehearsal_report={release_rehearsal_report}")
         if artifact_summary:
             combined_output = (
                 f"{combined_output}\nartifacts: {', '.join(artifact_summary)}"

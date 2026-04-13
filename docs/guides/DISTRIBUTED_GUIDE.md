@@ -1,6 +1,6 @@
 # Distributed Guide
 
-更新日期：`2026-04-08`
+更新日期：`2026-04-12`
 
 本页说明 AGI-Walker 当前仓库里的 distributed 路径。它主要面向需要验证 Zenoh + learner + sidecar + Web 监控联动的场景，不属于默认本地快速上手流程。
 
@@ -67,18 +67,23 @@ distributed smoke 当前围绕这些服务工作：
 - `ZENOH_ROUTER`
 - `AGI_WALKER_SIDECAR_ACTOR_ID`
 - `AGI_WALKER_GODOT_HOST`
+- `AGI_WALKER_FORCE_OFFLOAD`
+- `AGI_WALKER_ZENOH_TCP_PORT`
+- `AGI_WALKER_ZENOH_REST_PORT`
 
 需要注意：
 
 - monitor 侧默认 endpoint 是 `tcp/127.0.0.1:7447`
 - actor TTL 默认是 `30` 秒
+- smoke runner 默认设置 `AGI_WALKER_FORCE_OFFLOAD=1`，确保 sidecar 启动时向 learner 发布第一帧 observation。
+- smoke runner 默认将 Zenoh 宿主端口设为 `17447/18000`，避免和本地 Web/API 常用 `8000` 端口冲突。
 
 ## 4. 推荐启动方式
 
 优先使用现成 smoke runner：
 
 ```bash
-python tests/run_distributed_smoke.py --build --stop-after
+python tests/run_distributed_smoke.py --build --stop-after --report-file test_env/distributed_smoke/distributed_smoke_report.json
 ```
 
 这个脚本会负责：
@@ -87,6 +92,7 @@ python tests/run_distributed_smoke.py --build --stop-after
 - 等待 Web distributed monitor ready
 - 检查 actor 是否出现在 `/api/distributed/status`
 - 检查 mock-godot 是否收到 step action
+- 写入 `schema_version=1.0` 的机器可读 smoke report
 
 不要先手工散着启动多个服务，排错成本会更高。
 
@@ -129,6 +135,30 @@ python tests/run_distributed_smoke.py --build --stop-after
 - `sidecar-1` 是否启动
 - `AGI_WALKER_SIDECAR_ACTOR_ID` 是否与预期一致
 - mock-godot 是否可用
+- smoke report 中 `compose_services` 和 `logs.hints`
+- 是否误关了 `AGI_WALKER_FORCE_OFFLOAD`
+
+### 宿主机端口冲突
+
+smoke runner 默认使用：
+
+- Zenoh TCP：`17447`
+- Zenoh REST：`18000`
+- Web Panel：`8081`
+
+如仍冲突，可在运行前覆盖：
+
+```bash
+AGI_WALKER_ZENOH_TCP_PORT=27447 AGI_WALKER_ZENOH_REST_PORT=28000 python tests/run_distributed_smoke.py --build --stop-after --report-file test_env/distributed_smoke/distributed_smoke_report.json
+```
+
+Windows PowerShell：
+
+```powershell
+$env:AGI_WALKER_ZENOH_TCP_PORT = "27447"
+$env:AGI_WALKER_ZENOH_REST_PORT = "28000"
+python tests\run_distributed_smoke.py --build --stop-after --report-file test_env\distributed_smoke\distributed_smoke_report.json
+```
 
 ### Web 监控未激活
 

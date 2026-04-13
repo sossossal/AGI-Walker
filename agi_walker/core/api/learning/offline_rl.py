@@ -6,10 +6,18 @@ AGI-Walker 离线强化学习模块
 import logging
 import os
 import pickle
-from typing import Dict
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict
 
 import gymnasium as gym
 import numpy as np
+
+from agi_walker.core.api.training_contracts import (
+    build_training_run_artifact,
+    write_training_run_artifact,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -163,9 +171,13 @@ class OfflineRLTrainer:
         n_steps: int = 100000,
         save_interval: int = 10000,
         save_dir: str = "offline_models",
+        run_id: str | None = None,
     ):
         """离线训练"""
-        os.makedirs(save_dir, exist_ok=True)
+        save_path = Path(save_dir)
+        save_path.mkdir(parents=True, exist_ok=True)
+        started_at = datetime.now(timezone.utc).isoformat()
+        start_time = time.time()
 
         print(f"\n开始离线训练 ({self.algorithm.upper()})")
         print(f"训练步数: {n_steps}")
@@ -175,11 +187,48 @@ class OfflineRLTrainer:
             dataset,
             n_steps=n_steps,
             save_interval=save_interval,
-            save_dir=save_dir,
+            save_dir=str(save_path),
             verbose=True,
         )
 
+        finished_at = datetime.now(timezone.utc).isoformat()
+        duration_seconds = time.time() - start_time
+        manifest = build_training_run_artifact(
+            run_id=run_id or f"{self.env_id}:offline:{self.algorithm}",
+            run_type="offline_dataset_training",
+            stage="offline_rl_training",
+            status="completed",
+            algorithm=self.algorithm,
+            environment={"kind": "offline_dataset", "env_id": self.env_id},
+            inputs={
+                "n_steps": n_steps,
+                "save_interval": save_interval,
+                "dataset": _dataset_summary(dataset),
+            },
+            metrics={
+                "training_time_seconds": duration_seconds,
+                "n_steps": n_steps,
+            },
+            artifacts=[
+                {
+                    "name": "offline_model_dir",
+                    "path": str(save_path),
+                    "artifact_type": "model_directory",
+                }
+            ],
+            hardware_required=False,
+            hardware_enabled=False,
+            started_at=started_at,
+            finished_at=finished_at,
+            duration_seconds=duration_seconds,
+        )
+        manifest_path = write_training_run_artifact(
+            manifest, save_path / "training_run_manifest.json"
+        )
+        manifest["manifest_path"] = str(manifest_path)
+
         print("\n离线训练完成!")
+        return manifest
 
     def finetune_online(
         self, env, n_steps: int = 10000, save_dir: str = "finetuned_models"
@@ -208,3 +257,33 @@ class OfflineRLTrainer:
 if __name__ == "__main__":
     print("离线强化学习模块加载成功")
     print("使用示例请查看: examples/offline_rl_demo.py")
+
+
+def _dataset_summary(dataset: Any) -> Dict[str, Any]:
+    if isinstance(dataset, dict):
+        return {
+            "format": "dict",
+            "fields": sorted(str(key) for key in dataset),
+            "sample_count": _safe_len(dataset.get("observations")),
+            "reward_count": _safe_len(dataset.get("rewards")),
+            "terminal_count": _safe_len(dataset.get("terminals")),
+        }
+
+    episodes = getattr(dataset, "episodes", None)
+    if episodes is not None:
+        return {
+            "format": dataset.__class__.__name__,
+            "episode_count": _safe_len(episodes),
+        }
+
+    return {
+        "format": dataset.__class__.__name__,
+        "sample_count": _safe_len(dataset),
+    }
+
+
+def _safe_len(value: Any) -> int | None:
+    try:
+        return len(value)
+    except TypeError:
+        return None

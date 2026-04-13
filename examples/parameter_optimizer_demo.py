@@ -39,11 +39,11 @@ def demo_mass_optimization():
         robot.to_dict(), target_com_height=0.22, max_iterations=50, method="gradient"
     )
 
-    print(f"\n优化结果:")
+    print("\n优化结果:")
     print(f"  - 成功: {result.success}")
     print(f"  - 迭代次数: {result.iterations}")
     print(f"  - COM误差: {result.com_error:.6f} m")
-    print(f"\n优化后质量分布:")
+    print("\n优化后质量分布:")
     for part_id, mass in result.mass_distribution.items():
         print(f"  - {part_id}: {mass:.2f} kg")
 
@@ -64,13 +64,13 @@ def demo_pid_tuning():
 
     # Ziegler-Nichols 调优
     print("\n方法 1: Ziegler-Nichols")
-    gains_zn = tune_pid_controller(
+    tune_pid_controller(
         robot.to_dict(), joint_name="hip_flex", method="ziegler_nichols"
     )
 
     # 遗传算法调优
     print("\n方法 2: 遗传算法 (简化版)")
-    gains_ga = tune_pid_controller(
+    tune_pid_controller(
         robot.to_dict(),
         joint_name="hip_flex",
         method="genetic",

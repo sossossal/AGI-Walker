@@ -12,6 +12,16 @@ logging.basicConfig(
 logger = logging.getLogger("learner")
 
 
+def _payload_to_bytes(payload):
+    if isinstance(payload, bytes):
+        return payload
+    if isinstance(payload, str):
+        return payload.encode("utf-8")
+    if hasattr(payload, "to_bytes"):
+        return payload.to_bytes()
+    return bytes(payload)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--zenoh-prefix", type=str, default="ag")
@@ -46,7 +56,7 @@ def main():
             # Payload Handling (Compression Support)
             import zlib
 
-            raw_bytes = bytes(sample.payload)
+            raw_bytes = _payload_to_bytes(sample.payload)
 
             if len(raw_bytes) > 0:
                 header = raw_bytes[0]  # First byte is header

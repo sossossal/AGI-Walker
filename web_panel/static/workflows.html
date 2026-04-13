@@ -389,6 +389,8 @@
             const data = cached.data || {};
             const engineRunning = data.engine_running ?? data.client_running ?? godotDelivery.engine_running ?? '-';
             const tcpConnected = data.tcp_connected ?? data.connected ?? godotDelivery.connected ?? '-';
+            const sessionState = data.session_state ?? godotDelivery.session_state ?? '-';
+            const statusSchemaVersion = data.schema_version ?? '-';
             const pid = data.pid ?? '-';
             const schemaKeys = data.schema
                 ? Object.keys(data.schema)
@@ -396,13 +398,30 @@
             const lastSensorKeys = data.last_sensor ? Object.keys(data.last_sensor) : [];
             return `
                 <div class="summary" style="margin-top:10px;">
+                    <div class="mini"><div class="label">State</div><div class="value">${escapeHtml(String(sessionState))}</div></div>
                     <div class="mini"><div class="label">Engine</div><div class="value">${escapeHtml(String(engineRunning))}</div></div>
                     <div class="mini"><div class="label">TCP / Connected</div><div class="value">${escapeHtml(String(tcpConnected))}</div></div>
                     <div class="mini"><div class="label">PID</div><div class="value">${escapeHtml(String(pid))}</div></div>
+                    <div class="mini"><div class="label">Status Schema</div><div class="value">${escapeHtml(String(statusSchemaVersion))}</div></div>
                     <div class="mini"><div class="label">Schema Keys</div><div class="value" style="font-size:.92rem;">${escapeHtml(schemaKeys.length ? schemaKeys.join(', ') : '无')}</div></div>
                 </div>
                 <div class="meta" style="margin-top:8px;">最近拉取: ${escapeHtml(cached.fetchedAt || '未知')} · 最后传感器键: ${escapeHtml(lastSensorKeys.length ? lastSensorKeys.join(', ') : '无')}</div>
             `;
+        }
+
+        function renderArtifactContractSummary(artifact) {
+            const contract = artifact.contract || {};
+            const valid = contract.valid ?? artifact.contract_valid;
+            const validLabel = valid === true ? 'valid' : valid === false ? 'invalid' : 'unknown';
+            const schemaVersion = contract.schema_version || artifact.schema_version || 'unknown';
+            const payloadType = contract.payload_type || artifact.artifact_type || 'file';
+            return `契约 v${schemaVersion} · ${payloadType} · ${validLabel}`;
+        }
+
+        function renderArtifactContractErrors(artifact) {
+            const errors = artifact.contract_errors || artifact.contract?.errors || [];
+            if (!errors.length) return '';
+            return `<div class="meta" style="margin-top:8px; color:var(--bad);">契约错误: ${escapeHtml(errors.join('; '))}</div>`;
         }
 
         async function retryGodotDelivery(runId) {
@@ -554,6 +573,7 @@
                         <button class="btn-xs" onclick="selectWorkflow('${wf.name}')">选择</button>
                     </div>
                     <div class="meta" style="margin-top:8px;">步骤数: ${wf.steps_count} · ${escapeHtml((wf.step_names || []).join(', ') || '无')}</div>
+                    <div class="meta" style="margin-top:6px;">契约: v${escapeHtml(wf.schema_version || 'unknown')} · 校验 ${wf.validation?.valid ? '通过' : '失败'}</div>
                 </div>
             `).join('');
         }
@@ -568,7 +588,7 @@
                 </div>
             `).join('');
             el.className = '';
-            el.innerHTML = `<div class="title" style="font-size:1.08rem;">${escapeHtml(detail.name)}</div><div class="sub" style="margin:8px 0 14px;">${escapeHtml(detail.description || '无描述')}</div><div class="steps">${steps || '<div class="empty">该 workflow 没有步骤。</div>'}</div>`;
+            el.innerHTML = `<div class="title" style="font-size:1.08rem;">${escapeHtml(detail.name)}</div><div class="sub" style="margin:8px 0 8px;">${escapeHtml(detail.description || '无描述')}</div><div class="meta" style="margin-bottom:14px;">契约: v${escapeHtml(detail.schema_version || 'unknown')} · 校验 ${detail.validation?.valid ? '通过' : '失败'}${detail.validation?.message ? ` · ${escapeHtml(detail.validation.message)}` : ''}</div><div class="steps">${steps || '<div class="empty">该 workflow 没有步骤。</div>'}</div>`;
         }
 
         function renderRuns() {
@@ -627,7 +647,8 @@
                         </div>
                         <div class="meta" style="margin-top:8px;">产物: ${escapeHtml(godotDelivery.artifact_name || '未知')} (${escapeHtml(godotDelivery.artifact_type || 'unknown')})</div>
                         <div class="meta" style="margin-top:8px;">目标: ${escapeHtml(godotDelivery.delivery_target || `${godotDelivery.transport_mode || 'unknown'} / ${godotDelivery.session_id || 'default'}`)}</div>
-                        <div class="meta" style="margin-top:8px;">连接状态: engine=${escapeHtml(String(godotDelivery.engine_running))} · tcp=${escapeHtml(String(godotDelivery.connected))} · schema=${escapeHtml(String(godotDelivery.schema_available))}</div>
+                        <div class="meta" style="margin-top:8px;">连接状态: state=${escapeHtml(String(godotDelivery.session_state || '-'))} · engine=${escapeHtml(String(godotDelivery.engine_running))} · tcp=${escapeHtml(String(godotDelivery.connected))} · schema=${escapeHtml(String(godotDelivery.schema_available))}</div>
+                        <div class="meta" style="margin-top:8px;">产物契约: v${escapeHtml(godotDelivery.artifact_schema_version || 'unknown')} · ${escapeHtml(godotDelivery.artifact_contract?.payload_type || godotDelivery.artifact_type || 'file')}</div>
                         <div class="meta" style="margin-top:8px;">状态接口: ${godotDelivery.transport_status_url ? `<a href="${godotDelivery.transport_status_url}" target="_blank" rel="noopener noreferrer">${escapeHtml(godotDelivery.transport_status_url)}</a>` : '无'}</div>
                         ${godotDelivery.failure_stage ? `<div class="meta" style="margin-top:8px; color:var(--bad);">失败阶段: ${escapeHtml(godotDelivery.failure_stage)} · ${escapeHtml(godotDelivery.retry_hint || '请检查日志后重试')}</div>` : ''}
                         <div class="meta" style="margin-top:8px;">说明: ${escapeHtml(godotDelivery.message || '无')}</div>
@@ -651,6 +672,8 @@
                         </div>
                     </div>
                     <div class="meta" style="margin-top:8px;">${escapeHtml(artifact.path)} · ${escapeHtml(artifact.artifact_type || 'file')}</div>
+                    <div class="meta" style="margin-top:8px;">${escapeHtml(renderArtifactContractSummary(artifact))}</div>
+                    ${renderArtifactContractErrors(artifact)}
                 </div>
             `).join('') : '<div class="empty">该 run 没有可下载产物。</div>';
             const timeoutLabel = run.timeout_seconds ? `${run.timeout_seconds}s` : '无';
@@ -688,6 +711,7 @@
                     <div class="mini"><div class="label">输出根目录</div><div class="value" style="font-size:.92rem; line-height:1.35;">${escapeHtml(run.output_root)}</div></div>
                 </div>
                 <div class="meta" style="margin-bottom:12px;">状态说明: ${escapeHtml(statusMessage)}</div>
+                <div class="meta" style="margin-bottom:12px;">工作流契约: v${escapeHtml(run.workflow_contract_version || run.workflow_result_schema_version || 'unknown')} · 结果类型 ${escapeHtml(run.workflow_result_artifact_type || '未知')}</div>
                 <div class="meta" style="margin-bottom:12px;">进度: ${escapeHtml(currentStepMessage)} · 最近更新 ${escapeHtml(run.progress_updated_at || '尚无')}</div>
                 ${diagnosticsPanel}
                 <div class="title" style="margin-bottom:10px;">Godot 交付</div>

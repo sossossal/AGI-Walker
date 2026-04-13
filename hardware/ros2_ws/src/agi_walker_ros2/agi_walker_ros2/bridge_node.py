@@ -6,16 +6,20 @@ AGI-Walker ROS 2 桥接节点
 提供标准的ROS 2接口访问Godot仿真
 """
 
+import json
 import rclpy
 import threading
+from pathlib import Path
+import sys
+from typing import Dict, Optional
+
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
+from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 
 from sensor_msgs.msg import JointState, Imu, BatteryState
 from geometry_msgs.msg import Twist
 from std_srvs.srv import Trigger
 from tf2_ros import TransformBroadcaster
-from typing import Dict, Optional
 
 try:
     from agi_walker_msgs.msg import RobotState
@@ -25,8 +29,9 @@ except ImportError:
     RobotState = None
     LoadRobot = None
 
-import sys
-from pathlib import Path
+ROS2_BRIDGE_REPLAY_SCHEMA_VERSION = "1.0"
+DEFAULT_JOINT_NAMES = ["hip_left", "knee_left", "hip_right", "knee_right"]
+
 
 def _add_repo_root_to_path() -> None:
     """Add the repository root when the bridge is launched from a source checkout."""
@@ -36,6 +41,85 @@ def _add_repo_root_to_path() -> None:
         if (parent / module_path).exists():
             sys.path.insert(0, str(parent))
             return
+
+
+def cmd_vel_to_godot_params(msg: Twist) -> Dict[str, float]:
+    return {
+        "cmd_linear_x": msg.linear.x,
+        "cmd_linear_y": msg.linear.y,
+        "cmd_angular_z": msg.angular.z,
+    }
+
+
+def joint_state_fields_from_latest_data(latest_data: Dict) -> Dict[str, list]:
+    joint_names = latest_data.get("joint_names", DEFAULT_JOINT_NAMES)
+    joint_count = len(joint_names)
+    return {
+        "name": list(joint_names),
+        "position": list(latest_data.get("joint_positions", [0.0] * joint_count)),
+        "velocity": list(latest_data.get("joint_velocities", [0.0] * joint_count)),
+        "effort": list(latest_data.get("joint_efforts", [0.0] * joint_count)),
+    }
+
+
+def robot_state_fields_from_latest_data(
+    latest_data: Dict, simulation_running: bool
+) -> Dict[str, float | str]:
+    return {
+        "battery_level": float(latest_data.get("battery", 100.0)),
+        "cpu_usage": 0.0,
+        "temperature": 25.0,
+        "status": "RUNNING" if simulation_running else "IDLE",
+    }
+
+
+def validate_ros2_bridge_replay_payload(payload: Dict) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(payload, dict):
+        return ["replay payload must be a dict"]
+    if payload.get("schema_version") != ROS2_BRIDGE_REPLAY_SCHEMA_VERSION:
+        errors.append(f"schema_version must be {ROS2_BRIDGE_REPLAY_SCHEMA_VERSION!r}")
+    latest_data = payload.get("latest_data")
+    if not isinstance(latest_data, dict):
+        errors.append("latest_data must be a dict")
+    else:
+        joint_names = latest_data.get("joint_names", DEFAULT_JOINT_NAMES)
+        if not isinstance(joint_names, list) or not joint_names:
+            errors.append("latest_data.joint_names must be a non-empty list")
+        for key in ["joint_positions", "joint_velocities", "joint_efforts"]:
+            values = latest_data.get(key)
+            if not isinstance(values, list):
+                errors.append(f"latest_data.{key} must be a list")
+                continue
+            if len(values) != len(joint_names):
+                errors.append(f"latest_data.{key} length must match joint_names")
+            if not all(isinstance(value, (int, float)) for value in values):
+                errors.append(f"latest_data.{key} must contain only numeric values")
+        battery = latest_data.get("battery", 100.0)
+        if not isinstance(battery, (int, float)):
+            errors.append("latest_data.battery must be numeric")
+
+    cmd_vel = payload.get("cmd_vel")
+    if cmd_vel is not None:
+        if not isinstance(cmd_vel, dict):
+            errors.append("cmd_vel must be a dict when provided")
+        else:
+            for key in ["linear_x", "linear_y", "angular_z"]:
+                if not isinstance(cmd_vel.get(key), (int, float)):
+                    errors.append(f"cmd_vel.{key} must be numeric")
+    return errors
+
+
+def load_ros2_bridge_replay_payload(source: str | Path | Dict) -> Dict:
+    if isinstance(source, dict):
+        payload = source
+    else:
+        payload = json.loads(Path(source).read_text(encoding="utf-8"))
+    errors = validate_ros2_bridge_replay_payload(payload)
+    if errors:
+        raise ValueError("; ".join(errors))
+    return payload
+
 
 try:
     from agi_walker.core.api.comm.godot_client import GodotSimulationClient
@@ -55,7 +139,7 @@ class AGIWalkerROS2Bridge(Node):
         super().__init__("agi_walker_bridge")
 
         # 声明参数
-        self.declare_parameters()
+        self._declare_bridge_parameters()
 
         # Godot客户端
         self.godot_client: Optional[GodotSimulationClient] = None
@@ -89,7 +173,7 @@ class AGIWalkerROS2Bridge(Node):
 
         self.get_logger().info("✅ AGI-Walker ROS 2 Bridge initialized")
 
-    def declare_parameters(self):
+    def _declare_bridge_parameters(self):
         """声明所有ROS参数"""
         # 连接参数
         self.declare_parameter("godot_host", "127.0.0.1")
@@ -220,12 +304,11 @@ class AGIWalkerROS2Bridge(Node):
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = "base_link"
 
-        # 从Godot数据提取关节信息
-        # 这里是示例，实际需要根据Godot返回的数据格式调整
-        msg.name = ["hip_left", "knee_left", "hip_right", "knee_right"]
-        msg.position = self.latest_data.get("joint_positions", [0.0] * 4)
-        msg.velocity = self.latest_data.get("joint_velocities", [0.0] * 4)
-        msg.effort = self.latest_data.get("joint_efforts", [0.0] * 4)
+        fields = joint_state_fields_from_latest_data(self.latest_data)
+        msg.name = fields["name"]
+        msg.position = fields["position"]
+        msg.velocity = fields["velocity"]
+        msg.effort = fields["effort"]
 
         self.joint_state_pub.publish(msg)
 
@@ -238,24 +321,20 @@ class AGIWalkerROS2Bridge(Node):
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = "world"
 
-        battery = self.latest_data.get("battery", 100.0)
-
-        msg.battery_level = float(battery)
-        msg.cpu_usage = 0.0  # TODO: 从Godot获取
-        msg.temperature = 25.0  # TODO: 从Godot获取
-        msg.status = "RUNNING" if self.simulation_running else "IDLE"
+        fields = robot_state_fields_from_latest_data(
+            self.latest_data, self.simulation_running
+        )
+        msg.battery_level = fields["battery_level"]
+        msg.cpu_usage = fields["cpu_usage"]
+        msg.temperature = fields["temperature"]
+        msg.status = fields["status"]
 
         self.robot_state_pub.publish(msg)
 
     def cmd_vel_callback(self, msg: Twist):
         """速度命令回调"""
         if self.godot_client and self.godot_client.is_connected():
-            # 转换Twist消息为Godot参数
-            params = {
-                "cmd_linear_x": msg.linear.x,
-                "cmd_linear_y": msg.linear.y,
-                "cmd_angular_z": msg.angular.z,
-            }
+            params = cmd_vel_to_godot_params(msg)
             self.godot_client.update_parameters(params)
             self.get_logger().info(
                 f"Sent cmd_vel: linear_x={msg.linear.x:.2f}, angular_z={msg.angular.z:.2f}"

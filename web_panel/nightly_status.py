@@ -7,13 +7,13 @@ import urllib.request
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
-
 DEFAULT_API_BASE = "https://api.github.com"
 DEFAULT_WORKFLOW_FILE = ".github/workflows/ci.yml"
 DEFAULT_TRACKED_JOBS = [
     "smoke",
     "distributed-smoke",
     "godot-headless-smoke",
+    "ros2-bridge-smoke",
 ]
 
 
@@ -113,11 +113,24 @@ class NightlyStatusProvider:
             },
             "distributed-smoke": {
                 "artifact_name": "distributed-smoke-artifacts",
-                "local_repro_command": "python tests/run_distributed_smoke.py --build",
+                "local_repro_command": (
+                    "python tests/run_distributed_smoke.py --build --stop-after "
+                    "--report-file test_env/distributed_smoke/distributed_smoke_report.json"
+                ),
             },
             "godot-headless-smoke": {
                 "artifact_name": "godot-headless-smoke-artifacts",
-                "local_repro_command": "python -m pytest tests/test_godot_headless_smoke.py -q -m integration",
+                "local_repro_command": (
+                    "AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE=1 "
+                    'python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live"'
+                ),
+            },
+            "ros2-bridge-smoke": {
+                "artifact_name": "ros2-bridge-smoke-artifacts",
+                "local_repro_command": (
+                    "AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE=1 "
+                    'python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live"'
+                ),
             },
         }
 
@@ -265,9 +278,7 @@ class NightlyStatusProvider:
 
     def _fetch_dashboard(self, limit_runs: int) -> Dict[str, Any]:
         dashboard = self._base_dashboard("ok", "Success")
-        base = (
-            f"{DEFAULT_API_BASE}/repos/{self.repo}/actions/workflows/{self.workflow_file}/runs"
-        )
+        base = f"{DEFAULT_API_BASE}/repos/{self.repo}/actions/workflows/{self.workflow_file}/runs"
         runs: List[Dict[str, Any]] = []
         for event in ("schedule", "workflow_dispatch"):
             payload = self._request_json(f"{base}?event={event}&per_page={limit_runs}")

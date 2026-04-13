@@ -4,8 +4,9 @@ Robot Modeling Skill 完整演示
 演示如何使用 Skills 系统快速创建机器人配置。
 """
 
+# ruff: noqa: E402
+
 import sys
-import os
 import importlib.util
 from pathlib import Path
 
@@ -102,10 +103,10 @@ def demo_templates():
         print(f"  - {tmpl}")
 
     # 加载模板
-    print(f"\n加载模板: biped_basic")
+    print("\n加载模板: biped_basic")
     robot = load_template("biped_basic")
 
-    print(f"\n模板信息:")
+    print("\n模板信息:")
     print(f"  - 名称: {robot.name}")
     print(f"  - 部件: {len(robot.parts)}")
     print(f"  - 质量: {robot.metadata.get('total_mass', 'N/A')} kg")
@@ -133,13 +134,13 @@ def demo_batch_generation():
 
     for leg_length in leg_lengths:
         robot = (
-            RobotBuilder(f"biped_leg{int(leg_length*100)}")
+            RobotBuilder(f"biped_leg{int(leg_length * 100)}")
             .add_torso(height=0.5, mass=5.0)
             .add_leg_pair(thigh_length=leg_length / 2, shin_length=leg_length / 2)
             .build()
         )
 
-        output_path = f"configs/variants/biped_leg{int(leg_length*100)}.json"
+        output_path = f"configs/variants/biped_leg{int(leg_length * 100)}.json"
         robot.save(output_path)
         print(f"  {robot.name}: 腿长 {leg_length}m")
 

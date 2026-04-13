@@ -27,7 +27,10 @@ print("Created robot: my_first_biped")
 # 步骤2: 添加躯干
 print("\n步骤2: 添加躯干")
 robot.add_torso(
-    height=0.6, width=0.3, depth=0.2, mass=8.0  # 60cm高  # 30cm宽  # 20cm厚  # 8kg
+    height=0.6,
+    width=0.3,
+    depth=0.2,
+    mass=8.0,  # 60cm高  # 30cm宽  # 20cm厚  # 8kg
 )
 print("Torso added")
 
@@ -60,7 +63,7 @@ print("\n" + "=" * 70)
 print("创建完成!")
 print("=" * 70)
 print(f"机器人名称: {config.name}")
-print(f"部件列表:")
+print("部件列表:")
 for part in config.parts:
     print(f"  - {part['id']} ({part['type']})")
 print(f"\n配置文件: {output_file}")

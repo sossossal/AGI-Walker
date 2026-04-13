@@ -72,6 +72,42 @@ ros2 service call /start_simulation std_srvs/srv/Trigger
 ros2 topic pub /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.2}, angular: {z: 0.1}}" --once
 ```
 
+For environments without ROS 2 installed, the repository now includes a fake-runtime bridge regression path:
+
+```bash
+python -m pytest tests/test_ros2_bridge_runtime.py tests/test_ros2_workspace.py -q
+```
+
+This path validates:
+
+- replay payload shape for bridge input data
+- JointState and RobotState publication mapping
+- `/cmd_vel` to Godot parameter translation
+- basic start/stop service flow under a fake ROS 2 runtime
+
+For a real ROS 2 Humble runtime, there is now an explicit live smoke path:
+
+```bash
+export AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE=1
+python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live"
+```
+
+This path requires:
+
+- ROS 2 Humble Python runtime (`rclpy`, `sensor_msgs`, `geometry_msgs`, `std_srvs`, `tf2_ros`)
+- a local Python environment that can import the repo
+
+It uses a repository-local mock Godot TCP server and writes:
+
+- `test_env/ros2_bridge_smoke/ros2_bridge_smoke_report.json`
+
+If the runtime is missing, the smoke still writes a structured `skipped` report
+that names the missing Python modules instead of failing with a bare
+`pytest.importorskip` message.
+
 ## Recommendation
 
-If you need a production ROS 2 workflow, validate startup, simulator connectivity, and message publication in your target environment first. If you only need architectural context, this workspace is useful as a reference for message contracts, bridge shape, and launch layout.
+If you need a production ROS 2 workflow, run both layers:
+
+- fake-runtime mapping tests for fast regression
+- live ROS 2 smoke in the target Humble environment for startup, topic, service, and TCP bridge validation

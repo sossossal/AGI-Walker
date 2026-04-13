@@ -11,6 +11,7 @@ assignees: ''
 - [ ] smoke
 - [ ] distributed-smoke
 - [ ] godot-headless-smoke
+- [ ] ros2-bridge-smoke
 
 **Run link**
 Link to the failing GitHub Actions run:
@@ -34,6 +35,7 @@ Paste the key failing lines or summarize the symptom:
 - [ ] smoke-artifacts
 - [ ] distributed-smoke-artifacts
 - [ ] godot-headless-smoke-artifacts
+- [ ] ros2-bridge-smoke-artifacts
 
 **Local reproduction**
 Command used:

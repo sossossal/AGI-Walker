@@ -170,12 +170,12 @@ def demo_emergency_scenario():
         energy_result = energy_mgr.simulate_step(dt, 0.9)
 
         # 热管理
-        power_dist = {f"电机_{j+1}": 750 for j in range(6)}
+        power_dist = {f"电机_{j + 1}": 750 for j in range(6)}
         thermal_result = thermal_mgr.simulate_step(power_dist, dt)
 
         # 安全
         state = {"velocity": 1.5, "time": time}
-        safety_result = safety.comprehensive_safety_check(state)
+        safety.comprehensive_safety_check(state)
 
         if not energy_result["success"]:
             print(f"\n{time:.1f}s: 电池耗尽")
@@ -256,7 +256,7 @@ def demo_optimization():
         for i in range(300):
             energy_mgr.simulate_step(0.1, 0.7)
             power_dist = {
-                f"电机_{j+1}": 500 * config["motor_mult"] * 0.7 for j in range(6)
+                f"电机_{j + 1}": 500 * config["motor_mult"] * 0.7 for j in range(6)
             }
             thermal_mgr.simulate_step(power_dist, 0.1)
 

@@ -44,7 +44,7 @@ def demo_basic_control():
     print(f"预期影响: {change['impact']}")
 
     result = controller.run_episode(max_steps=500, render=False)
-    print(f"\n实际结果:")
+    print("\n实际结果:")
     print(
         f"  奖励: {result['total_reward']:.2f} (变化: {result['total_reward'] - default_reward:+.2f})"
     )
@@ -60,7 +60,7 @@ def demo_basic_control():
     print(f"预期影响: {change['impact']}")
 
     result = controller.run_episode(max_steps=500, render=False)
-    print(f"\n实际结果:")
+    print("\n实际结果:")
     print(
         f"  奖励: {result['total_reward']:.2f} (变化: {result['total_reward'] - default_reward:+.2f})"
     )
@@ -135,7 +135,7 @@ def demo_auto_optimization():
     controller_default = ParametricRobotController()
     default_result = controller_default.run_episode(max_steps=500, render=False)
 
-    print(f"\n性能提升:")
+    print("\n性能提升:")
     improvement = (
         (result["best_reward"] - default_result["total_reward"])
         / default_result["total_reward"]
@@ -209,7 +209,7 @@ def demo_comparison():
         success_rate = sum(1 for r in rewards if r > 150) / len(rewards)
 
         print(
-            f"{config['name']:<20} {avg_reward:<12.2f} {avg_steps:<8} {success_rate*100:<10.0f}%"
+            f"{config['name']:<20} {avg_reward:<12.2f} {avg_steps:<8} {success_rate * 100:<10.0f}%"
         )
 
     print("-" * 70)

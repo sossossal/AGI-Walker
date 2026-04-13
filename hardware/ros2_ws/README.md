@@ -70,6 +70,23 @@ ros2 service call /start_simulation std_srvs/srv/Trigger
 ros2 topic pub /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.2}, angular: {z: 0.1}}" --once
 ```
 
+Non-ROS environments can still validate the bridge shape through the repository test suite:
+
+```bash
+python -m pytest tests/test_ros2_bridge_runtime.py tests/test_ros2_workspace.py -q
+```
+
+Real ROS 2 Humble environments can also run the opt-in live smoke:
+
+```bash
+export AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE=1
+python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live"
+```
+
+That smoke writes:
+
+- `test_env/ros2_bridge_smoke/ros2_bridge_smoke_report.json`
+
 ## Current Status
 
 This workspace has already been aligned with the current repository structure:

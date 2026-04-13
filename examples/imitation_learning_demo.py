@@ -3,7 +3,6 @@
 演示 BC 和 GAIL 的使用
 """
 
-import gymnasium as gym
 from stable_baselines3 import PPO
 from agi_walker.core.api.learning.imitation_learning import BehaviorCloning, GAIL
 

@@ -20,6 +20,11 @@ from typing import Any, Callable, Dict, List, Optional
 # V2.1/V3.0 Path & TaskGraph Integration
 from agi_walker.core.utils.paths import RuntimePaths
 from agi_walker.core.api.task_planning import TaskGraph, TaskNodeStatus
+from agi_walker.core.api.workflow_contracts import (
+    WORKFLOW_CONTRACT_VERSION,
+    build_workflow_step_artifact,
+    validate_workflow_definition,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -84,18 +89,6 @@ class StepPolicy:
     max_retries: int = 0
     retry_delay: float = 1.0
     retry_backoff: float = 2.0
-
-
-_ARTIFACT_REQUIRED_FIELDS = {
-    "workflow",
-    "step",
-    "executor",
-    "action",
-    "status",
-    "inputs",
-    "output",
-    "mode",
-}
 
 
 class WorkflowStatus(Enum):
@@ -206,6 +199,8 @@ class WorkflowResult:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
+            "schema_version": WORKFLOW_CONTRACT_VERSION,
+            "artifact_type": "workflow_result",
             "workflow_name": self.workflow_name,
             "status": self.status.value,
             "duration": self.duration,
@@ -220,6 +215,15 @@ class WorkflowResult:
             "end_time": self.end_time.isoformat() if self.end_time else None,
             "log_path": self.log_path,
             "graph_data": self.graph_data,
+            "artifacts": [
+                {
+                    "step": step.name,
+                    "path": step.artifact_path,
+                    "status": step.status.value,
+                }
+                for step in self.steps
+                if step.artifact_path
+            ],
             "steps": [s.to_dict() for s in self.steps],
         }
 
@@ -335,6 +339,16 @@ class WorkflowOrchestrator:
             def __init__(self, name):
                 self.name = name
 
+            def get_supported_actions(self):
+                return {
+                    "robot_modeling": ["create_from_template", "load_config"],
+                    "parameter_optimizer": [
+                        "optimize_mass_distribution",
+                        "validate_physics",
+                    ],
+                    "urdf_generator": ["export_to_format"],
+                }.get(self.name, [])
+
             def execute(self, action, inputs):
                 if inputs.get("simulate_timeout"):
                     time.sleep(inputs["simulate_timeout"] + 1)
@@ -362,7 +376,12 @@ class WorkflowOrchestrator:
 
     def validate_workflow(self, name: str) -> tuple[bool, str]:
         wf = self.get_workflow(name)
-        return (True, "Valid") if wf else (False, "Not found")
+        if not wf:
+            return False, "Not found"
+        errors = validate_workflow_definition(
+            name, wf, self._get_executor_action_contract()
+        )
+        return (False, "\n".join(errors)) if errors else (True, "Valid")
 
     def create_custom_workflow(
         self, name: str, steps: List[Dict], description: str = ""
@@ -383,6 +402,16 @@ class WorkflowOrchestrator:
                 name
             )
         return self._skill_executors.get(name)
+
+    def _get_executor_action_contract(self) -> Dict[str, set[str]]:
+        actions: Dict[str, set[str]] = {}
+        for registry in (self._skill_executors, self._real_skill_executors):
+            for name, executor in registry.items():
+                if name not in actions:
+                    actions[name] = set()
+                if hasattr(executor, "get_supported_actions"):
+                    actions[name].update(executor.get_supported_actions())
+        return actions
 
     def _get_execution_strategy(self) -> str:
         ctx = self._execution_context
@@ -458,17 +487,24 @@ class WorkflowOrchestrator:
         os.makedirs(artifact_dir, exist_ok=True)
         path = os.path.join(artifact_dir, f"{index:02d}_{step.name}.json")
         try:
+            artifact = build_workflow_step_artifact(
+                workflow=workflow_name,
+                step=step.name,
+                executor=step.skill_executor,
+                action=step.action,
+                status=step.status.value,
+                mode=self.get_executor_mode(),
+                inputs=inputs,
+                output=step.output,
+                artifact_index=index,
+                attempts=step.attempts,
+                duration_seconds=step.duration,
+                created_at=datetime.now().isoformat(),
+                error=step.error,
+                error_type=step.error_type,
+            )
             with open(path, "w", encoding="utf-8") as f:
-                json.dump(
-                    {
-                        "workflow": workflow_name,
-                        "step": step.name,
-                        "inputs": inputs,
-                        "output": step.output,
-                    },
-                    f,
-                    indent=2,
-                )
+                json.dump(artifact, f, indent=2, ensure_ascii=False)
             return str(path)
         except Exception:
             return None

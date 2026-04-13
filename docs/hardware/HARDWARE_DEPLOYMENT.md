@@ -1,6 +1,6 @@
 # Hardware Deployment
 
-更新日期：`2026-04-08`
+更新日期：`2026-04-12`
 
 本页说明 AGI-Walker 当前仓库下“从策略到硬件”的现实部署路径。当前部署更接近一条参考流程，而不是完全收敛的一键流水线。
 
@@ -51,6 +51,7 @@ python -m pytest tests/test_mcp_tools.py tests/test_mcp_server.py -q
 先用：
 
 - `RealRobotDriver(mock=True)`
+- `RealRobotDriver.from_replay(...)`
 - `collect_sysid_data.py --mock`
 
 确认：
@@ -58,6 +59,7 @@ python -m pytest tests/test_mcp_tools.py tests/test_mcp_server.py -q
 - 命令结构正确
 - 数据日志能写出
 - 上层流程不依赖真实硬件
+- 默认 pytest 不访问真实串口
 
 ### 第二步：仿真侧策略或控制验证
 
@@ -123,7 +125,7 @@ python -m pytest tests/test_mcp_tools.py tests/test_mcp_server.py -q
 当前最推荐的闭环是：
 
 ```text
-mock driver -> sysid collection -> simulation validation -> export/quantize -> real interface
+mock/replay driver -> sysid collection -> simulation validation -> export/quantize -> real interface
 ```
 
 而不是：

@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Dict
 from unittest.mock import MagicMock, patch
 
-
 logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _MISSING = object()
@@ -110,6 +109,9 @@ async def run_verification() -> bool:
             EvolutionConfig,
             EvolutionManager,
         )
+        from agi_walker.core.api.training_contracts import (
+            validate_training_run_artifact,
+        )
 
         test_env_dir = PROJECT_ROOT / "test_env"
         test_env_dir.mkdir(parents=True, exist_ok=True)
@@ -129,24 +131,45 @@ async def run_verification() -> bool:
             )
             manager = EvolutionManager(config)
 
-            with patch(
-                "agi_walker.core.controllers.evolution_manager.asyncio.sleep",
-                new=_fast_sleep,
-            ), patch(
-                "agi_walker.core.controllers.evolution_manager.RLOptimizer.train",
-                new=_fake_rl_train,
-            ), patch(
-                "agi_walker.core.controllers.evolution_manager.RLOptimizer.export_policy_onnx",
-                new=_fake_export_policy_onnx,
+            with (
+                patch(
+                    "agi_walker.core.controllers.evolution_manager.asyncio.sleep",
+                    new=_fast_sleep,
+                ),
+                patch(
+                    "agi_walker.core.controllers.evolution_manager.RLOptimizer.train",
+                    new=_fake_rl_train,
+                ),
+                patch(
+                    "agi_walker.core.controllers.evolution_manager.RLOptimizer.export_policy_onnx",
+                    new=_fake_export_policy_onnx,
+                ),
             ):
                 logger.info("--- 运行 Stage 1: RL Training ---")
                 model_path = Path(await manager.stage_rl_training())
                 if not model_path.exists():
                     raise FileNotFoundError(f"RL model not created: {model_path}")
+                training_manifest = (
+                    manager.models_dir / "rl" / "training_run_manifest.json"
+                )
+                if not training_manifest.exists():
+                    raise FileNotFoundError(
+                        f"Training run manifest not created: {training_manifest}"
+                    )
+                training_payload = json.loads(
+                    training_manifest.read_text(encoding="utf-8")
+                )
+                manifest_errors = validate_training_run_artifact(training_payload)
+                if manifest_errors:
+                    raise AssertionError(
+                        f"Invalid training run manifest: {manifest_errors}"
+                    )
                 logger.info("PASS: RL Training")
 
                 logger.info("--- 运行 Stage 2: Data Generation ---")
-                raw_data_path = Path(await manager.stage_data_generation(str(model_path)))
+                raw_data_path = Path(
+                    await manager.stage_data_generation(str(model_path))
+                )
                 if not raw_data_path.exists():
                     raise FileNotFoundError(
                         f"Raw trajectory data not created: {raw_data_path}"

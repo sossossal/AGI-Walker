@@ -247,5 +247,5 @@ if __name__ == "__main__":
 
         status = " " if info["reached_goal"] else (" " if info["collision"] else "⏱ ")
         print(
-            f"Episode {episode+1}: {status}, Distance={info['distance_to_goal']:.2f}m, Reward={total_reward:.2f}"
+            f"Episode {episode + 1}: {status}, Distance={info['distance_to_goal']:.2f}m, Reward={total_reward:.2f}"
         )

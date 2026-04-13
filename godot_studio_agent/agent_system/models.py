@@ -15,8 +15,8 @@ class TaskStatus(Enum):
     PLANNING = "planning"
     AWAITING_CONFIRMATION = "awaiting_confirmation"
     RUNNING = "running"
-    BLOCKED = "blocked"             # 被依赖阻塞
-    WAITING_ACK = "waiting_ack"     # 等待外部（如编辑器）回执
+    BLOCKED = "blocked"  # 被依赖阻塞
+    WAITING_ACK = "waiting_ack"  # 等待外部（如编辑器）回执
     SUCCESS = "success"
     FAILED = "failed"
     ROLLING_BACK = "rolling_back"
@@ -27,6 +27,7 @@ class TaskStatus(Enum):
 @dataclass
 class Artifact:
     """任务产生的产物"""
+
     name: str
     path: str
     type: str  # 'script', 'scene', 'resource', 'log'
@@ -37,6 +38,7 @@ class Artifact:
 @dataclass
 class Backup:
     """文件备份信息"""
+
     original_path: str
     backup_path: str
     timestamp: float = field(default_factory=time.time)
@@ -45,27 +47,28 @@ class Backup:
 @dataclass
 class TaskStep:
     """任务执行的具体步骤"""
+
     name: str
     description: str
     role: str
-    step_id: str = field(default_factory=lambda: str(uuid.uuid4())) # 步骤级 trace ID
+    step_id: str = field(default_factory=lambda: str(uuid.uuid4()))  # 步骤级 trace ID
     status: TaskStatus = TaskStatus.PENDING
     result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     start_time: float = 0.0
     end_time: float = 0.0
-    depends_on: List[str] = field(default_factory=list) # 依赖的步骤名
-    requires_confirmation: bool = False # 是否需要人工确认后执行
-
+    depends_on: List[str] = field(default_factory=list)  # 依赖的步骤名
+    requires_confirmation: bool = False  # 是否需要人工确认后执行
 
 
 @dataclass
 class Task:
     """编排任务模型"""
+
     prompt: str
     task_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     context: Dict[str, Any] = field(default_factory=dict)
-    role: Optional[str] = None # 记录主角色
+    role: Optional[str] = None  # 记录主角色
     status: TaskStatus = TaskStatus.PENDING
     steps: List[TaskStep] = field(default_factory=list)
     artifacts: List[Artifact] = field(default_factory=list)
@@ -73,7 +76,7 @@ class Task:
     logs: List[str] = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
-    
+
     def add_log(self, message: str):
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         self.logs.append(f"[{timestamp}] {message}")
@@ -90,15 +93,15 @@ class Task:
 
             if message.startswith("DETAIL: "):
                 if detail is None:
-                    detail = message[len("DETAIL: "):]
+                    detail = message[len("DETAIL: ") :]
                 continue
 
             if message.startswith("ERROR: "):
-                base = message[len("ERROR: "):]
+                base = message[len("ERROR: ") :]
                 return f"{base}: {detail}" if detail else base
 
             if message.startswith("SUCCESS: "):
-                return message[len("SUCCESS: "):]
+                return message[len("SUCCESS: ") :]
 
         for entry in reversed(self.logs):
             message = entry.split("] ", 1)[-1]
@@ -128,6 +131,7 @@ class Task:
 @dataclass
 class ToolResult:
     """统一工具返回协议"""
+
     success: bool
     message: str
     data: Optional[Any] = None
@@ -140,6 +144,7 @@ class ToolResult:
 @dataclass
 class RoleMatch:
     """角色匹配结果"""
+
     role_name: str
     confidence: float
     matched_keywords: List[str]

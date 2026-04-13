@@ -1,6 +1,7 @@
 """
 NarrativeRole — 剧情/对话树/任务系统生成角色
 """
+
 from typing import Dict, List, Any
 from .base import BaseRole
 
@@ -12,7 +13,13 @@ class NarrativeRole(BaseRole):
         return "叙事设计专家，生成对话树、任务系统、剧情触发器"
 
     def get_capabilities(self) -> List[str]:
-        return ["对话树 GDScript", "任务/支线系统", "剧情触发器", "JSON 对话数据", "NPC 台词模板"]
+        return [
+            "对话树 GDScript",
+            "任务/支线系统",
+            "剧情触发器",
+            "JSON 对话数据",
+            "NPC 台词模板",
+        ]
 
     def execute(self, command: str, context: Dict[str, Any]) -> Dict[str, Any]:
         cmd = command.lower()
@@ -85,7 +92,7 @@ func end_dialogue() -> void:
 	current_dialogue = {}
 	dialogue_ended.emit()
 '''
-        sample_json = '''{
+        sample_json = """{
   "npc_name": "村民老王",
   "nodes": {
     "start": {
@@ -105,15 +112,19 @@ func end_dialogue() -> void:
       ]
     }
   }
-}'''
+}"""
         return self._success_result(
             "对话系统已生成",
-            {"script_name": "dialogue_system.gd", "code": code,
-             "sample_data": sample_json, "tips": "JSON 文件放到 res://data/dialogues/ 目录"}
+            {
+                "script_name": "dialogue_system.gd",
+                "code": code,
+                "sample_data": sample_json,
+                "tips": "JSON 文件放到 res://data/dialogues/ 目录",
+            },
         )
 
     def _gen_quest_system(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # quest_system.gd — 任务管理单例
 extends Node
 
@@ -164,15 +175,18 @@ func _check_completion(quest_id: String) -> void:
 		completed_quests.append(quest_id)
 		active_quests.erase(quest_id)
 		quest_completed.emit(quest_id)
-'''
+"""
         return self._success_result(
             "任务系统已生成",
-            {"script_name": "quest_system.gd", "code": code,
-             "tips": "将此脚本添加为 Autoload，名称为 QuestSystem"}
+            {
+                "script_name": "quest_system.gd",
+                "code": code,
+                "tips": "将此脚本添加为 Autoload，名称为 QuestSystem",
+            },
         )
 
     def _gen_story_trigger(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # story_trigger.gd — 剧情触发器（挂载到 Area2D/3D）
 extends Area2D
 
@@ -191,8 +205,7 @@ func _on_body_entered(body: Node) -> void:
 		triggered = true
 		if has_node("/root/DialogueSystem"):
 			get_node("/root/DialogueSystem").start_dialogue(dialogue_id)
-'''
+"""
         return self._success_result(
-            "剧情触发器已生成",
-            {"script_name": "story_trigger.gd", "code": code}
+            "剧情触发器已生成", {"script_name": "story_trigger.gd", "code": code}
         )

@@ -102,7 +102,7 @@ python -m pytest tests/test_docs_utf8.py tests/test_mcp_tools.py tests/test_mcp_
 
 ```powershell
 $env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
-python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
+python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live" --tb=short -vv
 ```
 
 常用附加变量：

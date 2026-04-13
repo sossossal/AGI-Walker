@@ -14,6 +14,8 @@ from typing import Any, Dict, Optional
 
 import logging
 
+from agi_walker.core.api.workflow_contracts import to_jsonable
+
 logger = logging.getLogger(__name__)
 
 
@@ -391,14 +393,17 @@ class RealParameterOptimizerExecutor(SkillExecutor):
                         else {"result": str(result)}
                     )
 
+                result_dict = to_jsonable(result_dict)
+
                 with open(output_file, "w", encoding="utf-8") as f:
-                    json.dump(result_dict, f, indent=2, default=str)
+                    json.dump(result_dict, f, indent=2, ensure_ascii=False)
 
                 return {
                     "status": "success",
                     "action": action,
                     "input_config": robot_config,
                     "output_file": output_file,
+                    "optimization_results": result_dict,
                     "message": "Mass distribution optimized successfully",
                 }
 

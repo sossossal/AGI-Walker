@@ -2,6 +2,8 @@
 
 This archived note describes a simple Git-oriented release flow for repository maintenance.
 
+Active guide: `docs/guides/RELEASE_GUIDE.md`
+
 ## Recommended Sequence
 
 1. Review working tree changes carefully.

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def mock_server():
-    server = MockGodotServer(port=9992)
+    server = MockGodotServer(port=0)
     thread = threading.Thread(target=server.start, daemon=True)
     thread.start()
     time.sleep(0.1)  # Wait for server to start
@@ -32,7 +32,11 @@ def test_domain_randomization(mock_server) -> None:
         enable_randomization=True,
     )
 
-    env = GodotRobotEnv(port=9992, randomizer_config=config, timeout=2.0)
+    env = GodotRobotEnv(
+        port=mock_server.port,
+        randomizer_config=config,
+        timeout=2.0,
+    )
 
     obs, info = env.reset()
 

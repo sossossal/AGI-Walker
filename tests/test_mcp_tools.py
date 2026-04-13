@@ -167,6 +167,7 @@ def test_godot_and_telemetry_queries_are_exposed() -> None:
 
     telemetry = provider.get_telemetry()
     rag = provider.query_rag([0.1, 0.2, 0.3], top_k=1)
+    capability_matrix = provider.get_capability_matrix()
     status = provider.get_godot_agent_status()
     templates = provider.list_godot_templates()
     plan = provider.plan_godot_command(
@@ -179,6 +180,8 @@ def test_godot_and_telemetry_queries_are_exposed() -> None:
 
     assert telemetry["telemetry"]["rag"]["knowledge_count"] == 2
     assert rag["matches"][0]["id"] == "exp-1"
+    assert capability_matrix["artifact_type"] == "capability_matrix"
+    assert capability_matrix["summary"]["total_domains"] == 5
     assert status["backend_mode"] == "fake"
     assert status["templates_count"] == 1
     assert templates["templates"][0]["id"] == "ai/patrol.gd"

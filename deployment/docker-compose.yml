@@ -3,8 +3,8 @@ services:
   zenoh-router:
     image: eclipse/zenoh:1.0.0
     ports:
-      - "7447:7447"  # TCP Peering
-      - "8000:8000"  # HTTP/REST
+      - "${AGI_WALKER_ZENOH_TCP_PORT:-7447}:7447"  # TCP Peering
+      - "${AGI_WALKER_ZENOH_REST_PORT:-8000}:8000"  # HTTP/REST
     command: ["--config", "/dev/null", "--listen", "tcp/0.0.0.0:7447"]
 
   # Learner (Central Node)
@@ -45,6 +45,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
+      - AGI_WALKER_FORCE_OFFLOAD=${AGI_WALKER_FORCE_OFFLOAD:-0}
     extra_hosts:
       - "host.docker.internal:host-gateway" # Allow access to Windows Host Godot
 

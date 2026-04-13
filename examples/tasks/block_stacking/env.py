@@ -147,4 +147,4 @@ if __name__ == "__main__":
                 break
 
         status = " " if info["stacked"] == 3 else f"⏱ {info['stacked']}/3"
-        print(f"Episode {episode+1}: {status}, Reward={total_reward:.2f}")
+        print(f"Episode {episode + 1}: {status}, Reward={total_reward:.2f}")

@@ -199,7 +199,7 @@ python tests/run_smoke_tests.py
 
 ```powershell
 $env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
-python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
+python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live" --tb=short -vv
 ```
 
 ## 常见问题

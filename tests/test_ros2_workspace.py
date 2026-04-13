@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROS2_SETUP = Path("hardware/ros2_ws/src/agi_walker_ros2/setup.py")
 ROBOT_LAUNCH = Path("hardware/ros2_ws/src/agi_walker_ros2/launch/robot.launch.py")
 BRIDGE_NODE = Path(
@@ -36,4 +35,6 @@ def test_bridge_node_uses_current_godot_client_import() -> None:
         "from agi_walker.core.api.comm.godot_client import GodotSimulationClient"
         in content
     )
-    assert "from python_api.comm.godot_client import GodotSimulationClient" not in content
+    assert (
+        "from python_api.comm.godot_client import GodotSimulationClient" not in content
+    )

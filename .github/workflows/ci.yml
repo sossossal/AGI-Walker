@@ -86,6 +86,7 @@ jobs:
     needs: smoke
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
@@ -102,8 +103,13 @@ jobs:
           pip install ".[dev,training]"
           pip install fastapi uvicorn
 
+      - name: Check Docker Engine
+        run: |
+          docker version
+          docker compose version
+
       - name: Run Distributed Smoke Test
-        run: python tests/run_distributed_smoke.py --build
+        run: python tests/run_distributed_smoke.py --build --stop-after --report-file test_env/distributed_smoke/distributed_smoke_report.json
 
       - name: Upload Distributed Smoke Artifacts
         if: always()
@@ -144,7 +150,7 @@ jobs:
           pip install pytest pytest-asyncio fastapi uvicorn
 
       - name: Run Real Godot Headless Smoke
-        run: python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
+        run: python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live" --tb=short -vv
 
       - name: Upload Headless Smoke Artifacts
         if: always()
@@ -152,6 +158,56 @@ jobs:
         with:
           name: godot-headless-smoke-artifacts
           path: test_env/godot_headless_smoke
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # -----------------------------------------------------------------------------
+  # Job 2d: ROS2 Bridge Smoke (manual trigger only)
+  # -----------------------------------------------------------------------------
+  ros2-bridge-smoke:
+    needs: smoke
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-22.04
+    env:
+      AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE: "1"
+      AGI_WALKER_ROS2_BRIDGE_SMOKE_ARTIFACT_DIR: "test_env/ros2_bridge_smoke"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.10"
+
+      - name: Install ROS2 Humble runtime
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common curl gnupg lsb-release
+          sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y ros-humble-ros-base python3-colcon-common-extensions
+
+      - name: Install ros2-bridge-smoke dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev,training]"
+
+      - name: Run ROS2 Bridge Smoke
+        shell: bash
+        run: |
+          source /opt/ros/humble/setup.bash
+          python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live" --tb=short -vv
+
+      - name: Upload ROS2 Bridge Smoke Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ros2-bridge-smoke-artifacts
+          path: test_env/ros2_bridge_smoke
           if-no-files-found: ignore
           retention-days: 7
 

@@ -7,11 +7,14 @@ from __future__ import annotations
 
 import struct
 import types
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
 from agi_walker.core.api.godot_robot_env import hardware_controller as hw
+
+REPLAY_FIXTURE = Path(__file__).with_name("fixtures") / "imc22_status_replay.json"
 
 
 class FakeMessage:
@@ -115,6 +118,31 @@ class TestIMC22Controller:
         nodes = controller.discover_nodes(timeout=0.01)
         assert nodes == [1, 3]
 
+    def test_invalid_replay_payload_rejected(self) -> None:
+        errors = hw.validate_imc22_replay_payload(
+            {"schema_version": "0.0", "frames": [{"node_id": 0}]}
+        )
+
+        assert "schema_version must be '1.0'" in errors
+        assert "frames[0].node_id must be a positive int" in errors
+        assert "frames[0].angle must be numeric" in errors
+
+    def test_controller_from_replay_fixture(self) -> None:
+        controller = hw.IMC22Controller.from_replay(REPLAY_FIXTURE)
+        nodes = controller.discover_nodes(timeout=0.01, expected_count=2)
+
+        controller.send_command(node_id=1, target_angle=10.0, compliance=0.4)
+        sent_message = controller.bus.sent_messages[0]
+
+        assert nodes == [1, 2]
+        assert sent_message.arbitration_id == controller.ID_COMMAND_BASE + 1
+        angle_raw, compliance_raw = struct.unpack("<hB", sent_message.data)
+        assert angle_raw == 1000
+        assert compliance_raw == 102
+
+        controller.close()
+        assert controller.bus.closed is True
+
     @pytest.mark.hardware
     def test_real_hardware_connection(self) -> None:
         pytest.skip("需要真实硬件")
@@ -171,6 +199,27 @@ class TestHardwareEnvironment:
         controller.send_command.assert_any_call(1, 10.0, compliance=0.5)
         controller.send_command.assert_any_call(2, 20.0, compliance=0.5)
         controller.send_command.assert_any_call(3, 30.0, compliance=0.5)
+
+    def test_hardware_env_supports_replay_controller(self, monkeypatch) -> None:
+        monkeypatch.setattr(hw.time, "sleep", lambda *_args, **_kwargs: None)
+        controller = hw.IMC22Controller.from_replay(REPLAY_FIXTURE)
+
+        env = hw.HardwareEnvironment(
+            num_joints=2,
+            control_freq_hz=50,
+            controller=controller,
+        )
+        reset_obs = env.reset()
+        step_obs, reward, terminated, truncated, info = env.step([5.0, -5.0])
+
+        assert env.node_ids == [1, 2]
+        assert reset_obs == [1.0, 0.11, 0.0, -1.0, 0.12, 0.0]
+        assert step_obs == [1.5, 0.2, 0.01, -1.5, 0.25, 0.02]
+        assert reward == 0.0
+        assert terminated is False
+        assert truncated is False
+        assert info["states"][1]["angle"] == 1.5
+        assert len(controller.bus.sent_messages) == 4
 
 
 class TestCANProtocol:

@@ -16,4 +16,8 @@ RUN python -m pip install --upgrade pip setuptools wheel && \
 
 COPY . /app
 
+# Keep the distributed runtime image aligned with the package's declared
+# baseline dependencies so importing agi_walker matches local execution.
+RUN pip install --no-cache-dir .
+
 CMD ["python", "-u", "-m", "agi_walker.core.distributed.run_learner"]

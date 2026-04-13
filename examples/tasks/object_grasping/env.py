@@ -15,7 +15,7 @@ sys.path.insert(
 
 import gymnasium as gym
 import numpy as np
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple
 
 
 class ObjectGraspingEnv(gym.Env):
@@ -195,5 +195,5 @@ if __name__ == "__main__":
 
         status = " " if info["lifted"] else " "
         print(
-            f"Episode {episode+1}: {status}, Distance={info['distance']:.3f}m, Reward={total_reward:.2f}"
+            f"Episode {episode + 1}: {status}, Distance={info['distance']:.3f}m, Reward={total_reward:.2f}"
         )

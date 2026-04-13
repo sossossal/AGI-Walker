@@ -1,9 +1,10 @@
 """
 BaseRole — 所有 Agent 角色的抽象基类
 """
+
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any, Optional
-from ..models import Task, TaskStatus
+from typing import Dict, List, Optional
+from ..models import Task
 
 
 class BaseRole(ABC):

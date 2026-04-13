@@ -1,6 +1,7 @@
 """
 UIDesignerRole — UI 场景与脚本生成角色
 """
+
 from typing import Dict, List, Any
 from .base import BaseRole
 
@@ -12,7 +13,15 @@ class UIDesignerRole(BaseRole):
         return "UI 设计专家，生成 HUD、菜单、背包界面、对话框等游戏 UI"
 
     def get_capabilities(self) -> List[str]:
-        return ["HUD 血条/魔法条", "暂停菜单", "主菜单", "背包界面", "对话框", "技能栏", "小地图"]
+        return [
+            "HUD 血条/魔法条",
+            "暂停菜单",
+            "主菜单",
+            "背包界面",
+            "对话框",
+            "技能栏",
+            "小地图",
+        ]
 
     def execute(self, command: str, context: Dict[str, Any]) -> Dict[str, Any]:
         cmd = command.lower()
@@ -79,13 +88,17 @@ func show_damage_number(amount: int, position: Vector2) -> void:
 	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.8)
 	tween.tween_callback(label.queue_free)
 '''
-        return self._success_result("HUD 脚本已生成", {
-            "script_name": "hud.gd", "code": code,
-            "tips": "配合 CanvasLayer > VBoxContainer > (HealthBar + ManaBar) 节点结构使用"
-        })
+        return self._success_result(
+            "HUD 脚本已生成",
+            {
+                "script_name": "hud.gd",
+                "code": code,
+                "tips": "配合 CanvasLayer > VBoxContainer > (HealthBar + ManaBar) 节点结构使用",
+            },
+        )
 
     def _gen_pause_menu(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # pause_menu.gd — 暂停菜单
 extends CanvasLayer
 
@@ -114,12 +127,13 @@ func _on_save_pressed() -> void:
 func _on_quit_pressed() -> void:
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
-'''
-        return self._success_result("暂停菜单已生成",
-            {"script_name": "pause_menu.gd", "code": code})
+"""
+        return self._success_result(
+            "暂停菜单已生成", {"script_name": "pause_menu.gd", "code": code}
+        )
 
     def _gen_inventory_ui(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # inventory_ui.gd — 背包界面
 extends Control
 
@@ -157,12 +171,13 @@ func refresh() -> void:
 func _on_slot_clicked(item: Dictionary) -> void:
 	item_name_label.text = item.get("name", "")
 	item_desc_label.text = item.get("description", "")
-'''
-        return self._success_result("背包界面脚本已生成",
-            {"script_name": "inventory_ui.gd", "code": code})
+"""
+        return self._success_result(
+            "背包界面脚本已生成", {"script_name": "inventory_ui.gd", "code": code}
+        )
 
     def _gen_dialogue_box(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # dialogue_box.gd — 对话框 UI 控制器
 extends CanvasLayer
 
@@ -216,12 +231,13 @@ func _input(event: InputEvent) -> void:
 	if not visible: return
 	if event.is_action_just_pressed("ui_accept") and choice_container.get_child_count() == 0:
 		get_node("/root/DialogueSystem").advance()
-'''
-        return self._success_result("对话框 UI 已生成",
-            {"script_name": "dialogue_box.gd", "code": code})
+"""
+        return self._success_result(
+            "对话框 UI 已生成", {"script_name": "dialogue_box.gd", "code": code}
+        )
 
     def _gen_minimap(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # minimap.gd — 小地图控制器
 extends Control
 
@@ -236,7 +252,12 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if not target.is_empty() and has_node(target):
 		camera.global_position = get_node(target).global_position
-'''
-        return self._success_result("小地图脚本已生成",
-            {"script_name": "minimap.gd", "code": code,
-             "tips": "需配合 SubViewport 节点使用，将地图场景复制一份渲染到 SubViewport"})
+"""
+        return self._success_result(
+            "小地图脚本已生成",
+            {
+                "script_name": "minimap.gd",
+                "code": code,
+                "tips": "需配合 SubViewport 节点使用，将地图场景复制一份渲染到 SubViewport",
+            },
+        )

@@ -2,6 +2,8 @@
 
 This archived checklist captures a reasonable manual release flow for the repository.
 
+Active guide: `docs/guides/RELEASE_GUIDE.md`
+
 ## Pre-Release Checks
 
 - Verify the main entry docs are readable.

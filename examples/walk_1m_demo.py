@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from agi_walker.core.api.physics_validator import PhysicsSimulator, PhysicsValidator
 import matplotlib.pyplot as plt
-import numpy as np
 
 
 def demo_scenario_1_default():
@@ -36,7 +35,7 @@ def demo_scenario_1_default():
     sim = PhysicsSimulator(params)
     result = sim.simulate_forward(target_distance=1.0, max_time=10.0)
 
-    print(f"\n结果:")
+    print("\n结果:")
     print(f"  成功: {result['success']}")
     if result["success"]:
         print(f"  实际距离: {result['distance_traveled']:.2f} m")
@@ -65,18 +64,18 @@ def demo_scenario_2_high_power():
     }
 
     print("\n参数配置:")
-    print(f"  电机功率倍数: 1.0 → 1.5")
+    print("  电机功率倍数: 1.0 → 1.5")
 
     sim = PhysicsSimulator(params)
     result = sim.simulate_forward(target_distance=1.0, max_time=10.0)
 
-    print(f"\n结果:")
+    print("\n结果:")
     print(f"  成功: {result['success']}")
     if result["success"]:
         print(f"  实际距离: {result['distance_traveled']:.2f} m")
         print(f"  用时: {result['time_taken']:.2f} s")
         print(f"  平均速度: {result['avg_speed']:.2f} m/s")
-        print(f"  速度提升明显！")
+        print("  速度提升明显！")
 
     return result
 
@@ -97,24 +96,24 @@ def demo_scenario_3_too_heavy():
     }
 
     print("\n参数配置:")
-    print(f"  质量倍数: 1.0 → 2.0")
+    print("  质量倍数: 1.0 → 2.0")
 
     # 先验证
     validator = PhysicsValidator()
     is_valid, issues = validator.validate_robot_balance(params)
 
-    print(f"\n物理验证:")
+    print("\n物理验证:")
     for issue in issues:
         print(f"  {issue}")
 
     sim = PhysicsSimulator(params)
     result = sim.simulate_forward(target_distance=1.0, max_time=10.0)
 
-    print(f"\n结果:")
+    print("\n结果:")
     print(f"  成功: {result['success']}")
     print(f"  失败原因: {result.get('reason', 'N/A')}")
     print(f"  实际距离: {result['distance_traveled']:.2f} m")
-    print(f"  机器人无法自主移动！")
+    print("  机器人无法自主移动！")
 
     return result
 
@@ -135,18 +134,18 @@ def demo_scenario_4_unstable():
     }
 
     print("\n参数配置:")
-    print(f"  关节刚度: 1.0 → 0.3")
-    print(f"  关节阻尼: 0.5 → 0.2")
+    print("  关节刚度: 1.0 → 0.3")
+    print("  关节阻尼: 0.5 → 0.2")
 
     sim = PhysicsSimulator(params)
     result = sim.simulate_forward(target_distance=1.0, max_time=10.0)
 
-    print(f"\n结果:")
+    print("\n结果:")
     print(f"  成功: {result['success']}")
     if not result["success"]:
         print(f"  失败原因: {result.get('reason', 'N/A')}")
         print(f"  摔倒位置: {result['distance_traveled']:.2f} m")
-        print(f"  关节过软导致失去平衡！")
+        print("  关节过软导致失去平衡！")
 
     return result
 
@@ -173,13 +172,13 @@ def demo_scenario_5_optimized():
     sim = PhysicsSimulator(params)
     result = sim.simulate_forward(target_distance=1.0, max_time=10.0)
 
-    print(f"\n结果:")
+    print("\n结果:")
     print(f"  成功: {result['success']}")
     if result["success"]:
         print(f"  实际距离: {result['distance_traveled']:.2f} m")
         print(f"  用时: {result['time_taken']:.2f} s")
         print(f"  平均速度: {result['avg_speed']:.2f} m/s")
-        print(f"  性能优秀！")
+        print("  性能优秀！")
 
     return result
 

@@ -152,6 +152,7 @@ run_diagnostics() -> Dict[str, Any]
 - `godot_agent_plan`
 - `godot_agent_doctor`
 - `godot_agent_history`
+- `capability_matrix_get`
 
 启动方式：
 
@@ -172,6 +173,7 @@ python -m agi_walker.mcp.server
 ### 系统级接口
 
 - `GET /api/system/status`
+- `GET /api/capabilities/matrix`
 - `GET /api/godot/capabilities`
 - `GET /api/distributed/status`
 - `GET /api/nightly/regressions`

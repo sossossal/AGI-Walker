@@ -87,6 +87,7 @@ python tests/run_smoke_tests.py
 ```
 
 它是当前最值得保留在日常开发循环里的专项验证脚本。
+当显式设置相应环境变量时，它也会尝试运行 live smoke，例如 Godot headless 和 ROS2 bridge。
 
 ## 5. 重型集成测试
 
@@ -96,7 +97,7 @@ python tests/run_smoke_tests.py
 
 ```bash
 set AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE=1
-python -m pytest tests/test_godot_headless_smoke.py -q -m integration
+python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live"
 ```
 
 前提：
@@ -107,7 +108,7 @@ python -m pytest tests/test_godot_headless_smoke.py -q -m integration
 ### Distributed smoke
 
 ```bash
-python tests/run_distributed_smoke.py --build --stop-after
+python tests/run_distributed_smoke.py --build --stop-after --report-file test_env/distributed_smoke/distributed_smoke_report.json
 ```
 
 前提：
@@ -115,6 +116,30 @@ python tests/run_distributed_smoke.py --build --stop-after
 - Docker
 - Compose
 - Zenoh 相关依赖
+
+说明：
+
+- 该 smoke 是重型集成测试，应作为独立 CI job 或手动/nightly 验收运行。
+- 失败时优先查看 `test_env/distributed_smoke/distributed_smoke_report.json`，其中包含逐项 check、服务状态和日志 hint。
+
+### 真实 ROS2 bridge smoke
+
+显式 opt-in：
+
+```bash
+set AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE=1
+python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live"
+```
+
+前提：
+
+- ROS 2 Humble Python 运行时
+- `rclpy`、`sensor_msgs`、`geometry_msgs`、`std_srvs`、`tf2_ros`
+
+说明：
+
+- 该 smoke 使用仓库内的 mock Godot TCP server，不要求真实 Godot。
+- 结果会写入 `test_env/ros2_bridge_smoke/ros2_bridge_smoke_report.json`。
 
 ## 6. 什么时候不该跑全量
 

@@ -178,7 +178,7 @@ def train_stair_climbing():
                 break
 
         print(
-            f"Episode {episode+1}: "
+            f"Episode {episode + 1}: "
             f"Steps Climbed={info['steps_climbed']}, "
             f"Reward={total_reward:.2f}"
         )

@@ -1,6 +1,7 @@
 """
 OptimizerRole — 性能分析与优化建议角色
 """
+
 from typing import Dict, List, Any
 from .base import BaseRole
 
@@ -10,7 +11,13 @@ class OptimizerRole(BaseRole):
         return "性能优化专家，生成对象池、LOD 控制、帧率监控、Draw Call 优化脚本"
 
     def get_capabilities(self) -> List[str]:
-        return ["对象池", "帧率监控 HUD", "LOD 细节层次", "批次渲染优化建议", "内存泄漏检测"]
+        return [
+            "对象池",
+            "帧率监控 HUD",
+            "LOD 细节层次",
+            "批次渲染优化建议",
+            "内存泄漏检测",
+        ]
 
     def execute(self, command: str, context: Dict[str, Any]) -> Dict[str, Any]:
         cmd = command.lower()
@@ -76,13 +83,17 @@ func release_all() -> void:
 	for obj in _active.duplicate():
 		release(obj)
 '''
-        return self._success_result("对象池已生成", {
-            "script_name": "object_pool.gd", "code": code,
-            "tips": "为对象脚本添加 reset() 方法以在归还时复位状态"
-        })
+        return self._success_result(
+            "对象池已生成",
+            {
+                "script_name": "object_pool.gd",
+                "code": code,
+                "tips": "为对象脚本添加 reset() 方法以在归还时复位状态",
+            },
+        )
 
     def _gen_fps_monitor(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # fps_monitor.gd — FPS 与性能监控面板
 extends CanvasLayer
 
@@ -107,14 +118,18 @@ func _process(delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if event.is_action_just_pressed("toggle_debug"):
 		visible = !visible
-'''
-        return self._success_result("FPS 监控面板已生成", {
-            "script_name": "fps_monitor.gd", "code": code,
-            "tips": "在输入映射中添加 toggle_debug 动作（建议 F3 键）"
-        })
+"""
+        return self._success_result(
+            "FPS 监控面板已生成",
+            {
+                "script_name": "fps_monitor.gd",
+                "code": code,
+                "tips": "在输入映射中添加 toggle_debug 动作（建议 F3 键）",
+            },
+        )
 
     def _gen_lod_controller(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # lod_controller.gd — LOD 细节层次控制器
 extends Node3D
 
@@ -142,9 +157,10 @@ func _apply_lod(distance: float) -> void:
 	for i in range(lod_meshes.size()):
 		if lod_meshes[i]:
 			lod_meshes[i].visible = (i == level or (level >= lod_meshes.size() and i == lod_meshes.size() - 1))
-'''
-        return self._success_result("LOD 控制器已生成",
-            {"script_name": "lod_controller.gd", "code": code})
+"""
+        return self._success_result(
+            "LOD 控制器已生成", {"script_name": "lod_controller.gd", "code": code}
+        )
 
     def _gen_optimization_tips(self, command: str) -> Dict[str, Any]:
         tips = [
@@ -156,7 +172,13 @@ func _apply_lod(distance: float) -> void:
             "避免每帧调用 find_node/get_node，改用 @onready 变量缓存",
             "在 _process 中使用时间累加器，降低非关键逻辑的执行频率",
         ]
-        return self._success_result("性能优化建议", {
-            "tips": tips,
-            "scripts": ["object_pool.gd → 输入'生成对象池'", "fps_monitor.gd → 输入'生成帧率监控'"]
-        })
+        return self._success_result(
+            "性能优化建议",
+            {
+                "tips": tips,
+                "scripts": [
+                    "object_pool.gd → 输入'生成对象池'",
+                    "fps_monitor.gd → 输入'生成帧率监控'",
+                ],
+            },
+        )

@@ -5,8 +5,12 @@ from typing import Any, Callable, Dict, List
 from fastapi import APIRouter
 from fastapi import WebSocket
 from fastapi.responses import FileResponse
+from agi_walker.core.api.capability_matrix import (
+    build_capability_matrix_artifact,
+    build_capability_matrix_summary,
+)
+from agi_walker.core.api.workflow_contracts import WORKFLOW_CONTRACT_VERSION
 from agi_walker.skills_loader import get_skills_loader
-
 
 DEFAULT_GODOT_SESSION_ID = "default"
 
@@ -35,6 +39,7 @@ def system_status(
         status["godot_agent"] = godot_agent_status_provider()
     if nightly_status_provider is not None:
         status["nightly_regressions"] = nightly_status_provider()
+    status["capability_matrix"] = build_capability_matrix_summary()
     return status
 
 
@@ -89,6 +94,15 @@ def godot_capabilities() -> Dict[str, Any]:
                     "load_robot",
                 ],
                 "status": "preferred",
+                "status_schema_version": "1.0",
+                "session_states": [
+                    "disconnected",
+                    "launching",
+                    "connected",
+                    "schema_ready",
+                    "running",
+                    "failed",
+                ],
             },
             "workflow_bridge": {
                 "description": "Official workflow-to-Godot bridge. Recommended to target session_bridge unless legacy compatibility is required.",
@@ -101,6 +115,7 @@ def godot_capabilities() -> Dict[str, Any]:
                     "legacy_controller",
                 ],
                 "preferred_transport_mode": "session_bridge",
+                "artifact_contract_version": WORKFLOW_CONTRACT_VERSION,
             },
         },
         "note": (
@@ -114,10 +129,18 @@ def godot_capabilities() -> Dict[str, Any]:
 
 
 def distributed_status(distributed_monitor) -> Dict[str, Any]:
+    actors = distributed_monitor.snapshot()
     return {
-        "actors": distributed_monitor.snapshot(),
+        "schema_version": "1.0",
+        "actors": actors,
+        "actor_ids": sorted(actors),
+        "actors_count": len(actors),
         "monitor": distributed_monitor.capabilities(),
     }
+
+
+def capability_matrix() -> Dict[str, Any]:
+    return build_capability_matrix_artifact()
 
 
 def build_router(
@@ -168,6 +191,11 @@ def build_router(
     async def get_distributed_status():
         """Get snapshot of distributed actors"""
         return distributed_status(distributed_monitor)
+
+    @router.get("/api/capabilities/matrix")
+    async def get_capability_matrix():
+        """Get the release-facing capability matrix."""
+        return capability_matrix()
 
     @router.get("/api/skills/catalog")
     async def get_skill_catalog():

@@ -1,8 +1,16 @@
+import json
 import shutil
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
+from agi_walker.core.api.workflow_contracts import (
+    WORKFLOW_CONTRACT_VERSION,
+    validate_export_result,
+    validate_optimization_result,
+    validate_robot_config,
+    validate_workflow_step_artifact,
+)
 from agi_walker.workflow_orchestrator import (
     StepStatus,
     WorkflowOrchestrator,
@@ -320,6 +328,78 @@ def test_output_root_rewrites_relative_outputs_for_built_in_workflow() -> None:
         assert result.steps[2].output["output_file"] == str(exported_robot)
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_real_workflow_artifacts_follow_phase_one_contract() -> None:
+    tmp_path = _make_test_dir("robot_creation_artifact_contract")
+    try:
+        workflow_output_root = tmp_path.resolve()
+        orchestrator = _create_orchestrator_with_workflow(
+            "robot_creation_pipeline_artifact_contract",
+            _build_robot_creation_steps(workflow_output_root),
+            "Artifact contract smoke test for robot creation workflow",
+        )
+
+        result = orchestrator.execute_workflow(
+            "robot_creation_pipeline_artifact_contract",
+            parameters={
+                "execution_strategy": "force",
+                "output_root": str(workflow_output_root),
+            },
+            use_real=True,
+        )
+
+        assert result.status == WorkflowStatus.COMPLETED
+        assert result.to_dict()["schema_version"] == WORKFLOW_CONTRACT_VERSION
+        assert len(result.to_dict()["artifacts"]) == 3
+
+        artifact_payloads = []
+        for step in result.steps:
+            assert step.artifact_path is not None
+            artifact_path = Path(step.artifact_path)
+            assert artifact_path.exists()
+            payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+            assert validate_workflow_step_artifact(payload) == []
+            assert payload["workflow"] == "robot_creation_pipeline_artifact_contract"
+            assert payload["mode"] == "real"
+            artifact_payloads.append(payload)
+
+        created_robot = json.loads(
+            (workflow_output_root / "created_robot.json").read_text(encoding="utf-8")
+        )
+        optimized_robot = json.loads(
+            (workflow_output_root / "optimized_robot.json").read_text(encoding="utf-8")
+        )
+
+        assert validate_robot_config(created_robot) == []
+        assert validate_optimization_result(optimized_robot) == []
+        assert validate_export_result(artifact_payloads[-1]["output"]) == []
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_validate_workflow_rejects_invalid_definitions() -> None:
+    orchestrator = WorkflowOrchestrator()
+    assert orchestrator.validate_workflow("robot_creation_pipeline") == (True, "Valid")
+
+    assert orchestrator.create_custom_workflow(
+        "invalid_workflow",
+        [
+            {
+                "name": "broken",
+                "skill_executor": "robot_modeling",
+                "action": "unsupported_action",
+                "inputs": {"robot_config": "{future.output_file}"},
+            }
+        ],
+        description="Invalid workflow contract test",
+    )
+
+    is_valid, message = orchestrator.validate_workflow("invalid_workflow")
+
+    assert is_valid is False
+    assert "is not supported" in message
+    assert "missing or future step" in message
 
 
 def test_invalid_execution_strategy_returns_failed_result() -> None:

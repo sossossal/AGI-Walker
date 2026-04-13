@@ -232,7 +232,7 @@ def demo_custom_environment():
 
     result = test_environment(custom_env, params)
 
-    print(f"\n结果:")
+    print("\n结果:")
     print(f"  成功: {result['success']}")
     print(f"  距离: {result['distance_traveled']:.2f} m")
     if result["success"]:

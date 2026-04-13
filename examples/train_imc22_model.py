@@ -122,7 +122,7 @@ def main():
     for i, (state, action) in enumerate(
         zip(test_states.cpu().numpy(), test_actions.cpu().numpy())
     ):
-        print(f"  状态 {i+1}: {state} → 动作: {action}")
+        print(f"  状态 {i + 1}: {state} → 动作: {action}")
 
     print("\n✓ 训练完成!")
 

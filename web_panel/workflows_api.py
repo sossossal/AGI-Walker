@@ -28,6 +28,12 @@ from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
+from agi_walker.core.api.workflow_contracts import (
+    WORKFLOW_CONTRACT_VERSION,
+    validate_export_result,
+    validate_robot_config,
+    validate_workflow_step_artifact,
+)
 from agi_walker.workflow_orchestrator import get_workflow_orchestrator
 from web_panel.auth_api import get_current_user
 from web_panel.core_api import DEFAULT_GODOT_SESSION_ID
@@ -348,12 +354,14 @@ def _archive_run_path(run_id: str) -> Path:
 def _get_archive_retention_policy() -> Dict[str, Any]:
     """Return the normalized archive retention policy exposed to callers."""
     return {
-        "max_runs": ARCHIVE_RETENTION_MAX_RUNS
-        if ARCHIVE_RETENTION_MAX_RUNS > 0
-        else None,
-        "max_age_days": ARCHIVE_RETENTION_MAX_AGE_DAYS
-        if ARCHIVE_RETENTION_MAX_AGE_DAYS > 0
-        else None,
+        "max_runs": (
+            ARCHIVE_RETENTION_MAX_RUNS if ARCHIVE_RETENTION_MAX_RUNS > 0 else None
+        ),
+        "max_age_days": (
+            ARCHIVE_RETENTION_MAX_AGE_DAYS
+            if ARCHIVE_RETENTION_MAX_AGE_DAYS > 0
+            else None
+        ),
         "archive_root": str(WORKFLOW_ARCHIVE_ROOT),
         "env_file": str(WEB_PANEL_ENV_FILE) if WEB_PANEL_ENV_FILE is not None else None,
     }
@@ -689,9 +697,11 @@ async def _store_run_record(
                     "preferred_godot_transport_mode"
                 ),
                 parameters=record.get("parameters", {}),
-                created_at=datetime.fromisoformat(record["created_at"])
-                if record.get("created_at")
-                else datetime.now(),
+                created_at=(
+                    datetime.fromisoformat(record["created_at"])
+                    if record.get("created_at")
+                    else datetime.now()
+                ),
                 started_at=started_at,
                 finished_at=finished_at,
                 duration=record.get("duration") or 0.0,
@@ -859,21 +869,25 @@ def _parse_filter_datetime(
 
 def _build_steps_snapshot(steps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Build a stable, compact step snapshot for polling responses."""
-    return [
-        {
-            "name": step.get("name"),
-            "executor": step.get("executor"),
-            "action": step.get("action"),
-            "status": step.get("status"),
-            "duration": step.get("duration"),
-            "error": step.get("error"),
-            "start_time": step.get("start_time"),
-            "end_time": step.get("end_time"),
-            "output_file": step.get("output_file"),
-            "output_keys": step.get("output_keys") or [],
-        }
-        for step in steps
-    ]
+    snapshots = []
+    for step in steps:
+        output = step.get("output") or {}
+        snapshots.append(
+            {
+                "name": step.get("name"),
+                "executor": step.get("executor"),
+                "action": step.get("action"),
+                "status": step.get("status"),
+                "duration": step.get("duration"),
+                "error": step.get("error"),
+                "start_time": step.get("start_time"),
+                "end_time": step.get("end_time"),
+                "output_file": output.get("output_file"),
+                "output_keys": sorted(output.keys()),
+                "artifact_path": step.get("artifact_path"),
+            }
+        )
+    return snapshots
 
 
 def _extract_step_errors(steps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -947,7 +961,7 @@ def _collect_artifacts_from_result_dict(
         seen_paths.add(normalized_path)
         artifact_index = len(artifacts)
         artifact_metadata = _build_artifact_metadata(
-            artifact_path, run_id, artifact_index
+            artifact_path, run_id, artifact_index, step
         )
         artifacts.append(
             {
@@ -982,8 +996,54 @@ def _is_robot_config_payload(payload: Optional[Dict[str, Any]]) -> bool:
     )
 
 
+def _build_step_artifact_contract(step: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Validate a persisted workflow-step artifact when one exists."""
+    artifact_path = step.get("artifact_path")
+    if not isinstance(artifact_path, str) or not artifact_path:
+        return None
+
+    payload = _read_json_file(Path(artifact_path))
+    errors = (
+        validate_workflow_step_artifact(payload)
+        if payload is not None
+        else [f"step artifact is not readable JSON: {artifact_path}"]
+    )
+    return {
+        "path": artifact_path,
+        "schema_version": (
+            payload.get("schema_version") if isinstance(payload, dict) else None
+        ),
+        "valid": not errors,
+        "errors": errors,
+    }
+
+
+def _build_artifact_contract(
+    artifact_type: str,
+    payload: Optional[Dict[str, Any]],
+    step_output: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Validate the public contract for one generated artifact."""
+    if artifact_type == "robot_config":
+        errors = validate_robot_config(payload)
+    elif artifact_type in {"urdf", "sdf", "mjcf"}:
+        errors = validate_export_result(step_output)
+    else:
+        errors = []
+
+    return {
+        "schema_version": WORKFLOW_CONTRACT_VERSION,
+        "payload_type": artifact_type,
+        "valid": not errors,
+        "errors": errors,
+    }
+
+
 def _build_artifact_metadata(
-    artifact_path: Path, run_id: str, artifact_index: int
+    artifact_path: Path,
+    run_id: str,
+    artifact_index: int,
+    step: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Attach preview/load capabilities to one workflow artifact."""
     artifact_type = "file"
@@ -993,29 +1053,42 @@ def _build_artifact_metadata(
     godot_load_url = None
     preferred_godot_transport_mode = None
 
-    if artifact_path.suffix.lower() == ".urdf":
-        artifact_type = "urdf"
-        preview_mode = "web_urdf"
-        preview_url = f"/api/workflows/runs/{run_id}/artifacts/{artifact_index}"
-    elif artifact_path.suffix.lower() == ".json":
+    payload = None
+    step_output = (step or {}).get("output") or {}
+    suffix = artifact_path.suffix.lower()
+
+    if suffix in {".urdf", ".sdf", ".mjcf"}:
+        artifact_type = suffix[1:]
+        if suffix == ".urdf":
+            preview_mode = "web_urdf"
+            preview_url = f"/api/workflows/runs/{run_id}/artifacts/{artifact_index}"
+    elif suffix == ".json":
         payload = _read_json_file(artifact_path)
         if _is_robot_config_payload(payload):
             artifact_type = "robot_config"
-            godot_load_supported = True
-            godot_load_url = (
-                f"/api/workflows/runs/{run_id}/artifacts/{artifact_index}/godot-load"
-            )
-            preferred_godot_transport_mode = "session_bridge"
         else:
             artifact_type = "json"
 
+    contract = _build_artifact_contract(artifact_type, payload, step_output)
+    if artifact_type == "robot_config" and contract["valid"]:
+        godot_load_supported = True
+        godot_load_url = (
+            f"/api/workflows/runs/{run_id}/artifacts/{artifact_index}/godot-load"
+        )
+        preferred_godot_transport_mode = "session_bridge"
+
     return {
+        "schema_version": WORKFLOW_CONTRACT_VERSION,
         "artifact_type": artifact_type,
         "preview_mode": preview_mode,
         "preview_url": preview_url,
         "godot_load_supported": godot_load_supported,
         "godot_load_url": godot_load_url,
         "preferred_godot_transport_mode": preferred_godot_transport_mode,
+        "contract": contract,
+        "contract_valid": contract["valid"],
+        "contract_errors": contract["errors"],
+        "step_artifact_contract": _build_step_artifact_contract(step or {}),
     }
 
 
@@ -1086,6 +1159,9 @@ def _build_initial_run_record(
         "worker_traceback": None,
         "diagnostic_summary": None,
         "artifacts": [],
+        "workflow_contract_version": WORKFLOW_CONTRACT_VERSION,
+        "workflow_result_schema_version": None,
+        "workflow_result_artifact_type": None,
         "godot_delivery": None,
         "preferred_godot_transport_mode": "session_bridge",
         "recommended_godot_sync_url": f"/api/workflows/runs/{run_id}/godot-sync",
@@ -1129,14 +1205,20 @@ async def _finalize_run_from_result(
         last_event="workflow_finished",
         progress_updated_at=result_dict.get("end_time") or _now().isoformat(),
         steps_snapshot=steps_snapshot,
-        status_detail="Workflow finished successfully."
-        if status == "completed"
-        else (error_message or "Workflow finished with errors."),
+        status_detail=(
+            "Workflow finished successfully."
+            if status == "completed"
+            else (error_message or "Workflow finished with errors.")
+        ),
         message=error_message,
         exit_reason="workflow_result",
         log_path=log_path,
         log_download_url=f"/api/workflows/runs/{run_id}/log" if log_path else None,
         artifacts=artifacts,
+        workflow_contract_version=result_dict.get("schema_version")
+        or WORKFLOW_CONTRACT_VERSION,
+        workflow_result_schema_version=result_dict.get("schema_version"),
+        workflow_result_artifact_type=result_dict.get("artifact_type"),
         failed_step_name=failure_diagnostics["failed_step_name"],
         failed_step_error=failure_diagnostics["failed_step_error"],
         step_errors=failure_diagnostics["step_errors"],
@@ -1237,6 +1319,16 @@ def _load_robot_config_from_artifact(artifact: Dict[str, Any]) -> Dict[str, Any]
             status_code=400,
             detail="Artifact JSON does not contain parts/connections robot config",
         )
+    errors = validate_robot_config(payload)
+    if errors:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "Artifact JSON does not match the robot config contract",
+                "schema_version": WORKFLOW_CONTRACT_VERSION,
+                "errors": errors,
+            },
+        )
     return payload
 
 
@@ -1270,9 +1362,13 @@ def _build_godot_delivery_record(
         "artifact_name": artifact["name"],
         "artifact_type": artifact.get("artifact_type"),
         "artifact_path": artifact["path"],
+        "artifact_schema_version": artifact.get("schema_version"),
+        "artifact_contract": artifact.get("contract"),
         "auto_selected": auto_selected,
         "transport_mode": transport_mode,
         "session_id": session_id,
+        "session_state": transport_result.get("session_state"),
+        "session_status": transport_result.get("session_status"),
         "engine_running": transport_result.get("engine_running"),
         "connected": transport_result.get("connected"),
         "schema_available": transport_result.get("schema_available"),
@@ -1314,6 +1410,8 @@ def _build_godot_delivery_failure_record(
         "artifact_name": artifact["name"],
         "artifact_type": artifact.get("artifact_type"),
         "artifact_path": artifact["path"],
+        "artifact_schema_version": artifact.get("schema_version"),
+        "artifact_contract": artifact.get("contract"),
         "auto_selected": auto_selected,
         "transport_mode": payload.transport_mode,
         "session_id": payload.session_id,
@@ -1495,11 +1593,22 @@ async def _load_robot_via_session_bridge(
     schema = await bridge.wait_until_schema(
         timeout_seconds=min(payload.wait_for_tcp_seconds, 5.0)
     )
+    session_status = (
+        bridge.get_status_payload()
+        if hasattr(bridge, "get_status_payload")
+        else {
+            "session_state": None,
+            "engine_running": bridge.is_running(),
+            "tcp_connected": bridge.is_connected(),
+        }
+    )
     return {
         "transport_mode": "session_bridge",
         "session_id": payload.session_id,
         "connected": bridge.is_connected(),
         "engine_running": bridge.is_running(),
+        "session_state": session_status.get("session_state"),
+        "session_status": session_status,
         "launch_result": launch_result,
         "load_result": load_result,
         "schema_available": bool(schema),
@@ -1809,13 +1918,17 @@ def _monitor_background_run(run_id: str) -> None:
                 if exit_code == 0
                 else "Workflow worker exited with a non-zero status."
             ),
-            message=None
-            if exit_code == 0
-            else f"Workflow worker exited with code {exit_code}.",
+            message=(
+                None
+                if exit_code == 0
+                else f"Workflow worker exited with code {exit_code}."
+            ),
             exit_reason="worker_exit" if exit_code == 0 else "worker_exit_nonzero",
-            diagnostic_summary=None
-            if exit_code == 0
-            else f"Workflow worker exited with code {exit_code}.",
+            diagnostic_summary=(
+                None
+                if exit_code == 0
+                else f"Workflow worker exited with code {exit_code}."
+            ),
         )
     )
     _cleanup_active_run(run_id)
@@ -1829,12 +1942,18 @@ async def list_workflows() -> List[Dict[str, Any]]:
     for name in orchestrator.list_workflows():
         workflow = orchestrator.get_workflow(name) or {}
         steps = workflow.get("steps", [])
+        is_valid, validation_message = orchestrator.validate_workflow(name)
         workflows.append(
             {
+                "schema_version": WORKFLOW_CONTRACT_VERSION,
                 "name": name,
                 "description": workflow.get("description", ""),
                 "steps_count": len(steps),
                 "step_names": [step.get("name", "unnamed") for step in steps],
+                "validation": {
+                    "valid": is_valid,
+                    "message": validation_message,
+                },
             }
         )
     return workflows
@@ -1950,6 +2069,9 @@ async def get_run_status(run_id: str) -> Dict[str, Any]:
             "worker_error_message": run["worker_error_message"],
             "diagnostic_summary": run["diagnostic_summary"],
             "worker_pid": run["worker_pid"],
+            "workflow_contract_version": run.get("workflow_contract_version"),
+            "workflow_result_schema_version": run.get("workflow_result_schema_version"),
+            "workflow_result_artifact_type": run.get("workflow_result_artifact_type"),
             "godot_delivery": run["godot_delivery"],
             "preferred_godot_transport_mode": run["preferred_godot_transport_mode"],
             "recommended_godot_sync_url": run["recommended_godot_sync_url"],
@@ -2231,12 +2353,18 @@ async def get_workflow_detail(name: str) -> Dict[str, Any]:
     if not workflow:
         raise HTTPException(status_code=404, detail=f"Workflow '{name}' not found")
 
+    is_valid, validation_message = orchestrator.validate_workflow(name)
     return {
         "status": "success",
         "workflow": {
+            "schema_version": WORKFLOW_CONTRACT_VERSION,
             "name": workflow.get("name", name),
             "description": workflow.get("description", ""),
             "steps": workflow.get("steps", []),
+            "validation": {
+                "valid": is_valid,
+                "message": validation_message,
+            },
         },
     }
 

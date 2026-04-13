@@ -8,6 +8,7 @@
 import logging
 import asyncio
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import sys
@@ -34,6 +35,10 @@ from agi_walker.core.training.peft_trainer import (
     PEFTTrainer,
     PEFTConfig,
     PEFTMethod,
+)  # noqa: E402
+from agi_walker.core.api.training_contracts import (
+    build_training_run_artifact,
+    write_training_run_artifact,
 )  # noqa: E402
 
 
@@ -119,6 +124,8 @@ class EvolutionManager:
         """阶段1: RL训练"""
         self.current_stage = "RL_TRAINING"
         logger.info(f"\n[Stage 1/4] RL训练 ({self.config.rl_algorithm})")
+        started_at = datetime.now(timezone.utc).isoformat()
+        stage_start = time.time()
 
         # 配置RL
         rl_config = RLConfig(
@@ -133,7 +140,7 @@ class EvolutionManager:
 
         # 训练（使用线程池或异步执行）
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
+        train_result = await loop.run_in_executor(
             None, lambda: optimizer.train(total_timesteps=self.config.rl_timesteps)
         )
 
@@ -146,8 +153,56 @@ class EvolutionManager:
         onnx_path = self.models_dir / "rl" / "policy.onnx"
         optimizer.export_policy_onnx(str(onnx_path))
 
+        finished_at = datetime.now(timezone.utc).isoformat()
+        training_manifest_path = self.models_dir / "rl" / "training_run_manifest.json"
+        training_artifact = build_training_run_artifact(
+            run_id=f"{self.config.iteration_name}:rl_training",
+            run_type="mock_training",
+            stage="rl_training",
+            status="completed",
+            algorithm=self.config.rl_algorithm,
+            environment={
+                "kind": "mock",
+                "name": env.__class__.__name__,
+                "source": "EvolutionManager.stage_rl_training",
+            },
+            inputs={
+                "iteration_name": self.config.iteration_name,
+                "total_timesteps": self.config.rl_timesteps,
+            },
+            metrics={
+                "total_timesteps": self.config.rl_timesteps,
+                "training_time_seconds": train_result.get(
+                    "training_time", time.time() - stage_start
+                ),
+            },
+            artifacts=[
+                {
+                    "name": "rl_model",
+                    "path": str(model_path),
+                    "artifact_type": "model",
+                },
+                {
+                    "name": "policy_onnx",
+                    "path": str(onnx_path),
+                    "artifact_type": "onnx_policy",
+                },
+            ],
+            hardware_required=False,
+            hardware_enabled=False,
+            started_at=started_at,
+            finished_at=finished_at,
+            duration_seconds=time.time() - stage_start,
+        )
+        write_training_run_artifact(training_artifact, training_manifest_path)
+
         self.history.append(
-            {"stage": "rl", "status": "success", "path": str(model_path)}
+            {
+                "stage": "rl",
+                "status": "success",
+                "path": str(model_path),
+                "training_run_artifact": str(training_manifest_path),
+            }
         )
         return str(model_path)
 

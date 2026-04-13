@@ -9,7 +9,27 @@ import logging
 from .scheduler import OffloadingScheduler
 
 # Configure Logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] [Sidecar] %(message)s"
+)
 logger = logging.getLogger("sidecar")
+
+
+def _payload_to_bytes(payload):
+    if isinstance(payload, bytes):
+        return payload
+    if isinstance(payload, str):
+        return payload.encode("utf-8")
+    if hasattr(payload, "to_bytes"):
+        return payload.to_bytes()
+    return bytes(payload)
+
+
+def _env_flag(name, default=False):
+    raw_value = os.environ.get(name)
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 class GodotClient:
@@ -81,8 +101,9 @@ class SmartSidecar:
     Implements Cloud-Edge Dynamic Offloading.
     """
 
-    def __init__(self, actor_id, godot_host, godot_port, zenoh_router):
+    def __init__(self, actor_id, godot_host, godot_port, zenoh_router, force_offload):
         self.id = actor_id
+        self.force_offload = force_offload
         self.scheduler = OffloadingScheduler()
         self.godot = GodotClient(godot_host, godot_port)
 
@@ -100,6 +121,8 @@ class SmartSidecar:
         )
 
         self.last_obs_time = 0.0
+        self.obs_count = 0
+        self.action_count = 0
 
     def _on_cloud_action(self, sample):
         """Handle AI inference results from Cloud."""
@@ -107,14 +130,25 @@ class SmartSidecar:
         rtt = (time.time() - self.last_obs_time) * 1000
         self.scheduler.update_cloud_stats(rtt, available=True)
 
-        payload = json.loads(bytes(sample.payload).decode("utf-8"))
+        payload = json.loads(_payload_to_bytes(sample.payload).decode("utf-8"))
         cmd = {"type": "step", "action": payload.get("action", [])}
         self.godot.send_action(cmd)
-        logger.debug(f"Cloud Act Executed (RTT: {rtt:.1f}ms)")
+        self.action_count += 1
+        logger.info(
+            "executed cloud action #%s for %s (rtt_ms=%.1f)",
+            self.action_count,
+            self.id,
+            rtt,
+        )
 
     def run(self):
         self.godot.connect()
-        logger.info(f"Smart Sidecar {self.id} initialized. Link: {self.key_obs}")
+        logger.info(
+            "Smart Sidecar %s initialized. Link: %s force_offload=%s",
+            self.id,
+            self.key_obs,
+            self.force_offload,
+        )
 
         # Initial Reset
         self.godot.send_action({"type": "reset"})
@@ -127,9 +161,13 @@ class SmartSidecar:
 
                 self.last_obs_time = time.time()
 
-                if self.scheduler.should_offload():
+                if self.force_offload or self.scheduler.should_offload():
                     # Link B: Cloud Offloading via Zenoh
-                    self.pub_obs.put(json.dumps(obs))
+                    self.obs_count += 1
+                    self.pub_obs.put(json.dumps(obs).encode("utf-8"))
+                    logger.info(
+                        "published observation #%s to %s", self.obs_count, self.key_obs
+                    )
                 else:
                     # Link A: Local Execution (Fallback/Normal)
                     # For now, we simulate a very fast local control response
@@ -154,6 +192,12 @@ def main():
     parser.add_argument(
         "--zenoh-router", type=str, default=os.environ.get("ZENOH_ROUTER")
     )
+    parser.add_argument(
+        "--force-offload",
+        action="store_true",
+        default=_env_flag("AGI_WALKER_FORCE_OFFLOAD"),
+        help="Always publish observations to the cloud learner.",
+    )
     args = parser.parse_args()
 
     agent = SmartSidecar(
@@ -161,6 +205,7 @@ def main():
         args.godot_host,
         args.godot_port,
         args.zenoh_router,
+        args.force_offload,
     )
     agent.run()
 

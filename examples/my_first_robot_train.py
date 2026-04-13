@@ -8,7 +8,6 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 import os
-import numpy as np
 
 # 创建保存目录
 os.makedirs("my_robot_models", exist_ok=True)
@@ -80,15 +79,15 @@ print("    - 每 5,000 步评估一次")
 print("\n[步骤 4/5] 开始训练...")
 print("-" * 70)
 print("  训练参数:")
-print(f"    总训练步数: 100,000")
-print(f"    预计时间: 10-15分钟 (取决于硬件)")
-print(f"    日志目录: ./my_robot_logs/")
-print(f"    模型保存: ./my_robot_models/")
+print("    总训练步数: 100,000")
+print("    预计时间: 10-15分钟 (取决于硬件)")
+print("    日志目录: ./my_robot_logs/")
+print("    模型保存: ./my_robot_models/")
 print("-" * 70)
 print("\n  Tips:")
 print("    - 训练过程中可以按 Ctrl+C 暂停")
 print("    - 在另一个终端运行 'tensorboard --logdir=./my_robot_logs/' 实时查看训练曲线")
-print(f"    - 然后访问 http://localhost:6006\n")
+print("    - 然后访问 http://localhost:6006\n")
 
 input("按回车键开始训练...")
 
@@ -129,7 +128,7 @@ for _ in range(1000):
 
 test_env.close()
 
-print(f"  测试结果:")
+print("  测试结果:")
 print(f"    - 存活步数: {steps}")
 print(f"    - 累计奖励: {total_reward:.2f}")
 

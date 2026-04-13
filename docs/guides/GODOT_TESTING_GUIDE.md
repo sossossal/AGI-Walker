@@ -50,7 +50,7 @@ AGI_WALKER_GODOT_HEADLESS_ARTIFACT_DIR=test_env/godot_headless_smoke
 运行方式：
 
 ```bash
-python -m pytest tests/test_godot_headless_smoke.py -q -m integration
+python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live"
 ```
 
 ## 3. 真实 headless smoke 会验证什么

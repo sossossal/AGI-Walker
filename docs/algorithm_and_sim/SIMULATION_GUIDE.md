@@ -1,6 +1,6 @@
 # Simulation Guide
 
-更新日期：`2026-04-08`
+更新日期：`2026-04-12`
 
 本页描述 AGI-Walker 当前仓库里的仿真路径。当前应把“仿真”理解为多条并存的通路，而不是单个统一引擎。
 
@@ -95,7 +95,7 @@
 真实 headless smoke 是显式 opt-in：
 
 ```bash
-python -m pytest tests/test_godot_headless_smoke.py -q -m integration
+python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live"
 ```
 
 前提：
@@ -114,6 +114,14 @@ python -m pytest tests/test_godot_headless_smoke.py -q -m integration
 - `RLOptimizer`
 - ONNX 导出和部署
 
+当前 `RLOptimizer.train()` 已开始复用 `training_run` artifact v1，并会在保存目录写出 `training_run_manifest.json`。默认分类规则是：
+
+- 环境类名为 `DummyEnv` 时标记为 `mock_training`
+- 普通仿真环境标记为 `sim_training`
+- 显式传入 `hardware_required=True` 时标记为 `hardware_in_the_loop`
+
+这意味着当前仓库里，“仿真训练”和“硬件在环训练”的边界已经开始从代码层固定，而不是只靠文档说明。
+
 但很多高阶训练示例仍依赖额外环境和第三方库，不应默认写成随仓库立即可跑。
 
 ## 8. 推荐验证命令
@@ -121,9 +129,10 @@ python -m pytest tests/test_godot_headless_smoke.py -q -m integration
 ```bash
 python tests/run_smoke_tests.py
 python -m pytest tests/test_web_godot_session_bridge.py -q
-python -m pytest tests/test_godot_headless_smoke.py -q -m integration
+python -m pytest tests/test_rl_optimizer_training_contract.py -q
+python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live"
 ```
 
 ## 结论
 
-AGI-Walker 当前的仿真主线是 Godot 通信、Web session bridge 和可选的 Gym 训练接口。多数场景先用 Web + workflow 验证，再进入训练或 headless smoke，会更稳妥。
+AGI-Walker 当前的仿真主线是 Godot 通信、Web session bridge 和可选的 Gym 训练接口。训练侧已经开始产出统一 manifest，但 live Godot/headless 验证仍保持显式 opt-in。多数场景先用 Web + workflow 验证，再进入 sim training 或 headless smoke，会更稳妥。

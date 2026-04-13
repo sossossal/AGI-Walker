@@ -1,6 +1,6 @@
 # Hardware Integration Guide
 
-更新日期：`2026-04-08`
+更新日期：`2026-04-12`
 
 本页说明 AGI-Walker 当前如何与真实硬件或硬件近似层集成。当前最现实的做法是先跑 mock / 驱动骨架，再逐步进入 CAN、IMC-22 和参考固件。
 
@@ -67,11 +67,24 @@ print(driver.get_state())
 driver.disconnect()
 ```
 
+真实串口驱动现在还支持 replay 路径：
+
+```python
+from agi_walker.core.drivers.real_robot_driver import RealRobotDriver
+
+driver = RealRobotDriver.from_replay("tests/fixtures/real_robot_driver_replay.json")
+driver.connect()
+driver.poll_once()
+print(driver.get_state())
+driver.disconnect()
+```
+
 这条路径适合：
 
 - 调试接口
 - 验证控制命令结构
 - 做上层数据采集与日志流程
+- 在默认 pytest 中验证串口协议而不访问真实串口
 
 ## 4. SysID 数据采集
 
@@ -99,6 +112,11 @@ python -m agi_walker.core.drivers.collect_sysid_data --mock --duration 1 --out s
 - 可用的 CAN 适配器
 - 正确的 `channel`、`bustype`、`bitrate`
 
+同时它现在也支持两条非真实硬件路径：
+
+- 通过 `bus=` 注入协议级 mock / fake CAN bus
+- 通过 `IMC22Controller.from_replay(path)` 加载回放帧
+
 当前默认值偏 Linux / SocketCAN：
 
 - `channel="can0"`
@@ -107,7 +125,38 @@ python -m agi_walker.core.drivers.collect_sysid_data --mock --duration 1 --out s
 
 Windows 场景下则需要你显式传入对应总线类型和设备名。
 
-## 6. `HardwareEnvironment`
+## 6. 协议级 mock / replay 路径
+
+当前仓库已经补上协议级 replay 骨架，位置仍在：
+
+- `agi_walker/core/api/godot_robot_env/hardware_controller.py`
+
+当前可用能力：
+
+- `encode_command_payload()` / `encode_status_payload()` / `decode_status_payload()`
+- `validate_imc22_replay_payload()`
+- `ReplayCANBus`
+- `IMC22Controller.from_replay(...)`
+- `HardwareEnvironment(controller=...)`
+
+测试回放 fixture 位于：
+
+- `tests/fixtures/imc22_status_replay.json`
+
+这条路径的作用是：
+
+- 验证 IMC-22 协议编码/解码
+- 验证节点发现
+- 验证 `HardwareEnvironment.reset()` / `step()`
+- 保证默认 pytest 不访问真实 CAN
+
+推荐命令：
+
+```bash
+python -m pytest tests/test_hardware_controller.py -q
+```
+
+## 7. `HardwareEnvironment`
 
 `HardwareEnvironment` 试图把真实硬件包成类似 Gym 的接口：
 
@@ -117,7 +166,7 @@ Windows 场景下则需要你显式传入对应总线类型和设备名。
 
 它适合作为训练后验证或测试适配层，但不应被误写成“完全等价于仿真环境”。
 
-## 7. 部署脚本现状
+## 8. 部署脚本现状
 
 文件：
 
@@ -136,17 +185,19 @@ Windows 场景下则需要你显式传入对应总线类型和设备名。
 - 依赖链很重
 - 更适合作为参考脚本，而不是默认无修改可跑的正式流程
 
-## 8. 当前更稳的验证方式
+## 9. 当前更稳的验证方式
 
 推荐优先验证：
 
 - `agi_walker/core/drivers/test_driver.py`
 - mock driver 行为
 - `collect_sysid_data.py --mock`
+- `tests/test_real_robot_driver.py` 的 mock/replay 路径
+- `tests/test_hardware_controller.py` 的 replay/mock 路径
 
 而不是一上来就跑完整硬件部署。
 
-## 9. 常见前提
+## 10. 常见前提
 
 ### 串口路径
 
@@ -163,12 +214,38 @@ Windows 场景下则需要你显式传入对应总线类型和设备名。
 - 对应驱动
 - CAN 硬件已连接并正确配置
 
-## 10. 常见误区
+### ROS2 bridge live smoke
+
+需要：
+
+- ROS 2 Humble
+- `rclpy`
+- `sensor_msgs`
+- `geometry_msgs`
+- `std_srvs`
+- `tf2_ros`
+
+推荐命令：
+
+```bash
+export AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE=1
+python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live"
+```
+
+这条路径会用仓库内的 mock Godot TCP server 验证：
+
+- bridge 启动
+- service 可用性
+- `/joint_states` 发布
+- `/cmd_vel` 到 Godot 参数转发
+
+## 11. 常见误区
 
 - 把 mock driver 当成真实硬件验证
+- 把 replay fixture 当成真实硬件闭环
 - 把 `examples/deploy_to_hardware.py` 当成官方一键部署
 - 把 `hive-reflex` 和 `imc22-rtl` 当成当前 Python 主线的一部分
 
 ## 结论
 
-AGI-Walker 当前的硬件集成主线，最务实的是 mock driver、SysID 采集、CAN 控制骨架这三步。IMC-22、Hive-Reflex 和 firmware 目录属于后续扩展与参考层，不应写成默认前提。
+AGI-Walker 当前的硬件集成主线，最务实的是 mock driver、SysID 采集、CAN 控制骨架，再加协议级 replay 验证这四步。IMC-22、Hive-Reflex 和 firmware 目录属于后续扩展与参考层，不应写成默认前提。

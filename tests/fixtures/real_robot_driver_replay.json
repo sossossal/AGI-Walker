@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "frames": [
+    {
+      "cmd": "sensor_state",
+      "motors": {
+        "motor_1": {
+          "pos": 1.0,
+          "vel": 0.1,
+          "torque": 0.2
+        },
+        "motor_2": {
+          "pos": -1.0,
+          "vel": -0.1,
+          "torque": 0.3
+        }
+      }
+    },
+    {
+      "cmd": "sensor_state",
+      "motors": {
+        "motor_1": {
+          "pos": 1.5,
+          "vel": 0.15,
+          "torque": 0.25
+        }
+      }
+    }
+  ]
+}

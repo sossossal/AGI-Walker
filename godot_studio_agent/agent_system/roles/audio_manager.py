@@ -1,6 +1,7 @@
 """
 AudioManagerRole — 音频系统生成角色
 """
+
 from typing import Dict, List, Any
 from .base import BaseRole
 
@@ -10,7 +11,13 @@ class AudioManagerRole(BaseRole):
         return "音频专家，生成 BGM 管理器、音效控制器、音频配置脚本"
 
     def get_capabilities(self) -> List[str]:
-        return ["AudioManager 单例", "BGM 无缝切换", "音效触发器", "音量设置", "3D 空间音效"]
+        return [
+            "AudioManager 单例",
+            "BGM 无缝切换",
+            "音效触发器",
+            "音量设置",
+            "3D 空间音效",
+        ]
 
     def execute(self, command: str, context: Dict[str, Any]) -> Dict[str, Any]:
         cmd = command.lower()
@@ -100,13 +107,17 @@ func set_sfx_volume(value: float) -> void:
 		AudioServer.get_bus_index(SFX_BUS), linear_to_db(value)
 	)
 '''
-        return self._success_result("AudioManager 已生成", {
-            "script_name": "audio_manager.gd", "code": code,
-            "tips": "在项目设置 → Autoload 中添加此脚本，名称 AudioManager；并在音频总线中创建 BGM 和 SFX 两条总线"
-        })
+        return self._success_result(
+            "AudioManager 已生成",
+            {
+                "script_name": "audio_manager.gd",
+                "code": code,
+                "tips": "在项目设置 → Autoload 中添加此脚本，名称 AudioManager；并在音频总线中创建 BGM 和 SFX 两条总线",
+            },
+        )
 
     def _gen_sfx_system(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # sfx_emitter_3d.gd — 3D 空间音效发射器（挂载到敌人/物件）
 extends AudioStreamPlayer3D
 
@@ -120,6 +131,7 @@ func play_hit() -> void:
 func play_death() -> void:
 	stream = death_sound
 	play()
-'''
-        return self._success_result("3D 音效发射器已生成",
-            {"script_name": "sfx_emitter_3d.gd", "code": code})
+"""
+        return self._success_result(
+            "3D 音效发射器已生成", {"script_name": "sfx_emitter_3d.gd", "code": code}
+        )

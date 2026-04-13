@@ -126,7 +126,7 @@ class GodotSimulationClient:
 
             # 发送长度前缀 + 数据
             length = len(json_bytes)
-            self.socket.sendall(struct.pack("!I", length))
+            self.socket.sendall(struct.pack("<I", length))
             self.socket.sendall(json_bytes)
 
             return True
@@ -209,7 +209,7 @@ class GodotSimulationClient:
                 if not length_bytes:
                     break
 
-                length = struct.unpack("!I", length_bytes)[0]
+                length = struct.unpack("<I", length_bytes)[0]
 
                 # 读取数据
                 data_bytes = self._recv_exactly(length)
@@ -273,6 +273,7 @@ class MockGodotServer:
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.server_socket.bind(("127.0.0.1", self.port))
+            self.port = self.server_socket.getsockname()[1]
             self.server_socket.listen(1)
 
             self.running = True
@@ -324,7 +325,7 @@ class MockGodotServer:
                 if not length_bytes:
                     break
 
-                length = struct.unpack("!I", length_bytes)[0]
+                length = struct.unpack("<I", length_bytes)[0]
 
                 # 读取数据
                 data_bytes = client.recv(length)
@@ -361,7 +362,7 @@ class MockGodotServer:
                         json_str = json.dumps(feedback)
                         json_bytes = json_str.encode("utf-8")
                         try:
-                            client.sendall(struct.pack("!I", len(json_bytes)))
+                            client.sendall(struct.pack("<I", len(json_bytes)))
                             client.sendall(json_bytes)
                         except Exception:
                             break

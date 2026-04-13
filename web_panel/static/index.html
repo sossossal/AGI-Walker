@@ -303,8 +303,16 @@
                     <span class="stat-value" id="nightly-run" style="font-size: 0.82em;">-</span>
                 </div>
                 <div class="stat">
-                    <span>Smoke / Distributed / Godot</span>
+                    <span>Smoke / Dist / Godot / ROS2</span>
                     <span class="stat-value" id="nightly-jobs" style="font-size: 0.82em;">-</span>
+                </div>
+                <div class="stat">
+                    <span>Capability Matrix</span>
+                    <span class="stat-value" id="capability-matrix-version" style="font-size: 0.95em;">-</span>
+                </div>
+                <div class="stat">
+                    <span>发布面</span>
+                    <span class="stat-value" id="capability-matrix-summary" style="font-size: 0.82em;">-</span>
                 </div>
             </div>
 
@@ -885,6 +893,10 @@
                 document.getElementById('nightly-status').textContent = formatNightlyStatus(nightly);
                 document.getElementById('nightly-run').textContent = formatNightlyRun(nightly);
                 document.getElementById('nightly-jobs').textContent = formatNightlyJobs(nightly);
+
+                const capabilityMatrix = data.capability_matrix || {};
+                document.getElementById('capability-matrix-version').textContent = capabilityMatrix.schema_version || '-';
+                document.getElementById('capability-matrix-summary').textContent = formatCapabilityMatrix(capabilityMatrix);
             } catch (e) { }
         }
 
@@ -934,17 +946,25 @@
                 return '等待专项运行';
             }
             const jobs = nightly.jobs || {};
-            const trackedJobs = nightly.tracked_jobs || ['smoke', 'distributed-smoke', 'godot-headless-smoke'];
+            const trackedJobs = nightly.tracked_jobs || ['smoke', 'distributed-smoke', 'godot-headless-smoke', 'ros2-bridge-smoke'];
             return trackedJobs.map((jobName) => {
                 const job = jobs[jobName] || {};
                 const label = jobName === 'distributed-smoke'
                     ? 'dist'
-                    : (jobName === 'godot-headless-smoke' ? 'godot' : jobName);
+                    : (jobName === 'godot-headless-smoke' ? 'godot' : (jobName === 'ros2-bridge-smoke' ? 'ros2' : jobName));
                 if (job.present === false) {
                     return `${label}: missing`;
                 }
                 return `${label}: ${job.conclusion || job.status || 'n/a'}`;
             }).join(' · ');
+        }
+
+        function formatCapabilityMatrix(capabilityMatrix) {
+            const summary = capabilityMatrix.summary || {};
+            if (!summary.total_domains) {
+                return '未加载';
+            }
+            return `${summary.ready_domains || 0}/${summary.total_domains} ready · ${summary.diagnostic_ready_domains || 0} diagnostic`;
         }
 
         // 渲染任务列表

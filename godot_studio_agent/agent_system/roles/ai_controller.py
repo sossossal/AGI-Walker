@@ -1,6 +1,7 @@
 """
 AIControllerRole — AI 行为/状态机/行为树生成角色
 """
+
 from typing import Dict, List, Any
 from .base import BaseRole
 
@@ -10,7 +11,14 @@ class AIControllerRole(BaseRole):
         return "AI 专家，生成敌人状态机、行为树、Boss 多阶段 AI"
 
     def get_capabilities(self) -> List[str]:
-        return ["有限状态机 AI", "行为树节点", "巡逻/追击逻辑", "Boss 多阶段", "视野检测", "路径导航"]
+        return [
+            "有限状态机 AI",
+            "行为树节点",
+            "巡逻/追击逻辑",
+            "Boss 多阶段",
+            "视野检测",
+            "路径导航",
+        ]
 
     def execute(self, command: str, context: Dict[str, Any]) -> Dict[str, Any]:
         cmd = command.lower()
@@ -22,7 +30,7 @@ class AIControllerRole(BaseRole):
             return self._gen_enemy_state_machine()
 
     def _gen_enemy_state_machine(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # enemy_ai.gd — 敌人有限状态机
 extends CharacterBody2D
 
@@ -108,12 +116,13 @@ func take_damage(amount: int) -> void:
 		_change_state(State.HURT)
 		await get_tree().create_timer(0.3).timeout
 		_change_state(State.CHASE)
-'''
-        return self._success_result("敌人 AI 状态机已生成",
-            {"script_name": "enemy_ai.gd", "code": code})
+"""
+        return self._success_result(
+            "敌人 AI 状态机已生成", {"script_name": "enemy_ai.gd", "code": code}
+        )
 
     def _gen_boss_ai(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # boss_ai.gd — Boss 多阶段 AI
 extends CharacterBody2D
 
@@ -162,12 +171,13 @@ func _physics_process(delta: float) -> void:
 func _attack_p1(_delta: float) -> void: pass
 func _attack_p2(_delta: float) -> void: pass
 func _attack_p3(_delta: float) -> void: pass
-'''
-        return self._success_result("Boss 多阶段 AI 已生成",
-            {"script_name": "boss_ai.gd", "code": code})
+"""
+        return self._success_result(
+            "Boss 多阶段 AI 已生成", {"script_name": "boss_ai.gd", "code": code}
+        )
 
     def _gen_patrol_ai(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # patrol_enemy.gd — 简单巡逻追击 AI
 extends CharacterBody2D
 
@@ -202,6 +212,7 @@ func _chase(delta: float) -> void:
 
 func _find_player() -> Node2D:
 	return get_tree().get_first_node_in_group("player")
-'''
-        return self._success_result("巡逻追击 AI 已生成",
-            {"script_name": "patrol_enemy.gd", "code": code})
+"""
+        return self._success_result(
+            "巡逻追击 AI 已生成", {"script_name": "patrol_enemy.gd", "code": code}
+        )

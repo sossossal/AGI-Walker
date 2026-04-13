@@ -55,7 +55,7 @@ python tests/run_smoke_tests.py
 
 ```powershell
 $env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
-python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
+python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live" --tb=short -vv
 ```
 
 ## 当前已落地的仓库配置
@@ -113,7 +113,7 @@ python tests/run_smoke_tests.py
 
 ```powershell
 $env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
-python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
+python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live" --tb=short -vv
 ```
 
 ### Web workflow 改动

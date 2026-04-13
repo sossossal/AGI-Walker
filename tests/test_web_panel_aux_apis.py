@@ -1,10 +1,17 @@
 from fastapi.testclient import TestClient
 
 from web_panel.server import app
-from web_panel.distributed_monitor import DistributedMonitor
-
+from web_panel.distributed_monitor import DistributedMonitor, _payload_to_bytes
 
 client = TestClient(app)
+
+
+class FakeZenohPayload:
+    def __init__(self, value: bytes) -> None:
+        self.value = value
+
+    def to_bytes(self) -> bytes:
+        return self.value
 
 
 class FakeGodotAgentBackend:
@@ -99,7 +106,12 @@ class FakeNightlyStatusProvider:
             "status": "healthy",
             "repo": "demo/agi-walker",
             "workflow_file": ".github/workflows/ci.yml",
-            "tracked_jobs": ["smoke", "distributed-smoke", "godot-headless-smoke"],
+            "tracked_jobs": [
+                "smoke",
+                "distributed-smoke",
+                "godot-headless-smoke",
+                "ros2-bridge-smoke",
+            ],
             "latest_run": {
                 "id": 42,
                 "run_number": 77,
@@ -109,8 +121,8 @@ class FakeNightlyStatusProvider:
                 "run_started_at": "2026-04-01T02:00:00",
             },
             "summary": {
-                "tracked_jobs": 3,
-                "passed_jobs": 3,
+                "tracked_jobs": 4,
+                "passed_jobs": 4,
                 "failed_jobs": 0,
                 "running_jobs": 0,
                 "missing_jobs": 0,
@@ -135,6 +147,12 @@ class FakeNightlyStatusProvider:
                     "status": "completed",
                     "conclusion": "success",
                 },
+                "ros2-bridge-smoke": {
+                    "name": "ros2-bridge-smoke",
+                    "present": True,
+                    "status": "completed",
+                    "conclusion": "success",
+                },
             },
         }
 
@@ -151,7 +169,11 @@ class FakeNightlyStatusProvider:
             },
             "godot-headless-smoke": {
                 "artifact_name": "godot-headless-smoke-artifacts",
-                "local_repro_command": "python -m pytest tests/test_godot_headless_smoke.py -q -m integration",
+                "local_repro_command": 'AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE=1 python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live"',
+            },
+            "ros2-bridge-smoke": {
+                "artifact_name": "ros2-bridge-smoke-artifacts",
+                "local_repro_command": 'AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE=1 python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live"',
             },
         }
         data["recent_runs"] = [
@@ -209,6 +231,8 @@ def test_core_panel_routes_smoke():
     assert "zenoh_available" in data["distributed_monitor"]
     assert "monitor_active" in data["distributed_monitor"]
     assert "endpoint" in data["distributed_monitor"]
+    assert data["distributed_monitor"]["schema_version"] == "1.0"
+    assert data["distributed_monitor"]["subscription"] == "ag/*/obs"
     assert "backend_mode" in data["godot_agent"]
     assert "backend_class" in data["godot_agent"]
     assert "router_ready" in data["godot_agent"]
@@ -221,11 +245,17 @@ def test_core_panel_routes_smoke():
     assert data["nightly_regressions"]["status"] == "healthy"
     assert data["nightly_regressions"]["latest_run"]["event"] == "schedule"
     assert data["nightly_regressions"]["jobs"]["smoke"]["conclusion"] == "success"
+    assert data["capability_matrix"]["artifact_type"] == "capability_matrix"
+    assert data["capability_matrix"]["route"] == "/api/capabilities/matrix"
+    assert data["capability_matrix"]["summary"]["total_domains"] == 5
 
     response = client.get("/api/distributed/status")
     assert response.status_code == 200
     data = response.json()
+    assert data["schema_version"] == "1.0"
     assert "actors" in data
+    assert "actor_ids" in data
+    assert "actors_count" in data
     assert "monitor" in data
     assert "zenoh_available" in data["monitor"]
     assert "endpoint" in data["monitor"]
@@ -236,6 +266,13 @@ def test_core_panel_routes_smoke():
     assert data["preferred_mode"] == "session_bridge"
     assert "legacy_controller" in data["modes"]
     assert "session_bridge" in data["modes"]
+
+    response = client.get("/api/capabilities/matrix")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["artifact_type"] == "capability_matrix"
+    assert data["summary"]["total_domains"] == 5
+    assert any(domain["id"] == "distributed_runtime" for domain in data["domains"])
 
 
 def test_tasks_api_smoke():
@@ -300,7 +337,7 @@ def test_godot_agent_management_routes(monkeypatch):
         "fake",
     }
     assert status_data["godot_agent"]["roles_count"] >= 0
-    assert status_data["nightly_regressions"]["summary"]["passed_jobs"] == 3
+    assert status_data["nightly_regressions"]["summary"]["passed_jobs"] == 4
 
     response = client.post(
         "/api/godot-agent/plan",
@@ -422,3 +459,9 @@ def test_distributed_monitor_prunes_stale_actors() -> None:
     assert capabilities["actors_count"] == 1
     assert capabilities["last_pruned_at"] is not None
     assert capabilities["actor_ttl_seconds"] == 5.0
+
+
+def test_distributed_monitor_payload_to_bytes_accepts_zenoh_and_mock_payloads() -> None:
+    assert _payload_to_bytes(b"raw") == b"raw"
+    assert _payload_to_bytes("raw") == b"raw"
+    assert _payload_to_bytes(FakeZenohPayload(b"raw")) == b"raw"

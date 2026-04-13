@@ -13,7 +13,6 @@ import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from agi_walker.core.api.env.quadruped_env import QuadrupedEnv
 
 
 def make_env():
@@ -73,7 +72,7 @@ def train_quadruped(total_timesteps=1_000_000, save_freq=50_000):
 
     print(f"\n开始训练 (总步数: {total_timesteps:,})")
     print(f"模型将保存至: {save_dir}")
-    print(f"TensorBoard: tensorboard --logdir=./tensorboard_logs/quadruped\n")
+    print("TensorBoard: tensorboard --logdir=./tensorboard_logs/quadruped\n")
 
     # 训练
     model.learn(
@@ -140,7 +139,7 @@ def test_trained_model(model_path, n_episodes=5):
     env.close()
 
     print("=" * 60)
-    print(f"平均奖励: {sum(episode_rewards)/len(episode_rewards):.2f}")
+    print(f"平均奖励: {sum(episode_rewards) / len(episode_rewards):.2f}")
     print(f"最大奖励: {max(episode_rewards):.2f}")
     print(f"最小奖励: {min(episode_rewards):.2f}")
     print("=" * 60)

@@ -44,6 +44,14 @@ Internal flow:
 4. Publish ROS messages from timers.
 5. Forward ROS commands back to the Godot client.
 
+To keep this bridge testable outside a ROS 2 runtime, the node now also exposes small pure-data helpers in `bridge_node.py`:
+
+- `cmd_vel_to_godot_params()`
+- `joint_state_fields_from_latest_data()`
+- `robot_state_fields_from_latest_data()`
+- `validate_ros2_bridge_replay_payload()`
+- `load_ros2_bridge_replay_payload()`
+
 ### Published Interfaces
 
 The current bridge code publishes:
@@ -110,15 +118,33 @@ The ROS 2 layer has multiple inconsistencies that should be understood before ex
 - The bridge still injects the repository root into `sys.path` when running from source.
 - The ROS 2 workspace is not covered by the same test depth as the main CLI, Web, and MCP paths.
 
+That said, the bridge is no longer purely text-checked. The repository now includes a fake-runtime regression test:
+
+- `tests/test_ros2_bridge_runtime.py`
+
+It does not require `rclpy` or built ROS 2 message packages. Instead, it verifies bridge replay payload validation, JointState/RobotState publication mapping, `/cmd_vel` parameter translation, and basic service flow using stubbed ROS 2 modules.
+
+The repository now also includes an opt-in live smoke test:
+
+- `tests/test_ros2_bridge_smoke.py`
+
+This test requires a real ROS 2 Python runtime, but still uses a repository-local mock Godot TCP server. It validates:
+
+- bridge startup under real `rclpy`
+- `/start_simulation` and `/stop_simulation` service availability
+- `/joint_states` publication after simulator telemetry
+- `/cmd_vel` forwarding into Godot `update_params`
+- structured smoke diagnostics under `test_env/ros2_bridge_smoke/`
+
 ## Design Guidance
 
 If this integration is revived, the cleanup order should be:
 
 1. Decide whether TF publishing is required and either implement it or remove the unused parameter.
 2. Reduce or remove the source-checkout `sys.path` injection.
-3. Add smoke tests for launchability and bridge startup.
-4. Expand coverage beyond packaging and textual regression checks.
+3. Keep the new live smoke opt-in and archive its diagnostics in target Humble environments.
+4. Expand coverage beyond bridge startup into launch-file level validation and optional TF publication.
 
 ## Status
 
-The ROS 2 workspace is now internally more consistent, but it is still best viewed as a secondary integration path rather than a first-class supported runtime. It captures the message schema and bridge boundaries well, while still needing deeper runtime validation.
+The ROS 2 workspace is now internally more consistent, with both fake-runtime and opt-in live smoke coverage. It is still a secondary integration path, but the remaining gap is now environment execution and artifact collection rather than missing test structure.

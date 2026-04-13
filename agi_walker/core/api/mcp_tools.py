@@ -2,6 +2,7 @@ import logging
 import os
 from typing import Any, Callable, Dict, List, Optional
 
+from agi_walker.core.api.capability_matrix import build_capability_matrix_artifact
 from agi_walker.core.api.simple_planner import SimplePlanner
 from agi_walker.core.controllers.load_monitor import SystemMonitor
 from agi_walker.core.controllers.rag_knowledge_base import PhysicsKnowledgeBase
@@ -262,3 +263,6 @@ class MCPToolProvider:
             return self._get_godot_backend().get_history(limit=limit)
         except Exception as exc:
             return self._error(str(exc), count=0, items=[])
+
+    def get_capability_matrix(self) -> Dict[str, Any]:
+        return build_capability_matrix_artifact()

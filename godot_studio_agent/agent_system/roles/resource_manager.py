@@ -1,6 +1,7 @@
 """
 ResourceManagerRole — 资源批处理角色
 """
+
 from typing import Dict, List, Any
 from .base import BaseRole
 
@@ -13,7 +14,7 @@ class ResourceManagerRole(BaseRole):
         return ["纹理导入优化", "音频格式批处理", "资源文件夹整理", "图集打包建议"]
 
     def execute(self, command: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # resource_optimizer.gd — 编辑器工具脚本（仅在编辑器中运行）
 @tool
 extends EditorScript
@@ -32,7 +33,12 @@ func _run() -> void:
 			# 此处可调用 EditorInterface 设置导入参数
 		file = dir.get_next()
 	print("✅ 资源扫描完成")
-'''
-        return self._success_result("资源优化工具已生成",
-            {"script_name": "resource_optimizer.gd", "code": code,
-             "tips": "在 Godot 编辑器 Script 面板中打开此脚本并点击 Run 执行"})
+"""
+        return self._success_result(
+            "资源优化工具已生成",
+            {
+                "script_name": "resource_optimizer.gd",
+                "code": code,
+                "tips": "在 Godot 编辑器 Script 面板中打开此脚本并点击 Run 执行",
+            },
+        )

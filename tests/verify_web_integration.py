@@ -29,11 +29,12 @@ def verify_web_integration() -> bool:
     logger.info("=== Web-Godot Integration Verification ===")
 
     session_id = "verify-web-integration"
-    server = MockGodotServer(port=9997)
+    server = MockGodotServer(port=0)
     logger.info("[1/7] Starting Mock Godot Server...")
     if not server.start():
         logger.error("FAIL: Could not start mock server")
         return False
+    port = server.port
 
     try:
         time.sleep(0.5)
@@ -61,7 +62,7 @@ def verify_web_integration() -> bool:
             logger.info("[3/7] Testing Connect API...")
             connect_response = client.post(
                 f"/api/godot/connect?session_id={session_id}",
-                json={"host": "127.0.0.1", "port": 9997},
+                json={"host": "127.0.0.1", "port": port},
             )
             if (
                 connect_response.status_code != 200

@@ -3,8 +3,7 @@
 """
 
 import numpy as np
-from typing import Dict, List, Optional
-from agi_walker.core.api.control.parametric_control import ParametricRobotController
+from typing import Dict
 
 
 class SimpleController:
@@ -29,10 +28,10 @@ class SimpleController:
         change = (value - old_value) / old_value if old_value != 0 else 0
 
         if param_name == "motor_power_multiplier":
-            impact["max_torque"] = f"{change*100:+.1f}%"
+            impact["max_torque"] = f"{change * 100:+.1f}%"
             impact["expected"] = "更强驱动" if value > old_value else "更弱驱动"
         elif param_name == "joint_stiffness":
-            impact["precision"] = f"{change*50:+.1f}%"
+            impact["precision"] = f"{change * 50:+.1f}%"
             impact["expected"] = "更精确" if value > old_value else "更柔和"
 
         return {

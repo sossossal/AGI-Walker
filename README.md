@@ -6,6 +6,7 @@ AGI-Walker 是一个面向机器人设计、仿真、工作流编排和 Web/Godo
 
 - `Skills + Workflows`：用 `SKILL.md` 和 workflow 定义组织机器人建模、参数优化、任务执行等流程。
 - `Web Panel`：基于 FastAPI 的控制面板，提供 workflow、服务状态、Godot 会话和 nightly 状态接口。
+- `Capability Matrix`：提供版本化发布面矩阵，统一描述 CLI、Web、MCP、distributed 和 Godot integration 的发布状态。
 - `Godot 集成`：同时支持 legacy backend 和 modern `godot-agent` backend。
 - `Distributed / Smoke`：仓库内置 CLI、workflow、Web、distributed 和可选的 Godot headless smoke 测试。
 - `MCP Server`：通过 `agi_walker.mcp.server` 把任务执行、workflow、skills 和 Godot 能力暴露给 MCP 客户端。
@@ -89,6 +90,7 @@ python -m agi_walker.mcp.server
 - `godot_agent_plan`
 - `godot_agent_doctor`
 - `godot_agent_history`
+- `capability_matrix_get`
 
 这些工具覆盖的能力范围：
 
@@ -96,6 +98,7 @@ python -m agi_walker.mcp.server
 - workflow 查询与执行
 - skills 元数据和文档读取
 - Godot Agent backend 状态、模板、计划、自检和历史记录
+- 发布面能力矩阵和契约版本摘要
 
 更完整的说明见 [docs/mcp.md](docs/mcp.md)。
 
@@ -113,11 +116,17 @@ python -m pytest tests/test_mcp_tools.py tests/test_mcp_server.py -q
 python tests/run_smoke_tests.py
 ```
 
+生成发布门禁产物：
+
+```bash
+python tools/build_release_artifact.py --version 2026.04.12-rc1 --channel rc --build-id build-20260412-001 --release-summary "阶段五发布门禁闭环。"
+```
+
 可选的 Godot headless smoke：
 
 ```powershell
 $env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
-python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
+python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live" --tb=short -vv
 ```
 
 ## 目录概览
@@ -135,6 +144,7 @@ python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short
 - [MCP 集成说明](docs/mcp.md)
 - [CLI 指南](docs/guides/CLI_GUIDE.md)
 - [Web Panel 指南](docs/guides/WEB_PANEL_GUIDE.md)
+- [发布指南](docs/guides/RELEASE_GUIDE.md)
 - [迁移指南](docs/MIGRATION_GUIDE.md)
 - [生产部署 Runbook](PRODUCTION_DEPLOYMENT_RUNBOOK.md)
 

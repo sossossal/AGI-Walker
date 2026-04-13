@@ -22,6 +22,38 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 GODOT_PROJECT_DIR = str(REPO_ROOT / "godot_project")
 GODOT_SESSION_LOG_DIR = RuntimePaths.SESSIONS / "godot_logs"
 GODOT_SESSION_LOG_DIR.mkdir(parents=True, exist_ok=True)
+GODOT_SESSION_STATUS_SCHEMA_VERSION = "1.0"
+GODOT_SESSION_STATES = (
+    "disconnected",
+    "launching",
+    "connected",
+    "schema_ready",
+    "running",
+    "failed",
+)
+
+
+def disconnected_session_status(session_id: str) -> Dict[str, Any]:
+    """Build the canonical status for a session that has not been created."""
+    return {
+        "schema_version": GODOT_SESSION_STATUS_SCHEMA_VERSION,
+        "session_id": session_id,
+        "session_state": "disconnected",
+        "state_changed_at": datetime.now().isoformat(),
+        "engine_running": False,
+        "running": False,
+        "tcp_connected": False,
+        "connected": False,
+        "schema_available": False,
+        "schema": {},
+        "last_sensor": {},
+        "pid": None,
+        "tcp_port": None,
+        "log_file_path": None,
+        "last_connect_error": None,
+        "failure_stage": None,
+        "failure_message": None,
+    }
 
 
 class TrajectoryRecorder:
@@ -97,6 +129,30 @@ class GodotBridge:
         self._delayed_connect_task: Optional[asyncio.Task[Any]] = None
         self._log_file_path: Optional[str] = None
         self._last_connect_error: Optional[str] = None
+        self.session_state = "disconnected"
+        self.state_changed_at = datetime.now().isoformat()
+        self.failure_stage: Optional[str] = None
+        self.failure_message: Optional[str] = None
+
+    def _set_state(
+        self,
+        state: str,
+        *,
+        failure_stage: Optional[str] = None,
+        failure_message: Optional[str] = None,
+    ) -> None:
+        if state not in GODOT_SESSION_STATES:
+            raise ValueError(f"Unknown Godot session state: {state}")
+        if (
+            self.session_state == state
+            and self.failure_stage == failure_stage
+            and self.failure_message == failure_message
+        ):
+            return
+        self.session_state = state
+        self.state_changed_at = datetime.now().isoformat()
+        self.failure_stage = failure_stage if state == "failed" else None
+        self.failure_message = failure_message if state == "failed" else None
 
     def _find_godot_exe(self) -> str:
         for env_name in (
@@ -157,6 +213,7 @@ class GodotBridge:
                 "127.0.0.1", self._tcp_port
             )
             self._last_connect_error = None
+            self._set_state("schema_ready" if self._schema else "connected")
             return True
         except Exception as exc:
             self._last_connect_error = str(exc)
@@ -168,8 +225,19 @@ class GodotBridge:
             if await self._connect_tcp():
                 return
             if self.process is not None and self.process.poll() is not None:
+                self._set_state(
+                    "failed",
+                    failure_stage="process_exit",
+                    failure_message="Godot process exited before TCP connection.",
+                )
                 return
             await asyncio.sleep(0.25)
+        if not self.is_connected():
+            self._set_state(
+                "failed",
+                failure_stage="tcp_connect",
+                failure_message=self._last_connect_error or "TCP connect timeout.",
+            )
 
     def launch(
         self,
@@ -183,34 +251,48 @@ class GodotBridge:
                 "pid": self.get_pid(),
                 "scene": scene,
                 "exe": godot_exe or self._find_godot_exe(),
+                "session_state": self.session_state,
             }
 
         resolved_exe = (godot_exe or self._find_godot_exe()).strip()
         if not resolved_exe:
+            message = "Godot executable not found. Configure GODOT_EXECUTABLE or related env vars."
+            self._set_state("failed", failure_stage="launch", failure_message=message)
             return {
                 "status": "error",
-                "message": "Godot executable not found. Configure GODOT_EXECUTABLE or related env vars.",
+                "message": message,
+                "session_state": self.session_state,
             }
 
         project_dir = Path(GODOT_PROJECT_DIR)
         if not project_dir.exists():
+            message = f"Godot project directory does not exist: {project_dir}"
+            self._set_state("failed", failure_stage="launch", failure_message=message)
             return {
                 "status": "error",
-                "message": f"Godot project directory does not exist: {project_dir}",
+                "message": message,
+                "session_state": self.session_state,
             }
 
         self._log_file_path = self._build_log_file_path(scene)
         cmd = self._build_launch_command(resolved_exe, scene, headless)
         try:
+            self._set_state("launching")
             result = self._launch_windows_headless(cmd)
         except Exception as exc:
             logger.error("Failed to launch Godot session bridge: %s", exc)
-            return {"status": "error", "message": str(exc)}
+            self._set_state("failed", failure_stage="launch", failure_message=str(exc))
+            return {
+                "status": "error",
+                "message": str(exc),
+                "session_state": self.session_state,
+            }
 
         try:
             self._delayed_connect_task = asyncio.create_task(self._delayed_connect())
         except RuntimeError:
             self._delayed_connect_task = None
+        result["session_state"] = self.session_state
         return result
 
     async def start(self, headless: bool = True, scene: Optional[str] = None) -> bool:
@@ -234,6 +316,7 @@ class GodotBridge:
         resp = await self._send_recv({"type": "step", "action": action}) or {}
         if resp:
             self.last_sensor = resp
+            self._set_state("running")
             self.recorder.record(resp, action)
             if self.on_telemetry:
                 await self.on_telemetry(resp)
@@ -243,9 +326,19 @@ class GodotBridge:
         return await self.send_motor([])
 
     async def send_load_robot(self, robot_config: Dict[str, Any]) -> Dict[str, Any]:
-        return await self._send_recv(
-            {"type": "load_robot", "robot_config": robot_config}
-        ) or {}
+        response = (
+            await self._send_recv({"type": "load_robot", "robot_config": robot_config})
+            or {}
+        )
+        if response.get("status") == "error":
+            self._set_state(
+                "failed",
+                failure_stage="load_robot",
+                failure_message=str(response.get("message") or response),
+            )
+        elif response:
+            self._set_state("schema_ready" if self._schema else "connected")
+        return response
 
     async def wait_until_connected(self, timeout_seconds: float = 10.0) -> bool:
         deadline = time.monotonic() + timeout_seconds
@@ -253,6 +346,11 @@ class GodotBridge:
             if self.is_connected() or await self._connect_tcp():
                 return True
             await asyncio.sleep(0.1)
+        self._set_state(
+            "failed",
+            failure_stage="tcp_connect",
+            failure_message=self._last_connect_error or "TCP connect timeout.",
+        )
         return False
 
     async def wait_until_schema(
@@ -266,6 +364,7 @@ class GodotBridge:
             schema = await self._send_recv({"type": "get_schema"})
             if isinstance(schema, dict) and schema:
                 self._schema = schema
+                self._set_state("schema_ready")
                 return schema
             await asyncio.sleep(0.1)
         return None
@@ -276,27 +375,49 @@ class GodotBridge:
         async with self.tcp_lock:
             try:
                 data = json.dumps(msg).encode("utf-8")
-                self.writer.write(struct.pack(">I", len(data)) + data)
+                # Godot's TCP server reads StreamPeer lengths in little-endian
+                # mode by default (`BigEndian=false`), so the bridge must use
+                # the same framing to interoperate with real headless scenes.
+                self.writer.write(struct.pack("<I", len(data)) + data)
                 await self.writer.drain()
                 header = await self.reader.readexactly(4)
-                msg_len = struct.unpack(">I", header)[0]
+                msg_len = struct.unpack("<I", header)[0]
                 payload = await self.reader.readexactly(msg_len)
                 return json.loads(payload.decode("utf-8"))
             except Exception as exc:
                 self._last_connect_error = str(exc)
+                self._set_state(
+                    "failed",
+                    failure_stage="tcp_io",
+                    failure_message=str(exc),
+                )
                 return None
 
-    def get_process_diagnostics(self) -> Dict[str, Any]:
+    def get_status_payload(self) -> Dict[str, Any]:
         return {
+            "schema_version": GODOT_SESSION_STATUS_SCHEMA_VERSION,
             "session_id": self.session_id,
-            "pid": self.get_pid(),
+            "session_state": self.session_state,
+            "state_changed_at": self.state_changed_at,
+            "engine_running": self.is_running(),
             "running": self.is_running(),
             "tcp_connected": self.is_connected(),
+            "connected": self.is_connected(),
             "tcp_port": self._tcp_port,
+            "pid": self.get_pid(),
+            "schema_available": bool(self._schema),
+            "schema": self._schema or {},
+            "last_sensor": self.last_sensor,
             "log_file_path": self._log_file_path,
             "last_connect_error": self._last_connect_error,
-            "last_sensor_keys": sorted(self.last_sensor.keys()),
+            "failure_stage": self.failure_stage,
+            "failure_message": self.failure_message,
         }
+
+    def get_process_diagnostics(self) -> Dict[str, Any]:
+        diagnostics = self.get_status_payload()
+        diagnostics["last_sensor_keys"] = sorted(self.last_sensor.keys())
+        return diagnostics
 
     def stop(self):
         if self._delayed_connect_task is not None:
@@ -318,7 +439,12 @@ class GodotBridge:
         self.process = None
         self._detached_pid = None
         self.recorder.stop()
-        return {"status": "stopped", "pid": stopped_pid}
+        self._set_state("disconnected")
+        return {
+            "status": "stopped",
+            "pid": stopped_pid,
+            "session_state": self.session_state,
+        }
 
 
 class GodotSessionManager:
@@ -346,9 +472,7 @@ class GodotSessionManager:
         self.sessions.clear()
 
 
-async def telemetry_loop(
-    manager: GodotSessionManager, broadcast_callback: Callable
-):
+async def telemetry_loop(manager: GodotSessionManager, broadcast_callback: Callable):
     """Background loop kept signature-compatible with server lifespan wiring."""
     while True:
         await asyncio.sleep(1.0)
@@ -368,25 +492,18 @@ def build_router(
     async def get_session_status(session_id: str):
         bridge = manager.get_session(session_id)
         if bridge is None:
-            return {
-                "engine_running": False,
-                "tcp_connected": False,
-                "last_sensor": {},
-            }
-        return {
-            "engine_running": bridge.is_running(),
-            "tcp_connected": bridge.is_connected(),
-            "last_sensor": bridge.last_sensor,
-        }
+            return disconnected_session_status(session_id)
+        return bridge.get_status_payload()
 
     @router.post("/api/godot/{session_id}/launch")
     async def launch_session(session_id: str, payload: Dict[str, Any]):
         bridge = manager.get_or_create(session_id)
-        return bridge.launch(
+        result = bridge.launch(
             scene=payload.get("scene"),
             godot_exe=payload.get("godot_exe"),
             headless=payload.get("headless", True),
         )
+        return {**result, "session": bridge.get_status_payload()}
 
     @router.post("/api/godot/{session_id}/stop")
     async def stop_session(session_id: str):
@@ -399,14 +516,26 @@ def build_router(
     async def control_session(session_id: str, payload: Dict[str, Any]):
         bridge = manager.get_session(session_id)
         if bridge is None:
-            return {"status": "error", "message": f"Session '{session_id}' not found."}
+            return {
+                "status": "error",
+                "message": f"Session '{session_id}' not found.",
+                "session": disconnected_session_status(session_id),
+                "session_state": "disconnected",
+            }
         if not bridge.is_connected():
             return {
                 "status": "error",
                 "message": f"Session '{session_id}' is not connected.",
+                "session": bridge.get_status_payload(),
+                "session_state": bridge.session_state,
             }
         action = payload.get("action") or []
         sensors = await bridge.send_motor(action)
-        return {"status": "success", "sensors": sensors}
+        return {
+            "status": "success",
+            "sensors": sensors,
+            "session": bridge.get_status_payload(),
+            "session_state": bridge.session_state,
+        }
 
     return router

@@ -48,7 +48,7 @@ def demo_motor_precision():
 
     print("\n功率范围扫描 (100W 到 1000W, 步长0.1W):")
     print(f"可调节步数: {int((1000.0 - 100.0) / 0.1)} 步")
-    print(f"精度: ±0.1W")
+    print("精度: ±0.1W")
 
 
 def demo_joint_precision():
@@ -146,7 +146,6 @@ def demo_validation():
         result = adjuster.set_parameter("weight", weight)
 
         if result["success"]:
-            power = result["performance"].get("output_torque_nm", 0) * 10  # 简化计算
             density = 500.0 / weight
 
             status = "✓ 正常" if result["is_valid"] else "⚠️ 有警告"

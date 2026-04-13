@@ -112,6 +112,10 @@
         正在连接 WebSocket...
     </div>
 
+    <div id="monitor-summary" class="actor-card" style="margin-bottom: 20px;">
+        正在读取 distributed monitor 状态...
+    </div>
+
     <div id="actors-grid" class="grid">
         <!-- Actors will be injected here -->
     </div>
@@ -120,6 +124,7 @@
         const actors = {};
         const grid = document.getElementById('actors-grid');
         const loading = document.getElementById('loading');
+        const monitorSummary = document.getElementById('monitor-summary');
 
         // WebSocket Connection
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -182,10 +187,26 @@
             setTimeout(() => card.style.transform = 'scale(1)', 100);
         }
 
+        function updateMonitorSummary(data) {
+            const monitor = data.monitor || {};
+            monitorSummary.innerHTML = `
+                <div class="actor-header">
+                    <span>Distributed Monitor</span>
+                    <span class="status-badge">${monitor.monitor_active ? 'ACTIVE' : 'INACTIVE'}</span>
+                </div>
+                <div class="actor-metric"><span>Schema</span><span class="metric-value">${data.schema_version || monitor.schema_version || 'unknown'}</span></div>
+                <div class="actor-metric"><span>Endpoint</span><span class="metric-value">${monitor.endpoint || 'unknown'}</span></div>
+                <div class="actor-metric"><span>Subscription</span><span class="metric-value">${monitor.subscription || 'unknown'}</span></div>
+                <div class="actor-metric"><span>Actors</span><span class="metric-value">${data.actors_count ?? Object.keys(data.actors || {}).length}</span></div>
+                <div class="actor-metric"><span>TTL</span><span class="metric-value">${monitor.actor_ttl_seconds || 'unknown'}s</span></div>
+            `;
+        }
+
         // Initial Fetch
         fetch('/api/distributed/status')
             .then(res => res.json())
             .then(data => {
+                updateMonitorSummary(data);
                 for (const [id, info] of Object.entries(data.actors)) {
                     updateActor(id, info);
                 }

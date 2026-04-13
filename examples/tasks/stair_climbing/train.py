@@ -70,7 +70,7 @@ def train_stair_climbing(total_timesteps=1000000, save_path="./models/stair_clim
     print("\nStarting stair-climbing training")
     print("=" * 60)
     print(f"总步数: {total_timesteps:,}")
-    print(f"算法: PPO")
+    print("算法: PPO")
     print(f"保存路径: {save_path}")
     print("=" * 60)
 
@@ -179,14 +179,14 @@ def evaluate_model(model_path, num_episodes=10):
             success_count += 1
 
         print(
-            f"Episode {episode+1}: Reward={total_reward:.2f}, "
+            f"Episode {episode + 1}: Reward={total_reward:.2f}, "
             f"Steps Climbed={info.get('steps_climbed', 0)}/5"
         )
 
-    print(f"\n评估结果:")
+    print("\n评估结果:")
     print(f"  平均奖励: {np.mean(rewards):.2f} ± {np.std(rewards):.2f}")
     print(
-        f"  成功率: {success_count}/{num_episodes} ({success_count/num_episodes*100:.0f}%)"
+        f"  成功率: {success_count}/{num_episodes} ({success_count / num_episodes * 100:.0f}%)"
     )
 
 

@@ -290,6 +290,7 @@ async def _run_godot_headless_smoke_lifecycle() -> None:
         _write_report(artifact_dir, report)
 
 
+@pytest.mark.live
 @pytest.mark.integration
 def test_godot_headless_smoke_lifecycle() -> None:
     asyncio.run(_run_godot_headless_smoke_lifecycle())

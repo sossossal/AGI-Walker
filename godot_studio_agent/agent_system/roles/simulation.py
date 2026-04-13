@@ -1,6 +1,7 @@
 """
 SimulationRole — 物理仿真角色（来源：AGI-Walker）
 """
+
 from typing import Dict, List, Any
 from .base import BaseRole
 
@@ -10,7 +11,13 @@ class SimulationRole(BaseRole):
         return "物理仿真专家，生成 TCP 通信、PID 控制器、传感器等高级物理脚本（源自 AGI-Walker）"
 
     def get_capabilities(self) -> List[str]:
-        return ["TCP 服务器脚本", "PID 控制器", "视觉传感器", "平衡控制器", "物理参数配置"]
+        return [
+            "TCP 服务器脚本",
+            "PID 控制器",
+            "视觉传感器",
+            "平衡控制器",
+            "物理参数配置",
+        ]
 
     def execute(self, command: str, context: Dict[str, Any]) -> Dict[str, Any]:
         cmd = command.lower()
@@ -24,7 +31,7 @@ class SimulationRole(BaseRole):
             return self._gen_tcp_server()
 
     def _gen_tcp_server(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # tcp_simulation_server.gd — TCP 仿真通信服务器
 # 来源: AGI-Walker godot_project
 extends Node
@@ -73,12 +80,14 @@ func send_data(data: Dictionary) -> void:
 	if not is_connected:
 		return
 	connection.put_utf8_string(JSON.stringify(data) + "\\n")
-'''
-        return self._success_result("TCP 仿真服务器已生成（AGI-Walker 风格）",
-            {"script_name": "tcp_simulation_server.gd", "code": code})
+"""
+        return self._success_result(
+            "TCP 仿真服务器已生成（AGI-Walker 风格）",
+            {"script_name": "tcp_simulation_server.gd", "code": code},
+        )
 
     def _gen_pid_controller(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # pid_controller.gd — PID 控制器（来源: AGI-Walker）
 extends RefCounted
 class_name PIDController
@@ -104,13 +113,18 @@ func update(setpoint: float, measurement: float, delta: float) -> float:
 func reset() -> void:
 	_integral = 0.0
 	_prev_error = 0.0
-'''
-        return self._success_result("PID 控制器已生成",
-            {"script_name": "pid_controller.gd", "code": code,
-             "tips": "使用示例：var pid = PIDController.new(1.0, 0.1, 0.05)\n          var output = pid.update(target, current, delta)"})
+"""
+        return self._success_result(
+            "PID 控制器已生成",
+            {
+                "script_name": "pid_controller.gd",
+                "code": code,
+                "tips": "使用示例：var pid = PIDController.new(1.0, 0.1, 0.05)\n          var output = pid.update(target, current, delta)",
+            },
+        )
 
     def _gen_vision_sensor(self) -> Dict[str, Any]:
-        code = '''\
+        code = """\
 # vision_sensor.gd — 视野传感器（来源: AGI-Walker）
 extends Node2D
 
@@ -151,6 +165,8 @@ func _can_see(target: Node2D) -> bool:
 	)
 	var result = space.intersect_ray(query)
 	return result.is_empty() or result.collider == target
-'''
-        return self._success_result("视觉传感器已生成（AGI-Walker 风格）",
-            {"script_name": "vision_sensor.gd", "code": code})
+"""
+        return self._success_result(
+            "视觉传感器已生成（AGI-Walker 风格）",
+            {"script_name": "vision_sensor.gd", "code": code},
+        )

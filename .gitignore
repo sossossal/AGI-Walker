@@ -42,6 +42,10 @@ data/
 models/*.pth
 models/*.onnx
 !models/.gitkeep
+.agi_data/sessions/
+.agi_data/trajectories/
+.agi_data/workflows/artifacts/
+agi_walker.db
 
 # Godot
 .import/
@@ -50,6 +54,7 @@ export.cfg
 export_presets.cfg
 *.translation
 *.pck
+godot_project/.godot_agent_index.json
 
 # 测试/CI 产物
 .coverage
@@ -68,6 +73,10 @@ exports/
 models/*.json
 robot_forward_1m_demo.png
 offline_data/
+configs/generated/
+knowledge/test_index/
+agi_walker/core/api/parts/**/__pycache__/
+agi_walker/core/api/parts/**/*.pyc
 
 # OS
 .DS_Store

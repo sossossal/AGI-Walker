@@ -208,5 +208,5 @@ if __name__ == "__main__":
                 break
 
         print(
-            f"Episode {episode+1}: Distance={info['distance']:.2f}m, Reward={total_reward:.2f}"
+            f"Episode {episode + 1}: Distance={info['distance']:.2f}m, Reward={total_reward:.2f}"
         )

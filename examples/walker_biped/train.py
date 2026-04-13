@@ -6,12 +6,11 @@
 import argparse
 import json
 import os
-from typing import Optional
 
 from godot_robot_env import GodotRobotEnv, DomainRandomizationWrapper
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
-from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
+from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.monitor import Monitor
 
 
@@ -99,8 +98,8 @@ def train_basic(config, timesteps=100000):
     print("\n基础训练模式")
     print("-" * 60)
     print(f"总步数: {timesteps}")
-    print(f"环境: 单个")
-    print(f"域随机化: 否")
+    print("环境: 单个")
+    print("域随机化: 否")
 
     env = create_env()
 

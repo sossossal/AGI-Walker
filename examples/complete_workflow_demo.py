@@ -81,9 +81,7 @@ def demo_complete_workflow():
     joints = ["torso_1_to_leg_left_1", "torso_1_to_leg_right_1"]
 
     for joint in joints:
-        gains = tune_pid_controller(
-            robot.to_dict(), joint_name=joint, method="ziegler_nichols"
-        )
+        tune_pid_controller(robot.to_dict(), joint_name=joint, method="ziegler_nichols")
 
     # 保存优化后配置
     robot.save("configs/demo_优化.json")
