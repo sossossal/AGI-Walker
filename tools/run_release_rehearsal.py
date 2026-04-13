@@ -10,6 +10,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 
 def _find_repo_root() -> Path:
@@ -167,7 +168,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.report_file
         else output_root / "release_rehearsal_report.json"
     )
-    source_root = output_root / "git_source"
+    source_root = output_root / f"git_source_{uuid4().hex[:8]}"
     manifest_path = output_root / "release_manifest.json"
     tag = args.tag or args.version
 

@@ -55,3 +55,31 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
     assert manifest_payload["channel"] == "stable"
     assert manifest_payload["release_gate_status"] == "ready"
     assert manifest_payload["release_source"]["version_tag_matches"] is True
+
+
+def test_run_release_rehearsal_script_is_repeatable_for_same_output_root(
+    tmp_path: Path,
+) -> None:
+    output_root = tmp_path / "release_rehearsal"
+
+    for _ in range(2):
+        result = subprocess.run(
+            [
+                sys.executable,
+                "tools/run_release_rehearsal.py",
+                "--version",
+                "2026.04.12-rehearsal",
+                "--build-id",
+                "release-rehearsal-repeatable",
+                "--output-root",
+                str(output_root),
+            ],
+            cwd=str(PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert "release_rehearsal_gate=ready" in result.stdout
