@@ -59,6 +59,25 @@ def test_log_diagnostics_detect_port_allocation_failures() -> None:
     assert "docker_port_allocated" in hint_codes
 
 
+def test_log_diagnostics_detect_missing_pyyaml_in_distributed_runtime() -> None:
+    runner = _load_runner_module()
+    logs = "\n".join(
+        [
+            "sidecar-1-1   |   File \"/app/agi_walker/skills_loader.py\", line 11, in <module>",
+            "sidecar-1-1   |     import yaml",
+            "sidecar-1-1   | ModuleNotFoundError: No module named 'yaml'",
+            "learner-1     | ModuleNotFoundError: No module named 'yaml'",
+        ]
+    )
+
+    diagnostics = runner._build_log_diagnostics(logs, "actor_docker_1")
+
+    hint_codes = {hint["code"] for hint in diagnostics["hints"]}
+    assert "distributed_runtime_missing_pyyaml" in hint_codes
+    assert diagnostics["services"]["sidecar-1"]["line_count"] == 3
+    assert diagnostics["services"]["learner"]["line_count"] == 1
+
+
 def test_compose_env_uses_smoke_safe_zenoh_host_ports() -> None:
     runner = _load_runner_module()
 

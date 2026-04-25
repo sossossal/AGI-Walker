@@ -1,0 +1,5 @@
+ARG ZENOH_BASE_IMAGE=eclipse/zenoh:1.9.0
+FROM ${ZENOH_BASE_IMAGE}
+
+# Keep the shipped router image ahead of upstream Alpine package CVEs.
+RUN apk upgrade --no-cache libcrypto3 libssl3 musl musl-utils zlib

@@ -1,8 +1,10 @@
 # Distributed Guide
 
-更新日期：`2026-04-12`
+更新日期：`2026-04-15`
 
 本页说明 AGI-Walker 当前仓库里的 distributed 路径。它主要面向需要验证 Zenoh + learner + sidecar + Web 监控联动的场景，不属于默认本地快速上手流程。
+
+当前本页已被 `extension_execution_plan.profiles[distributed_profile].runbook_entrypoints` 正式引用，并与同一 profile 的 `execution_template` 一起定义现场角色分工、升级窗口和回滚责任。若 distributed 实施命令或验收步骤发生变化，应同步更新该计划和本页，而不是只改单一文档。
 
 ## 1. 当前组件
 
@@ -18,6 +20,13 @@ distributed smoke 当前围绕这些服务工作：
 
 - `deployment/docker-compose.yml`
 - `tests/run_distributed_smoke.py`
+
+distributed runtime 镜像入口在：
+
+- `deployment/Dockerfile.distributed_runtime`
+- `deployment/Dockerfile`
+
+这两条 runtime 镜像路径现在都会在 build 阶段执行 `import yaml` 和 `from agi_walker.skills_loader import SkillsLoader` 的 sanity check。这样 `PyYAML` 或 package import 缺失会在 `compose build` 失败，而不是拖到 `actor discovery` 才暴露。
 
 ## 2. 代码角色
 
@@ -137,6 +146,12 @@ python tests/run_distributed_smoke.py --build --stop-after --report-file test_en
 - mock-godot 是否可用
 - smoke report 中 `compose_services` 和 `logs.hints`
 - 是否误关了 `AGI_WALKER_FORCE_OFFLOAD`
+
+如果日志里出现 `ModuleNotFoundError: No module named 'yaml'`：
+
+- 先确认 `deployment/requirements.distributed_runtime.txt` 仍包含 `pyyaml>=6.0`
+- 再确认 `deployment/Dockerfile.distributed_runtime` 的 import sanity check 没被删掉
+- 优先把问题收敛到 `compose build` 阶段，不要接受“build pass、runtime import fail”的状态
 
 ### 宿主机端口冲突
 

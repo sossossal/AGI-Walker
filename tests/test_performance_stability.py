@@ -31,7 +31,7 @@ class TestPerformanceBenchmarks:
     def test_gradient_descent_speed(self) -> None:
         """测试: 梯度下降速度"""
         iterations = 1000
-        start_time = time.time()
+        start_time = time.perf_counter()
 
         # 模拟梯度下降
         param = 1.0
@@ -39,7 +39,7 @@ class TestPerformanceBenchmarks:
             gradient = 2 * (param - 3.0)
             param -= 0.01 * gradient
 
-        elapsed = time.time() - start_time
+        elapsed = time.perf_counter() - start_time
 
         # 1000次迭代应该很快 (< 1秒)
         assert elapsed < 1.0
@@ -66,20 +66,22 @@ class TestPerformanceBenchmarks:
 
         # 模拟仿真步骤
         num_frames = 1000
-        start_time = time.time()
+        start_time = time.perf_counter()
+        accumulator = 0.0
 
         for frame in range(num_frames):
             # 简单的物理计算
             for _ in range(100):
-                _ = np.sin(frame * 0.01)
+                accumulator += float(np.sin(frame * 0.01))
 
-        elapsed = time.time() - start_time
+        elapsed = time.perf_counter() - start_time
         # 避免除以零
         assert elapsed > 0
         actual_fps = num_frames / elapsed
 
         # 应该能达到或接近目标帧率
         assert actual_fps > 10  # 至少10 FPS
+        assert accumulator != 0.0
 
 
 # ============================================================================

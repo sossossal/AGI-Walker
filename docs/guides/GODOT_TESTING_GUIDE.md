@@ -1,8 +1,10 @@
 # Godot Testing Guide
 
-更新日期：`2026-04-08`
+更新日期：`2026-04-15`
 
 本页说明如何测试 AGI-Walker 当前的 Godot 相关能力。重点是把“便宜测试”和“重型集成测试”分开。
+
+当前本页已被 `extension_execution_plan.profiles[godot_extension].runbook_entrypoints` 正式引用，并与同一 profile 的 `execution_template` 保持一致。若 Godot 扩展的专项验收命令或环境前提变化，应同步更新本页和 machine-readable execution plan。
 
 ## 1. 先跑便宜测试
 

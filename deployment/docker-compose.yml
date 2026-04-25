@@ -1,7 +1,12 @@
 services:
   # Zenoh Router (Central Message Broker)
   zenoh-router:
-    image: eclipse/zenoh:1.0.0
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.zenoh_router
+      args:
+        ZENOH_BASE_IMAGE: ${AGI_WALKER_ZENOH_BASE_IMAGE:-eclipse/zenoh:1.9.0}
+    image: ${AGI_WALKER_ZENOH_IMAGE:-deployment-zenoh-router}
     ports:
       - "${AGI_WALKER_ZENOH_TCP_PORT:-7447}:7447"  # TCP Peering
       - "${AGI_WALKER_ZENOH_REST_PORT:-8000}:8000"  # HTTP/REST
@@ -80,13 +85,21 @@ services:
     depends_on:
       - zenoh-router
     env_file:
-      - ./web_panel.env.example
+      - ${AGI_WALKER_COMPOSE_WEB_ENV_FILE:-./web_panel.env.example}
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
       - AGI_WALKER_ZENOH_ENDPOINT=tcp/zenoh-router:7447
+      - AGI_WALKER_DATABASE_URL=${AGI_WALKER_DATABASE_URL:-sqlite+aiosqlite:////var/lib/agi_walker/db/agi_walker.db}
+      - AGI_WALKER_WEB_OUTPUT_ROOT=${AGI_WALKER_WEB_OUTPUT_ROOT:-/var/lib/agi_walker/workflow_runs}
+      - AGI_WALKER_WEB_ARCHIVE_ROOT=${AGI_WALKER_WEB_ARCHIVE_ROOT:-/var/lib/agi_walker/workflow_archive}
     ports:
-      - "8080:8000"
+      - "${AGI_WALKER_WEB_PORT:-8080}:8000"
+    volumes:
+      - "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/db:/var/lib/agi_walker/db"
+      - "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/workflow_runs:/var/lib/agi_walker/workflow_runs"
+      - "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/workflow_archive:/var/lib/agi_walker/workflow_archive"
+      - "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/backups:/var/lib/agi_walker/backups"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/system/status', timeout=5).read()"]
       interval: 15s
@@ -108,13 +121,21 @@ services:
     depends_on:
       - zenoh-router
     env_file:
-      - ./web_panel.env.example
+      - ${AGI_WALKER_COMPOSE_WEB_ENV_FILE:-./web_panel.env.example}
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
       - AGI_WALKER_ZENOH_ENDPOINT=tcp/zenoh-router:7447
+      - AGI_WALKER_DATABASE_URL=${AGI_WALKER_DATABASE_URL:-sqlite+aiosqlite:////var/lib/agi_walker/db/agi_walker.db}
+      - AGI_WALKER_WEB_OUTPUT_ROOT=${AGI_WALKER_WEB_OUTPUT_ROOT:-/var/lib/agi_walker/workflow_runs}
+      - AGI_WALKER_WEB_ARCHIVE_ROOT=${AGI_WALKER_WEB_ARCHIVE_ROOT:-/var/lib/agi_walker/workflow_archive}
     ports:
-      - "8081:8000"
+      - "${AGI_WALKER_WEB_DISTRIBUTED_PORT:-8081}:8000"
+    volumes:
+      - "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/db:/var/lib/agi_walker/db"
+      - "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/workflow_runs:/var/lib/agi_walker/workflow_runs"
+      - "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/workflow_archive:/var/lib/agi_walker/workflow_archive"
+      - "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/backups:/var/lib/agi_walker/backups"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/system/status', timeout=5).read()"]
       interval: 15s

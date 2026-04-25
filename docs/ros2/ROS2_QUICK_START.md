@@ -2,6 +2,8 @@
 
 This page describes the ROS 2 workspace that currently exists in the repository. It is a reference integration layer under `hardware/ros2_ws`, not part of the main CLI, Web, or MCP workflow.
 
+This guide is now referenced by `extension_execution_plan.profiles[ros2_bridge_extension].runbook_entrypoints` and aligned with the same profile's `execution_template`. If the ROS2 bridge rollout, validation, or rollback flow changes, update both this page and the machine-readable execution plan.
+
 ## Current Workspace
 
 The ROS 2 workspace contains two packages:

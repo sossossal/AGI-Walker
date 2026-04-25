@@ -18,6 +18,7 @@ COPY . /app
 
 # Keep the distributed runtime image aligned with the package's declared
 # baseline dependencies so importing agi_walker matches local execution.
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir . && \
+    python -c "import yaml; from agi_walker.skills_loader import SkillsLoader; print('distributed_runtime_import_ok')"
 
 CMD ["python", "-u", "-m", "agi_walker.core.distributed.run_learner"]

@@ -74,6 +74,11 @@ LOG_HINT_PATTERNS = [
         "The distributed runtime image cannot import agi_walker.core.distributed modules.",
     ),
     (
+        "distributed_runtime_missing_pyyaml",
+        re.compile(r"ModuleNotFoundError: No module named 'yaml'"),
+        "The distributed runtime image is missing PyYAML; verify deployment/requirements.distributed_runtime.txt and the Dockerfile import sanity check.",
+    ),
+    (
         "zenoh_connection",
         re.compile(
             r"(Zenoh|zenoh|connect/endpoints|Failed to init|Connection refused)"

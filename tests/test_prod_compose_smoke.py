@@ -16,6 +16,7 @@ import pytest
 
 ENABLE_ENV_VAR = "AGI_WALKER_ENABLE_PROD_COMPOSE_SMOKE"
 DEFAULT_TIMEOUT_SECONDS = 240.0
+PROD_COMPOSE_FILE = "docker-compose.prod.yml"
 
 
 def _reserve_tcp_port() -> int:
@@ -49,7 +50,7 @@ def _run_compose(
         "docker",
         "compose",
         "-f",
-        "docker-compose.prod.yml",
+        PROD_COMPOSE_FILE,
         "-p",
         project_name,
         *args,
@@ -169,6 +170,10 @@ def test_prod_compose_stack_runs_authenticated_workflow() -> None:
     if os.getenv(ENABLE_ENV_VAR) != "1":
         pytest.skip(
             f"set {ENABLE_ENV_VAR}=1 to enable the production compose smoke test"
+        )
+    if not Path(PROD_COMPOSE_FILE).is_file():
+        pytest.skip(
+            f"{PROD_COMPOSE_FILE} is not shipped in this repository; use deployment/docker-compose.yml as the current supported deployment entrypoint"
         )
     if shutil.which("docker") is None:
         pytest.skip("docker CLI is not available in PATH")
