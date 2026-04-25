@@ -457,6 +457,190 @@ print("ros2_bridge_live=passed")
 """.strip()
 
 
+def _godot_instruction_set_smoke_script() -> str:
+    return """
+import json
+import os
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+
+import web_panel.server
+
+artifact_dir = Path(
+    os.environ.get(
+        "AGI_WALKER_GODOT_INSTRUCTION_SMOKE_ARTIFACT_DIR",
+        "test_env/godot_instruction_smoke",
+    )
+)
+artifact_dir.mkdir(parents=True, exist_ok=True)
+
+observed = {}
+
+class FakeBridge:
+    session_state = "running"
+    simulated_circuit_config = {}
+
+    def is_connected(self):
+        return True
+
+    async def configure_simulated_circuit(self, simulated_circuit):
+        observed["simulated_circuit"] = simulated_circuit
+        self.simulated_circuit_config = dict(simulated_circuit)
+        return {"status": "success", "simulated_circuit": simulated_circuit}
+
+    async def apply_instruction_set(
+        self,
+        instruction_set,
+        *,
+        compatibility_params=None,
+        simulated_circuit_command_batch=None,
+    ):
+        observed["instruction_set"] = instruction_set
+        observed["compatibility_params"] = compatibility_params or {}
+        observed["simulated_circuit_command_batch"] = simulated_circuit_command_batch or []
+        return {"status": "success", "instruction_step_count": len(instruction_set.get("steps", []))}
+
+    def get_status_payload(self):
+        return {
+            "schema_version": "1.0",
+            "session_state": self.session_state,
+            "engine_running": True,
+            "tcp_connected": True,
+            "simulated_circuit_config": self.simulated_circuit_config,
+        }
+
+fake_bridge = FakeBridge()
+web_panel.server._session_manager.get_session = lambda _session_id: fake_bridge
+
+client = TestClient(web_panel.server.app)
+session_id = "smoke-instruction"
+instruction_response = client.post(
+    f"/api/godot/{session_id}/instruction-set",
+    json={
+        "instruction_set": {
+            "schema_version": "1.0",
+            "sequence_name": "smoke-demo",
+            "steps": [{"kind": "set_velocity", "linear_x": 0.2, "linear_y": 0.0, "angular_z": 0.1}],
+        },
+        "compatibility_params": {"cmd_linear_x": 0.2},
+        "simulated_circuit_command_batch": [{"frame_id": 512}],
+    },
+)
+circuit_response = client.post(
+    f"/api/godot/{session_id}/simulated-circuit",
+    json={"simulated_circuit": {"transport": "imc22_can_fd", "bitrate": 1000000}},
+)
+
+payload = {
+    "status": "passed",
+    "instruction_status": instruction_response.json()["status"],
+    "circuit_status": circuit_response.json()["status"],
+    "sequence_name": observed["instruction_set"]["sequence_name"],
+    "transport": observed["simulated_circuit"]["transport"],
+}
+(artifact_dir / "godot_instruction_smoke_report.json").write_text(
+    json.dumps(payload, ensure_ascii=False, indent=2) + "\\n",
+    encoding="utf-8",
+)
+print("godot_instruction_set_smoke_ok")
+print("godot_simulated_circuit_smoke_ok")
+""".strip()
+
+
+def _ros2_instruction_set_smoke_script() -> str:
+    return """
+import json
+import os
+import types
+from pathlib import Path
+
+from tests.test_ros2_bridge_runtime import _load_bridge_module
+
+artifact_dir = Path(
+    os.environ.get(
+        "AGI_WALKER_ROS2_INSTRUCTION_SMOKE_ARTIFACT_DIR",
+        "test_env/ros2_instruction_smoke",
+    )
+)
+artifact_dir.mkdir(parents=True, exist_ok=True)
+
+class _MonkeyPatch:
+    def setattr(self, obj, name, value):
+        setattr(obj, name, value)
+    def setitem(self, mapping, key, value):
+        mapping[key] = value
+
+module = _load_bridge_module(_MonkeyPatch())
+bridge = module.AGIWalkerROS2Bridge()
+
+instruction_message = module.String()
+instruction_message.data = json.dumps(
+    {
+        "schema_version": "1.0",
+        "sequence_name": "ros2-smoke-demo",
+        "steps": [{"kind": "set_velocity", "linear_x": 0.15, "linear_y": 0.0, "angular_z": 0.05}],
+    }
+)
+bridge.instruction_set_callback(instruction_message)
+
+payload = json.loads(bridge.instruction_runtime_pub.published[-1].data)
+(artifact_dir / "ros2_instruction_smoke_report.json").write_text(
+    json.dumps(payload, ensure_ascii=False, indent=2) + "\\n",
+    encoding="utf-8",
+)
+print("ros2_instruction_set_smoke_ok")
+print("ros2_instruction_runtime_smoke_ok")
+""".strip()
+
+
+def _simulated_circuit_replay_smoke_script() -> str:
+    return """
+import json
+import os
+from pathlib import Path
+
+from agi_walker.core.api.godot_robot_env.hardware_controller import (
+    command_batch_to_imc22_replay_payload,
+    simulate_imc22_command_batch_feedback,
+)
+
+artifact_dir = Path(
+    os.environ.get(
+        "AGI_WALKER_SIMULATED_CIRCUIT_SMOKE_ARTIFACT_DIR",
+        "test_env/simulated_circuit_smoke",
+    )
+)
+artifact_dir.mkdir(parents=True, exist_ok=True)
+
+command_batch = [
+    {
+        "node_id": 1,
+        "joint_name": "hip_left",
+        "target_angle": 0.3,
+        "compliance": 0.4,
+        "command_id": 0x201,
+    },
+    {
+        "node_id": 4,
+        "joint_name": "knee_right",
+        "target_angle": -0.2,
+        "compliance": 0.4,
+        "command_id": 0x204,
+    },
+]
+replay_payload = command_batch_to_imc22_replay_payload(command_batch)
+feedback = simulate_imc22_command_batch_feedback(command_batch)
+report = {"status": "passed", "replay_payload": replay_payload, "feedback": feedback}
+(artifact_dir / "simulated_circuit_replay_smoke_report.json").write_text(
+    json.dumps(report, ensure_ascii=False, indent=2) + "\\n",
+    encoding="utf-8",
+)
+print("simulated_circuit_replay_smoke_ok")
+print("simulated_circuit_feedback_smoke_ok")
+""".strip()
+
+
 def _write_external_mainline_ready_script() -> str:
     return """
 from pathlib import Path
@@ -531,6 +715,9 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
     industrial_customer_acceptance_bundle_root = (
         output_root / "customer_acceptance_bundle_industrial"
     )
+    godot_instruction_smoke_root = output_root / "godot_instruction_smoke"
+    ros2_instruction_smoke_root = output_root / "ros2_instruction_smoke"
+    simulated_circuit_smoke_root = output_root / "simulated_circuit_smoke"
     ros2_smoke_root = output_root / "ros2_bridge_smoke"
     stable_source_root = _prepare_tagged_clean_source_root(
         output_root, version="2026.04.12"
@@ -1252,6 +1439,48 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
             skip_reason=modern_skip_reason,
         ),
         SmokeCheck(
+            name="godot instruction-set smoke",
+            command=[sys.executable, "-c", _godot_instruction_set_smoke_script()],
+            expected_tokens=[
+                "godot_instruction_set_smoke_ok",
+                "godot_simulated_circuit_smoke_ok",
+            ],
+            artifact_dir=godot_instruction_smoke_root,
+            env_overrides={
+                "AGI_WALKER_GODOT_INSTRUCTION_SMOKE_ARTIFACT_DIR": str(
+                    godot_instruction_smoke_root
+                )
+            },
+        ),
+        SmokeCheck(
+            name="ros2 instruction-set smoke",
+            command=[sys.executable, "-c", _ros2_instruction_set_smoke_script()],
+            expected_tokens=[
+                "ros2_instruction_set_smoke_ok",
+                "ros2_instruction_runtime_smoke_ok",
+            ],
+            artifact_dir=ros2_instruction_smoke_root,
+            env_overrides={
+                "AGI_WALKER_ROS2_INSTRUCTION_SMOKE_ARTIFACT_DIR": str(
+                    ros2_instruction_smoke_root
+                )
+            },
+        ),
+        SmokeCheck(
+            name="simulated circuit replay smoke",
+            command=[sys.executable, "-c", _simulated_circuit_replay_smoke_script()],
+            expected_tokens=[
+                "simulated_circuit_replay_smoke_ok",
+                "simulated_circuit_feedback_smoke_ok",
+            ],
+            artifact_dir=simulated_circuit_smoke_root,
+            env_overrides={
+                "AGI_WALKER_SIMULATED_CIRCUIT_SMOKE_ARTIFACT_DIR": str(
+                    simulated_circuit_smoke_root
+                )
+            },
+        ),
+        SmokeCheck(
             name="godot headless integration smoke",
             command=[
                 sys.executable,
@@ -1321,6 +1550,15 @@ def _run_check(check: SmokeCheck, env: dict[str, str]) -> tuple[bool, str]:
         output_dir = check.artifact_dir / ".output"
         export_dir = check.artifact_dir / "exports"
         report_file = check.artifact_dir / "ros2_bridge_smoke_report.json"
+        godot_instruction_smoke_report = (
+            check.artifact_dir / "godot_instruction_smoke_report.json"
+        )
+        ros2_instruction_smoke_report = (
+            check.artifact_dir / "ros2_instruction_smoke_report.json"
+        )
+        simulated_circuit_smoke_report = (
+            check.artifact_dir / "simulated_circuit_replay_smoke_report.json"
+        )
         release_manifest = check.artifact_dir / "release_manifest.json"
         release_readiness_report = check.artifact_dir / "release_readiness_report.json"
         industrial_release_readiness_report = (
@@ -1493,6 +1731,21 @@ def _run_check(check: SmokeCheck, env: dict[str, str]) -> tuple[bool, str]:
             artifact_summary.append(f"exports={export_dir}")
         if report_file.exists():
             artifact_summary.append(f"report={report_file}")
+        if godot_instruction_smoke_report.exists():
+            artifact_summary.append(
+                "godot_instruction_smoke_report="
+                f"{godot_instruction_smoke_report}"
+            )
+        if ros2_instruction_smoke_report.exists():
+            artifact_summary.append(
+                "ros2_instruction_smoke_report="
+                f"{ros2_instruction_smoke_report}"
+            )
+        if simulated_circuit_smoke_report.exists():
+            artifact_summary.append(
+                "simulated_circuit_replay_smoke_report="
+                f"{simulated_circuit_smoke_report}"
+            )
         if release_manifest.exists():
             artifact_summary.append(f"release_manifest={release_manifest}")
         if release_readiness_report.exists():

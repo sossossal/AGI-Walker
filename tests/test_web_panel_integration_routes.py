@@ -1816,6 +1816,105 @@ def test_legacy_controller_forwards_physics_to_client(
     }
 
 
+def test_legacy_godot_instruction_and_circuit_routes(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    recorded = {}
+    session_id = "instruction-api-test"
+
+    monkeypatch.setattr(web_panel.server.godot_controller, "is_connected", lambda: True)
+    monkeypatch.setattr(
+        web_panel.server.godot_controller,
+        "send_instruction_set",
+        lambda payload, session_id=None: (
+            recorded.setdefault(
+                "instruction",
+                {"payload": payload, "session_id": session_id},
+            )
+            or {"accepted": True}
+        ),
+    )
+    monkeypatch.setattr(
+        web_panel.server.godot_controller,
+        "configure_simulated_circuit",
+        lambda payload, session_id=None: (
+            recorded.setdefault(
+                "circuit",
+                {"payload": payload, "session_id": session_id},
+            )
+            or {"configured": True}
+        ),
+    )
+    monkeypatch.setattr(
+        web_panel.server.godot_controller,
+        "update_params",
+        lambda params, session_id=None: (
+            recorded.setdefault(
+                "compatibility",
+                {"payload": params, "session_id": session_id},
+            )
+            or True
+        ),
+    )
+
+    instruction_response = client.post(
+        f"/api/godot/instruction-set?session_id={session_id}",
+        json={
+            "instruction_set": {
+                "schema_version": "1.0",
+                "sequence_name": "api-demo",
+                "steps": [
+                    {
+                        "kind": "set_velocity",
+                        "linear_x": 0.2,
+                        "linear_y": 0.0,
+                        "angular_z": 0.1,
+                    },
+                    {
+                        "kind": "set_joint_targets",
+                        "joint_targets": {"hip_left": 0.3},
+                        "compliance": 0.4,
+                    },
+                ],
+            }
+        },
+    )
+
+    circuit_response = client.post(
+        f"/api/godot/simulated-circuit?session_id={session_id}",
+        json={"simulated_circuit": {"transport": "imc22_can_fd", "bitrate": 1_000_000}},
+    )
+
+    assert instruction_response.status_code == 200
+    instruction_data = instruction_response.json()
+    assert instruction_data["status"] == "applied"
+    assert instruction_data["instruction_set"]["sequence_name"] == "api-demo"
+    assert instruction_data["compatibility_params"]["cmd_linear_x"] == 0.2
+    assert instruction_data["simulated_circuit_command_batch"] == [
+        {
+            "node_id": 1,
+            "joint_name": "hip_left",
+            "target_angle": 0.3,
+            "compliance": 0.4,
+            "command_id": 513,
+        }
+    ]
+
+    assert circuit_response.status_code == 200
+    circuit_data = circuit_response.json()
+    assert circuit_data["status"] == "configured"
+    assert circuit_data["simulated_circuit"]["transport"] == "imc22_can_fd"
+    assert circuit_data["simulated_circuit"]["command_base_id"] == 512
+
+    assert recorded["instruction"]["session_id"] == session_id
+    assert recorded["instruction"]["payload"]["sequence_name"] == "api-demo"
+    assert recorded["compatibility"]["session_id"] == session_id
+    assert recorded["compatibility"]["payload"]["joint_targets"] == {"hip_left": 0.3}
+    assert recorded["circuit"]["session_id"] == session_id
+    assert recorded["circuit"]["payload"]["transport"] == "imc22_can_fd"
+
+
 def test_legacy_controller_broadcasts_canonical_messages() -> None:
     messages = []
     controller = web_panel.server.godot_controller

@@ -143,6 +143,36 @@ class TestIMC22Controller:
         controller.close()
         assert controller.bus.closed is True
 
+    def test_command_batch_projects_to_replay_feedback(self) -> None:
+        command_batch = [
+            {
+                "node_id": 1,
+                "joint_name": "hip_left",
+                "target_angle": 0.3,
+                "compliance": 0.4,
+                "command_id": 0x201,
+            },
+            {
+                "node_id": 4,
+                "joint_name": "knee_right",
+                "target_angle": -0.2,
+                "compliance": 0.4,
+                "command_id": 0x204,
+            },
+        ]
+
+        replay_payload = hw.command_batch_to_imc22_replay_payload(command_batch)
+        feedback = hw.simulate_imc22_command_batch_feedback(command_batch)
+
+        assert replay_payload["schema_version"] == "1.0"
+        assert replay_payload["frames"] == [
+            {"node_id": 1, "angle": 0.3, "current": 0.106, "error": 0.0},
+            {"node_id": 4, "angle": -0.2, "current": 0.104, "error": 0.0},
+        ]
+        assert feedback["node_ids"] == [1, 4]
+        assert feedback["states"][1]["angle"] == 0.3
+        assert feedback["states"][4]["angle"] == -0.2
+
     @pytest.mark.hardware
     def test_real_hardware_connection(self) -> None:
         pytest.skip("需要真实硬件")

@@ -80,10 +80,26 @@ async def handle_websocket(
             raise RuntimeError("Godot is not connected")
         return godot_controller.update_params(params, session_id=session_id)
 
+    def instruction_set_callback(instruction_set):
+        if not godot_controller.is_connected():
+            raise RuntimeError("Godot is not connected")
+        return godot_controller.send_instruction_set(
+            instruction_set, session_id=session_id
+        )
+
+    def simulated_circuit_callback(simulated_circuit):
+        if not godot_controller.is_connected():
+            raise RuntimeError("Godot is not connected")
+        return godot_controller.configure_simulated_circuit(
+            simulated_circuit, session_id=session_id
+        )
+
     protocol_handler.on_start_simulation = start_sim_callback
     protocol_handler.on_stop_simulation = stop_sim_callback
     protocol_handler.on_load_robot = load_robot_callback
     protocol_handler.on_update_params = update_params_callback
+    protocol_handler.on_instruction_set_apply = instruction_set_callback
+    protocol_handler.on_simulated_circuit_configure = simulated_circuit_callback
 
     try:
         while True:

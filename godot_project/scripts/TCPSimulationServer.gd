@@ -16,6 +16,10 @@ var is_simulating := false
 
 # 当前机器人配置
 var robot_config := {}
+var last_instruction_set := {}
+var simulated_circuit_config := {}
+var last_instruction_command_batch := []
+var last_compatibility_params := {}
 
 # 模拟数据
 var sim_time := 0.0
@@ -104,6 +108,10 @@ func _try_process_message(client):
 			_handle_update_params(message.get("data", {}))
 		"load_robot":
 			_handle_load_robot(message.get("data", {}))
+		"instruction_set":
+			_handle_instruction_set(message.get("data", {}))
+		"configure_simulated_circuit":
+			_handle_configure_simulated_circuit(message.get("data", {}))
 
 func _handle_start_sim(data):
 	"""启动仿真"""
@@ -133,6 +141,22 @@ func _handle_load_robot(data):
 	robot_config = data
 	print("加载机器人配置: ", data.get("parts", []).size(), " 个零件")
 
+func _handle_instruction_set(data):
+	"""接收结构化指令集"""
+	last_instruction_set = data.duplicate(true)
+	last_instruction_command_batch = data.get("simulated_circuit_command_batch", []).duplicate(true)
+	last_compatibility_params = data.get("compatibility_params", {}).duplicate(true)
+	print("接收 instruction_set: ", data.get("sequence_name", ""), " steps=", data.get("steps", []).size())
+	if data.get("steps", []).size() > 0:
+		var first_step = data.get("steps", [])[0]
+		if first_step.get("kind", "") == "set_velocity":
+			velocity = float(first_step.get("linear_x", velocity))
+
+func _handle_configure_simulated_circuit(data):
+	"""接收模拟电路配置"""
+	simulated_circuit_config = data.duplicate(true)
+	print("接收 simulated circuit config: ", simulated_circuit_config.get("transport", ""))
+
 func _update_simulation(delta):
 	"""更新仿真（示例）"""
 	sim_time += delta
@@ -150,7 +174,17 @@ func _send_feedback_to_all():
 		"position": position,
 		"velocity": velocity,
 		"battery": battery,
-		"timestamp": Time.get_ticks_msec() / 1000.0
+		"timestamp": Time.get_ticks_msec() / 1000.0,
+		"instruction_runtime": {
+			"sequence_name": last_instruction_set.get("sequence_name", ""),
+			"step_count": last_instruction_set.get("steps", []).size(),
+			"compatibility_params": last_compatibility_params
+		},
+		"simulated_circuit": {
+			"configured": not simulated_circuit_config.is_empty(),
+			"transport": simulated_circuit_config.get("transport", ""),
+			"command_batch_size": last_instruction_command_batch.size()
+		}
 	}
 	
 	var json_str = JSON.stringify(feedback)

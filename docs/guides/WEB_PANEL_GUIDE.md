@@ -133,9 +133,13 @@ session bridge：
 - `POST /api/godot/{session_id}/launch`
 - `POST /api/godot/{session_id}/stop`
 - `POST /api/godot/{session_id}/control`
+- `POST /api/godot/{session_id}/instruction-set`
+- `POST /api/godot/{session_id}/simulated-circuit`
 - `WS /ws/{session_id}`
 
 当前推荐路径是 `session_bridge`。
+现在 session bridge 已经原生接通结构化 `instruction_set` 与
+`simulated_circuit` 配置，不再只限于 `step/load_robot`。
 
 ## 关键环境变量
 

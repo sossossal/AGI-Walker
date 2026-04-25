@@ -8,6 +8,8 @@ AGI-Walker 是一个面向机器人设计、仿真、工作流编排和 Web/Godo
 - `Web Panel`：基于 FastAPI 的控制面板，提供 workflow、服务状态、Godot 会话和 nightly 状态接口。
 - `Capability Matrix`：提供版本化发布面矩阵，统一描述 CLI、Web、MCP、distributed 和 Godot integration 的发布状态。
 - `Godot 集成`：同时支持 legacy backend 和 modern `godot-agent` backend。
+- `Godot 扩展控制面`：新增结构化指令集控制与模拟电路通信契约，可复用到 Godot / ROS2 / IMC-22 近似层。
+- `ROS2 指令集模拟`：支持通过 JSON topic / service 重放结构化 `instruction_set` 与模拟电路配置，并发布运行态快照。
 - `Distributed / Smoke`：仓库内置 CLI、workflow、Web、distributed 和可选的 Godot headless smoke 测试。
 - `MCP Server`：通过 `agi_walker.mcp.server` 把任务执行、workflow、skills 和 Godot 能力暴露给 MCP 客户端。
 
@@ -221,6 +223,12 @@ python -m pytest tests/test_mcp_tools.py tests/test_mcp_server.py -q
 ```bash
 python tests/run_smoke_tests.py
 ```
+
+默认 smoke 现在还会覆盖：
+
+- Godot instruction-set smoke
+- ROS2 instruction-set smoke
+- simulated circuit replay smoke
 
 统一 release-ops control plane：
 

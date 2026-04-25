@@ -85,6 +85,59 @@ def load_imc22_replay_payload(source: str | Path | Dict[str, Any]) -> Dict[str, 
     return payload
 
 
+def command_batch_to_imc22_replay_payload(
+    command_batch: List[Dict[str, Any]],
+    *,
+    current_scale: float = 0.02,
+    current_offset: float = 0.1,
+    error_value: float = 0.0,
+) -> Dict[str, Any]:
+    """Project a simulated circuit command batch into canonical IMC-22 replay frames."""
+    frames: List[Dict[str, Any]] = []
+    for entry in command_batch:
+        node_id = int(entry["node_id"])
+        target_angle = float(entry["target_angle"])
+        frames.append(
+            {
+                "node_id": node_id,
+                "angle": target_angle,
+                "current": round(abs(target_angle) * current_scale + current_offset, 6),
+                "error": float(error_value),
+            }
+        )
+    return {
+        "schema_version": IMC22_REPLAY_SCHEMA_VERSION,
+        "frames": frames,
+    }
+
+
+def simulate_imc22_command_batch_feedback(
+    command_batch: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Replay a command batch through the IMC-22 replay path and return structured states."""
+    replay_payload = command_batch_to_imc22_replay_payload(command_batch)
+    if not replay_payload["frames"]:
+        return {
+            "schema_version": IMC22_REPLAY_SCHEMA_VERSION,
+            "replay_payload": replay_payload,
+            "states": {},
+            "node_ids": [],
+        }
+
+    node_ids = sorted({int(frame["node_id"]) for frame in replay_payload["frames"]})
+    controller = IMC22Controller.from_replay(replay_payload)
+    try:
+        states = controller.get_all_states(len(node_ids), timeout=0.05)
+        return {
+            "schema_version": IMC22_REPLAY_SCHEMA_VERSION,
+            "replay_payload": replay_payload,
+            "states": states,
+            "node_ids": node_ids,
+        }
+    finally:
+        controller.close()
+
+
 class ReplayCANBus:
     is_replay = True
 

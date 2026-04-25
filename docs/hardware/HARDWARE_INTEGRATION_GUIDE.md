@@ -138,6 +138,8 @@ Windows 场景下则需要你显式传入对应总线类型和设备名。
 - `ReplayCANBus`
 - `IMC22Controller.from_replay(...)`
 - `HardwareEnvironment(controller=...)`
+- `instruction_control_contracts.default_simulated_circuit_config()`
+- `instruction_control_contracts.build_instruction_runtime_contract()`
 
 测试回放 fixture 位于：
 
@@ -149,6 +151,44 @@ Windows 场景下则需要你显式传入对应总线类型和设备名。
 - 验证节点发现
 - 验证 `HardwareEnvironment.reset()` / `step()`
 - 保证默认 pytest 不访问真实 CAN
+- 把 Godot / ROS2 / 模拟电路控制面收口成一份结构化契约
+
+当前 canonical 模拟电路参数固定为：
+
+- `transport=imc22_can_fd`
+- `bitrate=1000000`
+- `control_freq_hz=100`
+- `status_rate_hz=200`
+- `command_base_id=0x200`
+- `status_base_id=0x100`
+- `config_base_id=0x300`
+
+ROS2 一期指令集模拟控制面现已提供：
+
+- topic `/instruction_set/json`
+- topic `/simulated_circuit/json`
+- publisher `/instruction_runtime/json`
+- service `/instruction_set/replay_last`
+- service `/simulated_circuit/apply_default`
+
+这些入口会把结构化 payload 投影到：
+
+- Godot `instruction_set`
+- Godot `configure_simulated_circuit`
+- legacy `update_params`
+- `simulated_circuit_command_batch`
+
+当前 replay 闭环还新增了一层：
+
+- `simulated_circuit_command_batch -> IMC22 replay payload`
+- `IMC22 replay payload -> status feedback`
+- `status feedback -> /instruction_runtime/json`
+
+也就是说，一期已经可以在非 live 模式下验证：
+
+- 指令集投影出的 command batch
+- 模拟电路回放后的反馈状态
+- ROS2 运行态快照中的 feedback 透传
 
 推荐命令：
 

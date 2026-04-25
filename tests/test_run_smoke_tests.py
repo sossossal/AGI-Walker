@@ -6,9 +6,13 @@ import sys
 from pathlib import Path
 
 from tests.run_smoke_tests import (
+    PROJECT_ROOT,
     SmokeCheck,
     _build_env,
+    _godot_instruction_set_smoke_script,
+    _ros2_instruction_set_smoke_script,
     _run_check,
+    _simulated_circuit_replay_smoke_script,
     _write_clean_checkout_smoke_evidence_script,
     _write_external_mainline_ready_script,
     _write_live_release_evidence_script,
@@ -144,3 +148,49 @@ def test_smoke_seed_scripts_write_self_contained_release_evidence(tmp_path: Path
     )
     assert external_mainline_report["status"] == "ready"
     assert external_mainline_report["waiting_external_input_steps"] == 0
+
+
+def test_instruction_and_circuit_smoke_scripts_write_reports(tmp_path: Path) -> None:
+    env = _build_env()
+    script_envs = [
+        (
+            _godot_instruction_set_smoke_script(),
+            {"AGI_WALKER_GODOT_INSTRUCTION_SMOKE_ARTIFACT_DIR": str(tmp_path / "godot")},
+            tmp_path / "godot" / "godot_instruction_smoke_report.json",
+            "smoke-demo",
+        ),
+        (
+            _ros2_instruction_set_smoke_script(),
+            {"AGI_WALKER_ROS2_INSTRUCTION_SMOKE_ARTIFACT_DIR": str(tmp_path / "ros2")},
+            tmp_path / "ros2" / "ros2_instruction_smoke_report.json",
+            "instruction_set_applied",
+        ),
+        (
+            _simulated_circuit_replay_smoke_script(),
+            {
+                "AGI_WALKER_SIMULATED_CIRCUIT_SMOKE_ARTIFACT_DIR": str(
+                    tmp_path / "circuit"
+                )
+            },
+            tmp_path / "circuit" / "simulated_circuit_replay_smoke_report.json",
+            "passed",
+        ),
+    ]
+
+    for script, overrides, report_path, expected_value in script_envs:
+        script_env = dict(env)
+        script_env.update(overrides)
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=PROJECT_ROOT,
+            env=script_env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr or result.stdout
+        payload = json.loads(report_path.read_text(encoding="utf-8"))
+        flat_json = json.dumps(payload, ensure_ascii=False)
+        assert expected_value in flat_json

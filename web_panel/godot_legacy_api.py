@@ -6,6 +6,11 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Query
 
+from agi_walker.core.api.comm.instruction_control_contracts import (
+    build_instruction_runtime_contract,
+    normalize_simulated_circuit_config,
+)
+
 
 class ConnectionRequest(pydantic.BaseModel):
     host: str = "127.0.0.1"
@@ -23,6 +28,14 @@ class StartSimRequest(pydantic.BaseModel):
 
 class UpdateParamsRequest(pydantic.BaseModel):
     params: Dict[str, Any]
+
+
+class SimulatedCircuitConfigRequest(pydantic.BaseModel):
+    simulated_circuit: Dict[str, Any] = pydantic.Field(default_factory=dict)
+
+
+class InstructionSetRequest(pydantic.BaseModel):
+    instruction_set: Dict[str, Any]
 
 
 def _supports_session_argument(callback: Any) -> bool:
@@ -137,6 +150,71 @@ def update_params(
     raise HTTPException(status_code=500, detail="Failed to update parameters")
 
 
+def configure_simulated_circuit(
+    godot_controller: Any,
+    req: SimulatedCircuitConfigRequest,
+    session_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    if not _call_controller(godot_controller.is_connected, session_id=session_id):
+        raise HTTPException(status_code=400, detail="Godot not connected")
+
+    runtime_config = normalize_simulated_circuit_config(req.simulated_circuit)
+    result = _call_controller(
+        godot_controller.configure_simulated_circuit,
+        runtime_config,
+        session_id=session_id,
+    )
+    if result:
+        return {
+            "status": "configured",
+            "simulated_circuit": runtime_config,
+            "dispatch_result": result,
+        }
+    raise HTTPException(status_code=500, detail="Failed to configure simulated circuit")
+
+
+def apply_instruction_set(
+    godot_controller: Any,
+    req: InstructionSetRequest,
+    session_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    if not _call_controller(godot_controller.is_connected, session_id=session_id):
+        raise HTTPException(status_code=400, detail="Godot not connected")
+
+    runtime_contract = build_instruction_runtime_contract(req.instruction_set)
+    instruction_payload = runtime_contract["instruction_set"]
+    dispatch_result = _call_controller(
+        godot_controller.send_instruction_set,
+        instruction_payload,
+        session_id=session_id,
+    )
+    if not dispatch_result:
+        raise HTTPException(status_code=500, detail="Failed to dispatch instruction set")
+
+    compatibility_params = runtime_contract["compatibility_params"]
+    compatibility_dispatched = False
+    if compatibility_params:
+        compatibility_dispatched = bool(
+            _call_controller(
+                godot_controller.update_params,
+                compatibility_params,
+                session_id=session_id,
+            )
+        )
+
+    return {
+        "status": "applied",
+        "instruction_set": instruction_payload,
+        "simulated_circuit": runtime_contract["simulated_circuit"],
+        "simulated_circuit_command_batch": runtime_contract[
+            "simulated_circuit_command_batch"
+        ],
+        "compatibility_params": compatibility_params,
+        "dispatch_result": dispatch_result,
+        "compatibility_dispatched": compatibility_dispatched,
+    }
+
+
 def build_router(godot_controller: Any) -> APIRouter:
     router = APIRouter()
 
@@ -186,5 +264,23 @@ def build_router(godot_controller: Any) -> APIRouter:
     ):
         """实时更新参数"""
         return update_params(godot_controller, req, session_id=session_id)
+
+    @router.post("/api/godot/simulated-circuit")
+    async def godot_configure_simulated_circuit(
+        req: SimulatedCircuitConfigRequest,
+        session_id: Optional[str] = Query(default=None),
+    ):
+        """配置 canonical 模拟电路通信参数"""
+        return configure_simulated_circuit(
+            godot_controller, req, session_id=session_id
+        )
+
+    @router.post("/api/godot/instruction-set")
+    async def godot_apply_instruction_set(
+        req: InstructionSetRequest,
+        session_id: Optional[str] = Query(default=None),
+    ):
+        """发送结构化指令集控制 payload"""
+        return apply_instruction_set(godot_controller, req, session_id=session_id)
 
     return router

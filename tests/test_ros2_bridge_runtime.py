@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import types
 from pathlib import Path
@@ -105,6 +106,10 @@ def _load_bridge_module(monkeypatch):
         def __init__(self):
             self.header = FakeHeader()
 
+    class FakeString:
+        def __init__(self):
+            self.data = ""
+
     class FakeVector3:
         def __init__(self):
             self.x = 0.0
@@ -135,6 +140,8 @@ def _load_bridge_module(monkeypatch):
             self._callback = None
             self._connected = True
             self.updated_parameters = []
+            self.instruction_sets = []
+            self.circuit_configs = []
             self.started = []
             self.loaded = []
             self.stopped = 0
@@ -150,6 +157,15 @@ def _load_bridge_module(monkeypatch):
 
         def update_parameters(self, params):
             self.updated_parameters.append(params)
+            return True
+
+        def send_instruction_set(self, payload):
+            self.instruction_sets.append(payload)
+            return True
+
+        def configure_simulated_circuit(self, payload):
+            self.circuit_configs.append(payload)
+            return True
 
         def start_simulation(self, robot_config):
             self.started.append(robot_config)
@@ -195,6 +211,11 @@ def _load_bridge_module(monkeypatch):
         sys.modules,
         "geometry_msgs.msg",
         types.SimpleNamespace(Twist=FakeTwist),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "std_msgs.msg",
+        types.SimpleNamespace(String=FakeString),
     )
     monkeypatch.setitem(
         sys.modules,
@@ -316,3 +337,145 @@ def test_ros2_bridge_runtime_replay_flow(monkeypatch) -> None:
     stop_response = bridge.stop_simulation_callback(None, response)
     assert stop_response.success is True
     assert bridge.simulation_running is False
+
+
+def test_ros2_bridge_instruction_runtime_contract(monkeypatch) -> None:
+    module = _load_bridge_module(monkeypatch)
+    bridge = module.AGIWalkerROS2Bridge()
+
+    result = bridge.apply_instruction_set_payload(
+        {
+            "schema_version": "1.0",
+            "sequence_name": "walk-demo",
+            "simulated_circuit": {
+                "schema_version": "1.0",
+                "transport": "imc22_can_fd",
+                "channel": "simulated-can0",
+                "bustype": "virtual",
+                "bitrate": 1_000_000,
+                "control_freq_hz": 100,
+                "status_rate_hz": 200,
+                "command_base_id": 0x200,
+                "status_base_id": 0x100,
+                "config_base_id": 0x300,
+                "default_compliance": 0.4,
+                "joint_order": [
+                    "hip_left",
+                    "knee_left",
+                    "hip_right",
+                    "knee_right",
+                ],
+            },
+            "steps": [
+                {
+                    "kind": "set_velocity",
+                    "linear_x": 0.25,
+                    "linear_y": 0.0,
+                    "angular_z": 0.1,
+                },
+                {
+                    "kind": "set_joint_targets",
+                    "joint_targets": {"hip_left": 0.3, "knee_right": -0.2},
+                    "compliance": 0.4,
+                },
+                {"kind": "set_pid", "pid_kp": 1.0, "pid_ki": 0.0, "pid_kd": 0.1},
+            ],
+        }
+    )
+
+    assert result["status"] == "applied"
+    assert result["instruction_step_count"] == 3
+    assert result["sent_instruction"] is True
+    assert result["sent_circuit_config"] is True
+    assert result["sent_compatibility_params"] is True
+    assert result["compatibility_params"]["cmd_linear_x"] == 0.25
+    assert result["compatibility_params"]["joint_targets"] == {
+        "hip_left": 0.3,
+        "knee_right": -0.2,
+    }
+    assert result["compatibility_params"]["pid_kp"] == 1.0
+    assert result["simulated_circuit_command_batch"] == [
+        {
+            "node_id": 1,
+            "joint_name": "hip_left",
+            "target_angle": 0.3,
+            "compliance": 0.4,
+            "command_id": 0x201,
+        },
+        {
+            "node_id": 4,
+            "joint_name": "knee_right",
+            "target_angle": -0.2,
+            "compliance": 0.4,
+            "command_id": 0x204,
+        },
+    ]
+    assert bridge.godot_client.circuit_configs[-1]["transport"] == "imc22_can_fd"
+    assert bridge.godot_client.instruction_sets[-1]["sequence_name"] == "walk-demo"
+    assert result["simulated_circuit_feedback"]["node_ids"] == [1, 4]
+    assert result["simulated_circuit_feedback"]["states"][1]["angle"] == 0.3
+
+
+def test_ros2_bridge_instruction_topics_and_services(monkeypatch) -> None:
+    module = _load_bridge_module(monkeypatch)
+    bridge = module.AGIWalkerROS2Bridge()
+
+    instruction_message = module.String()
+    instruction_message.data = json.dumps(
+        {
+            "schema_version": "1.0",
+            "sequence_name": "topic-demo",
+            "steps": [
+                {
+                    "kind": "set_velocity",
+                    "linear_x": 0.12,
+                    "linear_y": 0.0,
+                    "angular_z": 0.03,
+                }
+            ],
+        }
+    )
+    bridge.instruction_set_callback(instruction_message)
+
+    circuit_message = module.String()
+    circuit_message.data = json.dumps(
+        {
+            "schema_version": "1.0",
+            "transport": "imc22_can_fd",
+            "channel": "simulated-can0",
+            "bustype": "virtual",
+            "bitrate": 1_000_000,
+            "control_freq_hz": 100,
+            "status_rate_hz": 200,
+            "command_base_id": 0x200,
+            "status_base_id": 0x100,
+            "config_base_id": 0x300,
+            "default_compliance": 0.5,
+            "joint_order": [
+                "hip_left",
+                "knee_left",
+                "hip_right",
+                "knee_right",
+            ],
+        }
+    )
+    bridge.simulated_circuit_callback(circuit_message)
+
+    replay_response = types.SimpleNamespace(success=None, message=None)
+    bridge.replay_instruction_set_callback(None, replay_response)
+
+    default_response = types.SimpleNamespace(success=None, message=None)
+    bridge.apply_default_circuit_callback(None, default_response)
+
+    assert bridge.godot_client.instruction_sets[-1]["sequence_name"] == "topic-demo"
+    assert bridge.godot_client.circuit_configs[-1]["transport"] == "imc22_can_fd"
+    assert replay_response.success is True
+    assert default_response.success is True
+    runtime_messages = bridge.instruction_runtime_pub.published
+    assert len(runtime_messages) >= 3
+    latest_payload = json.loads(runtime_messages[-1].data)
+    assert latest_payload["event"] == "simulated_circuit_default_applied"
+    assert (
+        latest_payload["simulated_circuit_config"]["transport"] == "imc22_can_fd"
+    )
+    assert "simulated_circuit_feedback" in latest_payload

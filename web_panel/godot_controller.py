@@ -214,6 +214,22 @@ class GodotController:
         target_session_id = self._resolve_session_id(session_id)
         return self.get_client(target_session_id).update_parameters(params)
 
+    def send_instruction_set(
+        self, instruction_payload: Dict, session_id: Optional[str] = None
+    ) -> bool:
+        target_session_id = self._resolve_session_id(session_id)
+        return self.get_client(target_session_id).send_instruction_set(
+            instruction_payload
+        )
+
+    def configure_simulated_circuit(
+        self, circuit_payload: Dict, session_id: Optional[str] = None
+    ) -> bool:
+        target_session_id = self._resolve_session_id(session_id)
+        return self.get_client(target_session_id).configure_simulated_circuit(
+            circuit_payload
+        )
+
 
 # 全局单例
 godot_controller = GodotController()

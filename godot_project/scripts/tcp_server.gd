@@ -9,6 +9,18 @@ var PORT = 9000
 var connection: StreamPeerTCP = null
 var robot_node: Node3D = null
 var last_loaded_robot_config: Dictionary = {}
+var last_instruction_set: Dictionary = {}
+var simulated_circuit_config: Dictionary = {}
+var last_instruction_command_batch: Array = []
+var last_compatibility_params: Dictionary = {}
+var current_control_state := {
+	"linear_x": 0.0,
+	"linear_y": 0.0,
+	"angular_z": 0.0,
+	"gait": "",
+	"pose": "",
+	"step_count": 0
+}
 
 func _ready():
 	var cli_args = OS.get_cmdline_args()
@@ -142,18 +154,66 @@ func _process_command(cmd):
 			response = {
 				"sensors": {
 					"battery": {"type": "float32", "shape": [1]},
-					"vector": {"type": "float32", "shape": [24]}
+					"vector": {"type": "float32", "shape": [24]},
+					"instruction_runtime": {"type": "dict"},
+					"simulated_circuit": {"type": "dict"}
 				},
 				"actuators": {
-					"action": {"type": "float32", "shape": [2], "range": [-10.0, 10.0]}
+					"action": {"type": "float32", "shape": [2], "range": [-10.0, 10.0]},
+					"instruction_set": {"type": "dict"},
+					"configure_simulated_circuit": {"type": "dict"}
 				},
 				"meta": {
 					"last_loaded_parts": last_loaded_robot_config.get("parts", []).size(),
-					"last_loaded_connections": last_loaded_robot_config.get("connections", []).size()
+					"last_loaded_connections": last_loaded_robot_config.get("connections", []).size(),
+					"last_instruction_step_count": last_instruction_set.get("steps", []).size(),
+					"last_instruction_sequence": last_instruction_set.get("sequence_name", ""),
+					"simulated_circuit_transport": simulated_circuit_config.get("transport", "")
 				}
 			}
+	elif cmd.type == "configure_simulated_circuit":
+		simulated_circuit_config = cmd.get("simulated_circuit", {}).duplicate(true)
+		response = {
+			"status": "success",
+			"mode": "fallback",
+			"simulated_circuit": simulated_circuit_config,
+			"message": "simulated circuit configured"
+		}
+	elif cmd.type == "instruction_set":
+		var instruction_payload = cmd.get("instruction_set", {})
+		last_instruction_set = instruction_payload.duplicate(true)
+		last_instruction_command_batch = cmd.get("simulated_circuit_command_batch", []).duplicate(true)
+		last_compatibility_params = cmd.get("compatibility_params", {}).duplicate(true)
+		_apply_instruction_steps(last_instruction_set.get("steps", []))
+		response = {
+			"status": "success",
+			"mode": "fallback",
+			"sequence_name": last_instruction_set.get("sequence_name", ""),
+			"instruction_step_count": last_instruction_set.get("steps", []).size(),
+			"simulated_circuit_configured": not simulated_circuit_config.is_empty(),
+			"compatibility_params": last_compatibility_params,
+			"simulated_circuit_command_batch": last_instruction_command_batch
+		}
 			
 	_send_response(response)
+
+func _apply_instruction_steps(steps: Array) -> void:
+	current_control_state["step_count"] = steps.size()
+	for step in steps:
+		var kind = step.get("kind", "")
+		match kind:
+			"set_velocity":
+				current_control_state["linear_x"] = float(step.get("linear_x", 0.0))
+				current_control_state["linear_y"] = float(step.get("linear_y", 0.0))
+				current_control_state["angular_z"] = float(step.get("angular_z", 0.0))
+			"set_gait":
+				current_control_state["gait"] = str(step.get("gait", ""))
+			"set_pose":
+				current_control_state["pose"] = str(step.get("pose", ""))
+			"emergency_stop":
+				current_control_state["linear_x"] = 0.0
+				current_control_state["linear_y"] = 0.0
+				current_control_state["angular_z"] = 0.0
 
 func _get_observation():
 	if robot_node != null and robot_node.has_method("get_sensor_data"):
@@ -167,7 +227,21 @@ func _get_observation():
 	return {
 		"image": [], # optimized out for now
 		"vector": vec, # Mock 24-dim vector
-		"battery": 100.0
+		"battery": 100.0,
+		"instruction_runtime": {
+			"sequence_name": last_instruction_set.get("sequence_name", ""),
+			"step_count": current_control_state["step_count"],
+			"linear_x": current_control_state["linear_x"],
+			"linear_y": current_control_state["linear_y"],
+			"angular_z": current_control_state["angular_z"],
+			"gait": current_control_state["gait"],
+			"pose": current_control_state["pose"]
+		},
+		"simulated_circuit": {
+			"configured": not simulated_circuit_config.is_empty(),
+			"transport": simulated_circuit_config.get("transport", ""),
+			"command_batch_size": last_instruction_command_batch.size()
+		}
 	}
 
 func _send_response(resp_dict):

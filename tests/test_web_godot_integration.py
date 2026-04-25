@@ -105,6 +105,52 @@ class TestWebSocketProtocol:
         assert response.status == "success"
         assert called["start"] is True
 
+    def test_instruction_set_and_simulated_circuit_routing(self) -> None:
+        handler = WebSocketProtocolHandler()
+        recorded = {}
+
+        handler.on_instruction_set_apply = lambda payload: recorded.setdefault(
+            "instruction_set", payload
+        ) or {"accepted": True}
+        handler.on_simulated_circuit_configure = lambda payload: recorded.setdefault(
+            "simulated_circuit", payload
+        ) or {"configured": True}
+
+        instruction_response = handler.route_message(
+            WsMessage(
+                type=MessageType.INSTRUCTION_SET_APPLY.value,
+                payload={
+                    "instruction_set": {
+                        "schema_version": "1.0",
+                        "sequence_name": "demo",
+                        "steps": [
+                            {
+                                "kind": "set_velocity",
+                                "linear_x": 0.2,
+                                "linear_y": 0.0,
+                                "angular_z": 0.1,
+                            }
+                        ],
+                    }
+                },
+            )
+        )
+        circuit_response = handler.route_message(
+            WsMessage(
+                type=MessageType.SIMULATED_CIRCUIT_CONFIGURE.value,
+                payload={"simulated_circuit": {"transport": "imc22_can_fd"}},
+            )
+        )
+
+        assert instruction_response.status == "success"
+        assert instruction_response.payload["status"] == "instruction_set_applied"
+        assert circuit_response.status == "success"
+        assert (
+            circuit_response.payload["status"] == "simulated_circuit_configured"
+        )
+        assert recorded["instruction_set"]["sequence_name"] == "demo"
+        assert recorded["simulated_circuit"]["transport"] == "imc22_can_fd"
+
     def test_telemetry_push(self) -> None:
         """测试遥测数据推送"""
         handler = WebSocketProtocolHandler()

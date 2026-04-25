@@ -250,6 +250,8 @@ legacy controller：
 - `POST /api/godot/start`
 - `POST /api/godot/stop`
 - `POST /api/godot/update-params`
+- `POST /api/godot/instruction-set`
+- `POST /api/godot/simulated-circuit`
 
 session bridge：
 
@@ -258,7 +260,46 @@ session bridge：
 - `POST /api/godot/{session_id}/launch`
 - `POST /api/godot/{session_id}/stop`
 - `POST /api/godot/{session_id}/control`
+- `POST /api/godot/{session_id}/instruction-set`
+- `POST /api/godot/{session_id}/simulated-circuit`
 - `WS /ws/{session_id}`
+
+WebSocket 新增消息：
+
+- `instruction_set.apply`
+- `simulated_circuit.configure`
+
+### Godot / ROS2 / 模拟电路扩展契约
+
+- Canonical contract module：`agi_walker/core/api/comm/instruction_control_contracts.py`
+- `instruction_set.schema_version=1.0`
+- `simulated_circuit.schema_version=1.0`
+- 默认模拟电路参数：
+  - `transport=imc22_can_fd`
+  - `bitrate=1000000`
+  - `control_freq_hz=100`
+  - `status_rate_hz=200`
+  - `command_base_id=0x200`
+  - `status_base_id=0x100`
+  - `config_base_id=0x300`
+- ROS2 bridge 现在会把结构化 `instruction_set` payload 同时投影到：
+  - Godot `instruction_set` 命令
+  - legacy `update_params` 兼容参数
+  - `simulated_circuit_command_batch`
+- ROS2 bridge 一期控制面新增：
+  - topic ` /instruction_set/json`
+  - topic ` /simulated_circuit/json`
+  - publisher ` /instruction_runtime/json`
+  - service ` /instruction_set/replay_last`
+  - service ` /simulated_circuit/apply_default`
+- `instruction_runtime/json` 现在会附带：
+  - `simulated_circuit_feedback`
+  - `latest_result.simulated_circuit_feedback`
+- Godot session bridge 现已原生支持：
+  - TCP `instruction_set`
+  - TCP `configure_simulated_circuit`
+  - 会话状态中的 `last_instruction_runtime`
+  - 会话状态中的 `simulated_circuit_config`
 
 ## 静态页面
 

@@ -176,6 +176,22 @@ class GodotSimulationClient:
         """
         return self.send_command("update_params", params)
 
+    def send_instruction_set(self, instruction_payload: Dict) -> bool:
+        """
+        发送产品化后的指令集控制 payload。
+
+        该路径用于 Godot / ROS2 / 硬件近似层共享同一份结构化控制契约。
+        """
+        return self.send_command("instruction_set", instruction_payload)
+
+    def configure_simulated_circuit(self, circuit_payload: Dict) -> bool:
+        """
+        发送模拟电路通信配置。
+
+        当前用于把 IMC-22/CAN 近似层的确定参数显式同步给 Godot 侧。
+        """
+        return self.send_command("configure_simulated_circuit", circuit_payload)
+
     def load_robot_config(self, parts: List[Dict], connections: List[Dict]) -> bool:
         """
         加载机器人配置

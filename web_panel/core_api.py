@@ -125,6 +125,8 @@ def godot_capabilities() -> Dict[str, Any]:
                     "/api/godot/{session_id}/stop",
                     "/api/godot/{session_id}/status",
                     "/api/godot/{session_id}/control",
+                    "/api/godot/{session_id}/instruction-set",
+                    "/api/godot/{session_id}/simulated-circuit",
                     "/ws/{session_id}",
                 ],
                 "tcp_commands": [
@@ -132,6 +134,8 @@ def godot_capabilities() -> Dict[str, Any]:
                     "step",
                     "get_schema",
                     "load_robot",
+                    "instruction_set",
+                    "configure_simulated_circuit",
                 ],
                 "status": "preferred",
                 "status_schema_version": "1.0",

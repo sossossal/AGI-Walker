@@ -49,10 +49,30 @@ def _send_message(sock: socket.socket, payload: Dict[str, Any]) -> None:
 
 def _handle_client(conn: socket.socket) -> None:
     schema = {
-        "sensors": {"pose": {"type": "vector3"}, "imu": {"type": "vector3"}},
-        "actuators": {"motors": {"size": 12}},
+        "sensors": {
+            "pose": {"type": "vector3"},
+            "imu": {"type": "vector3"},
+            "instruction_runtime": {"type": "dict"},
+            "simulated_circuit": {"type": "dict"},
+        },
+        "actuators": {
+            "motors": {"size": 12},
+            "instruction_set": {"type": "dict"},
+            "configure_simulated_circuit": {"type": "dict"},
+        },
+        "meta": {
+            "supported_commands": [
+                "get_schema",
+                "load_robot",
+                "step",
+                "instruction_set",
+                "configure_simulated_circuit",
+            ]
+        },
     }
     sensor_step = 0
+    latest_instruction: Dict[str, Any] = {}
+    latest_circuit: Dict[str, Any] = {}
     try:
         while True:
             header = _recv_exact(conn, 4)
@@ -68,9 +88,32 @@ def _handle_client(conn: socket.socket) -> None:
             logger.info("received %s", payload_type)
 
             if payload_type == "get_schema":
+                schema["meta"]["last_instruction_sequence"] = latest_instruction.get(
+                    "sequence_name", ""
+                )
+                schema["meta"]["simulated_circuit_transport"] = latest_circuit.get(
+                    "transport", ""
+                )
                 response = schema
             elif payload_type == "load_robot":
                 response = {"status": "success", "message": "robot loaded"}
+            elif payload_type == "instruction_set":
+                latest_instruction = payload.get("instruction_set", {})
+                response = {
+                    "status": "success",
+                    "sequence_name": latest_instruction.get("sequence_name", ""),
+                    "instruction_step_count": len(latest_instruction.get("steps", [])),
+                    "simulated_circuit_command_batch": payload.get(
+                        "simulated_circuit_command_batch", []
+                    ),
+                    "compatibility_params": payload.get("compatibility_params", {}),
+                }
+            elif payload_type == "configure_simulated_circuit":
+                latest_circuit = payload.get("simulated_circuit", {})
+                response = {
+                    "status": "success",
+                    "simulated_circuit": latest_circuit,
+                }
             elif payload_type == "step":
                 sensor_step += 1
                 response = {
@@ -80,6 +123,14 @@ def _handle_client(conn: socket.socket) -> None:
                         "pose": [0.0, 0.0, 0.0],
                         "imu": [0.0, 0.0, 0.0],
                         "timestamp": time.time(),
+                    },
+                    "instruction_runtime": {
+                        "sequence_name": latest_instruction.get("sequence_name", ""),
+                        "step_count": len(latest_instruction.get("steps", [])),
+                    },
+                    "simulated_circuit": {
+                        "configured": bool(latest_circuit),
+                        "transport": latest_circuit.get("transport", ""),
                     },
                 }
             else:

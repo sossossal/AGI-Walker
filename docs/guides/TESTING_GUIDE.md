@@ -88,6 +88,11 @@ python tests/run_smoke_tests.py
 
 它是当前最值得保留在日常开发循环里的专项验证脚本。
 当显式设置相应环境变量时，它也会尝试运行 live smoke，例如 Godot headless 和 ROS2 bridge。
+默认 non-live smoke 现在还会覆盖：
+
+- Godot instruction-set smoke
+- ROS2 instruction-set smoke
+- simulated circuit replay smoke
 
 ## 5. 重型集成测试
 

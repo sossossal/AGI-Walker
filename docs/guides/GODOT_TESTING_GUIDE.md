@@ -18,6 +18,18 @@ python -m pytest tests/test_godot_agent_factory.py tests/test_godot_agent_adapte
 python -m pytest tests/test_web_godot_integration.py tests/test_web_panel_integration_routes.py -q
 ```
 
+### 结构化指令集 / 模拟电路 smoke
+
+```bash
+python tests/run_smoke_tests.py
+```
+
+默认 smoke 现在还会覆盖：
+
+- Godot session bridge `instruction_set`
+- Godot session bridge `simulated_circuit`
+- simulated circuit replay 非 live 闭环
+
 ### Smoke Runner 中的 fake backend
 
 ```bash

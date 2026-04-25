@@ -45,6 +45,8 @@ def test_godot_capabilities_exposes_both_modes(client: TestClient) -> None:
         "step",
         "get_schema",
         "load_robot",
+        "instruction_set",
+        "configure_simulated_circuit",
     ]
     assert payload["modes"]["session_bridge"]["status"] == "preferred"
     assert payload["modes"]["session_bridge"]["status_schema_version"] == "1.0"
@@ -207,6 +209,80 @@ def test_websocket_commands_return_error_when_godot_not_connected(
     assert load_response["payload"]["error"] == "Godot is not connected"
 
 
+def test_websocket_instruction_and_circuit_commands_bind_controller_session(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session_id = f"ws-instruction-{uuid.uuid4().hex}"
+    recorded = {}
+
+    monkeypatch.setattr(web_panel.server.godot_controller, "is_connected", lambda: True)
+    monkeypatch.setattr(
+        web_panel.server.godot_controller,
+        "send_instruction_set",
+        lambda payload, session_id=None: (
+            recorded.setdefault(
+                "instruction", {"payload": payload, "session_id": session_id}
+            )
+            or True
+        ),
+    )
+    monkeypatch.setattr(
+        web_panel.server.godot_controller,
+        "configure_simulated_circuit",
+        lambda payload, session_id=None: (
+            recorded.setdefault(
+                "circuit", {"payload": payload, "session_id": session_id}
+            )
+            or True
+        ),
+    )
+
+    with client.websocket_connect(f"/ws/{session_id}") as websocket:
+        websocket.send_text(
+            WsMessage(
+                type=MessageType.INSTRUCTION_SET_APPLY.value,
+                payload={
+                    "instruction_set": {
+                        "schema_version": "1.0",
+                        "sequence_name": "demo",
+                        "steps": [
+                            {
+                                "kind": "set_velocity",
+                                "linear_x": 0.1,
+                                "linear_y": 0.0,
+                                "angular_z": 0.05,
+                            }
+                        ],
+                    }
+                },
+            ).to_json()
+        )
+        instruction_response = websocket.receive_json()
+
+        websocket.send_text(
+            WsMessage(
+                type=MessageType.SIMULATED_CIRCUIT_CONFIGURE.value,
+                payload={
+                    "simulated_circuit": {
+                        "transport": "imc22_can_fd",
+                        "bitrate": 1_000_000,
+                    }
+                },
+            ).to_json()
+        )
+        circuit_response = websocket.receive_json()
+
+    assert instruction_response["status"] == "success"
+    assert instruction_response["payload"]["status"] == "instruction_set_applied"
+    assert circuit_response["status"] == "success"
+    assert circuit_response["payload"]["status"] == "simulated_circuit_configured"
+    assert recorded["instruction"]["session_id"] == session_id
+    assert recorded["instruction"]["payload"]["sequence_name"] == "demo"
+    assert recorded["circuit"]["session_id"] == session_id
+    assert recorded["circuit"]["payload"]["transport"] == "imc22_can_fd"
+
+
 def test_websocket_legacy_commands_bind_controller_session(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -237,6 +313,88 @@ def test_websocket_legacy_commands_bind_controller_session(
         "physics": {"gravity": 1.62},
         "session_id": session_id,
     }
+
+
+def test_session_bridge_instruction_and_circuit_routes(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    session_id = f"bridge-routes-{uuid.uuid4().hex}"
+    observed: dict[str, object] = {}
+
+    class FakeBridge:
+        session_state = "running"
+        simulated_circuit_config = {"transport": "imc22_can_fd"}
+
+        def is_connected(self) -> bool:
+            return True
+
+        async def configure_simulated_circuit(
+            self, simulated_circuit: dict[str, object]
+        ) -> dict[str, object]:
+            observed["simulated_circuit"] = simulated_circuit
+            self.simulated_circuit_config = dict(simulated_circuit)
+            return {
+                "status": "success",
+                "simulated_circuit": simulated_circuit,
+            }
+
+        async def apply_instruction_set(
+            self,
+            instruction_set: dict[str, object],
+            *,
+            compatibility_params: dict[str, object] | None = None,
+            simulated_circuit_command_batch: list[dict[str, object]] | None = None,
+        ) -> dict[str, object]:
+            observed["instruction_set"] = instruction_set
+            observed["compatibility_params"] = compatibility_params or {}
+            observed["command_batch"] = simulated_circuit_command_batch or []
+            return {
+                "status": "success",
+                "instruction_step_count": len(instruction_set.get("steps", [])),
+            }
+
+        def get_status_payload(self) -> dict[str, object]:
+            return {
+                "schema_version": "1.0",
+                "session_state": self.session_state,
+                "engine_running": True,
+                "tcp_connected": True,
+                "simulated_circuit_config": self.simulated_circuit_config,
+            }
+
+    fake_bridge = FakeBridge()
+    monkeypatch.setattr(web_panel.server._session_manager, "get_session", lambda _: fake_bridge)
+
+    instruction_response = client.post(
+        f"/api/godot/{session_id}/instruction-set",
+        json={
+            "instruction_set": {
+                "schema_version": "1.0",
+                "sequence_name": "route-demo",
+                "steps": [{"kind": "set_velocity", "linear_x": 0.1}],
+            },
+            "compatibility_params": {"velocity_scale": 0.1},
+            "simulated_circuit_command_batch": [{"frame_id": 0x200}],
+        },
+    )
+    circuit_response = client.post(
+        f"/api/godot/{session_id}/simulated-circuit",
+        json={
+            "simulated_circuit": {
+                "transport": "imc22_can_fd",
+                "bitrate": 1_000_000,
+            }
+        },
+    )
+
+    assert instruction_response.status_code == 200
+    assert instruction_response.json()["status"] == "success"
+    assert circuit_response.status_code == 200
+    assert circuit_response.json()["status"] == "success"
+    assert observed["instruction_set"]["sequence_name"] == "route-demo"
+    assert observed["compatibility_params"]["velocity_scale"] == 0.1
+    assert observed["command_batch"][0]["frame_id"] == 0x200
+    assert observed["simulated_circuit"]["transport"] == "imc22_can_fd"
 
 
 async def _run_session_bridge_get_sensors_polls_with_step(
@@ -286,6 +444,64 @@ def test_session_bridge_get_sensors_polls_with_step(
 
 def test_session_bridge_schema_state(monkeypatch: pytest.MonkeyPatch) -> None:
     asyncio.run(_run_session_bridge_schema_state(monkeypatch))
+
+
+async def _run_session_bridge_instruction_and_circuit_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bridge = GodotBridge("instruction-runtime-test", 9003)
+    observed: list[dict[str, object]] = []
+
+    async def fake_send_recv(payload):
+        observed.append(payload)
+        if payload["type"] == "configure_simulated_circuit":
+            return {
+                "status": "success",
+                "simulated_circuit": payload["simulated_circuit"],
+            }
+        return {
+            "status": "success",
+            "sequence_name": payload["instruction_set"].get("sequence_name", ""),
+            "instruction_step_count": len(payload["instruction_set"].get("steps", [])),
+        }
+
+    class FakeWriter:
+        def is_closing(self) -> bool:
+            return False
+
+    bridge.writer = FakeWriter()
+    monkeypatch.setattr(bridge, "_send_recv", fake_send_recv)
+
+    circuit_response = await bridge.configure_simulated_circuit(
+        {"transport": "imc22_can_fd", "bitrate": 1_000_000}
+    )
+    instruction_response = await bridge.apply_instruction_set(
+        {
+            "schema_version": "1.0",
+            "sequence_name": "bridge-demo",
+            "steps": [{"kind": "set_velocity", "linear_x": 0.1}],
+        },
+        compatibility_params={"velocity_scale": 0.1},
+        simulated_circuit_command_batch=[{"frame_id": 0x200}],
+    )
+
+    assert observed[0]["type"] == "configure_simulated_circuit"
+    assert observed[1]["type"] == "instruction_set"
+    assert circuit_response["simulated_circuit"]["transport"] == "imc22_can_fd"
+    assert instruction_response["sequence_name"] == "bridge-demo"
+    status = bridge.get_status_payload()
+    assert status["simulated_circuit_config"]["transport"] == "imc22_can_fd"
+    assert (
+        status["last_instruction_runtime"]["instruction_set"]["sequence_name"]
+        == "bridge-demo"
+    )
+    assert status["session_state"] == "running"
+
+
+def test_session_bridge_instruction_and_circuit_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    asyncio.run(_run_session_bridge_instruction_and_circuit_state(monkeypatch))
 
 
 async def _run_session_bridge_send_recv_uses_little_endian() -> None:

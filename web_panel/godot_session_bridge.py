@@ -123,6 +123,8 @@ class GodotBridge:
         self.tcp_lock = asyncio.Lock()
         self.recorder = TrajectoryRecorder(session_id)
         self.last_sensor: Dict[str, Any] = {}
+        self.last_instruction_runtime: Dict[str, Any] = {}
+        self.simulated_circuit_config: Dict[str, Any] = {}
         self.on_telemetry = None
         self._schema: Optional[Dict[str, Any]] = None
         self._detached_pid: Optional[int] = None
@@ -340,6 +342,69 @@ class GodotBridge:
             self._set_state("schema_ready" if self._schema else "connected")
         return response
 
+    async def configure_simulated_circuit(
+        self, simulated_circuit: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        response = (
+            await self._send_recv(
+                {
+                    "type": "configure_simulated_circuit",
+                    "simulated_circuit": simulated_circuit,
+                }
+            )
+            or {}
+        )
+        if response.get("status") == "error":
+            self._set_state(
+                "failed",
+                failure_stage="simulated_circuit",
+                failure_message=str(response.get("message") or response),
+            )
+        elif response:
+            self.simulated_circuit_config = response.get(
+                "simulated_circuit", simulated_circuit
+            )
+            self._set_state("schema_ready" if self._schema else "connected")
+        return response
+
+    async def apply_instruction_set(
+        self,
+        instruction_set: Dict[str, Any],
+        *,
+        compatibility_params: Optional[Dict[str, Any]] = None,
+        simulated_circuit_command_batch: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        response = (
+            await self._send_recv(
+                {
+                    "type": "instruction_set",
+                    "instruction_set": instruction_set,
+                    "compatibility_params": compatibility_params or {},
+                    "simulated_circuit_command_batch": (
+                        simulated_circuit_command_batch or []
+                    ),
+                }
+            )
+            or {}
+        )
+        if response.get("status") == "error":
+            self._set_state(
+                "failed",
+                failure_stage="instruction_set",
+                failure_message=str(response.get("message") or response),
+            )
+        elif response:
+            self.last_instruction_runtime = {
+                "instruction_set": instruction_set,
+                "compatibility_params": compatibility_params or {},
+                "simulated_circuit_command_batch": (
+                    simulated_circuit_command_batch or []
+                ),
+                "response": response,
+            }
+            self._set_state("running")
+        return response
+
     async def wait_until_connected(self, timeout_seconds: float = 10.0) -> bool:
         deadline = time.monotonic() + timeout_seconds
         while time.monotonic() < deadline:
@@ -408,6 +473,8 @@ class GodotBridge:
             "schema_available": bool(self._schema),
             "schema": self._schema or {},
             "last_sensor": self.last_sensor,
+            "last_instruction_runtime": self.last_instruction_runtime,
+            "simulated_circuit_config": self.simulated_circuit_config,
             "log_file_path": self._log_file_path,
             "last_connect_error": self._last_connect_error,
             "failure_stage": self.failure_stage,
@@ -534,6 +601,74 @@ def build_router(
         return {
             "status": "success",
             "sensors": sensors,
+            "session": bridge.get_status_payload(),
+            "session_state": bridge.session_state,
+        }
+
+    @router.post("/api/godot/{session_id}/simulated-circuit")
+    async def configure_session_simulated_circuit(
+        session_id: str, payload: Dict[str, Any]
+    ):
+        bridge = manager.get_session(session_id)
+        if bridge is None:
+            return {
+                "status": "error",
+                "message": f"Session '{session_id}' not found.",
+                "session": disconnected_session_status(session_id),
+                "session_state": "disconnected",
+            }
+        if not bridge.is_connected():
+            return {
+                "status": "error",
+                "message": f"Session '{session_id}' is not connected.",
+                "session": bridge.get_status_payload(),
+                "session_state": bridge.session_state,
+            }
+        simulated_circuit = payload.get("simulated_circuit") or payload
+        result = await bridge.configure_simulated_circuit(simulated_circuit)
+        return {
+            "status": "error" if result.get("status") == "error" else "success",
+            "simulated_circuit": result.get(
+                "simulated_circuit", bridge.simulated_circuit_config
+            ),
+            "dispatch_result": result,
+            "session": bridge.get_status_payload(),
+            "session_state": bridge.session_state,
+        }
+
+    @router.post("/api/godot/{session_id}/instruction-set")
+    async def apply_session_instruction_set(
+        session_id: str, payload: Dict[str, Any]
+    ):
+        bridge = manager.get_session(session_id)
+        if bridge is None:
+            return {
+                "status": "error",
+                "message": f"Session '{session_id}' not found.",
+                "session": disconnected_session_status(session_id),
+                "session_state": "disconnected",
+            }
+        if not bridge.is_connected():
+            return {
+                "status": "error",
+                "message": f"Session '{session_id}' is not connected.",
+                "session": bridge.get_status_payload(),
+                "session_state": bridge.session_state,
+            }
+        instruction_set = payload.get("instruction_set") or {}
+        compatibility_params = payload.get("compatibility_params") or {}
+        command_batch = payload.get("simulated_circuit_command_batch") or []
+        result = await bridge.apply_instruction_set(
+            instruction_set,
+            compatibility_params=compatibility_params,
+            simulated_circuit_command_batch=command_batch,
+        )
+        return {
+            "status": "error" if result.get("status") == "error" else "success",
+            "instruction_set": instruction_set,
+            "compatibility_params": compatibility_params,
+            "simulated_circuit_command_batch": command_batch,
+            "dispatch_result": result,
             "session": bridge.get_status_payload(),
             "session_state": bridge.session_state,
         }

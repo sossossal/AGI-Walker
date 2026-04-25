@@ -29,6 +29,8 @@ class MessageType(Enum):
     SIMULATION_STOP = "simulation.stop"
     CONFIG_LOAD_ROBOT = "config.load_robot"
     PARAMS_UPDATE = "params.update"
+    INSTRUCTION_SET_APPLY = "instruction_set.apply"
+    SIMULATED_CIRCUIT_CONFIGURE = "simulated_circuit.configure"
     TELEOP_COMMAND = "teleop.command"  # V3.0: VR/XR Remote Teaching
     PING = "ping"
 
@@ -122,6 +124,8 @@ class WebSocketProtocolHandler:
             MessageType.SIMULATION_STOP.value: self._handle_stop_simulation,
             MessageType.CONFIG_LOAD_ROBOT.value: self._handle_load_robot,
             MessageType.PARAMS_UPDATE.value: self._handle_update_params,
+            MessageType.INSTRUCTION_SET_APPLY.value: self._handle_instruction_set_apply,
+            MessageType.SIMULATED_CIRCUIT_CONFIGURE.value: self._handle_simulated_circuit_configure,
             MessageType.TELEOP_COMMAND.value: self._handle_teleop_command,
             MessageType.PING.value: self._handle_ping,
         }
@@ -131,6 +135,8 @@ class WebSocketProtocolHandler:
         self.on_stop_simulation: Optional[Callable] = None
         self.on_load_robot: Optional[Callable] = None
         self.on_update_params: Optional[Callable] = None
+        self.on_instruction_set_apply: Optional[Callable] = None
+        self.on_simulated_circuit_configure: Optional[Callable] = None
         self.on_telemetry: Optional[Callable] = None
 
     def route_message(self, message: WsMessage) -> Optional[WsMessage]:
@@ -235,6 +241,64 @@ class WebSocketProtocolHandler:
                 type=message.type,
                 id=message.id,
                 payload={"status": "parameters_updated", "params": params},
+                status="success",
+            )
+        except Exception as e:
+            return WsMessage(
+                type=message.type,
+                id=message.id,
+                payload={"error": str(e)},
+                status="error",
+            )
+
+    def _handle_instruction_set_apply(self, message: WsMessage) -> WsMessage:
+        """Handle instruction_set.apply command"""
+        try:
+            instruction_set = message.payload.get("instruction_set", {})
+
+            if self.on_instruction_set_apply:
+                result = self.on_instruction_set_apply(instruction_set)
+                if result is False:
+                    raise RuntimeError("Failed to apply instruction set")
+            else:
+                result = {"status": "accepted"}
+
+            return WsMessage(
+                type=message.type,
+                id=message.id,
+                payload={
+                    "status": "instruction_set_applied",
+                    "result": result,
+                },
+                status="success",
+            )
+        except Exception as e:
+            return WsMessage(
+                type=message.type,
+                id=message.id,
+                payload={"error": str(e)},
+                status="error",
+            )
+
+    def _handle_simulated_circuit_configure(self, message: WsMessage) -> WsMessage:
+        """Handle simulated_circuit.configure command"""
+        try:
+            simulated_circuit = message.payload.get("simulated_circuit", {})
+
+            if self.on_simulated_circuit_configure:
+                result = self.on_simulated_circuit_configure(simulated_circuit)
+                if result is False:
+                    raise RuntimeError("Failed to configure simulated circuit")
+            else:
+                result = {"status": "accepted"}
+
+            return WsMessage(
+                type=message.type,
+                id=message.id,
+                payload={
+                    "status": "simulated_circuit_configured",
+                    "result": result,
+                },
                 status="success",
             )
         except Exception as e:

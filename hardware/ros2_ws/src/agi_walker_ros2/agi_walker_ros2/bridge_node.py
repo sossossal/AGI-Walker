@@ -11,13 +11,14 @@ import rclpy
 import threading
 from pathlib import Path
 import sys
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 
 from sensor_msgs.msg import JointState, Imu, BatteryState
 from geometry_msgs.msg import Twist
+from std_msgs.msg import String
 from std_srvs.srv import Trigger
 from tf2_ros import TransformBroadcaster
 
@@ -107,6 +108,12 @@ def validate_ros2_bridge_replay_payload(payload: Dict) -> list[str]:
             for key in ["linear_x", "linear_y", "angular_z"]:
                 if not isinstance(cmd_vel.get(key), (int, float)):
                     errors.append(f"cmd_vel.{key} must be numeric")
+    instruction_set = payload.get("instruction_set")
+    if instruction_set is not None:
+        errors.extend(validate_instruction_set_payload(instruction_set))
+    simulated_circuit = payload.get("simulated_circuit")
+    if simulated_circuit is not None:
+        errors.extend(validate_simulated_circuit_config(simulated_circuit))
     return errors
 
 
@@ -121,15 +128,62 @@ def load_ros2_bridge_replay_payload(source: str | Path | Dict) -> Dict:
     return payload
 
 
+_add_repo_root_to_path()
+
 try:
     from agi_walker.core.api.comm.godot_client import GodotSimulationClient
+    from agi_walker.core.api.comm.instruction_control_contracts import (
+        build_instruction_runtime_contract,
+        default_simulated_circuit_config,
+        validate_instruction_set_payload,
+        validate_simulated_circuit_config,
+    )
+    from agi_walker.core.api.godot_robot_env.hardware_controller import (
+        simulate_imc22_command_batch_feedback,
+    )
 except ImportError:
-    _add_repo_root_to_path()
-    try:
-        from agi_walker.core.api.comm.godot_client import GodotSimulationClient
-    except ImportError:
-        print("Error: Cannot import AGI-Walker Godot client.")
-        GodotSimulationClient = None
+    print("Error: Cannot import AGI-Walker communication contracts.")
+    GodotSimulationClient = None
+
+    def default_simulated_circuit_config() -> Dict[str, Any]:
+        return {
+            "schema_version": "1.0",
+            "transport": "imc22_can_fd",
+            "channel": "simulated-can0",
+            "bustype": "virtual",
+            "bitrate": 1_000_000,
+            "control_freq_hz": 100,
+            "status_rate_hz": 200,
+            "command_base_id": 0x200,
+            "status_base_id": 0x100,
+            "config_base_id": 0x300,
+            "default_compliance": 0.5,
+            "joint_order": list(DEFAULT_JOINT_NAMES),
+        }
+
+    def validate_instruction_set_payload(payload: Dict[str, Any]) -> list[str]:
+        return [] if isinstance(payload, dict) else ["instruction_set must be a dict"]
+
+    def validate_simulated_circuit_config(payload: Dict[str, Any]) -> list[str]:
+        return [] if isinstance(payload, dict) else ["simulated_circuit must be a dict"]
+
+    def build_instruction_runtime_contract(payload: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "instruction_set": payload,
+            "compatibility_params": {},
+            "simulated_circuit": default_simulated_circuit_config(),
+            "simulated_circuit_command_batch": [],
+        }
+
+    def simulate_imc22_command_batch_feedback(
+        command_batch: list[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        return {
+            "schema_version": "1.0",
+            "replay_payload": {"schema_version": "1.0", "frames": []},
+            "states": {},
+            "node_ids": [],
+        }
 
 
 class AGIWalkerROS2Bridge(Node):
@@ -145,6 +199,10 @@ class AGIWalkerROS2Bridge(Node):
         self.godot_client: Optional[GodotSimulationClient] = None
         self.latest_data: Dict = {}
         self.simulation_running = False
+        self.latest_instruction_runtime: Optional[Dict[str, Any]] = None
+        self.latest_instruction_result: Optional[Dict[str, Any]] = None
+        self.latest_simulated_feedback: Optional[Dict[str, Any]] = None
+        self.simulated_circuit_config: Dict[str, Any] = default_simulated_circuit_config()
 
         # 连接到Godot
         self.connect_to_godot()
@@ -242,6 +300,9 @@ class AGIWalkerROS2Bridge(Node):
         self.battery_pub = self.create_publisher(BatteryState, "/battery", 10)
 
         self.imu_pub = self.create_publisher(Imu, "/imu", self.qos_profile)
+        self.instruction_runtime_pub = self.create_publisher(
+            String, "/instruction_runtime/json", 10
+        )
 
         self.get_logger().info("Publishers initialized")
 
@@ -249,6 +310,15 @@ class AGIWalkerROS2Bridge(Node):
         """设置所有订阅器"""
         self.cmd_vel_sub = self.create_subscription(
             Twist, "/cmd_vel", self.cmd_vel_callback, 10
+        )
+        self.instruction_set_sub = self.create_subscription(
+            String, "/instruction_set/json", self.instruction_set_callback, 10
+        )
+        self.simulated_circuit_sub = self.create_subscription(
+            String,
+            "/simulated_circuit/json",
+            self.simulated_circuit_callback,
+            10,
         )
 
         self.get_logger().info("Subscribers initialized")
@@ -272,6 +342,17 @@ class AGIWalkerROS2Bridge(Node):
             self.get_logger().warn(
                 "LoadRobot service not available (custom msgs not built)"
             )
+
+        self.replay_instruction_srv = self.create_service(
+            Trigger,
+            "/instruction_set/replay_last",
+            self.replay_instruction_set_callback,
+        )
+        self.apply_default_circuit_srv = self.create_service(
+            Trigger,
+            "/simulated_circuit/apply_default",
+            self.apply_default_circuit_callback,
+        )
 
         self.get_logger().info("Services initialized")
 
@@ -341,6 +422,148 @@ class AGIWalkerROS2Bridge(Node):
             )
         else:
             self.get_logger().warn("Cannot send cmd_vel: not connected to Godot")
+
+    def instruction_set_callback(self, msg: String) -> None:
+        """结构化指令集 topic 回调。"""
+        try:
+            payload = json.loads(msg.data)
+        except json.JSONDecodeError as exc:
+            self.get_logger().error(f"Invalid instruction_set JSON: {exc}")
+            return
+
+        errors = validate_instruction_set_payload(payload)
+        if errors:
+            self.get_logger().error(
+                f"Invalid instruction_set payload: {'; '.join(errors)}"
+            )
+            return
+
+        result = self.apply_instruction_set_payload(payload)
+        self.publish_instruction_runtime("instruction_set_applied", result)
+
+    def simulated_circuit_callback(self, msg: String) -> None:
+        """模拟电路配置 topic 回调。"""
+        try:
+            payload = json.loads(msg.data)
+        except json.JSONDecodeError as exc:
+            self.get_logger().error(f"Invalid simulated_circuit JSON: {exc}")
+            return
+
+        errors = validate_simulated_circuit_config(payload)
+        if errors:
+            self.get_logger().error(
+                f"Invalid simulated_circuit payload: {'; '.join(errors)}"
+            )
+            return
+
+        self.simulated_circuit_config = payload
+        sent = False
+        if self.godot_client and self.godot_client.is_connected():
+            if hasattr(self.godot_client, "configure_simulated_circuit"):
+                sent = self.godot_client.configure_simulated_circuit(payload)
+        result = {
+            "status": "applied",
+            "simulated_circuit": payload,
+            "sent_circuit_config": sent,
+        }
+        self.publish_instruction_runtime("simulated_circuit_configured", result)
+
+    def apply_instruction_set_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Apply a structured ROS2/Godot instruction-set payload in simulation mode."""
+        runtime_contract = build_instruction_runtime_contract(payload)
+        self.latest_instruction_runtime = runtime_contract
+        self.simulated_circuit_config = runtime_contract["simulated_circuit"]
+
+        sent_instruction = False
+        sent_circuit_config = False
+        sent_compatibility_params = False
+        if self.godot_client and self.godot_client.is_connected():
+            if hasattr(self.godot_client, "configure_simulated_circuit"):
+                sent_circuit_config = self.godot_client.configure_simulated_circuit(
+                    runtime_contract["simulated_circuit"]
+                )
+            if hasattr(self.godot_client, "send_instruction_set"):
+                sent_instruction = self.godot_client.send_instruction_set(
+                    runtime_contract["instruction_set"]
+                )
+            compatibility_params = runtime_contract["compatibility_params"]
+            if compatibility_params:
+                sent_compatibility_params = self.godot_client.update_parameters(
+                    compatibility_params
+                )
+
+        result = {
+            "status": "applied",
+            "instruction_step_count": len(runtime_contract["instruction_set"]["steps"]),
+            "simulated_circuit": runtime_contract["simulated_circuit"],
+            "simulated_circuit_command_batch": runtime_contract[
+                "simulated_circuit_command_batch"
+            ],
+            "compatibility_params": runtime_contract["compatibility_params"],
+            "sent_instruction": sent_instruction,
+            "sent_circuit_config": sent_circuit_config,
+            "sent_compatibility_params": sent_compatibility_params,
+        }
+        if runtime_contract["simulated_circuit_command_batch"]:
+            replay_feedback = simulate_imc22_command_batch_feedback(
+                runtime_contract["simulated_circuit_command_batch"]
+            )
+            result["simulated_circuit_feedback"] = replay_feedback
+            self.latest_simulated_feedback = replay_feedback
+        self.latest_instruction_result = result
+        return result
+
+    def publish_instruction_runtime(
+        self, event: str, result: Dict[str, Any]
+    ) -> None:
+        """发布结构化指令运行态快照。"""
+        message = String()
+        message.data = json.dumps(
+            {
+                "event": event,
+                "instruction_runtime": self.latest_instruction_runtime,
+                "latest_result": result,
+                "simulated_circuit_config": self.simulated_circuit_config,
+                "simulated_circuit_feedback": self.latest_simulated_feedback,
+            }
+        )
+        self.instruction_runtime_pub.publish(message)
+
+    def replay_instruction_set_callback(self, request, response):
+        """重放最近一次结构化指令集。"""
+        if not self.latest_instruction_runtime:
+            response.success = False
+            response.message = "❌ No instruction_set payload has been applied yet"
+            return response
+
+        result = self.apply_instruction_set_payload(
+            self.latest_instruction_runtime["instruction_set"]
+        )
+        self.publish_instruction_runtime("instruction_set_replayed", result)
+        response.success = True
+        response.message = "✅ Replayed latest instruction_set payload"
+        return response
+
+    def apply_default_circuit_callback(self, request, response):
+        """应用默认模拟电路配置。"""
+        self.simulated_circuit_config = default_simulated_circuit_config()
+        sent = False
+        if self.godot_client and self.godot_client.is_connected():
+            if hasattr(self.godot_client, "configure_simulated_circuit"):
+                sent = self.godot_client.configure_simulated_circuit(
+                    self.simulated_circuit_config
+                )
+        self.publish_instruction_runtime(
+            "simulated_circuit_default_applied",
+            {
+                "status": "applied",
+                "simulated_circuit": self.simulated_circuit_config,
+                "sent_circuit_config": sent,
+            },
+        )
+        response.success = True
+        response.message = "✅ Applied default simulated circuit config"
+        return response
 
     def start_simulation_callback(self, request, response):
         """启动仿真服务"""
