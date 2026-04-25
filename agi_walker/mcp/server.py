@@ -197,6 +197,754 @@ def get_tool_definitions(
             input_schema={"type": "object", "properties": {}},
             handler=lambda args: active_provider.get_capability_matrix(),
         ),
+        "release_control_plane_surface_get": ToolDefinition(
+            name="release_control_plane_surface_get",
+            description="读取 canonical release/control-plane surface，优先来自 release_manifest，缺失时回退到 canonical release_ops wrapper。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "project_root": {
+                        "type": "string",
+                        "description": "用于解析默认 manifest/report 路径的项目根目录。",
+                    },
+                    "manifest_path": {
+                        "type": "string",
+                        "description": "可选 manifest 路径；提供时优先从该 release_manifest 读取 control_plane_surface。",
+                    },
+                    "release_ops_execution_report_path": {
+                        "type": "string",
+                        "description": "可选 release_ops_execution_report 路径；当 manifest 缺失时作为 fallback。",
+                    },
+                },
+            },
+            handler=lambda args: active_provider.get_release_control_plane_surface(
+                project_root=args.get("project_root"),
+                manifest_path=args.get("manifest_path"),
+                release_ops_execution_report_path=args.get(
+                    "release_ops_execution_report_path"
+                ),
+            ),
+        ),
+        "release_closeout_get": ToolDefinition(
+            name="release_closeout_get",
+            description="读取剩余 release closeout 问题的统一只读聚合面，汇总 external-mainline、vulnerability exception review 与 worktree blocker。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "project_root": {
+                        "type": "string",
+                        "description": "用于解析默认 artifact 路径的项目根目录。",
+                    },
+                    "external_mainline_execution_plan_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline_execution_plan.json 路径。",
+                    },
+                    "security_release_preflight_report_path": {
+                        "type": "string",
+                        "description": "可选 security_release_preflight_report.json 路径。",
+                    },
+                    "vulnerability_exception_review_report_path": {
+                        "type": "string",
+                        "description": "可选 vulnerability_exception_review_report.json 路径。",
+                    },
+                    "release_readiness_report_path": {
+                        "type": "string",
+                        "description": "可选 release_readiness_report.json 路径。",
+                    },
+                    "worktree_release_blocker_report_path": {
+                        "type": "string",
+                        "description": "可选 worktree_release_blocker_report.json 路径；当 readiness 内没有嵌套 blocker 时作为 fallback。",
+                    },
+                },
+            },
+            handler=lambda args: active_provider.get_release_closeout(
+                project_root=args.get("project_root"),
+                external_mainline_execution_plan_path=args.get(
+                    "external_mainline_execution_plan_path"
+                ),
+                security_release_preflight_report_path=args.get(
+                    "security_release_preflight_report_path"
+                ),
+                vulnerability_exception_review_report_path=args.get(
+                    "vulnerability_exception_review_report_path"
+                ),
+                release_readiness_report_path=args.get(
+                    "release_readiness_report_path"
+                ),
+                worktree_release_blocker_report_path=args.get(
+                    "worktree_release_blocker_report_path"
+                ),
+            ),
+        ),
+        "release_closeout_component_get": ToolDefinition(
+            name="release_closeout_component_get",
+            description="读取单个 release closeout component 的只读聚合详情，返回 component payload 与对应 action item。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "component": {
+                        "type": "string",
+                        "description": "closeout component 名称。",
+                    },
+                    "project_root": {
+                        "type": "string",
+                        "description": "用于解析默认 artifact 路径的项目根目录。",
+                    },
+                    "external_mainline_execution_plan_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline_execution_plan.json 路径。",
+                    },
+                    "security_release_preflight_report_path": {
+                        "type": "string",
+                        "description": "可选 security_release_preflight_report.json 路径。",
+                    },
+                    "vulnerability_exception_review_report_path": {
+                        "type": "string",
+                        "description": "可选 vulnerability_exception_review_report.json 路径。",
+                    },
+                    "release_readiness_report_path": {
+                        "type": "string",
+                        "description": "可选 release_readiness_report.json 路径。",
+                    },
+                    "worktree_release_blocker_report_path": {
+                        "type": "string",
+                        "description": "可选 worktree_release_blocker_report.json 路径。",
+                    },
+                },
+                "required": ["component"],
+            },
+            handler=lambda args: active_provider.get_release_closeout_component(
+                args.get("component", ""),
+                project_root=args.get("project_root"),
+                external_mainline_execution_plan_path=args.get(
+                    "external_mainline_execution_plan_path"
+                ),
+                security_release_preflight_report_path=args.get(
+                    "security_release_preflight_report_path"
+                ),
+                vulnerability_exception_review_report_path=args.get(
+                    "vulnerability_exception_review_report_path"
+                ),
+                release_readiness_report_path=args.get(
+                    "release_readiness_report_path"
+                ),
+                worktree_release_blocker_report_path=args.get(
+                    "worktree_release_blocker_report_path"
+                ),
+            ),
+        ),
+        "release_closeout_next_get": ToolDefinition(
+            name="release_closeout_next_get",
+            description="读取推荐下一步 release closeout component 的只读聚合详情，直接返回 component payload 与建议命令。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "project_root": {
+                        "type": "string",
+                        "description": "用于解析默认 artifact 路径的项目根目录。",
+                    },
+                    "external_mainline_execution_plan_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline_execution_plan.json 路径。",
+                    },
+                    "security_release_preflight_report_path": {
+                        "type": "string",
+                        "description": "可选 security_release_preflight_report.json 路径。",
+                    },
+                    "vulnerability_exception_review_report_path": {
+                        "type": "string",
+                        "description": "可选 vulnerability_exception_review_report.json 路径。",
+                    },
+                    "release_readiness_report_path": {
+                        "type": "string",
+                        "description": "可选 release_readiness_report.json 路径。",
+                    },
+                    "worktree_release_blocker_report_path": {
+                        "type": "string",
+                        "description": "可选 worktree_release_blocker_report.json 路径。",
+                    },
+                },
+            },
+            handler=lambda args: active_provider.get_release_closeout_next(
+                project_root=args.get("project_root"),
+                external_mainline_execution_plan_path=args.get(
+                    "external_mainline_execution_plan_path"
+                ),
+                security_release_preflight_report_path=args.get(
+                    "security_release_preflight_report_path"
+                ),
+                vulnerability_exception_review_report_path=args.get(
+                    "vulnerability_exception_review_report_path"
+                ),
+                release_readiness_report_path=args.get(
+                    "release_readiness_report_path"
+                ),
+                worktree_release_blocker_report_path=args.get(
+                    "worktree_release_blocker_report_path"
+                ),
+            ),
+        ),
+        "release_closeout_plan_get": ToolDefinition(
+            name="release_closeout_plan_get",
+            description="读取剩余 external closeout 输入的分阶段执行计划，返回阶段、输入文件、建议命令和完成标准。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "project_root": {
+                        "type": "string",
+                        "description": "用于解析默认 artifact 路径的项目根目录。",
+                    },
+                    "external_mainline_execution_plan_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline_execution_plan.json 路径。",
+                    },
+                    "external_mainline_inputs_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline.inputs.json 路径。",
+                    },
+                    "external_mainline_input_checklist_report_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline_input_checklist_report.json 路径。",
+                    },
+                    "security_release_preflight_report_path": {
+                        "type": "string",
+                        "description": "可选 security_release_preflight_report.json 路径。",
+                    },
+                    "vulnerability_exception_review_report_path": {
+                        "type": "string",
+                        "description": "可选 vulnerability_exception_review_report.json 路径。",
+                    },
+                    "release_readiness_report_path": {
+                        "type": "string",
+                        "description": "可选 release_readiness_report.json 路径。",
+                    },
+                    "worktree_release_blocker_report_path": {
+                        "type": "string",
+                        "description": "可选 worktree_release_blocker_report.json 路径。",
+                    },
+                },
+            },
+            handler=lambda args: active_provider.get_release_closeout_plan(
+                project_root=args.get("project_root"),
+                external_mainline_execution_plan_path=args.get(
+                    "external_mainline_execution_plan_path"
+                ),
+                external_mainline_inputs_path=args.get(
+                    "external_mainline_inputs_path"
+                ),
+                external_mainline_input_checklist_report_path=args.get(
+                    "external_mainline_input_checklist_report_path"
+                ),
+                security_release_preflight_report_path=args.get(
+                    "security_release_preflight_report_path"
+                ),
+                vulnerability_exception_review_report_path=args.get(
+                    "vulnerability_exception_review_report_path"
+                ),
+                release_readiness_report_path=args.get(
+                    "release_readiness_report_path"
+                ),
+                worktree_release_blocker_report_path=args.get(
+                    "worktree_release_blocker_report_path"
+                ),
+            ),
+        ),
+        "release_closeout_plan_stage_get": ToolDefinition(
+            name="release_closeout_plan_stage_get",
+            description="读取单个 release closeout plan stage 的只读聚合详情，直接返回选中 stage 的 payload。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "stage": {
+                        "type": "string",
+                        "description": "closeout plan stage 名称。",
+                    },
+                    "project_root": {
+                        "type": "string",
+                        "description": "用于解析默认 artifact 路径的项目根目录。",
+                    },
+                    "external_mainline_execution_plan_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline_execution_plan.json 路径。",
+                    },
+                    "external_mainline_inputs_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline.inputs.json 路径。",
+                    },
+                    "external_mainline_input_checklist_report_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline_input_checklist_report.json 路径。",
+                    },
+                    "security_release_preflight_report_path": {
+                        "type": "string",
+                        "description": "可选 security_release_preflight_report.json 路径。",
+                    },
+                    "vulnerability_exception_review_report_path": {
+                        "type": "string",
+                        "description": "可选 vulnerability_exception_review_report.json 路径。",
+                    },
+                    "release_readiness_report_path": {
+                        "type": "string",
+                        "description": "可选 release_readiness_report.json 路径。",
+                    },
+                    "worktree_release_blocker_report_path": {
+                        "type": "string",
+                        "description": "可选 worktree_release_blocker_report.json 路径。",
+                    },
+                },
+                "required": ["stage"],
+            },
+            handler=lambda args: active_provider.get_release_closeout_plan_stage(
+                args.get("stage", ""),
+                project_root=args.get("project_root"),
+                external_mainline_execution_plan_path=args.get(
+                    "external_mainline_execution_plan_path"
+                ),
+                external_mainline_inputs_path=args.get("external_mainline_inputs_path"),
+                external_mainline_input_checklist_report_path=args.get(
+                    "external_mainline_input_checklist_report_path"
+                ),
+                security_release_preflight_report_path=args.get(
+                    "security_release_preflight_report_path"
+                ),
+                vulnerability_exception_review_report_path=args.get(
+                    "vulnerability_exception_review_report_path"
+                ),
+                release_readiness_report_path=args.get(
+                    "release_readiness_report_path"
+                ),
+                worktree_release_blocker_report_path=args.get(
+                    "worktree_release_blocker_report_path"
+                ),
+            ),
+        ),
+        "release_closeout_plan_next_get": ToolDefinition(
+            name="release_closeout_plan_next_get",
+            description="读取推荐下一步 release closeout plan stage 的只读聚合详情，直接返回选中 stage payload 与建议命令。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "project_root": {
+                        "type": "string",
+                        "description": "用于解析默认 artifact 路径的项目根目录。",
+                    },
+                    "external_mainline_execution_plan_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline_execution_plan.json 路径。",
+                    },
+                    "external_mainline_inputs_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline.inputs.json 路径。",
+                    },
+                    "external_mainline_input_checklist_report_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline_input_checklist_report.json 路径。",
+                    },
+                    "security_release_preflight_report_path": {
+                        "type": "string",
+                        "description": "可选 security_release_preflight_report.json 路径。",
+                    },
+                    "vulnerability_exception_review_report_path": {
+                        "type": "string",
+                        "description": "可选 vulnerability_exception_review_report.json 路径。",
+                    },
+                    "release_readiness_report_path": {
+                        "type": "string",
+                        "description": "可选 release_readiness_report.json 路径。",
+                    },
+                    "worktree_release_blocker_report_path": {
+                        "type": "string",
+                        "description": "可选 worktree_release_blocker_report.json 路径。",
+                    },
+                },
+            },
+            handler=lambda args: active_provider.get_release_closeout_plan_next(
+                project_root=args.get("project_root"),
+                external_mainline_execution_plan_path=args.get(
+                    "external_mainline_execution_plan_path"
+                ),
+                external_mainline_inputs_path=args.get("external_mainline_inputs_path"),
+                external_mainline_input_checklist_report_path=args.get(
+                    "external_mainline_input_checklist_report_path"
+                ),
+                security_release_preflight_report_path=args.get(
+                    "security_release_preflight_report_path"
+                ),
+                vulnerability_exception_review_report_path=args.get(
+                    "vulnerability_exception_review_report_path"
+                ),
+                release_readiness_report_path=args.get(
+                    "release_readiness_report_path"
+                ),
+                worktree_release_blocker_report_path=args.get(
+                    "worktree_release_blocker_report_path"
+                ),
+            ),
+        ),
+        "release_ops_catalog_get": ToolDefinition(
+            name="release_ops_catalog_get",
+            description="读取 release_ops control plane 的只读 action catalog 与 policy profiles。",
+            input_schema={"type": "object", "properties": {}},
+            handler=lambda args: active_provider.get_release_ops_catalog(),
+        ),
+        "release_ops_request_templates_get": ToolDefinition(
+            name="release_ops_request_templates_get",
+            description="读取 release_ops action 的只读 request template defaults，可选按 action 过滤。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "description": "可选 release_ops action 名称；提供时只返回该 action 的 request template。",
+                    },
+                },
+            },
+            handler=lambda args: active_provider.get_release_ops_request_templates(
+                action=args.get("action")
+            ),
+        ),
+        "release_control_plane_next_get": ToolDefinition(
+            name="release_control_plane_next_get",
+            description="读取推荐下一步 release/control-plane action 的只读聚合详情，直接返回 action schema 与 request-file scaffold。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "project_root": {
+                        "type": "string",
+                        "description": "用于解析默认 manifest/report 路径的项目根目录。",
+                    },
+                    "manifest_path": {
+                        "type": "string",
+                        "description": "可选 manifest 路径；提供时优先从该 release_manifest 读取 control_plane_surface。",
+                    },
+                    "release_ops_execution_report_path": {
+                        "type": "string",
+                        "description": "可选 release_ops_execution_report 路径；当 manifest 缺失时作为 fallback。",
+                    },
+                },
+            },
+            handler=lambda args: active_provider.get_release_control_plane_next(
+                project_root=args.get("project_root"),
+                manifest_path=args.get("manifest_path"),
+                release_ops_execution_report_path=args.get(
+                    "release_ops_execution_report_path"
+                ),
+            ),
+        ),
+        "release_control_plane_request_file_get": ToolDefinition(
+            name="release_control_plane_request_file_get",
+            description="读取单个 release/control-plane action 的只读 request-file scaffold，可直接用于生成 request-file 草稿。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "description": "release_ops action 名称。",
+                    },
+                },
+                "required": ["action"],
+            },
+            handler=lambda args: active_provider.get_release_control_plane_request_file(
+                args.get("action", "")
+            ),
+        ),
+        "release_control_plane_action_get": ToolDefinition(
+            name="release_control_plane_action_get",
+            description="读取单个 release/control-plane action 的只读聚合详情，包含 catalog entry 与 request template。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "description": "release_ops action 名称。",
+                    },
+                },
+                "required": ["action"],
+            },
+            handler=lambda args: active_provider.get_release_control_plane_action(
+                args.get("action", "")
+            ),
+        ),
+        "release_control_plane_index_get": ToolDefinition(
+            name="release_control_plane_index_get",
+            description="一次读取 canonical control-plane surface 与 release_ops catalog 的只读聚合入口。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "project_root": {
+                        "type": "string",
+                        "description": "用于解析默认 manifest/report 路径的项目根目录。",
+                    },
+                    "manifest_path": {
+                        "type": "string",
+                        "description": "可选 manifest 路径；提供时优先从该 release_manifest 读取 control_plane_surface。",
+                    },
+                    "release_ops_execution_report_path": {
+                        "type": "string",
+                        "description": "可选 release_ops_execution_report 路径；当 manifest 缺失时作为 fallback。",
+                    },
+                },
+            },
+            handler=lambda args: active_provider.get_release_control_plane_index(
+                project_root=args.get("project_root"),
+                manifest_path=args.get("manifest_path"),
+                release_ops_execution_report_path=args.get(
+                    "release_ops_execution_report_path"
+                ),
+            ),
+        ),
+        "release_next_get": ToolDefinition(
+            name="release_next_get",
+            description="一次读取统一 release 下一步入口，聚合 control-plane next 与 closeout next。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "project_root": {
+                        "type": "string",
+                        "description": "用于解析默认 manifest/report 路径的项目根目录。",
+                    },
+                    "manifest_path": {
+                        "type": "string",
+                        "description": "可选 manifest 路径；提供时优先从该 release_manifest 读取 control_plane_surface。",
+                    },
+                    "release_ops_execution_report_path": {
+                        "type": "string",
+                        "description": "可选 release_ops_execution_report 路径；当 manifest 缺失时作为 fallback。",
+                    },
+                    "external_mainline_execution_plan_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline_execution_plan.json 路径。",
+                    },
+                    "security_release_preflight_report_path": {
+                        "type": "string",
+                        "description": "可选 security_release_preflight_report.json 路径。",
+                    },
+                    "vulnerability_exception_review_report_path": {
+                        "type": "string",
+                        "description": "可选 vulnerability_exception_review_report.json 路径。",
+                    },
+                    "release_readiness_report_path": {
+                        "type": "string",
+                        "description": "可选 release_readiness_report.json 路径。",
+                    },
+                    "worktree_release_blocker_report_path": {
+                        "type": "string",
+                        "description": "可选 worktree_release_blocker_report.json 路径。",
+                    },
+                },
+            },
+            handler=lambda args: active_provider.get_release_next(
+                project_root=args.get("project_root"),
+                manifest_path=args.get("manifest_path"),
+                release_ops_execution_report_path=args.get(
+                    "release_ops_execution_report_path"
+                ),
+                external_mainline_execution_plan_path=args.get(
+                    "external_mainline_execution_plan_path"
+                ),
+                security_release_preflight_report_path=args.get(
+                    "security_release_preflight_report_path"
+                ),
+                vulnerability_exception_review_report_path=args.get(
+                    "vulnerability_exception_review_report_path"
+                ),
+                release_readiness_report_path=args.get(
+                    "release_readiness_report_path"
+                ),
+                worktree_release_blocker_report_path=args.get(
+                    "worktree_release_blocker_report_path"
+                ),
+            ),
+        ),
+        "release_next_primary_get": ToolDefinition(
+            name="release_next_primary_get",
+            description="读取统一 release 下一步里的主推荐入口，直接返回 primary kind/name/status 与对应 Portal/API 深链。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "project_root": {
+                        "type": "string",
+                        "description": "用于解析默认 manifest/report 路径的项目根目录。",
+                    },
+                    "manifest_path": {
+                        "type": "string",
+                        "description": "可选 manifest 路径；提供时优先从该 release_manifest 读取 control_plane_surface。",
+                    },
+                    "release_ops_execution_report_path": {
+                        "type": "string",
+                        "description": "可选 release_ops_execution_report 路径；当 manifest 缺失时作为 fallback。",
+                    },
+                    "external_mainline_execution_plan_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline_execution_plan.json 路径。",
+                    },
+                    "security_release_preflight_report_path": {
+                        "type": "string",
+                        "description": "可选 security_release_preflight_report.json 路径。",
+                    },
+                    "vulnerability_exception_review_report_path": {
+                        "type": "string",
+                        "description": "可选 vulnerability_exception_review_report.json 路径。",
+                    },
+                    "release_readiness_report_path": {
+                        "type": "string",
+                        "description": "可选 release_readiness_report.json 路径。",
+                    },
+                    "worktree_release_blocker_report_path": {
+                        "type": "string",
+                        "description": "可选 worktree_release_blocker_report.json 路径。",
+                    },
+                },
+            },
+            handler=lambda args: active_provider.get_release_next_primary(
+                project_root=args.get("project_root"),
+                manifest_path=args.get("manifest_path"),
+                release_ops_execution_report_path=args.get(
+                    "release_ops_execution_report_path"
+                ),
+                external_mainline_execution_plan_path=args.get(
+                    "external_mainline_execution_plan_path"
+                ),
+                security_release_preflight_report_path=args.get(
+                    "security_release_preflight_report_path"
+                ),
+                vulnerability_exception_review_report_path=args.get(
+                    "vulnerability_exception_review_report_path"
+                ),
+                release_readiness_report_path=args.get(
+                    "release_readiness_report_path"
+                ),
+                worktree_release_blocker_report_path=args.get(
+                    "worktree_release_blocker_report_path"
+                ),
+            ),
+        ),
+        "release_next_follow_up_get": ToolDefinition(
+            name="release_next_follow_up_get",
+            description="读取统一 release 下一步里的规范化 follow-up 入口，直接返回 request-file / 建议命令 / 下一步 JSON 的归一化结果。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "project_root": {
+                        "type": "string",
+                        "description": "用于解析默认 manifest/report 路径的项目根目录。",
+                    },
+                    "manifest_path": {
+                        "type": "string",
+                        "description": "可选 manifest 路径；提供时优先从该 release_manifest 读取 control_plane_surface。",
+                    },
+                    "release_ops_execution_report_path": {
+                        "type": "string",
+                        "description": "可选 release_ops_execution_report 路径；当 manifest 缺失时作为 fallback。",
+                    },
+                    "external_mainline_execution_plan_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline_execution_plan.json 路径。",
+                    },
+                    "security_release_preflight_report_path": {
+                        "type": "string",
+                        "description": "可选 security_release_preflight_report.json 路径。",
+                    },
+                    "vulnerability_exception_review_report_path": {
+                        "type": "string",
+                        "description": "可选 vulnerability_exception_review_report.json 路径。",
+                    },
+                    "release_readiness_report_path": {
+                        "type": "string",
+                        "description": "可选 release_readiness_report.json 路径。",
+                    },
+                    "worktree_release_blocker_report_path": {
+                        "type": "string",
+                        "description": "可选 worktree_release_blocker_report.json 路径。",
+                    },
+                },
+            },
+            handler=lambda args: active_provider.get_release_next_follow_up(
+                project_root=args.get("project_root"),
+                manifest_path=args.get("manifest_path"),
+                release_ops_execution_report_path=args.get(
+                    "release_ops_execution_report_path"
+                ),
+                external_mainline_execution_plan_path=args.get(
+                    "external_mainline_execution_plan_path"
+                ),
+                security_release_preflight_report_path=args.get(
+                    "security_release_preflight_report_path"
+                ),
+                vulnerability_exception_review_report_path=args.get(
+                    "vulnerability_exception_review_report_path"
+                ),
+                release_readiness_report_path=args.get(
+                    "release_readiness_report_path"
+                ),
+                worktree_release_blocker_report_path=args.get(
+                    "worktree_release_blocker_report_path"
+                ),
+            ),
+        ),
+        "release_next_request_file_get": ToolDefinition(
+            name="release_next_request_file_get",
+            description="读取统一 release 下一步里的 request-file 导出入口；仅当当前主推荐项为 control-plane request-file 时返回草稿内容。",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "project_root": {
+                        "type": "string",
+                        "description": "用于解析默认 manifest/report 路径的项目根目录。",
+                    },
+                    "manifest_path": {
+                        "type": "string",
+                        "description": "可选 manifest 路径；提供时优先从该 release_manifest 读取 control_plane_surface。",
+                    },
+                    "release_ops_execution_report_path": {
+                        "type": "string",
+                        "description": "可选 release_ops_execution_report 路径；当 manifest 缺失时作为 fallback。",
+                    },
+                    "external_mainline_execution_plan_path": {
+                        "type": "string",
+                        "description": "可选 external_mainline_execution_plan.json 路径。",
+                    },
+                    "security_release_preflight_report_path": {
+                        "type": "string",
+                        "description": "可选 security_release_preflight_report.json 路径。",
+                    },
+                    "vulnerability_exception_review_report_path": {
+                        "type": "string",
+                        "description": "可选 vulnerability_exception_review_report.json 路径。",
+                    },
+                    "release_readiness_report_path": {
+                        "type": "string",
+                        "description": "可选 release_readiness_report.json 路径。",
+                    },
+                    "worktree_release_blocker_report_path": {
+                        "type": "string",
+                        "description": "可选 worktree_release_blocker_report.json 路径。",
+                    },
+                },
+            },
+            handler=lambda args: active_provider.get_release_next_request_file(
+                project_root=args.get("project_root"),
+                manifest_path=args.get("manifest_path"),
+                release_ops_execution_report_path=args.get(
+                    "release_ops_execution_report_path"
+                ),
+                external_mainline_execution_plan_path=args.get(
+                    "external_mainline_execution_plan_path"
+                ),
+                security_release_preflight_report_path=args.get(
+                    "security_release_preflight_report_path"
+                ),
+                vulnerability_exception_review_report_path=args.get(
+                    "vulnerability_exception_review_report_path"
+                ),
+                release_readiness_report_path=args.get(
+                    "release_readiness_report_path"
+                ),
+                worktree_release_blocker_report_path=args.get(
+                    "worktree_release_blocker_report_path"
+                ),
+            ),
+        ),
     }
 
 

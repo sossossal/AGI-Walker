@@ -3,6 +3,25 @@ import os
 from typing import Any, Callable, Dict, List, Optional
 
 from agi_walker.core.api.capability_matrix import build_capability_matrix_artifact
+from agi_walker.core.api.release_control_plane import (
+    build_release_closeout_component_payload,
+    build_release_closeout_plan_next_payload,
+    build_release_closeout_plan_payload,
+    build_release_closeout_plan_stage_payload,
+    build_release_closeout_next_payload,
+    build_release_closeout_payload,
+    build_release_control_plane_action_payload,
+    build_release_control_plane_index_payload,
+    build_release_control_plane_next_payload,
+    build_release_control_plane_request_file_payload,
+    build_release_next_payload,
+    build_release_next_follow_up_payload,
+    build_release_next_primary_payload,
+    build_release_next_request_file_payload,
+    build_release_control_plane_surface_payload,
+    build_release_ops_catalog_payload,
+    build_release_ops_request_templates_payload,
+)
 from agi_walker.core.api.simple_planner import SimplePlanner
 from agi_walker.core.controllers.load_monitor import SystemMonitor
 from agi_walker.core.controllers.rag_knowledge_base import PhysicsKnowledgeBase
@@ -266,3 +285,287 @@ class MCPToolProvider:
 
     def get_capability_matrix(self) -> Dict[str, Any]:
         return build_capability_matrix_artifact()
+
+    def get_release_control_plane_surface(
+        self,
+        project_root: Optional[str] = None,
+        manifest_path: Optional[str] = None,
+        release_ops_execution_report_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return build_release_control_plane_surface_payload(
+            project_root=project_root,
+            manifest_path=manifest_path,
+            release_ops_execution_report_path=release_ops_execution_report_path,
+        )
+
+    def get_release_closeout(
+        self,
+        project_root: Optional[str] = None,
+        external_mainline_execution_plan_path: Optional[str] = None,
+        security_release_preflight_report_path: Optional[str] = None,
+        vulnerability_exception_review_report_path: Optional[str] = None,
+        release_readiness_report_path: Optional[str] = None,
+        worktree_release_blocker_report_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return build_release_closeout_payload(
+            project_root=project_root,
+            external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+            security_release_preflight_report_path=security_release_preflight_report_path,
+            vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+            release_readiness_report_path=release_readiness_report_path,
+            worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+        )
+
+    def get_release_closeout_component(
+        self,
+        component: str,
+        project_root: Optional[str] = None,
+        external_mainline_execution_plan_path: Optional[str] = None,
+        security_release_preflight_report_path: Optional[str] = None,
+        vulnerability_exception_review_report_path: Optional[str] = None,
+        release_readiness_report_path: Optional[str] = None,
+        worktree_release_blocker_report_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        try:
+            return build_release_closeout_component_payload(
+                component=component,
+                project_root=project_root,
+                external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+                security_release_preflight_report_path=security_release_preflight_report_path,
+                vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+                release_readiness_report_path=release_readiness_report_path,
+                worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+            )
+        except ValueError as exc:
+            return self._error(str(exc), component=component)
+
+    def get_release_closeout_next(
+        self,
+        project_root: Optional[str] = None,
+        external_mainline_execution_plan_path: Optional[str] = None,
+        security_release_preflight_report_path: Optional[str] = None,
+        vulnerability_exception_review_report_path: Optional[str] = None,
+        release_readiness_report_path: Optional[str] = None,
+        worktree_release_blocker_report_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return build_release_closeout_next_payload(
+            project_root=project_root,
+            external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+            security_release_preflight_report_path=security_release_preflight_report_path,
+            vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+            release_readiness_report_path=release_readiness_report_path,
+            worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+        )
+
+    def get_release_closeout_plan(
+        self,
+        project_root: Optional[str] = None,
+        external_mainline_execution_plan_path: Optional[str] = None,
+        external_mainline_inputs_path: Optional[str] = None,
+        external_mainline_input_checklist_report_path: Optional[str] = None,
+        security_release_preflight_report_path: Optional[str] = None,
+        vulnerability_exception_review_report_path: Optional[str] = None,
+        release_readiness_report_path: Optional[str] = None,
+        worktree_release_blocker_report_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return build_release_closeout_plan_payload(
+            project_root=project_root,
+            external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+            external_mainline_inputs_path=external_mainline_inputs_path,
+            external_mainline_input_checklist_report_path=external_mainline_input_checklist_report_path,
+            security_release_preflight_report_path=security_release_preflight_report_path,
+            vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+            release_readiness_report_path=release_readiness_report_path,
+            worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+        )
+
+    def get_release_closeout_plan_stage(
+        self,
+        stage: str,
+        project_root: Optional[str] = None,
+        external_mainline_execution_plan_path: Optional[str] = None,
+        external_mainline_inputs_path: Optional[str] = None,
+        external_mainline_input_checklist_report_path: Optional[str] = None,
+        security_release_preflight_report_path: Optional[str] = None,
+        vulnerability_exception_review_report_path: Optional[str] = None,
+        release_readiness_report_path: Optional[str] = None,
+        worktree_release_blocker_report_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        try:
+            return build_release_closeout_plan_stage_payload(
+                stage=stage,
+                project_root=project_root,
+                external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+                external_mainline_inputs_path=external_mainline_inputs_path,
+                external_mainline_input_checklist_report_path=external_mainline_input_checklist_report_path,
+                security_release_preflight_report_path=security_release_preflight_report_path,
+                vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+                release_readiness_report_path=release_readiness_report_path,
+                worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+            )
+        except ValueError as exc:
+            return self._error(str(exc), stage=stage)
+
+    def get_release_closeout_plan_next(
+        self,
+        project_root: Optional[str] = None,
+        external_mainline_execution_plan_path: Optional[str] = None,
+        external_mainline_inputs_path: Optional[str] = None,
+        external_mainline_input_checklist_report_path: Optional[str] = None,
+        security_release_preflight_report_path: Optional[str] = None,
+        vulnerability_exception_review_report_path: Optional[str] = None,
+        release_readiness_report_path: Optional[str] = None,
+        worktree_release_blocker_report_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return build_release_closeout_plan_next_payload(
+            project_root=project_root,
+            external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+            external_mainline_inputs_path=external_mainline_inputs_path,
+            external_mainline_input_checklist_report_path=external_mainline_input_checklist_report_path,
+            security_release_preflight_report_path=security_release_preflight_report_path,
+            vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+            release_readiness_report_path=release_readiness_report_path,
+            worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+        )
+
+    def get_release_ops_catalog(self) -> Dict[str, Any]:
+        return build_release_ops_catalog_payload()
+
+    def get_release_ops_request_templates(
+        self,
+        action: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        try:
+            return build_release_ops_request_templates_payload(action=action)
+        except ValueError as exc:
+            return self._error(str(exc), action=action)
+
+    def get_release_control_plane_action(
+        self,
+        action: str,
+    ) -> Dict[str, Any]:
+        try:
+            return build_release_control_plane_action_payload(action=action)
+        except ValueError as exc:
+            return self._error(str(exc), action=action)
+
+    def get_release_control_plane_next(
+        self,
+        project_root: Optional[str] = None,
+        manifest_path: Optional[str] = None,
+        release_ops_execution_report_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return build_release_control_plane_next_payload(
+            project_root=project_root,
+            manifest_path=manifest_path,
+            release_ops_execution_report_path=release_ops_execution_report_path,
+        )
+
+    def get_release_control_plane_request_file(
+        self,
+        action: str,
+    ) -> Dict[str, Any]:
+        try:
+            return build_release_control_plane_request_file_payload(action=action)
+        except ValueError as exc:
+            return self._error(str(exc), action=action)
+
+    def get_release_control_plane_index(
+        self,
+        project_root: Optional[str] = None,
+        manifest_path: Optional[str] = None,
+        release_ops_execution_report_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return build_release_control_plane_index_payload(
+            project_root=project_root,
+            manifest_path=manifest_path,
+            release_ops_execution_report_path=release_ops_execution_report_path,
+        )
+
+    def get_release_next(
+        self,
+        project_root: Optional[str] = None,
+        manifest_path: Optional[str] = None,
+        release_ops_execution_report_path: Optional[str] = None,
+        external_mainline_execution_plan_path: Optional[str] = None,
+        security_release_preflight_report_path: Optional[str] = None,
+        vulnerability_exception_review_report_path: Optional[str] = None,
+        release_readiness_report_path: Optional[str] = None,
+        worktree_release_blocker_report_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return build_release_next_payload(
+            project_root=project_root,
+            manifest_path=manifest_path,
+            release_ops_execution_report_path=release_ops_execution_report_path,
+            external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+            security_release_preflight_report_path=security_release_preflight_report_path,
+            vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+            release_readiness_report_path=release_readiness_report_path,
+            worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+        )
+
+    def get_release_next_primary(
+        self,
+        project_root: Optional[str] = None,
+        manifest_path: Optional[str] = None,
+        release_ops_execution_report_path: Optional[str] = None,
+        external_mainline_execution_plan_path: Optional[str] = None,
+        security_release_preflight_report_path: Optional[str] = None,
+        vulnerability_exception_review_report_path: Optional[str] = None,
+        release_readiness_report_path: Optional[str] = None,
+        worktree_release_blocker_report_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return build_release_next_primary_payload(
+            project_root=project_root,
+            manifest_path=manifest_path,
+            release_ops_execution_report_path=release_ops_execution_report_path,
+            external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+            security_release_preflight_report_path=security_release_preflight_report_path,
+            vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+            release_readiness_report_path=release_readiness_report_path,
+            worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+        )
+
+    def get_release_next_follow_up(
+        self,
+        project_root: Optional[str] = None,
+        manifest_path: Optional[str] = None,
+        release_ops_execution_report_path: Optional[str] = None,
+        external_mainline_execution_plan_path: Optional[str] = None,
+        security_release_preflight_report_path: Optional[str] = None,
+        vulnerability_exception_review_report_path: Optional[str] = None,
+        release_readiness_report_path: Optional[str] = None,
+        worktree_release_blocker_report_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return build_release_next_follow_up_payload(
+            project_root=project_root,
+            manifest_path=manifest_path,
+            release_ops_execution_report_path=release_ops_execution_report_path,
+            external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+            security_release_preflight_report_path=security_release_preflight_report_path,
+            vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+            release_readiness_report_path=release_readiness_report_path,
+            worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+        )
+
+    def get_release_next_request_file(
+        self,
+        project_root: Optional[str] = None,
+        manifest_path: Optional[str] = None,
+        release_ops_execution_report_path: Optional[str] = None,
+        external_mainline_execution_plan_path: Optional[str] = None,
+        security_release_preflight_report_path: Optional[str] = None,
+        vulnerability_exception_review_report_path: Optional[str] = None,
+        release_readiness_report_path: Optional[str] = None,
+        worktree_release_blocker_report_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return build_release_next_request_file_payload(
+            project_root=project_root,
+            manifest_path=manifest_path,
+            release_ops_execution_report_path=release_ops_execution_report_path,
+            external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+            security_release_preflight_report_path=security_release_preflight_report_path,
+            vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+            release_readiness_report_path=release_readiness_report_path,
+            worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+        )
