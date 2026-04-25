@@ -4,6 +4,7 @@
 .agent
 .codex-chrome-profile
 .codex-smoke
+codex_extbind_*
 .pytest_cache
 .pytest_tmp
 .ruff_cache
