@@ -16,9 +16,39 @@ API_REFERENCE = Path("docs/API_REFERENCE.md")
 MCP_GUIDE = Path("docs/mcp.md")
 WEB_PANEL_GUIDE = Path("docs/guides/WEB_PANEL_GUIDE.md")
 RELEASE_GUIDE = Path("docs/guides/RELEASE_GUIDE.md")
+DEPLOYMENT_MATRIX_GUIDE = Path("docs/guides/DEPLOYMENT_MATRIX.md")
+CUSTOMER_INSTALLATION_GUIDE = Path("docs/guides/CUSTOMER_INSTALLATION_GUIDE.md")
+SUPPORT_MATRIX_GUIDE = Path("docs/guides/SUPPORT_MATRIX.md")
+CAPACITY_AND_SCALE_GUIDE = Path("docs/guides/CAPACITY_AND_SCALE.md")
+CUSTOMER_ACCEPTANCE_CHECKLIST_GUIDE = Path(
+    "docs/guides/CUSTOMER_ACCEPTANCE_CHECKLIST.md"
+)
+KNOWN_LIMITATIONS_GUIDE = Path("docs/guides/KNOWN_LIMITATIONS.md")
+SECURITY_BASELINE_GUIDE = Path("docs/guides/SECURITY_BASELINE.md")
+AUDIT_TRAIL_POLICY_GUIDE = Path("docs/guides/AUDIT_TRAIL_POLICY.md")
+BACKUP_RESTORE_RUNBOOK_GUIDE = Path("docs/guides/BACKUP_RESTORE_RUNBOOK.md")
+INCIDENT_RESPONSE_MATRIX_GUIDE = Path("docs/guides/INCIDENT_RESPONSE_MATRIX.md")
 RELEASE_BUILDER = Path("tools/build_release_artifact.py")
+SBOM_BUILDER = Path("tools/build_sbom_artifact.py")
+VULNERABILITY_SCAN_REPORT_WRITER = Path("tools/write_vulnerability_scan_report.py")
+PYTHON_VULNERABILITY_SCAN_RUNNER = Path("tools/run_python_vulnerability_scan.py")
+CONTAINER_VULNERABILITY_SCAN_RUNNER = Path("tools/run_container_vulnerability_scan.py")
+VULNERABILITY_EXCEPTION_REPORT_BUILDER = Path(
+    "tools/build_vulnerability_exception_report.py"
+)
+VULNERABILITY_REMEDIATION_REPORT_BUILDER = Path(
+    "tools/build_vulnerability_remediation_report.py"
+)
+SECURITY_RELEASE_PREFLIGHT_RUNNER = Path("tools/run_security_release_preflight.py")
+BACKUP_RESTORE_REHEARSAL_RUNNER = Path("tools/run_backup_restore_rehearsal.py")
+SECURITY_POSTURE_BUILDER = Path("tools/build_security_posture_report.py")
+COLLECT_RELEASE_EVIDENCE = Path("tools/collect_release_evidence.py")
 ROS2_WORKSPACE_README = Path("hardware/ros2_ws/README.md")
 CORE_API_README = Path("agi_walker/core/api/README.md")
+PRODUCTION_RUNBOOK = Path("PRODUCTION_DEPLOYMENT_RUNBOOK.md")
+COMPOSE_ENV_EXAMPLE = Path("deployment/compose.env.example")
+WEB_PANEL_ENV_EXAMPLE = Path("deployment/web_panel.env.example")
+WEB_PANEL_DOCKERFILE = Path("deployment/Dockerfile.web_panel")
 GODOT_STUDIO_SETUP = Path("godot_studio_agent/setup.bat")
 GODOT_STUDIO_MAIN = Path("godot_studio_agent/main.py")
 DOCTOR_MODULE = Path("agi_walker/utils/doctor.py")
@@ -182,6 +212,11 @@ def test_distributed_runtime_uses_current_package_entrypoints() -> None:
     assert "agi_walker.core.distributed.run_learner" in runtime_dockerfile
     assert "agi_walker.core.distributed.run_learner" in distributed_dockerfile
     assert "pip install --no-cache-dir ." in runtime_dockerfile
+    assert "import yaml; from agi_walker.skills_loader import SkillsLoader" in runtime_dockerfile
+    assert "distributed_runtime_import_ok" in runtime_dockerfile
+    assert "pyyaml" in distributed_dockerfile
+    assert "import yaml; from agi_walker.skills_loader import SkillsLoader" in distributed_dockerfile
+    assert "distributed_base_import_ok" in distributed_dockerfile
     assert "build-essential" not in runtime_dockerfile
     assert "python -m pip install --upgrade pip setuptools wheel" in runtime_dockerfile
     assert (
@@ -271,18 +306,449 @@ def test_release_guide_uses_current_release_builder_and_active_docs() -> None:
     assert "Git HEAD" in release_guide
     assert "v{version}" in release_guide
     assert "python tools/check_release_readiness.py" in release_guide
+    assert "python tools/check_industrial_release_readiness.py" in release_guide
+    assert "--security-preflight-report" in release_guide
+    assert "customer_delivery_surface" in release_guide
+    assert "extension_support_surface" in release_guide
+    assert "extension_execution_plan" in release_guide
+    assert "extension_execution_evidence" in release_guide
+    assert "extension_execution_instance" in release_guide
+    assert "extension_execution_schedule" in release_guide
+    assert "extension_execution_actuals" in release_guide
+    assert "exception_review_due_at" in release_guide
+    assert "approval_identity_source_path" in release_guide
+    assert "approval_identity_reference" in release_guide
+    assert "archive_target_binding_type" in release_guide
+    assert "archive_target_binding_reference_base" in release_guide
+    assert "due_trigger_binding_type" in release_guide
+    assert "due_trigger_binding_reference_base" in release_guide
+    assert "due_trigger_checked_at" in release_guide
+    assert "closure_archive/index.json" in release_guide
+    assert "runbook_entrypoints" in release_guide
+    assert "execution_template" in release_guide
+    assert "watch_actions" in release_guide
+    assert "on_call_handoff_records" in release_guide
+    assert "extension_on_call_rehearsal" in release_guide
+    assert "residual_risk_handoff_steps" in release_guide
+    assert "exception_review_steps" in release_guide
+    assert "extension_exception_review_schedule" in release_guide
+    assert "incident_escalation_steps" in release_guide
+    assert "escalation_closure_steps" in release_guide
+    assert "extension_escalation_closure" in release_guide
+    assert "signoff_checkpoints" in release_guide
+    assert "rollback_evidence_archive_steps" in release_guide
+    assert "deployment_commands" in release_guide
+    assert "rollback_prerequisites" in release_guide
+    assert "industrial_delivery_gate" in release_guide
     assert "python tools/build_worktree_cleanup_report.py" in release_guide
     assert "python tools/build_tracked_artifact_review_report.py" in release_guide
     assert "python tools/build_stable_promotion_checklist.py" in release_guide
+    assert "python tools/build_industrial_promotion_checklist.py" in release_guide
+    assert "python tools/build_extension_execution_evidence.py" in release_guide
+    assert "python tools/build_extension_execution_instance.py" in release_guide
+    assert "python tools/build_extension_execution_schedule.py" in release_guide
+    assert "python tools/build_extension_execution_actuals.py" in release_guide
+    assert "security_release_preflight` step" in release_guide
+    assert "确认 Phase E 客户交付文档集齐备" in release_guide
+    assert "确认 industrial delivery gate 已闭合" in release_guide
     assert "python tools/run_release_rehearsal.py" in release_guide
+    assert "python tools/run_clean_checkout_smoke.py" in release_guide
+    assert "python tools/build_customer_acceptance_bundle.py" in release_guide
+    assert "clean_checkout_smoke_report.json" in release_guide
+    assert "customer_acceptance_bundle.json" in release_guide
+    assert "docs/guides/SUPPORT_MATRIX.md" in release_guide
+    assert "docs/guides/CAPACITY_AND_SCALE.md" in release_guide
+    assert "docs/guides/CUSTOMER_ACCEPTANCE_CHECKLIST.md" in release_guide
+    assert "docs/guides/KNOWN_LIMITATIONS.md" in release_guide
     assert "def main(argv: list[str] | None = None) -> int:" in release_builder
     assert "--release-summary" in release_builder
     assert "--approval-status" in release_builder
     assert "--source-root" in release_builder
     assert "tools/check_release_readiness.py" in smoke_runner
+    assert "tools/check_industrial_release_readiness.py" in smoke_runner
     assert "tools/build_worktree_cleanup_report.py" in smoke_runner
     assert "tools/build_tracked_artifact_review_report.py" in smoke_runner
     assert "tools/build_stable_promotion_checklist.py" in smoke_runner
+    assert "tools/build_industrial_promotion_checklist.py" in smoke_runner
     assert "tools/run_release_rehearsal.py" in smoke_runner
+    assert "tools/build_customer_acceptance_bundle.py" in smoke_runner
     assert "tools/build_release_artifact.py" in smoke_runner
     assert "release_gate_status=" in smoke_runner
+
+
+def test_phase_d_security_docs_and_tools_use_current_runtime_paths() -> None:
+    release_guide = RELEASE_GUIDE.read_text(encoding="utf-8")
+    security_baseline = SECURITY_BASELINE_GUIDE.read_text(encoding="utf-8")
+    audit_policy = AUDIT_TRAIL_POLICY_GUIDE.read_text(encoding="utf-8")
+    backup_restore_runbook = BACKUP_RESTORE_RUNBOOK_GUIDE.read_text(encoding="utf-8")
+    incident_matrix = INCIDENT_RESPONSE_MATRIX_GUIDE.read_text(encoding="utf-8")
+    smoke_runner = RUN_SMOKE_TESTS.read_text(encoding="utf-8")
+    sbom_builder = SBOM_BUILDER.read_text(encoding="utf-8")
+    vulnerability_writer = VULNERABILITY_SCAN_REPORT_WRITER.read_text(
+        encoding="utf-8"
+    )
+    python_vulnerability_scan_runner = (
+        PYTHON_VULNERABILITY_SCAN_RUNNER.read_text(encoding="utf-8")
+    )
+    container_vulnerability_scan_runner = (
+        CONTAINER_VULNERABILITY_SCAN_RUNNER.read_text(encoding="utf-8")
+    )
+    vulnerability_exception_report_builder = (
+        VULNERABILITY_EXCEPTION_REPORT_BUILDER.read_text(encoding="utf-8")
+    )
+    vulnerability_remediation_report_builder = (
+        VULNERABILITY_REMEDIATION_REPORT_BUILDER.read_text(encoding="utf-8")
+    )
+    security_release_preflight_runner = (
+        SECURITY_RELEASE_PREFLIGHT_RUNNER.read_text(encoding="utf-8")
+    )
+    backup_restore_rehearsal_runner = BACKUP_RESTORE_REHEARSAL_RUNNER.read_text(
+        encoding="utf-8"
+    )
+    security_posture_builder = SECURITY_POSTURE_BUILDER.read_text(encoding="utf-8")
+    collect_release_evidence = COLLECT_RELEASE_EVIDENCE.read_text(encoding="utf-8")
+
+    assert "python tools/build_sbom_artifact.py" in release_guide
+    assert "python tools/write_vulnerability_scan_report.py" in release_guide
+    assert "python tools/run_python_vulnerability_scan.py" in release_guide
+    assert "--include-optional-group training" in release_guide
+    assert "python tools/run_container_vulnerability_scan.py" in release_guide
+    assert "python tools/build_vulnerability_exception_report.py" in release_guide
+    assert "python tools/build_vulnerability_remediation_report.py" in release_guide
+    assert "python tools/run_security_release_preflight.py" in release_guide
+    assert "deployment-zenoh-router" in release_guide
+    assert "eclipse/zenoh:1.9.0" in release_guide
+    assert "真实容器漏洞修复顺序" in release_guide
+    assert "python tools/run_backup_restore_rehearsal.py" in release_guide
+    assert "python tools/build_security_posture_report.py" in release_guide
+    assert "--python-vuln-raw-report" in release_guide
+    assert "--container-vuln-raw-report" in release_guide
+    assert "--run-python-vuln-scan" in release_guide
+    assert "--run-container-vuln-scan" in release_guide
+    assert "docs/guides/SECURITY_BASELINE.md" in release_guide
+    assert "docs/guides/AUDIT_TRAIL_POLICY.md" in release_guide
+    assert "docs/guides/BACKUP_RESTORE_RUNBOOK.md" in release_guide
+    assert "docs/guides/INCIDENT_RESPONSE_MATRIX.md" in release_guide
+
+    assert "AGI_WALKER_SECRET_KEY" in security_baseline
+    assert "AGI_WALKER_REQUIRE_EXPLICIT_SECRET" in security_baseline
+    assert "deployment/compose.env" in security_baseline
+    assert "deployment/web_panel.env" in security_baseline
+    assert "/var/lib/agi_walker/backups" in security_baseline
+    assert "test_env/security/security_posture_report.json" in security_baseline
+    assert "pip-audit-json" in security_baseline
+    assert "trivy-json" in security_baseline
+    assert "python tools/run_python_vulnerability_scan.py" in security_baseline
+    assert "--include-optional-group training" in security_baseline
+    assert "AGI_WALKER_PIP_AUDIT_TMPDIR" in security_baseline
+    assert "python tools/run_container_vulnerability_scan.py" in security_baseline
+    assert "python tools/build_vulnerability_exception_report.py" in security_baseline
+    assert "python tools/build_vulnerability_remediation_report.py" in security_baseline
+    assert "python tools/run_security_release_preflight.py" in security_baseline
+
+    assert "release_approval" in audit_policy
+    assert "release_source" in audit_policy
+    assert "workflow_runs" in audit_policy
+    assert "workflow_archive" in audit_policy
+
+    assert "AGI_WALKER_RUNTIME_ROOT" in backup_restore_runbook
+    assert "docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml up -d --build zenoh-router web-panel" in backup_restore_runbook
+    assert "RPO" in backup_restore_runbook
+    assert "RTO" in backup_restore_runbook
+    assert "恢复演练报告" in backup_restore_runbook
+
+    assert "P1" in incident_matrix
+    assert "P2" in incident_matrix
+    assert "P3" in incident_matrix
+    assert "30 分钟内" in incident_matrix
+    assert "4 小时内" in incident_matrix
+
+    assert "tools/build_sbom_artifact.py" in smoke_runner
+    assert "tools/write_vulnerability_scan_report.py" in smoke_runner
+    assert "tools/run_backup_restore_rehearsal.py" in smoke_runner
+    assert "tools/build_security_posture_report.py" in smoke_runner
+    assert "tools/build_vulnerability_exception_report.py" in smoke_runner
+    assert "tools/build_vulnerability_remediation_report.py" in smoke_runner
+    assert "tools/run_security_release_preflight.py" in smoke_runner
+    assert "security_posture_status=ready" in smoke_runner
+    assert "backup_restore_rehearsal_status=passed" in smoke_runner
+    assert "security_release_preflight_status=passed" in smoke_runner
+    assert "sbom.json" in smoke_runner
+    assert "backup_restore_rehearsal_report.json" in smoke_runner
+    assert "vulnerability_exception_report.json" in smoke_runner
+    assert "security_posture_report.json" in smoke_runner
+    assert "security_release_preflight_report.json" in smoke_runner
+
+    assert "def main(argv: list[str] | None = None) -> int:" in sbom_builder
+    assert "def main(argv: list[str] | None = None) -> int:" in vulnerability_writer
+    assert "def main(argv: list[str] | None = None) -> int:" in python_vulnerability_scan_runner
+    assert "def _resolve_pip_audit_temp_root(cache_dir: Path) -> Path:" in python_vulnerability_scan_runner
+    assert "def main(argv: list[str] | None = None) -> int:" in container_vulnerability_scan_runner
+    assert "def main(argv: list[str] | None = None) -> int:" in vulnerability_exception_report_builder
+    assert "def main(argv: list[str] | None = None) -> int:" in vulnerability_remediation_report_builder
+    assert "def main(argv: list[str] | None = None) -> int:" in security_release_preflight_runner
+    assert "def main(argv: list[str] | None = None) -> int:" in backup_restore_rehearsal_runner
+    assert "def main(argv: list[str] | None = None) -> int:" in security_posture_builder
+    assert "--python-vuln-raw-report" in collect_release_evidence
+    assert "--container-vuln-raw-report" in collect_release_evidence
+    assert "--run-python-vuln-scan" in collect_release_evidence
+    assert "--run-container-vuln-scan" in collect_release_evidence
+    assert "--vulnerability-exception-report-source" in collect_release_evidence
+    assert "--vulnerability-exception-input-source" in collect_release_evidence
+    assert "--external-bindings-config-source" in collect_release_evidence
+    assert "--release-ops-execution-report-source" in collect_release_evidence
+    assert "deployment/customer_delivery.external_bindings.json" in release_guide
+    assert "--vulnerability-exception-input-source" in security_release_preflight_runner
+
+
+def test_security_preflight_ci_job_uses_current_runner_and_artifacts() -> None:
+    content = CI_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "security-preflight:" in content
+    assert "pip install pip-audit" in content
+    assert "trivy" in content
+    assert 'AGI_WALKER_ZENOH_BASE_IMAGE: "eclipse/zenoh:1.9.0"' in content
+    assert 'AGI_WALKER_ZENOH_IMAGE: "deployment-zenoh-router"' in content
+    assert "docker compose -f deployment/docker-compose.yml --profile distributed build zenoh-router web-panel-distributed" in content
+    assert "docker pull ${{ env.AGI_WALKER_ZENOH_BASE_IMAGE }}" in content
+    assert "python tools/run_security_release_preflight.py --output-root test_env/release_evidence_ci --run-python-vuln-scan --run-container-vuln-scan --container-image-ref ${{ env.AGI_WALKER_ZENOH_IMAGE }} --container-image-ref deployment-web-panel-distributed" in content
+    assert "name: security-preflight-artifacts" in content
+    assert "path: test_env/release_evidence_ci" in content
+
+
+def test_production_runbook_uses_current_compose_entrypoints() -> None:
+    runbook = PRODUCTION_RUNBOOK.read_text(encoding="utf-8")
+
+    assert "deployment/docker-compose.yml" in runbook
+    assert "deployment/compose.env.example" in runbook
+    assert "deployment/web_panel.env.example" in runbook
+    assert "extension_execution_plan" in runbook
+    assert "extension_execution_evidence" in runbook
+    assert "extension_execution_instance" in runbook
+    assert "extension_execution_schedule" in runbook
+    assert "extension_execution_actuals" in runbook
+    assert "window_trigger_recorded_by" in runbook
+    assert "approval_identity_source_path" in runbook
+    assert "archive_target_binding_type" in runbook
+    assert "due_trigger_binding_type" in runbook
+    assert "due_trigger_checked_at" in runbook
+    assert "execution_template" in runbook
+    assert "watch_actions" in runbook
+    assert "on_call_handoff_records" in runbook
+    assert "residual_risk_handoff_steps" in runbook
+    assert "exception_review_steps" in runbook
+    assert "extension_on_call_rehearsal_report.json" in runbook
+    assert "extension_exception_review_schedule_report.json" in runbook
+    assert "extension_escalation_closure_report.json" in runbook
+    assert "extension_execution_instance.json" in runbook
+    assert "extension_execution_schedule.json" in runbook
+    assert "extension_execution_actuals.json" in runbook
+    assert "approval_identity_source.json" in runbook
+    assert "window_trigger.json" in runbook
+    assert "signoff.json" in runbook
+    assert "exception_review.json" in runbook
+    assert "residual_risk_review.json" in runbook
+    assert "due_trigger_check.json" in runbook
+    assert "archive_target.json" in runbook
+    assert "closure_archive/index.json" in runbook
+    assert "closure_manifest.json" in runbook
+    assert "incident_escalation_steps" in runbook
+    assert "escalation_closure_steps" in runbook
+    assert "handoff_checkpoints" in runbook
+    assert "signoff_checkpoints" in runbook
+    assert "rollback_evidence_archive_steps" in runbook
+    assert "docs/guides/DISTRIBUTED_GUIDE.md" in runbook
+    assert "docs/ros2/ROS2_QUICK_START.md" in runbook
+    assert "docs/guides/GODOT_TESTING_GUIDE.md" in runbook
+    assert (
+        "docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml"
+        in runbook
+    )
+    assert "helm/agi-walker" in runbook
+    assert "docker-compose.prod.yml" in runbook
+    assert "[待填充]" not in runbook
+    assert "kubectl cluster-info" not in runbook
+    assert "helm lint ./helm/agi-walker" not in runbook
+    assert "docker compose -f docker-compose.prod.yml" not in runbook
+
+
+def test_customer_deployment_docs_and_compose_defaults_use_current_single_path() -> None:
+    compose = DISTRIBUTED_COMPOSE.read_text(encoding="utf-8")
+    compose_env = COMPOSE_ENV_EXAMPLE.read_text(encoding="utf-8")
+    web_env = WEB_PANEL_ENV_EXAMPLE.read_text(encoding="utf-8")
+    web_panel_dockerfile = WEB_PANEL_DOCKERFILE.read_text(encoding="utf-8")
+    deployment_matrix = DEPLOYMENT_MATRIX_GUIDE.read_text(encoding="utf-8")
+    installation_guide = CUSTOMER_INSTALLATION_GUIDE.read_text(encoding="utf-8")
+    support_matrix = SUPPORT_MATRIX_GUIDE.read_text(encoding="utf-8")
+    capacity_and_scale = CAPACITY_AND_SCALE_GUIDE.read_text(encoding="utf-8")
+    acceptance_checklist = CUSTOMER_ACCEPTANCE_CHECKLIST_GUIDE.read_text(
+        encoding="utf-8"
+    )
+    known_limitations = KNOWN_LIMITATIONS_GUIDE.read_text(encoding="utf-8")
+    readme = ROOT_RELEASE_NOTES.parent.joinpath("README.md").read_text(encoding="utf-8")
+
+    assert "${AGI_WALKER_COMPOSE_WEB_ENV_FILE:-./web_panel.env.example}" in compose
+    assert "${AGI_WALKER_WEB_PORT:-8080}:8000" in compose
+    assert "${AGI_WALKER_WEB_DISTRIBUTED_PORT:-8081}:8000" in compose
+    assert "dockerfile: deployment/Dockerfile.zenoh_router" in compose
+    assert "ZENOH_BASE_IMAGE: ${AGI_WALKER_ZENOH_BASE_IMAGE:-eclipse/zenoh:1.9.0}" in compose
+    assert "${AGI_WALKER_ZENOH_IMAGE:-deployment-zenoh-router}" in compose
+    assert "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/db:/var/lib/agi_walker/db" in compose
+    assert (
+        "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/workflow_runs:/var/lib/agi_walker/workflow_runs"
+        in compose
+    )
+    assert (
+        "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/workflow_archive:/var/lib/agi_walker/workflow_archive"
+        in compose
+    )
+    assert (
+        "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/backups:/var/lib/agi_walker/backups"
+        in compose
+    )
+
+    assert "AGI_WALKER_COMPOSE_WEB_ENV_FILE=./web_panel.env" in compose_env
+    assert "AGI_WALKER_RUNTIME_ROOT=./runtime" in compose_env
+    assert "AGI_WALKER_WEB_PORT=8080" in compose_env
+    assert "AGI_WALKER_WEB_DISTRIBUTED_PORT=8081" in compose_env
+    assert "AGI_WALKER_ZENOH_TCP_PORT=7447" in compose_env
+    assert "AGI_WALKER_ZENOH_REST_PORT=8000" in compose_env
+    assert "AGI_WALKER_ZENOH_BASE_IMAGE=eclipse/zenoh:1.9.0" in compose_env
+    assert "AGI_WALKER_ZENOH_IMAGE=deployment-zenoh-router" in compose_env
+
+    assert "AGI_WALKER_DATABASE_URL=sqlite+aiosqlite:////var/lib/agi_walker/db/agi_walker.db" in compose_env
+    assert "AGI_WALKER_WEB_OUTPUT_ROOT=/var/lib/agi_walker/workflow_runs" in compose_env
+    assert "AGI_WALKER_WEB_ARCHIVE_ROOT=/var/lib/agi_walker/workflow_archive" in compose_env
+    assert "AGI_WALKER_SECRET_KEY=change-me-before-production" in web_env
+    assert "AGI_WALKER_ZENOH_ENDPOINT=tcp/zenoh-router:7447" in web_env
+    assert "apt-get dist-upgrade -y" in web_panel_dockerfile
+    assert "apt-get clean" in web_panel_dockerfile
+    assert "rm -rf /var/lib/apt/lists/*" in web_panel_dockerfile
+
+    assert "Docker Compose" in deployment_matrix
+    assert "deployment/compose.env.example" in deployment_matrix
+    assert "deployment/web_panel.env.example" in deployment_matrix
+    assert "Helm / Kubernetes" in deployment_matrix
+    assert "当前不支持" in deployment_matrix
+
+    assert "安装前检查" in installation_guide
+    assert "首次启动" in installation_guide
+    assert "健康检查" in installation_guide
+    assert "升级" in installation_guide
+    assert "回滚" in installation_guide
+    assert "卸载" in installation_guide
+    assert "extension_execution_plan" in installation_guide
+    assert "extension_execution_evidence" in installation_guide
+    assert "extension_execution_instance" in installation_guide
+    assert "extension_execution_schedule" in installation_guide
+    assert "extension_execution_actuals" in installation_guide
+    assert "window_trigger_recorded_by" in installation_guide
+    assert "approval_identity_source_path" in installation_guide
+    assert "approval_identity_reference" in installation_guide
+    assert "archive_target_binding_type" in installation_guide
+    assert "archive_target_binding_reference_base" in installation_guide
+    assert "due_trigger_binding_type" in installation_guide
+    assert "due_trigger_binding_reference_base" in installation_guide
+    assert "due_trigger_checked_at" in installation_guide
+    assert "execution_template" in installation_guide
+    assert "watch_actions" in installation_guide
+    assert "on_call_handoff_records" in installation_guide
+    assert "residual_risk_handoff_steps" in installation_guide
+    assert "exception_review_steps" in installation_guide
+    assert "extension_on_call_rehearsal_report.json" in installation_guide
+    assert "extension_exception_review_schedule_report.json" in installation_guide
+    assert "extension_escalation_closure_report.json" in installation_guide
+    assert "extension_execution_instance.profiles[*]" in installation_guide
+    assert "extension_execution_schedule.profiles[*]" in installation_guide
+    assert "extension_execution_actuals.profiles[*]" in installation_guide
+    assert "exception_review_record_path" in installation_guide
+    assert "closure_index_path" in installation_guide
+    assert "due_trigger_check.json" in installation_guide
+    assert "archive_target.json" in installation_guide
+    assert "incident_escalation_owner_role" in installation_guide
+    assert "escalation_closure_steps" in installation_guide
+    assert "signoff_checkpoints" in installation_guide
+    assert "rollback_evidence_owner_role" in installation_guide
+    assert "deployment/compose.env.example" in installation_guide
+    assert "deployment/web_panel.env.example" in installation_guide
+    assert (
+        "docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml up -d --build zenoh-router web-panel"
+        in installation_guide
+    )
+    assert "Docker Compose" in support_matrix
+    assert "3.10" in support_matrix
+    assert "3.11" in support_matrix
+    assert "ROS2 Humble" in support_matrix
+    assert "Chromium" in support_matrix
+    assert "Helm / Kubernetes" in support_matrix
+    assert "单机评估版" in capacity_and_scale
+    assert "小规模团队" in capacity_and_scale
+    assert "分布式实验环境" in capacity_and_scale
+    assert "高可用" in capacity_and_scale
+    assert "互联网规模" in capacity_and_scale
+    assert "功能验收" in acceptance_checklist
+    assert "部署验收" in acceptance_checklist
+    assert "安全验收" in acceptance_checklist
+    assert "性能与运维验收" in acceptance_checklist
+    assert "回滚验收" in acceptance_checklist
+    assert "CAPACITY_AND_SCALE.md" in acceptance_checklist
+    assert "customer_acceptance_bundle.extension_execution_evidence" in acceptance_checklist
+    assert "customer_acceptance_bundle.extension_execution_instance" in acceptance_checklist
+    assert "customer_acceptance_bundle.extension_execution_schedule" in acceptance_checklist
+    assert "customer_acceptance_bundle.extension_execution_actuals" in acceptance_checklist
+    assert "window_trigger_recorded_by" in acceptance_checklist
+    assert "approval_identity_source_path" in acceptance_checklist
+    assert "approval_identity_reference" in acceptance_checklist
+    assert "archive_target_binding_type" in acceptance_checklist
+    assert "archive_target_binding_reference_base" in acceptance_checklist
+    assert "due_trigger_binding_type" in acceptance_checklist
+    assert "due_trigger_binding_reference_base" in acceptance_checklist
+    assert "due_trigger_checked_at" in acceptance_checklist
+    assert "closure_archive_due_at" in acceptance_checklist
+    assert "execution_template" in acceptance_checklist
+    assert "handoff_owner_role" in acceptance_checklist
+    assert "watch_owner_role" in acceptance_checklist
+    assert "on_call_handoff_owner_role" in acceptance_checklist
+    assert "residual_risk_owner_role" in acceptance_checklist
+    assert "exception_review_owner_role" in acceptance_checklist
+    assert "incident_escalation_owner_role" in acceptance_checklist
+    assert "escalation_closure_owner_role" in acceptance_checklist
+    assert "extension_on_call_rehearsal_report.json" in acceptance_checklist
+    assert "extension_exception_review_schedule_report.json" in acceptance_checklist
+    assert "extension_escalation_closure_report.json" in acceptance_checklist
+    assert "extension_execution_instance.json" in acceptance_checklist
+    assert "extension_execution_schedule.json" in acceptance_checklist
+    assert "extension_execution_actuals.json" in acceptance_checklist
+    assert "approval_identity_source.json" in acceptance_checklist
+    assert "window_trigger.json" in acceptance_checklist
+    assert "signoff.json" in acceptance_checklist
+    assert "exception_review.json" in acceptance_checklist
+    assert "residual_risk_review.json" in acceptance_checklist
+    assert "due_trigger_check.json" in acceptance_checklist
+    assert "archive_target.json" in acceptance_checklist
+    assert "closure_archive/index.json" in acceptance_checklist
+    assert "closure_manifest.json" in acceptance_checklist
+    assert "rollback_evidence_archive_steps" in acceptance_checklist
+    assert "deployment/security/vulnerability_exceptions.input.json" in acceptance_checklist
+    assert "Helm / Kubernetes" in known_limitations
+    assert "SQLite" in known_limitations
+    assert "stdio" in known_limitations
+    assert "deployment-web-panel-distributed" in known_limitations
+    assert "2026-05-15" in known_limitations
+    assert "CAPACITY_AND_SCALE.md" in known_limitations
+    assert "生产部署 Runbook" in readme
+    assert "客户安装指南" in readme
+    assert "部署矩阵" in readme
+    assert "支持矩阵" in readme
+    assert "容量与规模声明" in readme
+    assert "客户验收清单" in readme
+    assert "已知限制" in readme
+    assert "extension_execution_evidence" in readme
+    assert "extension_execution_instance" in readme
+    assert "extension_execution_schedule" in readme
+    assert "extension_execution_actuals" in readme
+    assert "approval_identity_source_path" in readme
+    assert "archive_target_binding_type" in readme
+    assert "due_trigger_binding_type" in readme
+    assert "due_trigger_checked_at" in readme
+    assert "closure_archive/index.json" in readme

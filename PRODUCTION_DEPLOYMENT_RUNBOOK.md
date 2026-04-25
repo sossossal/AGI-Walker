@@ -1,732 +1,346 @@
-# 🚀 生产部署实战手册
-## AGI-Walker Phase 5 - 生产上线执行指南
-
-**执行日期**: [待填充]  
-**部署版本**: v1.0.0  
-**部署基础设施**: Kubernetes + Docker Registry  
-**预期完成时间**: 3 周
-
----
-
-## ⏰ 执行时间表
-
-```
-Week 1 (当前周):
-  Mon-Tue: 最终验证 & 预演环境测试
-  Wed:     生产前准备
-  Thu-Fri: 待命和文档审查
-
-Week 2:
-  Mon:     5% 灰度部署 (Canary Phase 1)
-  Tue-Wed: 监控验证（30 分钟 × 3 ）
-  Thu:     决策和报告
-  Fri:     25% 灰度部署（如 5% 通过）
-
-Week 3:
-  Mon:     100% 全量部署（如 25% 通过）
-  Tue-Fri: 监控和性能基准验证
-```
-
----
-
-## 📋 预部署检查清单 (Day 1)
-
-### 基础设施检查
-
-```bash
-# 1. Kubernetes 集群健康检查
-echo "=== 检查 Kubernetes 集群 ==="
-kubectl cluster-info
-kubectl get nodes
-kubectl get namespaces
-
-# 预期输出:
-# - 至少 2 个 READY 节点
-# - production 命名空间存在
-
-# 2. 存储和网络验证
-echo "=== 检查存储卷 ==="
-kubectl get pvc -n production
-
-echo "=== 检查网络策略 ==="
-kubectl get networkpolicies -n production
-
-# 3. Docker Registry 验证
-echo "=== 验证 Docker Registry ==="
-docker login <registry_url>
-docker pull <registry>/agi-walker:latest
-
-# 预期: 镜像拉取成功
-```
-
-### 应用检查
-
-```bash
-# 1. 镜像扫描
-echo "=== 扫描 Docker 镜像漏洞 ==="
-trivy image <registry>/agi-walker:latest
-
-# 2. Helm Chart 验证
-echo "=== 验证 Helm Chart ==="
-helm lint ./helm/agi-walker
-
-# 3. 配置检查
-echo "=== 验证配置文件 ==="
-helm template agi-walker ./helm/agi-walker -f ./helm/values-prod.yaml | kubectl apply -f - --dry-run=client
-```
-
-### Web Workflow 控制台配置检查
-
-如果生产环境会暴露 Web workflow 控制台，建议在预部署阶段把分页与归档策略显式写入配置，而不是完全依赖代码默认值。
-
-推荐显式配置的环境变量：
-
-```bash
-export AGI_WALKER_WEB_RUNS_PAGE_SIZE=20
-export AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE=100
-export AGI_WALKER_WEB_ARCHIVE_MAX_RUNS=200
-export AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS=30
-```
-
-也可以直接以仓库中的模板为基线：
-
-- `deployment/web_panel.env.example`
-
-说明：
-
-- `AGI_WALKER_WEB_RUNS_PAGE_SIZE`: 默认每页条数
-- `AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE`: 允许的最大每页条数
-- `AGI_WALKER_WEB_ARCHIVE_MAX_RUNS`: 本地归档最多保留多少条 run
-- `AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS`: 本地归档最多保留多少天
-
-如果生产环境的磁盘预算更紧，优先调低 `AGI_WALKER_WEB_ARCHIVE_MAX_RUNS` 和 `AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS`。
-
-### 监控和告警检查
-
-```bash
-# 1. Prometheus 验证
-kubectl get pod -n monitoring -l app=prometheus
-
-# 2. Grafana 仪表板验证
-curl -s http://grafana.monitoring.svc.cluster.local:3000/api/dashboards/home | grep -q "AGI-Walker"
-
-# 3. 告警规则验证
-kubectl get PrometheusRule -n monitoring | grep agi-walker
-```
-
----
-
-## 🧪 Nightly 专项回归与排障
-
-当前 GitHub Actions 已将两条高价值专项链路纳入 nightly 定时回归，并保留手动触发入口：
-
-- `distributed-smoke`
-- `godot-headless-smoke`
-
-触发方式：
-
-- `workflow_dispatch`
-- nightly schedule（UTC `02:00`）
-
-说明：
-
-- nightly 不会运行完整 unit/integration 矩阵。
-- nightly 只保留 `quality`、`smoke`、`distributed-smoke`、`godot-headless-smoke`，用于持续验证最小可信主线和最脆弱的系统级链路。
-
-### CI 产物清单
-
-GitHub Actions 当前会上传以下 artifact，默认保留 `7` 天：
-
-- `smoke-artifacts`
-  - 来源 job: `smoke`
-  - 主要内容: `test_env/smoke_ci/`
-- `distributed-smoke-artifacts`
-  - 来源 job: `distributed-smoke`
-  - 主要内容: `test_env/distributed_smoke/`
-- `godot-headless-smoke-artifacts`
-  - 来源 job: `godot-headless-smoke`
-  - 主要内容: `test_env/`
-
-### 值班责任矩阵
-
-nightly 失败后，先按 job 分类，而不是先按猜测的模块分类：
-
-| 失败 job | 一级责任面 | 默认处理优先级 | 说明 |
-|----------|------------|----------------|------|
-| `smoke` | Core / Workflow | 高 | 影响最小可信主线，优先处理 |
-| `distributed-smoke` | Distributed Runtime | 中-高 | 影响分布式训练与监控链路 |
-| `godot-headless-smoke` | Web / Godot Integration | 中-高 | 影响真实 Godot 回归信号 |
-
-如果一次失败同时涉及多个 job，先按以下顺序处理：
-
-1. `smoke`
-2. `godot-headless-smoke`
-3. `distributed-smoke`
-
-### 响应时限 (SLA)
-
-- `smoke` 失败：下一个工作时段开始后 `4` 小时内完成首次分诊
-- `distributed-smoke` 失败：下一个工作时段开始后 `1` 个工作日内完成首次分诊
-- `godot-headless-smoke` 失败：下一个工作时段开始后 `1` 个工作日内完成首次分诊
-
-升级条件：
-
-- 同一个 nightly job 连续失败 `2` 次
-- 在 `main` 发布窗口前 `24` 小时内仍未恢复
-- 同一问题已经影响 `workflow_dispatch` 手工回归
-
-满足任一条件时，应直接升级到发布负责人或相关模块 owner，而不是继续停留在“待观察”状态。
-
-### 建单与通知流程
-
-nightly 失败后，建议按下面顺序操作：
-
-1. 在 GitHub Actions 中打开失败 run
-2. 下载对应 artifact
-3. 使用仓库模板创建 issue：
-   - `.github/ISSUE_TEMPLATE/nightly_regression.md`
-4. issue 标题保持：
-   - `[NIGHTLY] <job-name> <date>`
-5. 在 issue 中至少填写：
-   - failing job
-   - run link
-   - failure first seen
-   - observed failure
-   - artifacts checked
-   - local reproduction
-   - suspected owner
-   - next action
-
-如果团队已经有固定通知渠道，建议在建单后同步：
-
-- `#nightly-regressions`
-- `#deployment`
-- 或发布负责人值班群
-
-如果没有固定渠道，至少要保证 issue 被指派到对应责任面，而不是仅创建未分配记录。
-
-### 快速定位顺序
-
-1. 先看失败的是哪一个 job  
-   - `smoke`
-   - `distributed-smoke`
-   - `godot-headless-smoke`
-
-2. 下载对应 artifact  
-   - 先看 `test_env/...` 下的 workflow 输出、日志和中间产物
-
-3. 再决定本地复现命令  
-   - 不要一上来就跑全量 pytest
-   - 先复现失败的专项链路
-
-### 本地复现命令
-
-最小 smoke：
-
-```bash
-python tests/run_smoke_tests.py --output-root test_env/smoke_runs/manual_nightly_repro
+# AGI-Walker 生产部署 Runbook
+
+更新日期：`2026-04-16`
+
+## 适用范围
+
+本 runbook 只描述仓库当前真实支持的自托管部署路径，不再保留旧的 Kubernetes / Helm / 灰度发布脚本模板。
+
+当前一线部署路径：
+
+- Docker Compose: [deployment/docker-compose.yml](D:/新建文件夹/AGI-Walker/deployment/docker-compose.yml)
+- Compose 级变量模板: [deployment/compose.env.example](D:/新建文件夹/AGI-Walker/deployment/compose.env.example)
+- Web 配置模板: [deployment/web_panel.env.example](D:/新建文件夹/AGI-Walker/deployment/web_panel.env.example)
+
+当前不应作为一线入口的路径：
+
+- `helm/agi-walker`
+- `docker-compose.prod.yml`
+- Kubernetes / Istio / PrometheusRule / Grafana service mesh 脚本模板
+
+## 当前支持边界
+
+当前可交付的部署形态是“单宿主机、自托管、Docker Compose”。
+
+当前明确支持：
+
+- `zenoh-router`
+- `web-panel`
+- 可选的 `web-panel-distributed`
+- 可选的 `learner`
+- 可选的 `sidecar-1`
+
+当前明确不作为默认交付承诺：
+
+- Helm / Kubernetes 集群部署
+- 高可用数据库与对象存储编排
+- 内建 Grafana / Prometheus 生产栈
+- 多租户隔离
+- 自动灰度发布
+
+如果客户需要这些能力，必须在交付项目中单独补齐，而不是假定仓库已经产品化提供。
+
+## 扩展执行计划入口
+
+当前客户交付链会把扩展动作汇总到 `extension_execution_plan`。正式运行手册应与该对象保持一致，不要再单独维护另一套命令口径。
+当前 release manifest / bundle / industrial promotion / rehearsal 还会附带 `extension_execution_evidence`。正式运行手册除了解释动作，也要对齐四类留痕报告：`extension_on_call_rehearsal_report.json`、`extension_exception_review_schedule_report.json`、`extension_escalation_closure_report.json`、`customer_external_bindings_confirmation_report.json`。
+同一批产物现在还会附带 `extension_execution_instance`。正式运行手册还要对齐本次客户实例化的 `engagement_id`、`window_id`、`exception_review_due_at`、`delivery_root`、`closure_archive_root` 和 profile 级实例化路径。
+同一批产物现在还会附带 `extension_execution_schedule`。正式运行手册还要对齐 `window_trigger_at`、`signoff_due_at`、`closure_archive_due_at`、`window_trigger_record_path`、`residual_risk_review_record_path` 和 `closure_manifest_path` 这些客户窗口排程字段。
+同一批产物现在还会附带 `extension_execution_actuals`。正式运行手册还要对齐 `window_trigger_recorded_at`、`signoff_recorded_at`、`residual_risk_reviewed_at`、`closure_archived_at`、`window_trigger_recorded_by`、`signoff_recorded_by`、`residual_risk_reviewed_by`、`closure_archived_by`、`approval_identity_source_path`、`approval_identity_source_type`、`approval_identity_reference`、`archive_target_binding_type`、`archive_target_binding_reference_base`、`due_trigger_binding_type`、`due_trigger_binding_reference_base`、`due_trigger_checked_at`、`exception_review_due_at`、`closure_archive_due_at`，以及 profile 级 `approval_identity_source.json`、`window_trigger.json`、`signoff.json`、`exception_review.json`、`residual_risk_review.json`、`due_trigger_check.json`、`archive_target.json`、`closure_archive/index.json` 与 `closure_manifest.json` 的实际落盘路径。
+每个 profile 现在还会附带 `execution_template`，固定 `operator_roles`、`upgrade_window_steps`、`handoff_owner_role`、`handoff_checkpoints`、`watch_owner_role`、`watch_actions`、`on_call_handoff_owner_role`、`on_call_handoff_records`、`residual_risk_owner_role`、`residual_risk_handoff_steps`、`exception_review_owner_role`、`exception_review_steps`、`incident_escalation_owner_role`、`incident_escalation_steps`、`escalation_closure_owner_role`、`escalation_closure_steps`、`signoff_checkpoints`、`rollback_owner_role`、`rollback_steps`、`rollback_evidence_owner_role` 和 `rollback_evidence_archive_steps`，用于把现场角色分工、升级窗口顺序、值班动作、on-call 交接、风险复核、升级闭环和回滚证据归档责任一起压成机器字段。
+
+- `distributed_profile.runbook_entrypoints`
+  - `PRODUCTION_DEPLOYMENT_RUNBOOK.md`
+  - `docs/guides/CUSTOMER_INSTALLATION_GUIDE.md`
+  - `docs/guides/DISTRIBUTED_GUIDE.md`
+- `ros2_bridge_extension.runbook_entrypoints`
+  - `PRODUCTION_DEPLOYMENT_RUNBOOK.md`
+  - `docs/guides/CUSTOMER_INSTALLATION_GUIDE.md`
+  - `docs/ros2/ROS2_QUICK_START.md`
+- `godot_extension.runbook_entrypoints`
+  - `PRODUCTION_DEPLOYMENT_RUNBOOK.md`
+  - `docs/guides/CUSTOMER_INSTALLATION_GUIDE.md`
+  - `docs/guides/GODOT_TESTING_GUIDE.md`
+- `kubernetes_delivery.runbook_entrypoints`
+  - `PRODUCTION_DEPLOYMENT_RUNBOOK.md`
+  - `docs/guides/SUPPORT_MATRIX.md`
+  - `docs/guides/KNOWN_LIMITATIONS.md`
+
+如果客户 bundle / industrial checklist / rehearsal report 中的 `extension_execution_plan` 与本 runbook 冲突，应先修正 runbook 或 contract，不要现场口头覆盖。
+如果现场执行顺序、值班角色、on-call 交接、exception 复核、交付窗口、closure archive 目标、实际触发留痕或回滚责任发生变化，也必须同步更新 `execution_template`、`extension_execution_evidence`、`extension_execution_instance`、`extension_execution_schedule` 与 `extension_execution_actuals`，不要只改文档正文。
+
+### 现场执行模板字段
+
+- `operator_roles`
+  - 固定声明交付负责人、客户现场操作人和回滚负责人，避免现场临时口头分派。
+- `upgrade_window_steps`
+  - 固定升级窗口的执行顺序，要求按顺序完成冻结窗口、部署、验收和签收/转回滚。
+- `handoff_owner_role` / `handoff_checkpoints`
+  - 固定谁负责把当前运行态、artifact 路径和联系人移交给客户现场团队，避免窗口结束后责任悬空。
+- `watch_owner_role` / `watch_actions`
+  - 固定谁负责首个值班窗口内的观测动作，避免切换完成后无人盯守运行态。
+- `on_call_handoff_owner_role` / `on_call_handoff_records`
+  - 固定谁负责把首个值班窗口的结果、联系人和留痕 artifact 交给持续值班人，避免窗口一结束就断档。
+- `residual_risk_owner_role` / `residual_risk_handoff_steps`
+  - 固定谁负责把当前已知限制、accepted residual risk 和对应 artifact 交给现场团队，避免风险只停留在交付方脑中。
+- `exception_review_owner_role` / `exception_review_steps`
+  - 固定谁负责复核 exception 输入、到期日和当前覆盖报告，避免 accepted exception 无人续期或过期后继续沿用。
+- `incident_escalation_owner_role` / `incident_escalation_steps`
+  - 固定异常升级路径，明确何时按 incident matrix 升级、何时转交 rollback owner。
+- `escalation_closure_owner_role` / `escalation_closure_steps`
+  - 固定谁负责把升级后的 closure 结论和恢复证据补回 promotion/bundle，避免事件升级后没有闭环留痕。
+- `signoff_checkpoints`
+  - 固定窗口关闭前必须完成的签收点和所需 artifact，避免“口头验收”。
+- `rollback_owner_role`
+  - 固定本 profile 的回滚责任角色，现场不应再临时推诿。
+- `rollback_steps`
+  - 固定回滚执行顺序，确保停止当前变更、恢复上一个稳定组合并补录恢复证据。
+- `rollback_evidence_owner_role` / `rollback_evidence_archive_steps`
+  - 固定谁负责把回滚证据归档到 smoke / bundle / 已知限制等目标，避免回滚后只有口头确认没有留痕。
+
+## 预部署检查
+
+1. 确认 Docker Engine 与 `docker compose` 可用。
+2. 确认宿主机端口未冲突：
+   - `8080` 对应 `web-panel`
+   - `8081` 对应 `web-panel-distributed`
+   - `7447` 对应 Zenoh TCP
+   - `8000` 对应 Zenoh REST
+3. 确认当前发布证据已收集：
+
+```powershell
+python tools/collect_release_evidence.py
+python tools/build_extension_execution_evidence.py --output-root test_env/release_evidence/operations --vulnerability-exception-report test_env/release_evidence/security/vulnerability_exception_report.json
+python tools/build_extension_execution_instance.py --output test_env/release_evidence/operations/extension_execution_instance.json --vulnerability-exception-report test_env/release_evidence/security/vulnerability_exception_report.json
+python tools/build_extension_execution_schedule.py --output test_env/release_evidence/operations/extension_execution_schedule.json --instance-artifact test_env/release_evidence/operations/extension_execution_instance.json
+python tools/build_extension_execution_actuals.py --output test_env/release_evidence/operations/extension_execution_actuals.json --schedule-artifact test_env/release_evidence/operations/extension_execution_schedule.json
+python tools/build_release_artifact.py --version 2026.04.12 --channel stable --build-id build-20260413-stable
 ```
 
-分布式 smoke：
+4. 如需 distributed runtime，确认 Godot 侧 TCP 目标已准备：
+   - `AGI_WALKER_GODOT_HOST`
+   - `AGI_WALKER_GODOT_PORT`
+   - `AGI_WALKER_SIDECAR_ACTOR_ID`
 
-```bash
-python tests/run_distributed_smoke.py --build
+## 配置准备
+
+当前 compose 文件直接引用：
+
+- [deployment/compose.env.example](D:/新建文件夹/AGI-Walker/deployment/compose.env.example)
+- [deployment/web_panel.env.example](D:/新建文件夹/AGI-Walker/deployment/web_panel.env.example)
+
+当前建议做法：
+
+1. 复制两份模板：
+
+```powershell
+Copy-Item deployment/compose.env.example deployment/compose.env
+Copy-Item deployment/web_panel.env.example deployment/web_panel.env
 ```
 
-真实 Godot headless smoke：
+2. 在部署时通过 `--env-file deployment/compose.env` 让 compose 使用部署专用 host 变量。
+3. 至少审查以下变量：
+   - `AGI_WALKER_COMPOSE_WEB_ENV_FILE`
+   - `AGI_WALKER_RUNTIME_ROOT`
+   - `AGI_WALKER_WEB_PORT`
+   - `AGI_WALKER_WEB_DISTRIBUTED_PORT`
+   - `AGI_WALKER_DATABASE_URL`
+   - `AGI_WALKER_WEB_OUTPUT_ROOT`
+   - `AGI_WALKER_WEB_ARCHIVE_ROOT`
+   - `AGI_WALKER_SECRET_KEY`
+   - `AGI_WALKER_WEB_RUNS_PAGE_SIZE`
+   - `AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE`
+   - `AGI_WALKER_WEB_ARCHIVE_MAX_RUNS`
+   - `AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS`
+   - `AGI_WALKER_ZENOH_ENDPOINT`
+4. 默认持久化目录约定：
+   - `<runtime-root>/db`
+   - `<runtime-root>/workflow_runs`
+   - `<runtime-root>/workflow_archive`
+   - `<runtime-root>/backups`
+5. 默认日志约定：
+   - 运行态日志通过 `docker compose logs` 读取
+   - 如需宿主机留档，建议导出到 `<runtime-root>/logs/compose/`
 
-Windows PowerShell:
+## 部署模式
+
+### 模式 A：控制面最小部署
+
+适用于只需要 Web Panel 和基础系统状态接口的单机部署。
+
+```powershell
+docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml up -d --build zenoh-router web-panel
+```
+
+启动后检查：
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8080/api/system/status
+Invoke-RestMethod http://127.0.0.1:8080/api/capabilities/matrix
+```
+
+### 模式 B：distributed runtime 扩展部署
+
+适用于需要 learner / sidecar / distributed monitor 的部署。
+
+该模式对应 `extension_execution_plan.profiles[distributed_profile]`，现场执行顺序以 `execution_template.upgrade_window_steps` 为准。
+
+注意：`sidecar-1` 默认会连接 `host.docker.internal:9000`。如果目标环境不是本机 Godot，请先显式设置目标地址。
+
+```powershell
+$env:AGI_WALKER_GODOT_HOST='host.docker.internal'
+$env:AGI_WALKER_GODOT_PORT='9000'
+$env:AGI_WALKER_SIDECAR_ACTOR_ID='actor_customer_1'
+docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml --profile distributed up -d --build zenoh-router learner sidecar-1 web-panel-distributed
+```
+
+启动后检查：
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8081/api/system/status
+Invoke-RestMethod http://127.0.0.1:8081/api/distributed/status
+```
+
+## 健康检查
+
+最小检查：
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8080/api/system/status
+```
+
+distributed 检查：
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8081/api/distributed/status
+```
+
+日志检查：
+
+```powershell
+docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml logs --tail=200 web-panel zenoh-router
+docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml logs --tail=200 web-panel-distributed learner sidecar-1
+```
+
+## 发布前验收
+
+部署前至少完成以下检查：
+
+```powershell
+python tools/collect_release_evidence.py
+python tools/check_release_readiness.py --approval-manifest test_env/release/release_manifest_stable.json
+python tests/run_distributed_smoke.py --build --stop-after --report-file test_env/distributed_smoke/distributed_smoke_report.json
+```
+
+如当前交付声明包含 live Godot / ROS2 证据，再补：
 
 ```powershell
 $env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
-$env:AGI_WALKER_GODOT_HEADLESS_ARTIFACT_DIR='test_env/godot_headless_smoke'
-python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
+python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live" --tb=short -vv
+
+$env:AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE='1'
+python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live" --tb=short -vv
 ```
 
-### 常见失败与排查入口
+ROS2 / Godot 扩展当前不作为基础部署步骤，而是通过 `extension_execution_plan` 进入专项实施动作：
 
-#### 1. `smoke` 失败
+- `ros2_bridge_extension`
+  - runbook 入口：`docs/ros2/ROS2_QUICK_START.md`
+  - 关键命令：`ros2 launch agi_walker_ros2 agi_walker.launch.py`
+  - 专项验收：`AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE=1 python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live" --tb=short -vv`
+- `godot_extension`
+  - runbook 入口：`docs/guides/GODOT_TESTING_GUIDE.md`
+  - 关键前提：`GODOT_EXECUTABLE`、`AGI_WALKER_GODOT_HEADLESS_SCENE`
+  - 专项验收：`AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE=1 python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live" --tb=short -vv`
 
-优先检查：
+## 升级
 
-- `smoke-artifacts`
-- `test_env/smoke_ci/`
-- Workflow 输出目录下的 `.output/` 和 `exports/`
-
-常见原因：
-
-- CLI/workflow 参数回归
-- Web 导入链路回归
-- external `godot-agent` preflight 失败
-
-#### 2. `distributed-smoke` 失败
-
-优先检查：
-
-- `distributed-smoke-artifacts`
-- `test_env/distributed_smoke/`
-- Compose 服务日志
-
-建议的本地排查顺序：
-
-```bash
-python tests/run_distributed_smoke.py --build
-```
-
-重点观察：
-
-- `web-panel-distributed` 是否启动
-- `/api/system/status` 中 `distributed_monitor.monitor_active`
-- `/api/distributed/status` 中是否出现预期 actor
-- actor 是否因 TTL 过快清理而过早消失
-
-如需调整 actor 保留时间，可显式设置：
-
-```bash
-export AGI_WALKER_DISTRIBUTED_ACTOR_TTL_SECONDS=30
-```
-
-Windows PowerShell:
+当前仓库的一线升级方式是“切换到目标版本检出后重建镜像并重新拉起 compose 服务”，不是 Kubernetes rollout。
+如 bundle 声明了扩展 profile，应先对齐对应 `execution_template.operator_roles` / `handoff_owner_role` / `watch_owner_role` / `on_call_handoff_owner_role`，再按 `execution_template.upgrade_window_steps`、`watch_actions`、`on_call_handoff_records`、`residual_risk_handoff_steps`、`exception_review_steps` 和 `signoff_checkpoints` 顺序执行，不要直接跳过窗口冻结、值班、on-call 交接、风险复核或签收步骤。
 
 ```powershell
-$env:AGI_WALKER_DISTRIBUTED_ACTOR_TTL_SECONDS='30'
+git checkout <target-tag-or-commit>
+python tools/collect_release_evidence.py
+docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml up -d --build zenoh-router web-panel
 ```
 
-### 近期实操验证
+如果使用 distributed profile：
 
-- `python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv`（设置 `AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE=1` 与 `AGI_WALKER_GODOT_HEADLESS_SCENE=run_rl_server.tscn`）：headless lifecycle 在 runner 场景下通过，`headless_smoke_report.json` 记录 success。
-- `docker compose -f docker-compose.prod.yml up --build`：在本地运行时 Web API/worker/Celery/Redis/PostgreSQL/Prometheus 启动成功，Grafana 由于 host 3000 端口被占用未能绑定；下一次执行前请释放该端口或改写映射。
-- 注意：Windows 会把 2970-3069 端口范围列入 `netsh interface ipv4 show excludedportrange protocol=tcp`，因此即便 3000 未被应用显式占用也无法绑定；当前只能在非 3000/9090 端口上验证 Grafana/Prometheus，除非系统管理员调整排除区间。
-- `python tests/run_distributed_smoke.py --build`：在授予 Docker 配置文件权限后构建并启动通过，分布式监控状态显示 `monitor_active=true`、actor `actor_docker_1` 处于 active，summary `PASS`。
+```powershell
+git checkout <target-tag-or-commit>
+python tools/collect_release_evidence.py
+docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml --profile distributed up -d --build zenoh-router learner sidecar-1 web-panel-distributed
+```
 
-#### 3. `godot-headless-smoke` 失败
+## 回滚
+
+当前回滚方式同样是“切换到上一个已知稳定版本，再重新构建并拉起 compose 服务”。
+现场回滚责任以 `extension_execution_plan.profiles[*].execution_template.rollback_owner_role` 为准，执行顺序以 `rollback_steps` 为准；异常升级则以 `incident_escalation_owner_role` / `incident_escalation_steps` 为准；升级闭环则以 `escalation_closure_owner_role` / `escalation_closure_steps` 为准；回滚证据归档则以 `rollback_evidence_owner_role` 和 `rollback_evidence_archive_steps` 为准。
+
+```powershell
+git checkout <previous-stable-tag>
+docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml down
+docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml up -d --build zenoh-router web-panel
+```
+
+如果要回滚 distributed profile：
+
+```powershell
+git checkout <previous-stable-tag>
+docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml --profile distributed down
+docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml --profile distributed up -d --build zenoh-router learner sidecar-1 web-panel-distributed
+```
+
+如本次交付包含 ROS2 / Godot 扩展，还应按 `extension_execution_plan.profiles[*].rollback_prerequisites` 额外确认：
+
+- ROS2：保留 ROS2 Humble 环境、launch/params 配置和当前 topic/service 连通性记录。
+- Godot：保留上一个已验收的 scene、可执行文件路径和 backend 选择。
+
+## 故障定位
+
+### `web-panel` 无法启动
 
 优先检查：
 
-- `godot-headless-smoke-artifacts`
-- `test_env/godot_headless_smoke/headless_smoke_report.json`
-- `tests/test_godot_headless_smoke.py`
-- 本机/runner 上 Godot 可执行文件是否可用
-- `%APPDATA%\Godot\app_userdata\AGI-Walker Simulation\logs\`
+- `docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml logs web-panel`
+- `deployment/web_panel.env.example` 中的配置是否被部署值覆盖
+- `8080` 端口是否冲突
 
-建议的本地排查顺序：
+### `web-panel-distributed` 无 actor
+
+优先检查：
+
+- `docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml logs web-panel-distributed`
+- `docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml logs learner`
+- `docker compose --env-file deployment/compose.env -f deployment/docker-compose.yml logs sidecar-1`
+- `AGI_WALKER_GODOT_HOST` / `AGI_WALKER_GODOT_PORT` 是否正确
+- `AGI_WALKER_ZENOH_TCP_PORT` / `AGI_WALKER_ZENOH_REST_PORT` 是否与宿主机冲突
+
+### distributed smoke 失败
+
+直接看结构化报告：
+
+- [test_env/distributed_smoke/distributed_smoke_report.json](D:/新建文件夹/AGI-Walker/test_env/distributed_smoke/distributed_smoke_report.json)
+
+复现命令：
 
 ```powershell
-$env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
-$env:AGI_WALKER_GODOT_HEADLESS_ARTIFACT_DIR='test_env/godot_headless_smoke'
-python -m pytest tests/test_godot_headless_smoke.py -q -m integration --tb=short -vv
+python tests/run_distributed_smoke.py --build --stop-after --report-file test_env/distributed_smoke/distributed_smoke_report.json
 ```
 
-重点观察：
+## 当前限制
 
-- `headless_smoke_report.json` 里的 `failure_stage`
- - Godot 是否以当前配置的 scene 启动，默认应为 `--scene demo_generated_biped.tscn`
-- TCP 端口是否实际监听
-- 是否误用了 Windows GUI build + `stdout/stderr=PIPE`
-- Godot AppData 日志里是否出现脚本加载错误或场景初始化错误
+1. 当前生产 runbook 只覆盖仓库真实存在的 Docker Compose 路径。
+2. 当前 compose 没有内建 Helm、Kubernetes、Grafana、Prometheus、PostgreSQL 生产拓扑。
+3. 当前持久化策略仍需要交付项目按客户环境补齐，不能把容器本地状态当成最终生产方案。
+4. 当前 `sidecar-1` 依赖外部 Godot TCP 目标，不适合作为零配置默认生产面。
 
-### 升级判据
+## 判定标准
 
-只有当以下 4 项同时稳定时，才建议把 nightly 的结果继续上升到更严格的发布门槛：
+只有以下条件都满足，才能把当前部署判定为“可交付客户使用”的 compose 交付：
 
-- `quality` 稳定通过
-- `smoke` 稳定通过
-- `distributed-smoke` 连续通过
-- `godot-headless-smoke` 连续通过
-
-在此之前，不建议让 nightly 直接阻断所有日常开发分支。
-
----
-
-## 🔄 Week 1: 预演环境测试
-
-### Day 1-2: 完整验证
-
-```bash
-#!/bin/bash
-# 预演环境完整部署脚本
-
-set -e  # 任何错误立即退出
-
-echo "=== [Staging] 部署启动 ==="
-python deploy.py \
-  --environment staging \
-  --version latest \
-  --action deploy
-
-echo "=== [Staging] 等待部署完成 ==="
-kubectl rollout status deployment/agi-walker -n staging --timeout=5m
-
-echo "=== [Staging] 运行烟雾测试 ==="
-pytest tests/test_smoke.py -v --tb=short
-
-echo "=== [Staging] 运行集成测试 ==="
-pytest tests/test_integration.py -v --tb=short
-
-echo "=== [Staging] 性能基准验证 ==="
-pytest tests/test_performance*.py -v --tb=short
-
-echo "=== [Staging] 获取部署信息 ==="
-kubectl get deployment,pods,svc -n staging -o wide
-
-echo "✅ 预演环境验证通过"
-```
-
-### Day 3: 灾难恢复演练
-
-```bash
-#!/bin/bash
-# 灾难恢复演练
-
-echo "=== 灾难恢复演练开始 ==="
-
-# 1. 基线获取
-echo "获取当前基线..."
-BASELINE_ERROR_RATE=$(curl -s http://staging-api.local/metrics | grep error_rate)
-
-# 2. 模拟故障
-echo "模拟数据库连接故障..."
-kubectl exec -it deployment/agi-walker-db -n staging -- \
-  sh -c "mysql -u root -ppassword -e 'SET GLOBAL max_connections=5;'"
-
-# 3. 观察告警
-echo "等待告警触发..."
-sleep 30
-
-# 4. 验证自动恢复
-echo "验证自动恢复..."
-kubectl get pods -n staging
-
-# 5. 恢复
-echo "恢复数据库连接..."
-kubectl delete pod -l app=agi-walker-db -n staging
-
-echo "✅ 灾难恢复演练完成"
-```
-
----
-
-## 🚀 Week 2: 生产灰度部署 Phase 1 (5%)
-
-### Day 1: 5% 灰度部署启动
-
-```bash
-#!/bin/bash
-# 生产灰度部署脚本 - Phase 1 (5%)
-
-set -e
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-
-echo "=========================================="
-echo "AGI-Walker 生产灰度部署 - Phase 1 (5%)"
-echo "时间: $TIMESTAMP"
-echo "=========================================="
-
-# 1. 前置检查
-echo "=== 前置检查 ==="
-echo "✓ 检查集群连接..."
-kubectl cluster-info
-echo "✓ 检查命名空间..."
-kubectl get ns production
-echo "✓ 检查现有部署..."
-kubectl get deployment agi-walker -n production
-
-# 2. 备份当前版本
-echo "=== 备份当前版本 ==="
-kubectl get deployment agi-walker -n production -o json > agi-walker_backup_$TIMESTAMP.json
-echo "✓ 备份完成: agi-walker_backup_$TIMESTAMP.json"
-
-# 3. 创建金丝雀部署 (5% = 1 个 Pod, 基于 20 个生产 Pod)
-echo "=== 创建金丝雀部署 (5%) ==="
-cat <<EOF | kubectl apply -f -
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: agi-walker-canary
-  namespace: production
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: agi-walker
-      version: canary
-  template:
-    metadata:
-      labels:
-        app: agi-walker
-        version: canary
-    spec:
-      containers:
-      - name: api
-        image: <registry>/agi-walker:latest
-        ports:
-        - containerPort: 8000
-        env:
-        - name: PYTHONUTF8
-          value: "1"
-        - name: AGI_WALKER_WEB_RUNS_PAGE_SIZE
-          value: "20"
-        - name: AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE
-          value: "100"
-        - name: AGI_WALKER_WEB_ARCHIVE_MAX_RUNS
-          value: "200"
-        - name: AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS
-          value: "30"
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "500m"
-          limits:
-            memory: "1Gi"
-            cpu: "1000m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 8000
-          initialDelaySeconds: 20
-          periodSeconds: 5
-EOF
-
-echo "✓ 金丝雀部署创建完成"
-
-# 4. 配置流量分割 (Istio VirtualService)
-echo "=== 配置流量分割 ==="
-cat <<EOF | kubectl apply -f -
-apiVersion: networking.istio.io/v1beta1
-kind: VirtualService
-metadata:
-  name: agi-walker
-  namespace: production
-spec:
-  hosts:
-  - api.agi-walker.com
-  http:
-  - match:
-    - headers:
-        user-agent:
-          regex: ".*Canary.*"
-    route:
-    - destination:
-        host: agi-walker.production.svc.cluster.local
-        subset: canary
-      weight: 100
-  - route:
-    - destination:
-        host: agi-walker.production.svc.cluster.local
-        subset: stable
-      weight: 95
-    - destination:
-        host: agi-walker.production.svc.cluster.local
-        subset: canary
-      weight: 5
-EOF
-
-echo "✓ 流量分割配置: 95% stable, 5% canary"
-
-# 5. 等待金丝雀部署就绪
-echo "=== 等待金丝雀部署就绪 ==="
-kubectl rollout status deployment/agi-walker-canary -n production --timeout=5m
-
-# 6. 初始健康检查
-echo "=== 初始健康检查 ==="
-for i in {1..5}; do
-  echo "检查 $i/5..."
-  curl -f http://api-canary.agi-walker.com/health || echo "检查失败"
-  sleep 5
-done
-
-echo "=========================================="
-echo "✅ Phase 1 (5%) 灰度部署完成"
-echo "时间: $(date +%Y-%m-%d\ %H:%M:%S)"
-echo "=========================================="
-echo ""
-echo "后续步骤:"
-echo "1. 启动监控 (30 分钟)"
-echo "2. 检查关键指标 (错误率、响应时间、CPU/内存)"
-echo "3. 收集反馈"
-echo "4. 决策是否升级到 25%"
-```
-
-### Day 2-3: 监控和验证 (30 分钟 × 3 轮)
-
-```bash
-#!/bin/bash
-# 监控和验证脚本
-
-CANARY_POD=$(kubectl get pod -n production -l "app=agi-walker,version=canary" -o jsonpath='{.items[0].metadata.name}')
-
-echo "=== 监控周期 #$(date +%s %N | awk '{print ($1 % 86400) / 600}') ==="
-
-# 1. 关键指标检查
-echo "关键指标:"
-echo "  错误率: $(curl -s http://monitoring:9090/api/v1/query?query=rate\(agi_walker_errors_total\[5m\]\) | jq '.data.result[0].value[1]')"
-echo "  响应时间 (P95): $(curl -s http://monitoring:9090/api/v1/query?query=histogram_quantile\(0.95\,rate\(agi_walker_request_duration_seconds\[5m\]\)\) | jq '.data.result[0].value[1]')"
-echo "  CPU 使用率: $(kubectl top pod $CANARY_POD -n production | tail -1 | awk '{print $2}')"
-echo "  内存使用率: $(kubectl top pod $CANARY_POD -n production | tail -1 | awk '{print $3}')"
-
-# 2. Pod 日志检查
-echo ""
-echo "最近日志:"
-kubectl logs $CANARY_POD -n production --tail=20
-
-# 3. 集成测试
-echo ""
-echo "运行集成测试..."
-pytest tests/test_integration.py -v --tb=short -k "canary" 2>/dev/null || echo "测试未配置（可选）"
-
-# 4. 故障检测
-ERROR_RATE=$(curl -s http://monitoring:9090/api/v1/query?query=rate\(agi_walker_errors_total\[5m\]\) | jq '.data.result[0].value[1]' | tr -d '"')
-
-if (( $(echo "$ERROR_RATE > 0.01" | bc -l) )); then
-  echo "⚠️  错误率过高: $ERROR_RATE"
-  echo "🔄 开始自动回滚..."
-  kubectl delete deployment agi-walker-canary -n production
-  exit 1
-fi
-
-echo "✅ 监控周期完成 - 状态正常"
-```
-
-### Day 4-5: 决策和报告
-
-```bash
-#!/bin/bash
-# 生成监控报告
-
-echo "=== 5% 灰度部署监控总结 ==="
-echo "部署时间: $(date)"
-echo ""
-echo "关键指标汇总:"
-echo "  平均错误率: 0.02% ✅"
-echo "  平均响应时间: 245ms ✅"
-echo "  平均 CPU: 35% ✅"
-echo "  平均内存: 420Mi ✅"
-echo ""
-echo "用户反馈: 无异常报告"
-echo ""
-echo "✅ Phase 1 (5%) 通过验收"
-echo "📋 建议: 升级到 Phase 2 (25%)"
-```
-
----
-
-## 📈 Week 2 后: 继续升级到 25% 和 100%
-
-```bash
-#!/bin/bash
-# Phase 2: 25% 灰度部署
-
-# 删除旧金丝雀部署
-kubectl delete deployment agi-walker-canary -n production
-
-# 扩展主部署到 20 个副本中的 5 个（25%）
-kubectl scale deployment agi-walker -n production --replicas=15
-
-# 更新新镜像
-kubectl set image deployment/agi-walker \
-  api=<registry>/agi-walker:latest \
-  -n production \
-  --record
-
-# 等待就绪
-kubectl rollout status deployment/agi-walker -n production
-
-# 监控 30 分钟...
-
-# Phase 3: 100% 全量部署
-kubectl scale deployment agi-walker -n production --replicas=20
-```
-
----
-
-## ✅ 部署完成验收
-
-### 性能基准已满足
-```
-✅ 响应时间 (P95):     <= 1000ms  (实际: 245ms)
-✅ 错误率:             <= 0.1%    (实际: 0.02%)
-✅ 可用性:             >= 99.9%   (实际: 99.95%)
-✅ CPU 使用率:         <= 50%     (实际: 35%)
-✅ 内存使用率:         <= 60%     (实际: 42%)
-```
-
-### 应用验收
-```
-✅ 所有 API 端点可用
-✅ 数据库连接正常
-✅ 缓存系统工作
-✅ 日志聚合正常
-✅ 监控告警激活
-```
-
-### 业务验收
-```
-✅ 无用户投诉
-✅ 无数据异常
-✅ 技能加载正常
-✅ 模型训练正常
-✅ 性能稳定
-```
-
----
-
-## 🆘 紧急回滚流程
-
-### 自动触发条件
-
-```bash
-if 错误率 > 1% for 5 minutes:
-  ├─ 立即告警（邮件/短信/Slack）
-  ├─ 自动回滚 (kubectl rollout undo)
-  ├─ 通知团队
-  └─ 触发事后分析
-
-if 响应时间 > 5s for 5 minutes:
-  ├─ 立即告警
-  ├─ 自动缩容 deployment
-  └─ 手动决策
-```
-
-### 手动回滚命令
-
-```bash
-# 即时回滚
-kubectl rollout undo deployment/agi-walker -n production
-kubectl rollout status deployment/agi-walker -n production
-
-# 验证
-curl http://api.agi-walker.com/health
-```
-
----
-
-## 📞 支持信息
-
-### 部署期间联系人
-
-| 角色 | 姓名 | 电话 | Slack |
-|------|------|------|-------|
-| 部署负责人 | [填充] | [填充] | @[填充] |
-| 基础设施 | [填充] | [填充] | @[填充] |
-| 数据库 | [填充] | [填充] | @[填充] |
-| 监控告警 | [填充] | [填充] | @[填充] |
-
-### 应急热线
-
-```
-部署热线: +86-XXX-XXXX-XXXX
-微信群: AGI-Walker 生产部署
-Slack: #deployment-urgent
-```
-
----
-
-**准备状态**: ✅ 所有文件已准备  
-**下一步**: 按照时间表执行部署  
-**预期完成**: 3 周后上线生产环境
+1. release evidence 已收集并与目标版本绑定。
+2. `release_readiness` 对目标 stable 检出为 `ready`。
+3. 控制面健康检查通过。
+4. 如声明 distributed 能力，则 distributed status 与 smoke report 均通过。
+5. 升级和回滚至少演练一次并留存日志。
