@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGI-Walker Release Closeout Plan</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%);
+            color: #0f172a;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container { max-width: 1360px; margin: 0 auto; }
+        .hero, .card {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+        }
+        .hero { padding: 24px 28px; margin-bottom: 20px; }
+        .hero h1 { margin: 0 0 10px; color: #1d4ed8; font-size: 2rem; }
+        .hero p { margin: 0; color: #475569; line-height: 1.6; }
+        .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+        .button {
+            display: inline-block;
+            text-decoration: none;
+            background: #1d4ed8;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .button.secondary { background: #0f766e; }
+        .button.light { background: #e2e8f0; color: #0f172a; }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .card { padding: 20px; }
+        .card h2 { margin: 0 0 14px; color: #1d4ed8; font-size: 1.1rem; }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .metric:last-child { border-bottom: none; }
+        .metric-label { color: #475569; }
+        .metric-value { font-weight: 700; text-align: right; }
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+        .status-ready, .status-passed, .status-done, .status-completed {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-action_required, .status-ready_to_run {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        .status-blocked, .status-failed, .status-expired {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .status-waiting_external_input, .status-missing, .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .item {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 14px;
+            background: #f8fafc;
+        }
+        .item:last-child { margin-bottom: 0; }
+        .item.selected {
+            border-color: #1d4ed8;
+            box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.12);
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .item-title { font-weight: 700; color: #0f172a; }
+        .item-meta { color: #475569; font-size: 0.92rem; line-height: 1.6; }
+        .list {
+            margin: 10px 0 0;
+            padding-left: 20px;
+            color: #475569;
+            line-height: 1.6;
+        }
+        .mono {
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.83rem;
+            background: #eff6ff;
+            border-radius: 8px;
+            padding: 8px 10px;
+            color: #1e3a8a;
+            margin-top: 8px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .inline-link { color: #1d4ed8; text-decoration: none; }
+        .empty {
+            padding: 18px;
+            border-radius: 14px;
+            background: #f8fafc;
+            color: #475569;
+            line-height: 1.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="hero">
+            <h1>Release Closeout 执行计划</h1>
+            <p>把剩余 external closeout 输入拆成阶段化 runbook，直接给出输入文件、建议命令和完成标准。</p>
+            <div class="hero-actions">
+                <a class="button" href="/static/index.html">返回主控制台</a>
+                <a class="button secondary" href="/static/release-closeout.html">返回收口页</a>
+                <a class="button secondary" id="closeout-plan-json-link" href="/api/release/closeout/plan">查看 JSON</a>
+                <a class="button light" id="closeout-plan-next-link" href="/static/release-closeout-plan.html">下一阶段</a>
+                <a class="button light" id="closeout-plan-next-json-link" href="/api/release/closeout/plan/next">下一阶段 JSON</a>
+                <button class="button light" onclick="loadCloseoutPlan()">刷新状态</button>
+            </div>
+        </section>
+
+        <section class="dashboard">
+            <div class="card">
+                <h2>总览</h2>
+                <div class="metric">
+                    <span class="metric-label">Plan 状态</span>
+                    <span class="metric-value" id="closeout-plan-status-chip"><span class="status-chip status-missing">加载中</span></span>
+                </div>
+                <div class="metric"><span class="metric-label">Route</span><span class="metric-value" id="closeout-plan-route">-</span></div>
+                <div class="metric"><span class="metric-label">输入文件</span><span class="metric-value" id="closeout-plan-inputs-path">-</span></div>
+                <div class="metric"><span class="metric-label">下一阶段</span><a class="inline-link metric-value" id="closeout-plan-next-stage-link" href="/static/release-closeout-plan.html">-</a></div>
+            </div>
+            <div class="card">
+                <h2>计数</h2>
+                <div class="metric"><span class="metric-label">Completed</span><span class="metric-value" id="closeout-plan-completed">0</span></div>
+                <div class="metric"><span class="metric-label">Pending</span><span class="metric-value" id="closeout-plan-pending">0</span></div>
+                <div class="metric"><span class="metric-label">Blocked</span><span class="metric-value" id="closeout-plan-blocked">0</span></div>
+                <div class="metric"><span class="metric-label">Missing Inputs</span><span class="metric-value" id="closeout-plan-missing-inputs">0</span></div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>当前阶段</h2>
+            <div id="closeout-plan-stage-detail" class="empty">加载中...</div>
+        </section>
+
+        <section class="card">
+            <h2>阶段列表</h2>
+            <div id="closeout-plan-stages" class="empty">加载中...</div>
+        </section>
+    </div>
+
+    <script>
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatStatus(status) {
+            return String(status || 'missing').replace(/_/g, ' ');
+        }
+
+        function renderStatusChip(status) {
+            const normalized = String(status || 'missing');
+            return `<span class="status-chip status-${escapeHtml(normalized)}">${escapeHtml(formatStatus(normalized))}</span>`;
+        }
+
+        function renderList(items, emptyText) {
+            if (!Array.isArray(items) || items.length === 0) {
+                return `<div class="item-meta">${escapeHtml(emptyText)}</div>`;
+            }
+            return `<ul class="list">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+        }
+
+        function renderCommands(commands) {
+            if (!Array.isArray(commands) || commands.length === 0) {
+                return '<div class="item-meta">建议命令: -</div>';
+            }
+            return commands.map((item) => `
+                <div class="item-meta">${escapeHtml(item.label || '建议命令')}</div>
+                <div class="mono">${escapeHtml(item.command || '')}</div>
+            `).join('');
+        }
+
+        function syncStageQuery(stageId) {
+                const url = new URL(window.location.href);
+            if (stageId) {
+                url.searchParams.set('stage', stageId);
+            } else {
+                url.searchParams.delete('stage');
+            }
+            window.history.replaceState({}, '', url);
+        }
+
+        function renderStageDetail(stage) {
+            if (!stage || typeof stage !== 'object') {
+                return '<div class="empty">当前没有可展示的 closeout plan stage。</div>';
+            }
+            return `
+                <div class="item selected">
+                    <div class="item-header">
+                        <div class="item-title">${escapeHtml(stage.label || stage.id || 'unknown')}</div>
+                        ${renderStatusChip(stage.status)}
+                    </div>
+                    <div class="item-meta">${escapeHtml(stage.summary || '无摘要')}</div>
+                    <div class="item-meta">组件: ${escapeHtml(stage.component || '-')}</div>
+                    <div class="item-meta">
+                        <a class="inline-link" id="closeout-plan-stage-link" href="${escapeHtml(stage.stage_route || '/static/release-closeout-plan.html')}">聚焦阶段</a>
+                        · <a class="inline-link" id="closeout-plan-stage-json-link" href="${escapeHtml(stage.stage_api_route || '/api/release/closeout/plan/stage')}">阶段 JSON</a>
+                    </div>
+                    <div class="item-meta">所需输入</div>
+                    ${renderList(stage.required_inputs, '所需输入: 无')}
+                    <div class="item-meta">输入文件</div>
+                    ${renderList(stage.input_files, '输入文件: 无')}
+                    <div class="item-meta">完成标准</div>
+                    ${renderList(stage.done_when, '完成标准: 无')}
+                    ${renderCommands(stage.commands)}
+                </div>
+            `;
+        }
+
+        function renderStages(stages, selectedStage) {
+            if (!Array.isArray(stages) || stages.length === 0) {
+                return '<div class="empty">当前没有可展示的 closeout plan stage。</div>';
+            }
+            return stages.map((stage) => `
+                <div class="item${stage.id === selectedStage ? ' selected' : ''}">
+                    <div class="item-header">
+                        <div class="item-title">${escapeHtml(stage.label || stage.id || 'unknown')}</div>
+                        ${renderStatusChip(stage.status)}
+                    </div>
+                    <div class="item-meta">${escapeHtml(stage.summary || '无摘要')}</div>
+                    <div class="item-meta">组件: ${escapeHtml(stage.component || '-')}</div>
+                    <div class="item-meta">
+                        <a class="inline-link" href="${escapeHtml(stage.stage_route || '/static/release-closeout-plan.html')}">聚焦阶段</a>
+                        · <a class="inline-link" href="${escapeHtml(stage.stage_api_route || '/api/release/closeout/plan')}">阶段 JSON</a>
+                    </div>
+                    <div class="item-meta">所需输入</div>
+                    ${renderList(stage.required_inputs, '所需输入: 无')}
+                    <div class="item-meta">输入文件</div>
+                    ${renderList(stage.input_files, '输入文件: 无')}
+                    <div class="item-meta">完成标准</div>
+                    ${renderList(stage.done_when, '完成标准: 无')}
+                    ${renderCommands(stage.commands)}
+                </div>
+            `).join('');
+        }
+
+        async function loadFocusedStage(selectedStage) {
+            const url = selectedStage
+                ? `/api/release/closeout/plan/stage?stage=${encodeURIComponent(selectedStage)}`
+                : '/api/release/closeout/plan/next';
+            const response = await fetch(url);
+            return response.json();
+        }
+
+        async function loadCloseoutPlan() {
+            try {
+                const response = await fetch('/api/release/closeout/plan');
+                const payload = await response.json();
+                const selectedStage = new URLSearchParams(window.location.search).get('stage') || '';
+                const focusedPayload = await loadFocusedStage(selectedStage);
+                const focusedStage = focusedPayload.stage_payload || {};
+                document.getElementById('closeout-plan-status-chip').innerHTML = renderStatusChip(payload.plan_status);
+                document.getElementById('closeout-plan-route').textContent = payload.route || '/api/release/closeout/plan';
+                document.getElementById('closeout-plan-inputs-path').textContent = payload.external_mainline_inputs_path || '-';
+                document.getElementById('closeout-plan-completed').textContent = String(payload.completed_stages || 0);
+                document.getElementById('closeout-plan-pending').textContent = String(payload.pending_stages || 0);
+                document.getElementById('closeout-plan-blocked').textContent = String(payload.blocked_stages || 0);
+                document.getElementById('closeout-plan-missing-inputs').textContent = String(payload.missing_input_count || 0);
+                document.getElementById('closeout-plan-json-link').href = payload.route || '/api/release/closeout/plan';
+                document.getElementById('closeout-plan-next-json-link').href = payload.next_route || '/api/release/closeout/plan/next';
+
+                const nextStageLink = document.getElementById('closeout-plan-next-stage-link');
+                nextStageLink.textContent = payload.next_stage_label || '-';
+                nextStageLink.href = payload.next_stage_route || '/static/release-closeout-plan.html';
+
+                const nextLink = document.getElementById('closeout-plan-next-link');
+                nextLink.href = payload.next_stage_route || '/static/release-closeout-plan.html';
+
+                const focusedStageId = (focusedStage && focusedStage.id) || selectedStage;
+                syncStageQuery(focusedStageId);
+                document.getElementById('closeout-plan-stage-detail').innerHTML =
+                    focusedPayload.status === 'success'
+                        ? renderStageDetail(focusedStage)
+                        : `<div class="empty">阶段加载失败: ${escapeHtml(focusedPayload.message || 'unknown error')}</div>`;
+                document.getElementById('closeout-plan-stages').innerHTML = renderStages(payload.stages || [], focusedStageId);
+            } catch (error) {
+                document.getElementById('closeout-plan-status-chip').innerHTML = renderStatusChip('blocked');
+                document.getElementById('closeout-plan-stage-detail').innerHTML = `<div class="empty">加载失败: ${escapeHtml(error.message)}</div>`;
+                document.getElementById('closeout-plan-stages').innerHTML = `<div class="empty">加载失败: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        loadCloseoutPlan();
+    </script>
+</body>
+</html>

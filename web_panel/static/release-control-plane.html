@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGI-Walker Release Control Plane</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #0f766e 100%);
+            color: #0f172a;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container {
+            max-width: 1360px;
+            margin: 0 auto;
+        }
+        .hero, .card {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+        }
+        .hero {
+            padding: 24px 28px;
+            margin-bottom: 20px;
+        }
+        .hero h1 {
+            margin: 0 0 10px;
+            color: #0f766e;
+            font-size: 2rem;
+        }
+        .hero p {
+            margin: 0;
+            color: #475569;
+            line-height: 1.6;
+        }
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+        .button {
+            display: inline-block;
+            text-decoration: none;
+            background: #0f766e;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .button.secondary {
+            background: #1d4ed8;
+        }
+        .button.light {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            gap: 20px;
+        }
+        .card {
+            padding: 20px;
+        }
+        .card h2 {
+            margin: 0 0 14px;
+            color: #0f766e;
+            font-size: 1.1rem;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .metric:last-child {
+            border-bottom: none;
+        }
+        .metric-label {
+            color: #475569;
+        }
+        .metric-value {
+            font-weight: 700;
+            text-align: right;
+        }
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+        .status-ready, .status-passed {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-action_required, .status-ready_to_run {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        .status-blocked, .status-failed {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .status-missing, .status-waiting_external_input {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .item {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 14px;
+            background: #f8fafc;
+        }
+        .item:last-child {
+            margin-bottom: 0;
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .item-title {
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .item-meta {
+            color: #475569;
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+        .list {
+            margin: 10px 0 0;
+            padding-left: 20px;
+            color: #475569;
+            line-height: 1.6;
+        }
+        .mono {
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.83rem;
+            background: #eff6ff;
+            border-radius: 8px;
+            padding: 8px 10px;
+            color: #1e3a8a;
+            margin-top: 8px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .empty {
+            padding: 18px;
+            border-radius: 14px;
+            background: #f8fafc;
+            color: #475569;
+            line-height: 1.7;
+        }
+        .inline-link {
+            color: #1d4ed8;
+            text-decoration: none;
+        }
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+        .toolbar select {
+            flex: 1 1 220px;
+            min-width: 180px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            color: #0f172a;
+        }
+        @media (max-width: 960px) {
+            .panel-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="hero">
+            <h1>Release Control Plane 详情页</h1>
+            <p>集中查看 control-plane surface、release_ops catalog 和 request templates，直接确认当前只读控制面是否就绪，以及每个 action 的 policy 与请求结构。</p>
+            <div class="hero-actions">
+                <a class="button" href="/static/index.html">返回主控制台</a>
+                <a class="button secondary" href="/api/release/control-plane">查看 JSON</a>
+                <a class="button secondary" id="next-action-json-link" href="/api/release/control-plane/next">下一步 JSON</a>
+                <a class="button secondary" href="/static/release-next.html">Release Next</a>
+                <a class="button light" href="/static/release-closeout.html">收口详情</a>
+                <button class="button light" onclick="loadReleaseControlPlane()">刷新状态</button>
+            </div>
+        </section>
+
+        <section class="dashboard">
+            <div class="card">
+                <h2>总览</h2>
+                <div class="metric">
+                    <span class="metric-label">Control Plane 状态</span>
+                    <span class="metric-value" id="control-plane-status-chip"><span class="status-chip status-missing">加载中</span></span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Route</span>
+                    <span class="metric-value" id="control-plane-route">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Actions</span>
+                    <span class="metric-value" id="control-plane-actions-count">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Templates</span>
+                    <span class="metric-value" id="control-plane-templates-count">0</span>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Surface</h2>
+                <div class="metric"><span class="metric-label">Surface 状态</span><span class="metric-value" id="surface-status">-</span></div>
+                <div class="metric"><span class="metric-label">Source</span><span class="metric-value" id="surface-source">-</span></div>
+                <div class="metric"><span class="metric-label">Policy Profiles</span><span class="metric-value" id="control-plane-profiles-count">0</span></div>
+                <div class="metric"><span class="metric-label">Closeout 状态</span><span class="metric-value" id="control-plane-closeout-status">-</span></div>
+            </div>
+            <div class="card">
+                <h2>推荐入口</h2>
+                <div class="metric"><span class="metric-label">优先 action</span><span class="metric-value" id="control-plane-next-action">-</span></div>
+                <div class="metric"><span class="metric-label">默认 policy</span><span class="metric-value" id="control-plane-next-policy">-</span></div>
+                <div class="metric"><span class="metric-label">必填字段</span><span class="metric-value" id="control-plane-next-required">-</span></div>
+                <div class="metric"><span class="metric-label">详情 JSON</span><span class="metric-value">/api/release/control-plane</span></div>
+            </div>
+        </section>
+
+        <section class="panel-grid">
+            <div class="card">
+                <h2>Release Ops Catalog</h2>
+                <div id="actions-container" class="empty">加载中...</div>
+            </div>
+            <div class="card">
+                <h2>Request Templates</h2>
+                <div class="toolbar">
+                    <select id="action-template-select">
+                        <option value="">全部 action</option>
+                    </select>
+                    <a class="button light" id="action-template-json-link" href="/api/release/control-plane/action?action=external_mainline_execution">查看 action JSON</a>
+                    <a class="button light" id="action-request-file-link" href="/api/release/control-plane/request-file?action=external_mainline_execution">查看 request-file</a>
+                    <button class="button light" id="action-request-file-download" type="button">下载草稿</button>
+                    <button class="button light" id="action-request-file-copy" type="button">复制 JSON</button>
+                </div>
+                <div id="templates-container" class="empty">加载中...</div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatStatus(status) {
+            return String(status || 'missing').replace(/_/g, ' ');
+        }
+
+        function renderStatusChip(status) {
+            const normalized = String(status || 'missing');
+            return `<span class="status-chip status-${escapeHtml(normalized)}">${escapeHtml(formatStatus(normalized))}</span>`;
+        }
+
+        function renderAction(action) {
+            const required = Array.isArray(action.required_fields) ? action.required_fields : [];
+            const portalRoute = action.portal_route || '/static/release-control-plane.html';
+            const actionRoute = action.action_route || '/api/release/control-plane/action';
+            const templateRoute = action.request_template_route || '/api/release/control-plane/request-templates';
+            return `
+                <div class="item">
+                    <div class="item-header">
+                        <div class="item-title">${escapeHtml(action.action || 'unknown')}</div>
+                        ${renderStatusChip(action.policy_level || 'missing')}
+                    </div>
+                    <div class="item-meta">request_type: ${escapeHtml(action.request_type || '-')}</div>
+                    <div class="item-meta">default_policy_profile: ${escapeHtml(action.default_policy_profile || '-')}</div>
+                    <div class="item-meta">required_fields: ${required.length ? required.join(', ') : '-'}</div>
+                    <div class="item-meta">
+                        <a class="inline-link" href="${escapeHtml(portalRoute)}">详情页</a>
+                        · <a class="inline-link" href="${escapeHtml(actionRoute)}">Action JSON</a>
+                        · <a class="inline-link" href="${escapeHtml(templateRoute)}">Template JSON</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTemplate(template) {
+            const required = Array.isArray(template.required_fields) ? template.required_fields : [];
+            const optional = Array.isArray(template.optional_fields) ? template.optional_fields : [];
+            const portalRoute = template.portal_route || '/static/release-control-plane.html';
+            const actionRoute = template.action_route || '/api/release/control-plane/action';
+            const templateRoute = template.request_template_route || '/api/release/control-plane/request-templates';
+            const requestFileRoute = template.request_file_route || '/api/release/control-plane/request-file';
+            const requestFileName = template.request_file_name || 'release_ops.request.json';
+            return `
+                <div class="item">
+                    <div class="item-header">
+                        <div class="item-title">${escapeHtml(template.action || 'unknown')}</div>
+                        ${renderStatusChip(template.default_policy_profile || 'missing')}
+                    </div>
+                    <div class="item-meta">required_fields: ${required.length ? required.join(', ') : '-'}</div>
+                    <div class="item-meta">optional_fields: ${optional.length ? optional.join(', ') : '-'}</div>
+                    <div class="item-meta">
+                        <a class="inline-link" href="${escapeHtml(portalRoute)}">详情页</a>
+                        · <a class="inline-link" href="${escapeHtml(actionRoute)}">Action JSON</a>
+                        · <a class="inline-link" href="${escapeHtml(templateRoute)}">Template JSON</a>
+                        · <a class="inline-link" href="${escapeHtml(requestFileRoute)}">Request-file JSON</a>
+                    </div>
+                    <div class="item-meta">request_file_name: ${escapeHtml(requestFileName)}</div>
+                    <div class="mono">${escapeHtml(JSON.stringify(template.request_template || {}, null, 2))}</div>
+                </div>
+            `;
+        }
+
+        function renderTemplates(templates) {
+            return templates.length
+                ? templates.map(renderTemplate).join('')
+                : '<div class="empty">当前没有 request templates。</div>';
+        }
+
+        function updateTemplateJsonLink(route) {
+            const link = document.getElementById('action-template-json-link');
+            link.href = route || '/api/release/control-plane/request-templates';
+        }
+
+        let currentRequestFilePayload = null;
+
+        function setRequestFileState(payload) {
+            currentRequestFilePayload = payload || null;
+            const link = document.getElementById('action-request-file-link');
+            const downloadButton = document.getElementById('action-request-file-download');
+            const copyButton = document.getElementById('action-request-file-copy');
+            const requestFileRoute = payload?.request_file_route || '/api/release/control-plane/request-file';
+            const requestFileDownloadRoute = payload?.request_file_download_route || requestFileRoute;
+            const enabled = Boolean(payload?.request_file_pretty_json);
+            link.href = requestFileRoute;
+            downloadButton.dataset.downloadRoute = requestFileDownloadRoute;
+            downloadButton.disabled = !enabled;
+            copyButton.disabled = !enabled;
+        }
+
+        function updateNextActionLink(payload) {
+            const nextLink = document.getElementById('next-action-json-link');
+            nextLink.href = payload?.route || '/api/release/control-plane/next';
+        }
+
+        function downloadRequestFile() {
+            const downloadRoute = document.getElementById('action-request-file-download').dataset.downloadRoute;
+            if (!downloadRoute) {
+                return;
+            }
+            window.location.href = downloadRoute;
+        }
+
+        async function copyRequestFile() {
+            if (!currentRequestFilePayload?.request_file_pretty_json || !navigator.clipboard) {
+                return;
+            }
+            await navigator.clipboard.writeText(currentRequestFilePayload.request_file_pretty_json);
+        }
+
+        function populateTemplateSelect(actions) {
+            const select = document.getElementById('action-template-select');
+            const options = ['<option value="">全部 action</option>'].concat(
+                actions.map((action) => `<option value="${escapeHtml(action.action || '')}">${escapeHtml(action.action || 'unknown')}</option>`)
+            );
+            select.innerHTML = options.join('');
+        }
+
+        function syncActionQuery(action) {
+            const url = new URL(window.location.href);
+            if (action) {
+                url.searchParams.set('action', action);
+            } else {
+                url.searchParams.delete('action');
+            }
+            window.history.replaceState({}, '', url);
+        }
+
+        async function loadRequestTemplatesForAction(action) {
+            syncActionQuery(action);
+            if (!action) {
+                document.getElementById('templates-container').innerHTML = '<div class="empty">请选择一个 action 查看单项 request template，或保持“全部 action”浏览总览。</div>';
+                updateTemplateJsonLink('/api/release/control-plane/request-templates');
+                setRequestFileState(null);
+                return;
+            }
+            try {
+                const response = await fetch(`/api/release/control-plane/action?action=${encodeURIComponent(action)}`);
+                const payload = await response.json();
+                const template = payload.request_template || {};
+                updateTemplateJsonLink(payload.action_route || payload.request_template_route);
+                const requestFileResponse = await fetch(
+                    payload.request_file_route || `/api/release/control-plane/request-file?action=${encodeURIComponent(action)}`
+                );
+                const requestFilePayload = await requestFileResponse.json();
+                setRequestFileState(requestFilePayload);
+                document.getElementById('templates-container').innerHTML = renderTemplate(template);
+                document.getElementById('control-plane-next-action').textContent = payload.action || '-';
+                document.getElementById('control-plane-next-policy').textContent = payload.request_template?.default_policy_profile || payload.action_definition?.policy_level || '-';
+                document.getElementById('control-plane-next-required').textContent = Array.isArray(payload.request_template?.required_fields) && payload.request_template.required_fields.length
+                    ? payload.request_template.required_fields.join(', ')
+                    : '-';
+            } catch (error) {
+                document.getElementById('templates-container').innerHTML = `<div class="empty">模板读取失败: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        async function loadReleaseControlPlane() {
+            try {
+                const response = await fetch('/api/release/control-plane');
+                const payload = await response.json();
+                const surface = payload.control_plane_surface || {};
+                const actions = Array.isArray(payload.actions) ? payload.actions : [];
+                const templates = Array.isArray(payload.request_templates) ? payload.request_templates : [];
+                const nextAction = templates[0] || actions[0] || {};
+
+                document.getElementById('control-plane-status-chip').innerHTML = renderStatusChip(payload.control_plane_surface?.status || payload.status);
+                document.getElementById('control-plane-route').textContent = payload.route || '/api/release/control-plane';
+                document.getElementById('control-plane-actions-count').textContent = String(payload.actions_count || actions.length);
+                document.getElementById('control-plane-templates-count').textContent = String(payload.request_templates_count || templates.length);
+                document.getElementById('surface-status').textContent = surface.status || '-';
+                document.getElementById('surface-source').textContent = surface.source || payload.source || '-';
+                document.getElementById('control-plane-profiles-count').textContent = String(payload.policy_profiles_count || 0);
+                document.getElementById('control-plane-closeout-status').textContent = payload.release_closeout?.status || '-';
+                document.getElementById('control-plane-next-action').textContent = nextAction.action || '-';
+                document.getElementById('control-plane-next-policy').textContent = nextAction.default_policy_profile || nextAction.policy_level || '-';
+                document.getElementById('control-plane-next-required').textContent = Array.isArray(nextAction.required_fields) && nextAction.required_fields.length
+                    ? nextAction.required_fields.join(', ')
+                    : '-';
+
+                populateTemplateSelect(actions);
+                document.getElementById('actions-container').innerHTML = actions.length
+                    ? actions.map(renderAction).join('')
+                    : '<div class="empty">当前没有可读 action catalog。</div>';
+                const selectedAction = new URLSearchParams(window.location.search).get('action') || '';
+                document.getElementById('action-template-select').value = selectedAction;
+                if (selectedAction) {
+                    updateNextActionLink(null);
+                    await loadRequestTemplatesForAction(selectedAction);
+                } else {
+                    document.getElementById('templates-container').innerHTML = renderTemplates(templates);
+                    const nextResponse = await fetch('/api/release/control-plane/next');
+                    const nextPayload = await nextResponse.json();
+                    updateNextActionLink(nextPayload);
+                    updateTemplateJsonLink(nextPayload.action_route || payload.next_action_request_route || '/api/release/control-plane/request-templates');
+                    if (nextPayload.status === 'success') {
+                        setRequestFileState(
+                            nextPayload.request_file_payload || {
+                                request_file_route: nextPayload.request_file_route,
+                                request_file_download_route: nextPayload.request_file_download_route,
+                                request_file_name: nextPayload.request_file_name,
+                                request_file_pretty_json: nextPayload.request_file_pretty_json,
+                            }
+                        );
+                        document.getElementById('control-plane-next-action').textContent = nextPayload.next_action || '-';
+                        document.getElementById('control-plane-next-policy').textContent = nextPayload.next_action_default_policy_profile || nextPayload.action_definition?.policy_level || '-';
+                        document.getElementById('control-plane-next-required').textContent = Array.isArray(nextPayload.request_template?.required_fields) && nextPayload.request_template.required_fields.length
+                            ? nextPayload.request_template.required_fields.join(', ')
+                            : '-';
+                    } else {
+                        setRequestFileState(null);
+                    }
+                }
+            } catch (error) {
+                document.getElementById('control-plane-status-chip').innerHTML = renderStatusChip('blocked');
+                document.getElementById('actions-container').innerHTML = `<div class="empty">加载失败: ${escapeHtml(error.message)}</div>`;
+                document.getElementById('templates-container').innerHTML = '<div class="empty">未能读取 request templates。</div>';
+                setRequestFileState(null);
+            }
+        }
+
+        document.getElementById('action-template-select').addEventListener('change', (event) => {
+            loadRequestTemplatesForAction(event.target.value);
+        });
+        document.getElementById('action-request-file-download').addEventListener('click', downloadRequestFile);
+        document.getElementById('action-request-file-copy').addEventListener('click', copyRequestFile);
+
+        loadReleaseControlPlane();
+    </script>
+</body>
+</html>

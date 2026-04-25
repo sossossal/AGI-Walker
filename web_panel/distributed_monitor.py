@@ -157,6 +157,10 @@ class DistributedMonitor:
 
     def close(self) -> None:
         if self.zenoh_session:
-            self.zenoh_session.close()
+            try:
+                self.zenoh_session.close()
+            except Exception as exc:
+                self.last_error = str(exc)
+                logger.info("[Zenoh] close failed: %s", exc)
             self.zenoh_session = None
         self.monitor_active = False

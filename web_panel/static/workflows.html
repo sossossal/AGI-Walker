@@ -122,8 +122,8 @@
                         </div>
                         <div class="field full">
                             <label for="output-root">输出根目录</label>
-                            <input id="output-root" type="text" placeholder="留空时自动写入 test_env/web_workflow_runs/<workflow>/<run-id>">
-                            <div class="hint">设置后，workflow 内的相对输出路径会重写到这个目录下。</div>
+                            <input id="output-root" type="text" placeholder="留空时自动写入当前部署配置的 workflow 输出根目录">
+                            <div class="hint">留空时会使用 `AGI_WALKER_WEB_OUTPUT_ROOT` 对应的默认根目录，并在其下自动创建隔离 run 子目录。</div>
                         </div>
                         <div class="field">
                             <label for="godot-transport-mode">Godot 下发模式</label>

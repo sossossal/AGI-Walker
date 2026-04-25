@@ -4,10 +4,31 @@ from typing import Any, Callable, Dict, List
 
 from fastapi import APIRouter
 from fastapi import WebSocket
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from agi_walker.core.api.capability_matrix import (
     build_capability_matrix_artifact,
     build_capability_matrix_summary,
+)
+from agi_walker.core.api.release_control_plane import (
+    build_release_closeout_component_payload,
+    build_release_closeout_plan_next_payload,
+    build_release_closeout_plan_payload,
+    build_release_closeout_plan_stage_payload,
+    build_release_closeout_next_payload,
+    build_release_closeout_payload,
+    build_release_control_plane_action_payload,
+    build_release_control_plane_next_payload,
+    build_release_control_plane_request_file_payload,
+    build_release_next_summary,
+    build_release_next_payload,
+    build_release_next_follow_up_payload,
+    build_release_next_primary_payload,
+    build_release_next_request_file_payload,
+    build_release_closeout_summary,
+    build_release_control_plane_index_summary,
+    build_release_control_plane_surface_payload,
+    build_release_ops_catalog_payload,
+    build_release_ops_request_templates_payload,
 )
 from agi_walker.core.api.workflow_contracts import WORKFLOW_CONTRACT_VERSION
 from agi_walker.skills_loader import get_skills_loader
@@ -26,6 +47,8 @@ def system_status(
     distributed_monitor=None,
     godot_agent_status_provider: Callable[[], Dict[str, Any]] | None = None,
     nightly_status_provider: Callable[[], Dict[str, Any]] | None = None,
+    release_control_plane_provider: Callable[[], Dict[str, Any]] | None = None,
+    release_next_provider: Callable[[], Dict[str, Any]] | None = None,
 ) -> Dict[str, Any]:
     status = {
         "status": "running",
@@ -39,6 +62,23 @@ def system_status(
         status["godot_agent"] = godot_agent_status_provider()
     if nightly_status_provider is not None:
         status["nightly_regressions"] = nightly_status_provider()
+    if release_control_plane_provider is not None:
+        release_control_plane_payload = release_control_plane_provider()
+        status["release_control_plane"] = build_release_control_plane_index_summary(
+            release_control_plane_payload
+        )
+        release_closeout_payload = (
+            {"release_closeout": release_control_plane_payload.get("release_closeout")}
+            if isinstance(release_control_plane_payload.get("release_closeout"), dict)
+            else None
+        )
+        status["release_closeout"] = build_release_closeout_summary(
+            release_closeout_payload
+        )
+    if release_next_provider is not None:
+        status["release_next"] = build_release_next_summary(
+            release_next_provider()
+        )
     status["capability_matrix"] = build_capability_matrix_summary()
     return status
 
@@ -143,6 +183,315 @@ def capability_matrix() -> Dict[str, Any]:
     return build_capability_matrix_artifact()
 
 
+def release_control_plane_index(
+    release_control_plane_provider: Callable[[], Dict[str, Any]] | None = None,
+) -> Dict[str, Any]:
+    if release_control_plane_provider is None:
+        return {
+            "status": "not_configured",
+            "message": "Release control-plane provider unavailable.",
+        }
+    return release_control_plane_provider()
+
+
+def release_control_plane_surface(
+    *,
+    project_root: str | os.PathLike[str] | None = None,
+    manifest_path: str | None = None,
+    release_ops_execution_report_path: str | None = None,
+) -> Dict[str, Any]:
+    return build_release_control_plane_surface_payload(
+        project_root=project_root,
+        manifest_path=manifest_path,
+        release_ops_execution_report_path=release_ops_execution_report_path,
+    )
+
+
+def release_control_plane_catalog() -> Dict[str, Any]:
+    return build_release_ops_catalog_payload()
+
+
+def release_control_plane_request_templates(
+    action: str | None = None,
+) -> Dict[str, Any]:
+    try:
+        return build_release_ops_request_templates_payload(action=action)
+    except ValueError as exc:
+        return {
+            "status": "error",
+            "message": str(exc),
+            "action": action,
+        }
+
+
+def release_control_plane_action(action: str) -> Dict[str, Any]:
+    try:
+        return build_release_control_plane_action_payload(action=action)
+    except ValueError as exc:
+        return {
+            "status": "error",
+            "message": str(exc),
+            "action": action,
+        }
+
+
+def release_control_plane_next(
+    *,
+    project_root: str | os.PathLike[str] | None = None,
+    manifest_path: str | None = None,
+    release_ops_execution_report_path: str | None = None,
+) -> Dict[str, Any]:
+    return build_release_control_plane_next_payload(
+        project_root=project_root,
+        manifest_path=manifest_path,
+        release_ops_execution_report_path=release_ops_execution_report_path,
+    )
+
+
+def release_control_plane_request_file(action: str) -> Dict[str, Any]:
+    try:
+        return build_release_control_plane_request_file_payload(action=action)
+    except ValueError as exc:
+        return {
+            "status": "error",
+            "message": str(exc),
+            "action": action,
+        }
+
+
+def release_closeout(
+    *,
+    project_root: str | os.PathLike[str] | None = None,
+    external_mainline_execution_plan_path: str | None = None,
+    security_release_preflight_report_path: str | None = None,
+    vulnerability_exception_review_report_path: str | None = None,
+    release_readiness_report_path: str | None = None,
+    worktree_release_blocker_report_path: str | None = None,
+) -> Dict[str, Any]:
+    return build_release_closeout_payload(
+        project_root=project_root,
+        external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+        security_release_preflight_report_path=security_release_preflight_report_path,
+        vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+        release_readiness_report_path=release_readiness_report_path,
+        worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+    )
+
+
+def release_closeout_component(
+    component: str,
+    *,
+    project_root: str | os.PathLike[str] | None = None,
+    external_mainline_execution_plan_path: str | None = None,
+    security_release_preflight_report_path: str | None = None,
+    vulnerability_exception_review_report_path: str | None = None,
+    release_readiness_report_path: str | None = None,
+    worktree_release_blocker_report_path: str | None = None,
+) -> Dict[str, Any]:
+    try:
+        return build_release_closeout_component_payload(
+            component=component,
+            project_root=project_root,
+            external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+            security_release_preflight_report_path=security_release_preflight_report_path,
+            vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+            release_readiness_report_path=release_readiness_report_path,
+            worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+        )
+    except ValueError as exc:
+        return {
+            "status": "error",
+            "message": str(exc),
+            "component": component,
+        }
+
+
+def release_closeout_next(
+    *,
+    project_root: str | os.PathLike[str] | None = None,
+    external_mainline_execution_plan_path: str | None = None,
+    security_release_preflight_report_path: str | None = None,
+    vulnerability_exception_review_report_path: str | None = None,
+    release_readiness_report_path: str | None = None,
+    worktree_release_blocker_report_path: str | None = None,
+) -> Dict[str, Any]:
+    return build_release_closeout_next_payload(
+        project_root=project_root,
+        external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+        security_release_preflight_report_path=security_release_preflight_report_path,
+        vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+        release_readiness_report_path=release_readiness_report_path,
+        worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+    )
+
+
+def release_closeout_plan(
+    *,
+    project_root: str | os.PathLike[str] | None = None,
+    external_mainline_execution_plan_path: str | None = None,
+    external_mainline_inputs_path: str | None = None,
+    external_mainline_input_checklist_report_path: str | None = None,
+    security_release_preflight_report_path: str | None = None,
+    vulnerability_exception_review_report_path: str | None = None,
+    release_readiness_report_path: str | None = None,
+    worktree_release_blocker_report_path: str | None = None,
+) -> Dict[str, Any]:
+    return build_release_closeout_plan_payload(
+        project_root=project_root,
+        external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+        external_mainline_inputs_path=external_mainline_inputs_path,
+        external_mainline_input_checklist_report_path=external_mainline_input_checklist_report_path,
+        security_release_preflight_report_path=security_release_preflight_report_path,
+        vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+        release_readiness_report_path=release_readiness_report_path,
+        worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+    )
+
+
+def release_closeout_plan_stage(
+    stage: str,
+    *,
+    project_root: str | os.PathLike[str] | None = None,
+    external_mainline_execution_plan_path: str | None = None,
+    external_mainline_inputs_path: str | None = None,
+    external_mainline_input_checklist_report_path: str | None = None,
+    security_release_preflight_report_path: str | None = None,
+    vulnerability_exception_review_report_path: str | None = None,
+    release_readiness_report_path: str | None = None,
+    worktree_release_blocker_report_path: str | None = None,
+) -> Dict[str, Any]:
+    try:
+        return build_release_closeout_plan_stage_payload(
+            stage=stage,
+            project_root=project_root,
+            external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+            external_mainline_inputs_path=external_mainline_inputs_path,
+            external_mainline_input_checklist_report_path=external_mainline_input_checklist_report_path,
+            security_release_preflight_report_path=security_release_preflight_report_path,
+            vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+            release_readiness_report_path=release_readiness_report_path,
+            worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+        )
+    except ValueError as exc:
+        return {
+            "status": "error",
+            "message": str(exc),
+            "stage": stage,
+        }
+
+
+def release_closeout_plan_next(
+    *,
+    project_root: str | os.PathLike[str] | None = None,
+    external_mainline_execution_plan_path: str | None = None,
+    external_mainline_inputs_path: str | None = None,
+    external_mainline_input_checklist_report_path: str | None = None,
+    security_release_preflight_report_path: str | None = None,
+    vulnerability_exception_review_report_path: str | None = None,
+    release_readiness_report_path: str | None = None,
+    worktree_release_blocker_report_path: str | None = None,
+) -> Dict[str, Any]:
+    return build_release_closeout_plan_next_payload(
+        project_root=project_root,
+        external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+        external_mainline_inputs_path=external_mainline_inputs_path,
+        external_mainline_input_checklist_report_path=external_mainline_input_checklist_report_path,
+        security_release_preflight_report_path=security_release_preflight_report_path,
+        vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+        release_readiness_report_path=release_readiness_report_path,
+        worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+    )
+
+
+def release_next(
+    *,
+    project_root: str | os.PathLike[str] | None = None,
+    manifest_path: str | None = None,
+    release_ops_execution_report_path: str | None = None,
+    external_mainline_execution_plan_path: str | None = None,
+    security_release_preflight_report_path: str | None = None,
+    vulnerability_exception_review_report_path: str | None = None,
+    release_readiness_report_path: str | None = None,
+    worktree_release_blocker_report_path: str | None = None,
+) -> Dict[str, Any]:
+    return build_release_next_payload(
+        project_root=project_root,
+        manifest_path=manifest_path,
+        release_ops_execution_report_path=release_ops_execution_report_path,
+        external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+        security_release_preflight_report_path=security_release_preflight_report_path,
+        vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+        release_readiness_report_path=release_readiness_report_path,
+        worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+    )
+
+
+def release_next_primary(
+    project_root: str | None = None,
+    manifest_path: str | None = None,
+    release_ops_execution_report_path: str | None = None,
+    external_mainline_execution_plan_path: str | None = None,
+    security_release_preflight_report_path: str | None = None,
+    vulnerability_exception_review_report_path: str | None = None,
+    release_readiness_report_path: str | None = None,
+    worktree_release_blocker_report_path: str | None = None,
+) -> Dict[str, Any]:
+    return build_release_next_primary_payload(
+        project_root=project_root,
+        manifest_path=manifest_path,
+        release_ops_execution_report_path=release_ops_execution_report_path,
+        external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+        security_release_preflight_report_path=security_release_preflight_report_path,
+        vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+        release_readiness_report_path=release_readiness_report_path,
+        worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+    )
+
+
+def release_next_follow_up(
+    project_root: str | None = None,
+    manifest_path: str | None = None,
+    release_ops_execution_report_path: str | None = None,
+    external_mainline_execution_plan_path: str | None = None,
+    security_release_preflight_report_path: str | None = None,
+    vulnerability_exception_review_report_path: str | None = None,
+    release_readiness_report_path: str | None = None,
+    worktree_release_blocker_report_path: str | None = None,
+) -> Dict[str, Any]:
+    return build_release_next_follow_up_payload(
+        project_root=project_root,
+        manifest_path=manifest_path,
+        release_ops_execution_report_path=release_ops_execution_report_path,
+        external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+        security_release_preflight_report_path=security_release_preflight_report_path,
+        vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+        release_readiness_report_path=release_readiness_report_path,
+        worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+    )
+
+
+def release_next_request_file(
+    project_root: str | None = None,
+    manifest_path: str | None = None,
+    release_ops_execution_report_path: str | None = None,
+    external_mainline_execution_plan_path: str | None = None,
+    security_release_preflight_report_path: str | None = None,
+    vulnerability_exception_review_report_path: str | None = None,
+    release_readiness_report_path: str | None = None,
+    worktree_release_blocker_report_path: str | None = None,
+) -> Dict[str, Any]:
+    return build_release_next_request_file_payload(
+        project_root=project_root,
+        manifest_path=manifest_path,
+        release_ops_execution_report_path=release_ops_execution_report_path,
+        external_mainline_execution_plan_path=external_mainline_execution_plan_path,
+        security_release_preflight_report_path=security_release_preflight_report_path,
+        vulnerability_exception_review_report_path=vulnerability_exception_review_report_path,
+        release_readiness_report_path=release_readiness_report_path,
+        worktree_release_blocker_report_path=worktree_release_blocker_report_path,
+    )
+
+
 def build_router(
     server_dir: str,
     tasks_db: Dict[str, Dict[str, Any]],
@@ -151,6 +500,12 @@ def build_router(
     godot_agent_status_provider: Callable[[], Dict[str, Any]] | None = None,
     nightly_status_provider: Callable[[], Dict[str, Any]] | None = None,
     nightly_dashboard_provider: Callable[[int], Dict[str, Any]] | None = None,
+    release_control_plane_provider: Callable[[], Dict[str, Any]] | None = None,
+    release_control_plane_surface_provider: Callable[[], Dict[str, Any]] | None = None,
+    release_control_plane_next_provider: Callable[[], Dict[str, Any]] | None = None,
+    release_closeout_provider: Callable[[], Dict[str, Any]] | None = None,
+    release_closeout_next_provider: Callable[[], Dict[str, Any]] | None = None,
+    release_next_provider: Callable[[], Dict[str, Any]] | None = None,
 ) -> APIRouter:
     router = APIRouter()
 
@@ -168,6 +523,8 @@ def build_router(
             distributed_monitor,
             godot_agent_status_provider,
             nightly_status_provider,
+            release_control_plane_provider,
+            release_next_provider,
         )
 
     @router.get("/api/godot/capabilities")
@@ -196,6 +553,133 @@ def build_router(
     async def get_capability_matrix():
         """Get the release-facing capability matrix."""
         return capability_matrix()
+
+    @router.get("/api/release/control-plane")
+    async def get_release_control_plane():
+        """Get the read-only release/control-plane overview for Portal clients."""
+        return release_control_plane_index(release_control_plane_provider)
+
+    @router.get("/api/release/control-plane/surface")
+    async def get_release_control_plane_surface():
+        """Get the canonical release/control-plane surface for Portal clients."""
+        if release_control_plane_surface_provider is not None:
+            return release_control_plane_surface_provider()
+        return release_control_plane_surface()
+
+    @router.get("/api/release/control-plane/catalog")
+    async def get_release_control_plane_catalog():
+        """Get the read-only release/control-plane catalog for Portal clients."""
+        return release_control_plane_catalog()
+
+    @router.get("/api/release/control-plane/request-templates")
+    async def get_release_control_plane_request_templates(action: str | None = None):
+        """Get read-only release/control-plane request templates for Portal clients."""
+        return release_control_plane_request_templates(action=action)
+
+    @router.get("/api/release/control-plane/action")
+    async def get_release_control_plane_action(action: str):
+        """Get one release/control-plane action summary for Portal clients."""
+        return release_control_plane_action(action=action)
+
+    @router.get("/api/release/control-plane/next")
+    async def get_release_control_plane_next():
+        """Get the recommended next release/control-plane action summary."""
+        if release_control_plane_next_provider is not None:
+            return release_control_plane_next_provider()
+        return release_control_plane_next()
+
+    @router.get("/api/release/control-plane/request-file")
+    async def get_release_control_plane_request_file(
+        action: str,
+        download: bool = False,
+    ):
+        """Get one read-only release/control-plane request-file scaffold."""
+        payload = release_control_plane_request_file(action=action)
+        if download and payload.get("status") == "success":
+            filename = str(payload.get("request_file_name") or "release_ops.request.json")
+            return Response(
+                content=str(payload.get("request_file_pretty_json") or ""),
+                media_type=str(payload.get("content_type") or "application/json"),
+                headers={
+                    "Content-Disposition": f'attachment; filename="{filename}"',
+                },
+            )
+        return payload
+
+    @router.get("/api/release/closeout")
+    async def get_release_closeout():
+        """Get the unified release closeout surface for Portal clients."""
+        if release_closeout_provider is not None:
+            return release_closeout_provider()
+        return release_closeout()
+
+    @router.get("/api/release/closeout/next")
+    async def get_release_closeout_next():
+        """Get the recommended next release closeout component summary."""
+        if release_closeout_next_provider is not None:
+            return release_closeout_next_provider()
+        return release_closeout_next()
+
+    @router.get("/api/release/closeout/plan")
+    async def get_release_closeout_plan():
+        """Get the staged execution plan for the remaining external closeout inputs."""
+        return release_closeout_plan()
+
+    @router.get("/api/release/closeout/plan/stage")
+    async def get_release_closeout_plan_stage(stage: str):
+        """Get one closeout-plan stage payload for Portal clients."""
+        return release_closeout_plan_stage(stage)
+
+    @router.get("/api/release/closeout/plan/next")
+    async def get_release_closeout_plan_next():
+        """Get the recommended next closeout-plan stage payload."""
+        return release_closeout_plan_next()
+
+    @router.get("/api/release/closeout/component")
+    async def get_release_closeout_component(component: str):
+        """Get one release closeout component summary for Portal clients."""
+        return release_closeout_component(component)
+
+    @router.get("/api/release/next")
+    async def get_release_next():
+        """Get the unified recommended next release step."""
+        if release_next_provider is not None:
+            return release_next_provider()
+        return release_next()
+
+    @router.get("/api/release/next/primary")
+    async def get_release_next_primary():
+        """Get the primary recommended next release entry."""
+        if release_next_provider is not None:
+            return build_release_next_primary_payload(release_next_provider())
+        return release_next_primary()
+
+    @router.get("/api/release/next/follow-up")
+    async def get_release_next_follow_up():
+        """Get the normalized follow-up entry for the current primary next release item."""
+        if release_next_provider is not None:
+            return build_release_next_follow_up_payload(release_next_provider())
+        return release_next_follow_up()
+
+    @router.get("/api/release/next/request-file")
+    async def get_release_next_request_file(download: int = 0):
+        """Get the unified request-file scaffold for the current primary next release item."""
+        payload = (
+            build_release_next_request_file_payload(release_next_provider())
+            if release_next_provider is not None
+            else release_next_request_file()
+        )
+        if download and payload.get("status") == "success":
+            from fastapi.responses import Response
+
+            return Response(
+                content=str(payload.get("request_file_pretty_json") or ""),
+                media_type=str(payload.get("content_type") or "application/json"),
+                headers={
+                    "Content-Disposition": f"attachment; filename={payload.get('request_file_name') or 'release-next.request.json'}"
+                },
+            )
+        return payload
 
     @router.get("/api/skills/catalog")
     async def get_skill_catalog():

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGI-Walker Release Next</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #0f766e 100%);
+            color: #0f172a;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container {
+            max-width: 1320px;
+            margin: 0 auto;
+        }
+        .hero, .card {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+        }
+        .hero {
+            padding: 24px 28px;
+            margin-bottom: 20px;
+        }
+        .hero h1 {
+            margin: 0 0 10px;
+            color: #0f766e;
+            font-size: 2rem;
+        }
+        .hero p {
+            margin: 0;
+            color: #475569;
+            line-height: 1.6;
+        }
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+        .button {
+            display: inline-block;
+            text-decoration: none;
+            background: #0f766e;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .button.secondary {
+            background: #1d4ed8;
+        }
+        .button.light {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 1.05fr 1fr;
+            gap: 20px;
+        }
+        .card {
+            padding: 20px;
+        }
+        .card h2 {
+            margin: 0 0 14px;
+            color: #0f766e;
+            font-size: 1.1rem;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .metric:last-child {
+            border-bottom: none;
+        }
+        .metric-label {
+            color: #475569;
+        }
+        .metric-value {
+            font-weight: 700;
+            text-align: right;
+        }
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+        .status-ready, .status-passed, .status-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-action_required, .status-ready_to_run {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        .status-blocked, .status-failed {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .status-waiting_external_input, .status-missing {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .item {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 14px;
+            background: #f8fafc;
+        }
+        .item:last-child {
+            margin-bottom: 0;
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .item-title {
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .item-meta {
+            color: #475569;
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+        .mono {
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.83rem;
+            background: #eff6ff;
+            border-radius: 8px;
+            padding: 8px 10px;
+            color: #1e3a8a;
+            margin-top: 8px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .empty {
+            padding: 18px;
+            border-radius: 14px;
+            background: #f8fafc;
+            color: #475569;
+            line-height: 1.7;
+        }
+        .inline-link {
+            color: #1d4ed8;
+            text-decoration: none;
+        }
+        @media (max-width: 960px) {
+            .panel-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="hero">
+            <h1>Release Next 详情页</h1>
+            <p>统一查看当前 release 的推荐下一步，并同时展开 control-plane next 与 closeout next；页面现在直接消费单一 `/api/release/next` canonical payload，不再本地拼装 primary / follow-up 子请求。</p>
+            <div class="hero-actions">
+                <a class="button" href="/static/index.html">返回主控制台</a>
+                <a class="button secondary" id="release-next-json-link" href="/api/release/next">查看 JSON</a>
+                <a class="button secondary" id="release-next-primary-json-link" href="/api/release/next/primary">主推荐 JSON</a>
+                <a class="button secondary" id="release-next-follow-up-json-link" href="/api/release/next/follow-up">Follow-up JSON</a>
+                <a class="button secondary" id="release-next-request-file-json-link" href="/api/release/next/request-file" style="display: none;">request-file JSON</a>
+                <a class="button secondary" id="release-next-follow-up-link" href="/api/release/next/primary">下一步执行</a>
+                <a class="button light" id="release-next-follow-up-download-link" href="/api/release/next/primary" style="display: none;">下载草稿</a>
+                <a class="button secondary" id="release-next-primary-link" href="/static/release-closeout.html">打开推荐入口</a>
+                <a class="button light" href="/static/release-control-plane.html">Control Plane 详情</a>
+                <a class="button light" href="/static/release-closeout.html">Release 收口页</a>
+                <button class="button light" onclick="loadReleaseNext()">刷新状态</button>
+            </div>
+        </section>
+
+        <section class="dashboard">
+            <div class="card">
+                <h2>总览</h2>
+                <div class="metric">
+                    <span class="metric-label">Release Next 状态</span>
+                    <span class="metric-value" id="release-next-status-chip"><span class="status-chip status-missing">加载中</span></span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Route</span>
+                    <span class="metric-value" id="release-next-route">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Portal</span>
+                    <span class="metric-value" id="release-next-portal-route">-</span>
+                </div>
+            </div>
+            <div class="card">
+                <h2>推荐入口</h2>
+                <div class="metric"><span class="metric-label">类型</span><span class="metric-value" id="release-next-primary-kind">-</span></div>
+                <div class="metric"><span class="metric-label">名称</span><span class="metric-value" id="release-next-primary-name">-</span></div>
+                <div class="metric"><span class="metric-label">状态</span><span class="metric-value" id="release-next-primary-status">-</span></div>
+                <div class="metric"><span class="metric-label">执行入口</span><span class="metric-value" id="release-next-follow-up-text">-</span></div>
+            </div>
+            <div class="card">
+                <h2>下游入口</h2>
+                <div class="metric"><span class="metric-label">Control Plane Next</span><span class="metric-value" id="release-next-control-plane-status">-</span></div>
+                <div class="metric"><span class="metric-label">Closeout Next</span><span class="metric-value" id="release-next-closeout-status">-</span></div>
+                <div class="metric"><span class="metric-label">下一步 JSON</span><span class="metric-value" id="release-next-next-route">-</span></div>
+            </div>
+        </section>
+
+        <section class="panel-grid">
+            <div class="card">
+                <h2>统一推荐</h2>
+                <div id="primary-next-container" class="empty">加载中...</div>
+            </div>
+            <div class="card">
+                <h2>下游入口详情</h2>
+                <div id="downstream-next-container" class="empty">加载中...</div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatStatusChip(status) {
+            const safeStatus = status || 'missing';
+            return `<span class="status-chip status-${escapeHtml(safeStatus)}">${escapeHtml(safeStatus)}</span>`;
+        }
+
+        function renderPrimaryNext(payload) {
+            if (!payload.primary_name) {
+                return '<div class="empty">当前没有可推荐的统一 release 下一步入口。</div>';
+            }
+            const links = [];
+            if (payload.primary_portal_route) {
+                links.push(`<a class="inline-link" href="${escapeHtml(payload.primary_portal_route)}">Portal 入口</a>`);
+            }
+            if (payload.primary_api_route) {
+                links.push(`<a class="inline-link" href="${escapeHtml(payload.primary_api_route)}">API 详情</a>`);
+            }
+            if (payload.primary_next_route) {
+                links.push(`<a class="inline-link" href="${escapeHtml(payload.primary_next_route)}">下一步 JSON</a>`);
+            }
+            if (payload.primary_request_file_route) {
+                links.push(`<a class="inline-link" href="${escapeHtml(payload.primary_request_file_route)}">request-file 草稿</a>`);
+            }
+            const command = payload.primary_command
+                ? `<div class="mono">${escapeHtml(payload.primary_command)}</div>`
+                : '';
+            return `
+                <div class="item">
+                    <div class="item-header">
+                        <span class="item-title">${escapeHtml(payload.primary_kind || 'next')} · ${escapeHtml(payload.primary_name)}</span>
+                        ${formatStatusChip(payload.primary_status || payload.status)}
+                    </div>
+                    <div class="item-meta">
+                        ${links.length ? links.join(' · ') : '暂无附加入口'}
+                    </div>
+                    ${command}
+                </div>
+            `;
+        }
+
+        function renderDownstreamCard(title, payload, nameKey, statusKey, portalKey, apiKey, requestFileKey, commandKey) {
+            if (!payload || !Object.keys(payload).length) {
+                return '<div class="empty">暂无数据。</div>';
+            }
+            const links = [];
+            if (payload[portalKey]) {
+                links.push(`<a class="inline-link" href="${escapeHtml(payload[portalKey])}">Portal</a>`);
+            }
+            if (payload[apiKey]) {
+                links.push(`<a class="inline-link" href="${escapeHtml(payload[apiKey])}">API</a>`);
+            }
+            if (payload.route) {
+                links.push(`<a class="inline-link" href="${escapeHtml(payload.route)}">JSON</a>`);
+            }
+            if (requestFileKey && payload[requestFileKey]) {
+                links.push(`<a class="inline-link" href="${escapeHtml(payload[requestFileKey])}">request-file</a>`);
+            }
+            const command = commandKey && payload[commandKey]
+                ? `<div class="mono">${escapeHtml(payload[commandKey])}</div>`
+                : '';
+            return `
+                <div class="item">
+                    <div class="item-header">
+                        <span class="item-title">${escapeHtml(title)} · ${escapeHtml(payload[nameKey] || '-')}</span>
+                        ${formatStatusChip(payload[statusKey] || payload.status)}
+                    </div>
+                    <div class="item-meta">
+                        ${links.length ? links.join(' · ') : '暂无附加入口'}
+                    </div>
+                    ${command}
+                </div>
+            `;
+        }
+
+        async function loadReleaseNext() {
+            const response = await fetch('/api/release/next');
+            const data = await response.json();
+            const primaryData = data.primary_payload || {};
+            const followUpData = data.follow_up_payload || {};
+            const requestFileData = data.request_file_payload || {};
+
+            document.getElementById('release-next-status-chip').innerHTML = formatStatusChip(data.status);
+            document.getElementById('release-next-route').textContent = data.route || '-';
+            document.getElementById('release-next-portal-route').textContent = data.portal_route || '-';
+            document.getElementById('release-next-primary-kind').textContent = primaryData.primary_kind || '-';
+            document.getElementById('release-next-primary-name').textContent = primaryData.primary_name || '-';
+            document.getElementById('release-next-primary-status').textContent = primaryData.primary_status || '-';
+            document.getElementById('release-next-follow-up-text').textContent = followUpData.follow_up_text || '-';
+            document.getElementById('release-next-control-plane-status').textContent = data.control_plane_next?.status || '-';
+            document.getElementById('release-next-closeout-status').textContent = data.release_closeout_next?.status || '-';
+            document.getElementById('release-next-next-route').textContent = primaryData.primary_next_route || '-';
+
+            const jsonLink = document.getElementById('release-next-json-link');
+            jsonLink.href = data.route || '/api/release/next';
+            const primaryJsonLink = document.getElementById('release-next-primary-json-link');
+            primaryJsonLink.href = primaryData.primary_payload_route || primaryData.route || '/api/release/next/primary';
+            const followUpJsonLink = document.getElementById('release-next-follow-up-json-link');
+            followUpJsonLink.href = followUpData.route || '/api/release/next/follow-up';
+            const requestFileJsonLink = document.getElementById('release-next-request-file-json-link');
+            if (requestFileData.status === 'success') {
+                requestFileJsonLink.href = requestFileData.route || '/api/release/next/request-file';
+                requestFileJsonLink.textContent = requestFileData.request_file_name || 'request-file JSON';
+                requestFileJsonLink.style.display = 'inline-block';
+            } else {
+                requestFileJsonLink.style.display = 'none';
+            }
+            const followUpLink = document.getElementById('release-next-follow-up-link');
+            followUpLink.href = followUpData.follow_up_route || followUpData.route || '/api/release/next/follow-up';
+            followUpLink.textContent = followUpData.follow_up_label || '下一步执行';
+            const followUpDownloadLink = document.getElementById('release-next-follow-up-download-link');
+            if (requestFileData.request_file_download_route) {
+                followUpDownloadLink.href = requestFileData.request_file_download_route;
+                followUpDownloadLink.style.display = 'inline-block';
+            } else if (followUpData.follow_up_download_route) {
+                followUpDownloadLink.href = followUpData.follow_up_download_route;
+                followUpDownloadLink.style.display = 'inline-block';
+            } else {
+                followUpDownloadLink.style.display = 'none';
+            }
+
+            const primaryLink = document.getElementById('release-next-primary-link');
+            primaryLink.href = primaryData.primary_portal_route || primaryData.primary_api_route || primaryData.primary_next_route || '/api/release/next/primary';
+            primaryLink.textContent = primaryData.primary_name ? `打开 ${primaryData.primary_name}` : '打开推荐入口';
+
+            document.getElementById('primary-next-container').innerHTML = renderPrimaryNext(primaryData);
+            document.getElementById('downstream-next-container').innerHTML =
+                renderDownstreamCard(
+                    'Control Plane Next',
+                    data.control_plane_next || {},
+                    'next_action',
+                    'status',
+                    'portal_route',
+                    'action_route',
+                    'request_file_route',
+                    null,
+                ) +
+                renderDownstreamCard(
+                    'Closeout Next',
+                    data.release_closeout_next || {},
+                    'next_component',
+                    'next_component_status',
+                    'component_route',
+                    'component_api_route',
+                    null,
+                    'next_command',
+                );
+        }
+
+        loadReleaseNext().catch(() => {
+            document.getElementById('primary-next-container').innerHTML = '<div class="empty">加载失败，请稍后刷新。</div>';
+            document.getElementById('downstream-next-container').innerHTML = '<div class="empty">加载失败，请稍后刷新。</div>';
+        });
+    </script>
+</body>
+</html>

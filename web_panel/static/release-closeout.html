@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGI-Walker Release Closeout</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%);
+            color: #0f172a;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container {
+            max-width: 1360px;
+            margin: 0 auto;
+        }
+        .hero, .card {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+        }
+        .hero {
+            padding: 24px 28px;
+            margin-bottom: 20px;
+        }
+        .hero h1 {
+            margin: 0 0 10px;
+            color: #1d4ed8;
+            font-size: 2rem;
+        }
+        .hero p {
+            margin: 0;
+            color: #475569;
+            line-height: 1.6;
+        }
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+        .button {
+            display: inline-block;
+            text-decoration: none;
+            background: #1d4ed8;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .button.secondary {
+            background: #0f766e;
+        }
+        .button.light {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .card {
+            padding: 20px;
+        }
+        .card h2 {
+            margin: 0 0 14px;
+            color: #1d4ed8;
+            font-size: 1.1rem;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .metric:last-child {
+            border-bottom: none;
+        }
+        .metric-label {
+            color: #475569;
+        }
+        .metric-value {
+            font-weight: 700;
+            text-align: right;
+        }
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+        .status-ready, .status-passed, .status-done {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-action_required, .status-ready_to_run, .status-review_due {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        .status-blocked, .status-failed, .status-expired {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .status-waiting_external_input, .status-missing, .status-stale {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 20px;
+        }
+        .item {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 14px;
+            background: #f8fafc;
+        }
+        .item:last-child {
+            margin-bottom: 0;
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .item-title {
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .item-meta {
+            color: #475569;
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+        .list {
+            margin: 10px 0 0;
+            padding-left: 20px;
+            color: #475569;
+            line-height: 1.6;
+        }
+        .mono {
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.83rem;
+            background: #eff6ff;
+            border-radius: 8px;
+            padding: 8px 10px;
+            color: #1e3a8a;
+            margin-top: 8px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .empty {
+            padding: 18px;
+            border-radius: 14px;
+            background: #f8fafc;
+            color: #475569;
+            line-height: 1.7;
+        }
+        .inline-link {
+            color: #1d4ed8;
+            text-decoration: none;
+        }
+        .item.selected {
+            border-color: #1d4ed8;
+            box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.12);
+        }
+        @media (max-width: 960px) {
+            .panel-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="hero">
+            <h1>Release Closeout 详情页</h1>
+            <p>集中查看当前 release 收口剩余项，直接展开 external-mainline、安全 residual-risk 与 worktree blocker 的状态、阻塞输入和建议命令。</p>
+            <div class="hero-actions">
+                <a class="button" href="/static/index.html">返回主控制台</a>
+                <a class="button secondary" href="/api/release/closeout">查看 JSON</a>
+                <a class="button secondary" id="closeout-next-json-link" href="/api/release/closeout/next">下一步 JSON</a>
+                <a class="button secondary" id="closeout-plan-link" href="/static/release-closeout-plan.html">执行计划</a>
+                <a class="button light" id="closeout-plan-json-link" href="/api/release/closeout/plan">计划 JSON</a>
+                <a class="button secondary" href="/static/release-next.html">Release Next</a>
+                <a class="button light" id="closeout-component-json-link" href="/api/release/closeout">查看组件 JSON</a>
+                <a class="button light" href="/docs/index.html">API 文档</a>
+                <button class="button light" onclick="loadReleaseCloseout()">刷新状态</button>
+            </div>
+        </section>
+
+        <section class="dashboard">
+            <div class="card">
+                <h2>总览</h2>
+                <div class="metric">
+                    <span class="metric-label">Closeout 状态</span>
+                    <span class="metric-value" id="closeout-status-chip"> <span class="status-chip status-missing">加载中</span></span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Route</span>
+                    <span class="metric-value" id="closeout-route">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Action Items</span>
+                    <span class="metric-value" id="closeout-action-count">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">下一步组件</span>
+                    <a class="inline-link metric-value" id="closeout-next-component-link" href="/static/release-closeout.html">-</a>
+                </div>
+            </div>
+            <div class="card">
+                <h2>计数</h2>
+                <div class="metric"><span class="metric-label">Blocked</span><span class="metric-value" id="closeout-blocked">0</span></div>
+                <div class="metric"><span class="metric-label">Waiting External Input</span><span class="metric-value" id="closeout-waiting">0</span></div>
+                <div class="metric"><span class="metric-label">Ready To Run</span><span class="metric-value" id="closeout-ready">0</span></div>
+                <div class="metric"><span class="metric-label">Missing</span><span class="metric-value" id="closeout-missing">0</span></div>
+            </div>
+            <div class="card">
+                <h2>下一步命令</h2>
+                <div class="metric">
+                    <span class="metric-label">建议执行</span>
+                    <span class="metric-value" id="closeout-next-command">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">阻塞输入</span>
+                    <span class="metric-value" id="closeout-next-inputs">-</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel-grid">
+            <div class="card">
+                <h2>Action Items</h2>
+                <div id="action-items-container" class="empty">加载中...</div>
+            </div>
+            <div class="card">
+                <h2>组件状态</h2>
+                <div id="components-container" class="empty">加载中...</div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatStatus(status) {
+            return String(status || 'missing').replace(/_/g, ' ');
+        }
+
+        function renderStatusChip(status) {
+            const normalized = String(status || 'missing');
+            return `<span class="status-chip status-${escapeHtml(normalized)}">${escapeHtml(formatStatus(normalized))}</span>`;
+        }
+
+        function renderBlockingInputs(inputs) {
+            if (!Array.isArray(inputs) || inputs.length === 0) {
+                return '<div class="item-meta">阻塞输入: 无</div>';
+            }
+            return `
+                <div class="item-meta">阻塞输入</div>
+                <ul class="list">${inputs.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+            `;
+        }
+
+        function renderCommand(command) {
+            if (!command) {
+                return '<div class="item-meta">建议命令: -</div>';
+            }
+            return `<div class="mono">${escapeHtml(command)}</div>`;
+        }
+
+        function renderActionItems(items, selectedComponent) {
+            if (!Array.isArray(items) || items.length === 0) {
+                return '<div class="empty">当前没有待处理的 closeout action item。</div>';
+            }
+            return items.map((item) => `
+                <div class="item${item.component === selectedComponent ? ' selected' : ''}">
+                    <div class="item-header">
+                        <div class="item-title">${escapeHtml(item.component || 'unknown')}</div>
+                        ${renderStatusChip(item.status)}
+                    </div>
+                    <div class="item-meta">${escapeHtml(item.summary || '无摘要')}</div>
+                    ${renderBlockingInputs(item.blocking_inputs)}
+                    <div class="item-meta">
+                        <a class="inline-link" href="${escapeHtml(item.component_route || '/static/release-closeout.html')}">详情页</a>
+                        · <a class="inline-link" href="${escapeHtml(item.component_api_route || '/api/release/closeout')}">组件 JSON</a>
+                    </div>
+                    ${renderCommand(item.command)}
+                </div>
+            `).join('');
+        }
+
+        function renderComponent(name, item, selectedComponent) {
+            const component = item || {};
+            const componentRoute = component.component_route || `/static/release-closeout.html?component=${encodeURIComponent(name)}`;
+            const componentApiRoute = component.component_api_route || `/api/release/closeout/component?component=${encodeURIComponent(name)}`;
+            return `
+                <div class="item${name === selectedComponent ? ' selected' : ''}">
+                    <div class="item-header">
+                        <div class="item-title">${escapeHtml(name)}</div>
+                        ${renderStatusChip(component.status)}
+                    </div>
+                    <div class="item-meta">${escapeHtml(component.summary || '无摘要')}</div>
+                    ${renderBlockingInputs(component.blocking_inputs)}
+                    <div class="item-meta">
+                        <a class="inline-link" href="${escapeHtml(componentRoute)}">详情页</a>
+                        · <a class="inline-link" href="${escapeHtml(componentApiRoute)}">组件 JSON</a>
+                    </div>
+                    ${renderCommand(component.command)}
+                </div>
+            `;
+        }
+
+        function syncComponentQuery(component) {
+            const url = new URL(window.location.href);
+            if (component) {
+                url.searchParams.set('component', component);
+            } else {
+                url.searchParams.delete('component');
+            }
+            window.history.replaceState({}, '', url);
+        }
+
+        function updateComponentJsonLink(route) {
+            const link = document.getElementById('closeout-component-json-link');
+            link.href = route || '/api/release/closeout';
+        }
+
+        function updateNextJsonLink(route) {
+            const link = document.getElementById('closeout-next-json-link');
+            link.href = route || '/api/release/closeout/next';
+        }
+
+        async function loadReleaseCloseout() {
+            try {
+                const response = await fetch('/api/release/closeout');
+                const payload = await response.json();
+                const closeout = payload.release_closeout || {};
+                const selectedComponent = new URLSearchParams(window.location.search).get('component') || '';
+                const actionItems = Array.isArray(closeout.action_items) ? closeout.action_items : [];
+                const topAction = actionItems[0] || {};
+
+                document.getElementById('closeout-status-chip').innerHTML = renderStatusChip(closeout.status);
+                document.getElementById('closeout-route').textContent = payload.route || '/api/release/closeout';
+                document.getElementById('closeout-action-count').textContent = String(actionItems.length);
+                const nextLink = document.getElementById('closeout-next-component-link');
+                nextLink.textContent = topAction.component || '-';
+                nextLink.href = topAction.component_route || '/static/release-closeout.html';
+                document.getElementById('closeout-blocked').textContent = String(closeout.blocked_components || 0);
+                document.getElementById('closeout-waiting').textContent = String(closeout.waiting_external_input_components || 0);
+                document.getElementById('closeout-ready').textContent = String(closeout.ready_to_run_components || 0);
+                document.getElementById('closeout-missing').textContent = String(closeout.missing_components || 0);
+                document.getElementById('closeout-next-command').textContent = topAction.command || '-';
+                document.getElementById('closeout-next-inputs').textContent = Array.isArray(topAction.blocking_inputs) && topAction.blocking_inputs.length
+                    ? topAction.blocking_inputs.join(', ')
+                    : '-';
+                updateComponentJsonLink(closeout.next_component_api_route);
+                updateNextJsonLink(null);
+
+                if (selectedComponent) {
+                    syncComponentQuery(selectedComponent);
+                    const componentResponse = await fetch(`/api/release/closeout/component?component=${encodeURIComponent(selectedComponent)}`);
+                    const componentPayload = await componentResponse.json();
+                    updateComponentJsonLink(componentPayload.component_api_route || closeout.next_component_api_route);
+                    const actionItem = componentPayload.action_item ? [componentPayload.action_item] : [];
+                    document.getElementById('action-items-container').innerHTML = renderActionItems(actionItem, selectedComponent);
+                    document.getElementById('components-container').innerHTML = renderComponent(
+                        selectedComponent,
+                        {
+                            component_route: componentPayload.component_route,
+                            component_api_route: componentPayload.component_api_route,
+                            ...(componentPayload.closeout_component || {}),
+                        },
+                        selectedComponent
+                    );
+                    return;
+                }
+
+                const nextResponse = await fetch('/api/release/closeout/next');
+                const nextPayload = await nextResponse.json();
+                updateNextJsonLink(nextPayload.route);
+                if (nextPayload.status === 'success') {
+                    updateComponentJsonLink(nextPayload.component_api_route || closeout.next_component_api_route);
+                    document.getElementById('action-items-container').innerHTML = renderActionItems(
+                        nextPayload.action_item ? [nextPayload.action_item] : actionItems,
+                        nextPayload.next_component || selectedComponent
+                    );
+                    document.getElementById('components-container').innerHTML = renderComponent(
+                        nextPayload.next_component,
+                        {
+                            component_route: nextPayload.component_route,
+                            component_api_route: nextPayload.component_api_route,
+                            ...(nextPayload.closeout_component || {}),
+                        },
+                        nextPayload.next_component || selectedComponent
+                    );
+                } else {
+                    const componentEntries = [
+                        ['external_mainline', closeout.external_mainline],
+                        ['vulnerability_exception_review', closeout.vulnerability_exception_review],
+                        ['worktree_release_blocker', closeout.worktree_release_blocker],
+                    ];
+                    document.getElementById('action-items-container').innerHTML = renderActionItems(actionItems, selectedComponent);
+                    document.getElementById('components-container').innerHTML = componentEntries
+                        .map(([name, item]) => renderComponent(name, item, selectedComponent))
+                        .join('');
+                }
+            } catch (error) {
+                document.getElementById('closeout-status-chip').innerHTML = renderStatusChip('blocked');
+                document.getElementById('action-items-container').innerHTML = `<div class="empty">加载失败: ${escapeHtml(error.message)}</div>`;
+                document.getElementById('components-container').innerHTML = '<div class="empty">未能读取 closeout 详情。</div>';
+            }
+        }
+
+        loadReleaseCloseout();
+    </script>
+</body>
+</html>

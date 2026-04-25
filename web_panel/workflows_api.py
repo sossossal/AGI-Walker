@@ -108,12 +108,30 @@ def _read_int_env(name: str, default: int) -> int:
         return default
 
 
+def _read_path_env(name: str, default: Path) -> Path:
+    """Read one filesystem path env var, falling back to the provided default."""
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+
+    normalized = raw_value.strip()
+    if not normalized:
+        return default
+    return Path(normalized)
+
+
 WEB_PANEL_ENV_FILE = _resolve_web_panel_env_file()
 if WEB_PANEL_ENV_FILE is not None:
     _load_web_panel_env_file(WEB_PANEL_ENV_FILE, override=False)
 
-DEFAULT_WEB_OUTPUT_ROOT = Path("test_env") / "web_workflow_runs"
-WORKFLOW_ARCHIVE_ROOT = Path(".output") / "web_workflow_archive"
+DEFAULT_WEB_OUTPUT_ROOT = _read_path_env(
+    "AGI_WALKER_WEB_OUTPUT_ROOT",
+    Path("test_env") / "web_workflow_runs",
+)
+WORKFLOW_ARCHIVE_ROOT = _read_path_env(
+    "AGI_WALKER_WEB_ARCHIVE_ROOT",
+    Path(".output") / "web_workflow_archive",
+)
 MAX_HISTORY_ITEMS = 50
 DEFAULT_RUNS_PAGE_SIZE = _read_int_env("AGI_WALKER_WEB_RUNS_PAGE_SIZE", 20)
 MAX_RUNS_PAGE_SIZE = _read_int_env("AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE", 100)
@@ -135,7 +153,7 @@ def _run_async(coro: Any) -> Any:
     from web_panel.server import app
 
     loop = getattr(app.state, "server_loop", None)
-    if loop is None:
+    if loop is None or loop.is_closed():
         # Fallback if loop is not yet available (e.g. during startup)
         return asyncio.run(coro)
 
@@ -362,6 +380,7 @@ def _get_archive_retention_policy() -> Dict[str, Any]:
             if ARCHIVE_RETENTION_MAX_AGE_DAYS > 0
             else None
         ),
+        "default_output_root": str(DEFAULT_WEB_OUTPUT_ROOT),
         "archive_root": str(WORKFLOW_ARCHIVE_ROOT),
         "env_file": str(WEB_PANEL_ENV_FILE) if WEB_PANEL_ENV_FILE is not None else None,
     }

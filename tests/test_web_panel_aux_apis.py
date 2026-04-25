@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from unittest.mock import patch
 
 from web_panel.server import app
 from web_panel.distributed_monitor import DistributedMonitor, _payload_to_bytes
@@ -215,10 +216,70 @@ def test_core_panel_routes_smoke():
     response = client.get("/")
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
+    assert "Release Control Plane" in response.text
+    assert 'id="release-control-plane-status"' in response.text
+    assert 'id="release-control-plane-counts"' in response.text
+    assert 'id="release-control-plane-profiles"' in response.text
+    assert 'id="release-control-plane-next-link"' in response.text
+    assert 'id="release-control-plane-request-file-link"' in response.text
+    assert 'id="release-next-link"' in response.text
+    assert 'id="release-next-primary-link"' in response.text
+    assert 'id="release-next-primary-json-link"' in response.text
+    assert 'id="release-next-follow-up-link"' in response.text
+    assert 'id="release-next-follow-up-json-link"' in response.text
+    assert 'id="release-next-follow-up-download-link"' in response.text
+    assert 'id="release-next-request-file-link"' in response.text
+    assert "Release Closeout" in response.text
+    assert 'id="release-closeout-status"' in response.text
+    assert 'id="release-closeout-counts"' in response.text
+    assert 'id="release-closeout-route"' in response.text
+    assert 'id="release-closeout-next-link"' in response.text
+    assert 'id="release-closeout-next-json-link"' in response.text
+    assert 'id="release-closeout-command"' in response.text
 
     response = client.get("/static/nightly.html")
     assert response.status_code == 200
     assert "Nightly 运维页" in response.text
+
+    response = client.get("/static/release-closeout.html")
+    assert response.status_code == 200
+    assert "Release Closeout 详情页" in response.text
+    assert 'id="closeout-next-json-link"' in response.text
+    assert 'id="closeout-plan-link"' in response.text
+    assert 'id="closeout-plan-json-link"' in response.text
+
+    response = client.get("/static/release-closeout-plan.html")
+    assert response.status_code == 200
+    assert "Release Closeout 执行计划" in response.text
+    assert 'id="closeout-plan-json-link"' in response.text
+    assert 'id="closeout-plan-next-link"' in response.text
+    assert 'id="closeout-plan-next-json-link"' in response.text
+    assert 'id="closeout-plan-next-stage-link"' in response.text
+
+    response = client.get("/static/release-control-plane.html")
+    assert response.status_code == 200
+    assert "Release Control Plane 详情页" in response.text
+    assert 'id="next-action-json-link"' in response.text
+    assert 'id="action-template-select"' in response.text
+    assert 'id="action-template-json-link"' in response.text
+    assert 'id="action-request-file-link"' in response.text
+    assert 'id="action-request-file-download"' in response.text
+    assert 'id="action-request-file-copy"' in response.text
+
+    response = client.get("/static/release-next.html")
+    assert response.status_code == 200
+    assert "Release Next 详情页" in response.text
+    assert 'id="release-next-json-link"' in response.text
+    assert 'id="release-next-primary-json-link"' in response.text
+    assert 'id="release-next-follow-up-json-link"' in response.text
+    assert 'id="release-next-request-file-json-link"' in response.text
+    assert 'id="release-next-follow-up-link"' in response.text
+    assert 'id="release-next-follow-up-download-link"' in response.text
+    assert 'id="release-next-primary-link"' in response.text
+
+    assert "🧭 Control Plane 详情" in client.get("/").text
+    assert "📦 Release 收口页" in client.get("/").text
+    assert "🧩 Release 下一步" in client.get("/").text
 
     response = client.get("/api/system/status")
     assert response.status_code == 200
@@ -245,6 +306,72 @@ def test_core_panel_routes_smoke():
     assert data["nightly_regressions"]["status"] == "healthy"
     assert data["nightly_regressions"]["latest_run"]["event"] == "schedule"
     assert data["nightly_regressions"]["jobs"]["smoke"]["conclusion"] == "success"
+    assert data["release_control_plane"]["route"] == "/api/release/control-plane"
+    assert data["release_control_plane"]["actions_count"] >= 1
+    assert data["release_control_plane"]["policy_profiles_count"] >= 1
+    assert data["release_control_plane"]["request_templates_count"] >= 1
+    assert data["release_control_plane"]["next_action"]
+    assert data["release_control_plane"]["next_action_route"].startswith(
+        "/static/release-control-plane.html?action="
+    )
+    assert data["release_control_plane"]["next_action_request_file_route"].startswith(
+        "/api/release/control-plane/request-file?action="
+    )
+    assert data["release_control_plane"][
+        "next_action_request_file_download_route"
+    ].startswith("/api/release/control-plane/request-file?action=")
+    assert data["release_control_plane"]["next_action_request_file_name"].startswith(
+        "release_ops."
+    )
+    assert data["release_control_plane"]["release_closeout_status"] in {
+        "action_required",
+        "blocked",
+        "ready",
+        "missing",
+    }
+    assert data["release_next"]["route"] == "/api/release/next"
+    assert data["release_next"]["portal_route"] == "/static/release-next.html"
+    assert data["release_next"]["primary_route"] == "/api/release/next/primary"
+    assert data["release_next"]["primary_payload_route"] == "/api/release/next/primary"
+    assert data["release_next"]["primary_kind"] in {
+        "closeout_component",
+        "control_plane_action",
+    }
+    assert data["release_next"]["primary_portal_route"].startswith("/static/")
+    assert data["release_next"]["primary_api_route"].startswith("/api/release/")
+    assert data["release_next"]["primary_next_route"].startswith("/api/release/")
+    assert data["release_next"]["primary_follow_up_kind"] in {"command", "request_file", "json"}
+    assert data["release_next"]["primary_follow_up_label"]
+    assert data["release_next"]["primary_follow_up_payload_route"] == "/api/release/next/follow-up"
+    assert data["release_next"]["primary_follow_up_text"]
+    assert "primary_follow_up_download_route" in data["release_next"]
+    assert data["release_next"]["request_file_route"] == "/api/release/next/request-file"
+    assert data["release_next"]["request_file_payload_route"] == "/api/release/next/request-file"
+    assert data["release_next"]["request_file_status"] in {"success", "missing"}
+    assert "request_file_name" in data["release_next"] or data["release_next"]["request_file_status"] == "missing"
+    assert "request_file_download_route" in data["release_next"]
+    assert data["release_closeout"]["route"] == "/api/release/closeout"
+    assert data["release_closeout"]["status"] in {
+        "action_required",
+        "blocked",
+        "ready",
+        "missing",
+    }
+    assert "action_items_count" in data["release_closeout"]
+    assert isinstance(data["release_closeout"]["top_action_items"], list)
+    assert data["release_closeout"]["next_component_route"].startswith(
+        "/static/release-closeout.html?component="
+    )
+    assert data["release_closeout"]["next_component_api_route"].startswith(
+        "/api/release/closeout/component?component="
+    )
+    assert data["release_closeout"]["next_component_next_route"] == (
+        "/api/release/closeout/next"
+    )
+    assert "blocked_components" in data["release_closeout"]
+    assert "waiting_external_input_components" in data["release_closeout"]
+    assert "ready_to_run_components" in data["release_closeout"]
+    assert "missing_components" in data["release_closeout"]
     assert data["capability_matrix"]["artifact_type"] == "capability_matrix"
     assert data["capability_matrix"]["route"] == "/api/capabilities/matrix"
     assert data["capability_matrix"]["summary"]["total_domains"] == 5
@@ -273,6 +400,330 @@ def test_core_panel_routes_smoke():
     assert data["artifact_type"] == "capability_matrix"
     assert data["summary"]["total_domains"] == 5
     assert any(domain["id"] == "distributed_runtime" for domain in data["domains"])
+
+    response = client.get("/api/release/control-plane")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/control-plane"
+    assert "control_plane_surface" in data
+    assert data["actions_count"] >= 1
+    assert data["policy_profiles_count"] >= 1
+    assert data["request_templates_count"] >= 1
+    assert data["next_action"]
+    assert data["next_action_request_file_route"].startswith(
+        "/api/release/control-plane/request-file?action="
+    )
+    assert data["next_action_request_file_name"].startswith("release_ops.")
+    assert any(
+        item.get("action") == "external_mainline_execution"
+        for item in data["actions"]
+    )
+    assert any(
+        item.get("action") == "external_mainline_execution"
+        for item in data["request_templates"]
+    )
+
+    response = client.get("/api/release/control-plane/surface")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/control-plane/surface"
+    assert "control_plane_surface" in data
+    assert data["source"] in {"release_manifest", "release_ops_execution_report"}
+
+    response = client.get("/api/release/next")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/next"
+    assert data["portal_route"] == "/static/release-next.html"
+    assert data["primary_route"] == "/api/release/next/primary"
+    assert data["primary_payload_route"] == "/api/release/next/primary"
+    assert data["primary_payload"]["route"] == "/api/release/next/primary"
+    assert data["follow_up_payload"]["route"] == "/api/release/next/follow-up"
+    assert data["request_file_payload"]["route"] == "/api/release/next/request-file"
+    assert data["request_file_payload"]["release_next_follow_up_route"] == "/api/release/next/follow-up"
+    assert data["control_plane_next"]["route"] == "/api/release/control-plane/next"
+    assert data["release_closeout_next"]["route"] == "/api/release/closeout/next"
+    assert data["primary_kind"] in {"closeout_component", "control_plane_action"}
+    assert data["primary_name"]
+    assert data["primary_next_route"].startswith("/api/release/")
+
+    response = client.get("/api/release/next/primary")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/next/primary"
+    assert data["primary_payload_route"] == "/api/release/next/primary"
+    assert data["release_next_route"] == "/api/release/next"
+    assert data["release_next_portal_route"] == "/static/release-next.html"
+    assert data["primary_kind"] in {"closeout_component", "control_plane_action"}
+    assert data["primary_name"]
+    assert data["primary_follow_up_kind"] in {"command", "request_file", "json"}
+    assert data["primary_follow_up_label"]
+    assert data["primary_follow_up_text"]
+
+    response = client.get("/api/release/next/follow-up")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/next/follow-up"
+    assert data["release_next_route"] == "/api/release/next"
+    assert data["release_next_primary_route"] == "/api/release/next/primary"
+    assert data["follow_up_kind"] in {"command", "request_file", "json"}
+    assert data["follow_up_label"]
+    assert data["follow_up_text"]
+
+    response = client.get("/api/release/next/request-file")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["route"] == "/api/release/next/request-file"
+    assert data["release_next_route"] == "/api/release/next"
+    assert data["release_next_primary_route"] == "/api/release/next/primary"
+    assert "request_file_download_route" in data
+
+    with patch(
+        "web_panel.core_api.build_release_next_request_file_payload",
+        return_value={
+            "status": "success",
+            "route": "/api/release/next/request-file",
+            "release_next_route": "/api/release/next",
+            "release_next_primary_route": "/api/release/next/primary",
+            "release_next_follow_up_route": "/api/release/next/follow-up",
+            "release_next_portal_route": "/static/release-next.html",
+            "request_file_name": "release_ops.release_readiness.request.json",
+            "content_type": "application/json",
+            "request_file_pretty_json": '{\n  "action": "release_readiness"\n}',
+            "request_file_download_route": "/api/release/next/request-file?download=1",
+        },
+    ):
+        response = client.get("/api/release/next/request-file?download=1")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/json")
+    assert (
+        response.headers["content-disposition"]
+        == 'attachment; filename=release_ops.release_readiness.request.json'
+    )
+    assert '"action": "release_readiness"' in response.text
+
+    response = client.get("/api/release/closeout")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/closeout"
+    assert data["release_closeout"]["status"] in {"action_required", "blocked", "ready"}
+    assert isinstance(data["release_closeout"]["action_items"], list)
+    assert "external_mainline" in data["release_closeout"]
+    assert "vulnerability_exception_review" in data["release_closeout"]
+    assert "worktree_release_blocker" in data["release_closeout"]
+    assert data["release_closeout"]["action_items"][0]["component_route"].startswith(
+        "/static/release-closeout.html?component="
+    )
+    assert data["release_closeout"]["action_items"][0]["component_api_route"].startswith(
+        "/api/release/closeout/component?component="
+    )
+    assert data["release_closeout"]["next_component_next_route"] == (
+        "/api/release/closeout/next"
+    )
+
+    response = client.get("/api/release/closeout/plan")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/closeout/plan"
+    assert data["portal_route"] == "/static/release-closeout-plan.html"
+    assert data["plan_status"] in {"action_required", "blocked", "ready"}
+    assert data["next_route"] == "/api/release/closeout/plan/next"
+    assert data["next_stage_route"].startswith("/static/release-closeout-plan.html?stage=")
+    assert data["next_stage_api_route"].startswith("/api/release/closeout/plan/stage?stage=")
+    assert data["next_stage_next_route"] == "/api/release/closeout/plan/next"
+    assert isinstance(data["stages"], list)
+    assert len(data["stages"]) >= 1
+    assert data["stages"][0]["stage_route"].startswith("/static/release-closeout-plan.html?stage=")
+    assert data["stages"][0]["stage_api_route"].startswith("/api/release/closeout/plan/stage?stage=")
+
+    response = client.get(
+        "/api/release/closeout/plan/stage",
+        params={"stage": "customer_external_bindings_inputs"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/closeout/plan/stage"
+    assert data["stage"] == "customer_external_bindings_inputs"
+    assert data["stage_api_route"].endswith(
+        "/api/release/closeout/plan/stage?stage=customer_external_bindings_inputs"
+    )
+    assert data["stage_payload"]["id"] == "customer_external_bindings_inputs"
+
+    response = client.get("/api/release/closeout/plan/next")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/closeout/plan/next"
+    assert data["next_stage_id"]
+    assert data["next_stage_api_route"].startswith("/api/release/closeout/plan/stage?stage=")
+    assert data["stage_payload"]["id"] == data["next_stage_id"]
+
+    response = client.get("/api/release/closeout/next")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/closeout/next"
+    assert data["next_component"]
+    assert data["component_route"].endswith(
+        f"/static/release-closeout.html?component={data['next_component']}"
+    )
+    assert data["component_api_route"].endswith(
+        f"/api/release/closeout/component?component={data['next_component']}"
+    )
+    assert data["action_item"]["component"] == data["next_component"]
+
+    response = client.get(
+        "/api/release/closeout/component",
+        params={"component": "external_mainline"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/closeout/component"
+    assert data["component"] == "external_mainline"
+    assert data["component_route"].endswith(
+        "/static/release-closeout.html?component=external_mainline"
+    )
+    assert data["component_api_route"].endswith(
+        "/api/release/closeout/component?component=external_mainline"
+    )
+    assert data["action_item"]["component"] == "external_mainline"
+    assert data["action_item"]["component_api_route"].endswith(
+        "/api/release/closeout/component?component=external_mainline"
+    )
+
+    response = client.get("/api/release/control-plane/catalog")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/control-plane/catalog"
+    assert data["actions_count"] >= 1
+    assert data["policy_profiles_count"] >= 1
+    assert any(
+        item["portal_route"].startswith("/static/release-control-plane.html?action=")
+        for item in data["actions"]
+    )
+
+    response = client.get(
+        "/api/release/control-plane/request-templates",
+        params={"action": "external_mainline_execution"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/control-plane/request-templates"
+    assert data["request_templates_count"] == 1
+    assert data["request_templates"][0]["action"] == "external_mainline_execution"
+    assert data["request_templates"][0]["action_route"].endswith(
+        "/api/release/control-plane/action?action=external_mainline_execution"
+    )
+    assert data["request_templates"][0]["request_template_route"].endswith(
+        "/api/release/control-plane/request-templates?action=external_mainline_execution"
+    )
+    assert data["request_templates"][0]["portal_route"].endswith(
+        "/static/release-control-plane.html?action=external_mainline_execution"
+    )
+    assert data["request_templates"][0]["request_file_route"].endswith(
+        "/api/release/control-plane/request-file?action=external_mainline_execution"
+    )
+    assert data["request_templates"][0]["request_file_download_route"].endswith(
+        "/api/release/control-plane/request-file?action=external_mainline_execution&download=1"
+    )
+    assert data["request_templates"][0]["request_file_name"] == (
+        "release_ops.external_mainline_execution.request.json"
+    )
+
+    response = client.get(
+        "/api/release/control-plane/action",
+        params={"action": "external_mainline_execution"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/control-plane/action"
+    assert data["action"] == "external_mainline_execution"
+    assert data["action_definition"]["action"] == "external_mainline_execution"
+    assert data["request_template"]["action"] == "external_mainline_execution"
+    assert data["action_route"].endswith(
+        "/api/release/control-plane/action?action=external_mainline_execution"
+    )
+    assert data["portal_route"].endswith(
+        "/static/release-control-plane.html?action=external_mainline_execution"
+    )
+    assert data["request_template_route"].endswith(
+        "/api/release/control-plane/request-templates?action=external_mainline_execution"
+    )
+    assert data["request_file_route"].endswith(
+        "/api/release/control-plane/request-file?action=external_mainline_execution"
+    )
+    assert data["request_file_download_route"].endswith(
+        "/api/release/control-plane/request-file?action=external_mainline_execution&download=1"
+    )
+    assert data["request_file_name"] == (
+        "release_ops.external_mainline_execution.request.json"
+    )
+
+    response = client.get("/api/release/control-plane/next")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/control-plane/next"
+    assert data["next_action"]
+    assert data["action_definition"]["action"] == data["next_action"]
+    assert data["request_template"]["action"] == data["next_action"]
+    assert data["request_file_route"].endswith(
+        f"/api/release/control-plane/request-file?action={data['next_action']}"
+    )
+    assert data["request_file_download_route"].endswith(
+        f"/api/release/control-plane/request-file?action={data['next_action']}&download=1"
+    )
+    assert data["request_file_payload"]["request_file_name"] == data["request_file_name"]
+
+    response = client.get(
+        "/api/release/control-plane/request-file",
+        params={"action": "external_mainline_execution"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["route"] == "/api/release/control-plane/request-file"
+    assert data["action"] == "external_mainline_execution"
+    assert data["request_file_route"].endswith(
+        "/api/release/control-plane/request-file?action=external_mainline_execution"
+    )
+    assert data["request_file_name"] == (
+        "release_ops.external_mainline_execution.request.json"
+    )
+    assert data["request_file"]["project_root"] == "."
+
+    response = client.get(
+        "/api/release/control-plane/request-file",
+        params={"action": "external_mainline_execution", "download": "true"},
+    )
+    assert response.status_code == 200
+    assert "application/json" in response.headers["content-type"]
+    assert (
+        response.headers["content-disposition"]
+        == 'attachment; filename="release_ops.external_mainline_execution.request.json"'
+    )
+    assert '"project_root": "."' in response.text
+
+    response = client.get(
+        "/api/release/control-plane/request-templates",
+        params={"action": "missing_action"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "error"
+    assert data["action"] == "missing_action"
 
 
 def test_tasks_api_smoke():

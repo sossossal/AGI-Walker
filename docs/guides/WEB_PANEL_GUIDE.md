@@ -1,6 +1,6 @@
 # AGI-Walker Web Panel Guide
 
-更新日期：`2026-04-08`
+更新日期：`2026-04-13`
 
 本页记录当前 `web_panel` 目录中真实存在的启动方式、静态页面、核心 API 和关键环境变量。
 
@@ -148,6 +148,9 @@ session bridge：
 
 分页与归档参数：
 
+- `AGI_WALKER_DATABASE_URL`
+- `AGI_WALKER_WEB_OUTPUT_ROOT`
+- `AGI_WALKER_WEB_ARCHIVE_ROOT`
 - `AGI_WALKER_WEB_RUNS_PAGE_SIZE`
 - `AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE`
 - `AGI_WALKER_WEB_ARCHIVE_MAX_RUNS`
@@ -155,15 +158,24 @@ session bridge：
 
 默认行为：
 
+- 默认数据库 URL：`sqlite+aiosqlite:///./agi_walker.db`
+- 默认 workflow 输出根目录：`test_env/web_workflow_runs/`
 - 默认 runs 页大小：`20`
 - 最大页大小：`100`
 - 默认归档最大保留：`200`
 - 默认归档最大天数：`30`
 
-归档目录：
+源码运行时默认归档目录：
 
 ```text
 .output/web_workflow_archive/
+```
+
+Compose 客户部署默认会通过 `deployment/web_panel.env` 覆盖为：
+
+```text
+/var/lib/agi_walker/workflow_runs
+/var/lib/agi_walker/workflow_archive
 ```
 
 ### Distributed Monitor

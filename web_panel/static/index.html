@@ -86,6 +86,16 @@
             color: #667eea;
         }
 
+        .stat-link {
+            font-weight: bold;
+            color: #0f766e;
+            text-decoration: none;
+        }
+
+        .stat-link:hover {
+            text-decoration: underline;
+        }
+
         .tasks-section {
             background: rgba(255, 255, 255, 0.95);
             padding: 30px;
@@ -314,6 +324,78 @@
                     <span>发布面</span>
                     <span class="stat-value" id="capability-matrix-summary" style="font-size: 0.82em;">-</span>
                 </div>
+                <div class="stat">
+                    <span>Release Next</span>
+                    <a class="stat-link" id="release-next-link" href="/api/release/next" style="font-size: 0.82em;">-</a>
+                </div>
+                <div class="stat">
+                    <span>主推荐详情</span>
+                    <a class="stat-link" id="release-next-primary-link" href="/api/release/next/primary" style="font-size: 0.82em;">-</a>
+                </div>
+                <div class="stat">
+                    <span>主推荐 JSON</span>
+                    <a class="stat-link" id="release-next-primary-json-link" href="/api/release/next/primary" style="font-size: 0.82em;">-</a>
+                </div>
+                <div class="stat">
+                    <span>下一步执行</span>
+                    <a class="stat-link" id="release-next-follow-up-link" href="/api/release/next/follow-up" style="font-size: 0.82em;">-</a>
+                </div>
+                <div class="stat">
+                    <span>Follow-up JSON</span>
+                    <a class="stat-link" id="release-next-follow-up-json-link" href="/api/release/next/follow-up" style="font-size: 0.82em;">-</a>
+                </div>
+                <div class="stat">
+                    <span>下一步草稿</span>
+                    <a class="stat-link" id="release-next-follow-up-download-link" href="/api/release/next/follow-up" style="font-size: 0.82em;">-</a>
+                </div>
+                <div class="stat">
+                    <span>request-file JSON</span>
+                    <a class="stat-link" id="release-next-request-file-link" href="/api/release/next/request-file" style="font-size: 0.82em;">-</a>
+                </div>
+                <div class="stat">
+                    <span>Release Control Plane</span>
+                    <span class="stat-value" id="release-control-plane-status" style="font-size: 0.95em;">-</span>
+                </div>
+                <div class="stat">
+                    <span>动作 / 模板</span>
+                    <span class="stat-value" id="release-control-plane-counts" style="font-size: 0.82em;">-</span>
+                </div>
+                <div class="stat">
+                    <span>Policy / Route</span>
+                    <span class="stat-value" id="release-control-plane-profiles" style="font-size: 0.82em;">-</span>
+                </div>
+                <div class="stat">
+                    <span>优先 action / 深链</span>
+                    <a class="stat-link" id="release-control-plane-next-link" href="/static/release-control-plane.html" style="font-size: 0.82em;">-</a>
+                </div>
+                <div class="stat">
+                    <span>request-file 草稿</span>
+                    <a class="stat-link" id="release-control-plane-request-file-link" href="/api/release/control-plane/request-file" style="font-size: 0.82em;">-</a>
+                </div>
+                <div class="stat">
+                    <span>Release Closeout</span>
+                    <span class="stat-value" id="release-closeout-status" style="font-size: 0.95em;">-</span>
+                </div>
+                <div class="stat">
+                    <span>阻塞 / 待输入 / 可执行</span>
+                    <span class="stat-value" id="release-closeout-counts" style="font-size: 0.82em;">-</span>
+                </div>
+                <div class="stat">
+                    <span>缺口 / Route</span>
+                    <span class="stat-value" id="release-closeout-route" style="font-size: 0.82em;">-</span>
+                </div>
+                <div class="stat">
+                    <span>下一步组件</span>
+                    <a class="stat-link" id="release-closeout-next-link" href="/static/release-closeout.html" style="font-size: 0.82em;">-</a>
+                </div>
+                <div class="stat">
+                    <span>下一步 JSON</span>
+                    <a class="stat-link" id="release-closeout-next-json-link" href="/api/release/closeout/next" style="font-size: 0.82em;">-</a>
+                </div>
+                <div class="stat">
+                    <span>建议命令</span>
+                    <span class="stat-value" id="release-closeout-command" style="font-size: 0.75em;">-</span>
+                </div>
             </div>
 
             <div class="card">
@@ -326,9 +408,21 @@
                     style="width: 100%; margin-bottom: 10px; background: #0f766e;">
                     🚀 官方 Workflow 控制台
                 </button>
+                <button onclick="window.location.href='/static/release-control-plane.html'"
+                    style="width: 100%; margin-bottom: 10px; background: #0f766e;">
+                    🧭 Control Plane 详情
+                </button>
                 <button onclick="window.location.href='/static/nightly.html'"
                     style="width: 100%; margin-bottom: 10px; background: #1d4ed8;">
                     🛡️ Nightly 运维页
+                </button>
+                <button onclick="window.location.href='/static/release-closeout.html'"
+                    style="width: 100%; margin-bottom: 10px; background: #b45309;">
+                    📦 Release 收口页
+                </button>
+                <button onclick="window.location.href='/static/release-next.html'"
+                    style="width: 100%; margin-bottom: 10px; background: #0f766e;">
+                    🧩 Release 下一步
                 </button>
                 <button onclick="window.location.href='/static/distributed.html'"
                     style="width: 100%; margin-bottom: 10px; background: #8b5cf6;">
@@ -897,6 +991,53 @@
                 const capabilityMatrix = data.capability_matrix || {};
                 document.getElementById('capability-matrix-version').textContent = capabilityMatrix.schema_version || '-';
                 document.getElementById('capability-matrix-summary').textContent = formatCapabilityMatrix(capabilityMatrix);
+                const releaseNext = data.release_next || {};
+                const releaseNextLink = document.getElementById('release-next-link');
+                releaseNextLink.textContent = formatReleaseNext(releaseNext);
+                releaseNextLink.href = releaseNext.portal_route || releaseNext.primary_next_route || '/api/release/next';
+                const releaseNextPrimaryLink = document.getElementById('release-next-primary-link');
+                releaseNextPrimaryLink.textContent = formatReleaseNextPrimary(releaseNext);
+                releaseNextPrimaryLink.href = releaseNext.primary_portal_route || releaseNext.portal_route || '/api/release/next/primary';
+                const releaseNextPrimaryJsonLink = document.getElementById('release-next-primary-json-link');
+                releaseNextPrimaryJsonLink.textContent = formatReleaseNextPrimaryJson(releaseNext);
+                releaseNextPrimaryJsonLink.href = releaseNext.primary_payload_route || releaseNext.primary_route || '/api/release/next/primary';
+                const releaseNextFollowUpLink = document.getElementById('release-next-follow-up-link');
+                releaseNextFollowUpLink.textContent = formatReleaseNextFollowUp(releaseNext);
+                releaseNextFollowUpLink.href = releaseNext.primary_follow_up_route || releaseNext.primary_next_route || '/api/release/next/follow-up';
+                const releaseNextFollowUpJsonLink = document.getElementById('release-next-follow-up-json-link');
+                releaseNextFollowUpJsonLink.textContent = formatReleaseNextFollowUpJson(releaseNext);
+                releaseNextFollowUpJsonLink.href = releaseNext.primary_follow_up_payload_route || '/api/release/next/follow-up';
+                const releaseNextFollowUpDownloadLink = document.getElementById('release-next-follow-up-download-link');
+                releaseNextFollowUpDownloadLink.textContent = formatReleaseNextFollowUpDownload(releaseNext);
+                releaseNextFollowUpDownloadLink.href = (releaseNext.request_file_status === 'success'
+                    ? releaseNext.request_file_download_route
+                    : releaseNext.primary_follow_up_download_route) || releaseNext.primary_follow_up_route || '/api/release/next/follow-up';
+                const releaseNextRequestFileLink = document.getElementById('release-next-request-file-link');
+                releaseNextRequestFileLink.textContent = formatReleaseNextRequestFile(releaseNext);
+                releaseNextRequestFileLink.href = releaseNext.request_file_route || '/api/release/next/request-file';
+
+                const releaseControlPlane = data.release_control_plane || {};
+                document.getElementById('release-control-plane-status').textContent = formatReleaseControlPlaneStatus(releaseControlPlane);
+                document.getElementById('release-control-plane-counts').textContent = formatReleaseControlPlaneCounts(releaseControlPlane);
+                document.getElementById('release-control-plane-profiles').textContent = formatReleaseControlPlaneProfiles(releaseControlPlane);
+                const releaseControlPlaneNextLink = document.getElementById('release-control-plane-next-link');
+                releaseControlPlaneNextLink.textContent = formatReleaseControlPlaneNextLink(releaseControlPlane);
+                releaseControlPlaneNextLink.href = releaseControlPlane.next_action_route || '/static/release-control-plane.html';
+                const releaseControlPlaneRequestFileLink = document.getElementById('release-control-plane-request-file-link');
+                releaseControlPlaneRequestFileLink.textContent = formatReleaseControlPlaneRequestFileLink(releaseControlPlane);
+                releaseControlPlaneRequestFileLink.href = releaseControlPlane.next_action_request_file_route || '/api/release/control-plane/request-file';
+
+                const releaseCloseout = data.release_closeout || {};
+                document.getElementById('release-closeout-status').textContent = formatReleaseCloseoutStatus(releaseCloseout);
+                document.getElementById('release-closeout-counts').textContent = formatReleaseCloseoutCounts(releaseCloseout);
+                document.getElementById('release-closeout-route').textContent = formatReleaseCloseoutRoute(releaseCloseout);
+                const releaseCloseoutNextLink = document.getElementById('release-closeout-next-link');
+                releaseCloseoutNextLink.textContent = formatReleaseCloseoutNext(releaseCloseout);
+                releaseCloseoutNextLink.href = releaseCloseout.next_component_route || '/static/release-closeout.html';
+                const releaseCloseoutNextJsonLink = document.getElementById('release-closeout-next-json-link');
+                releaseCloseoutNextJsonLink.textContent = formatReleaseCloseoutNextJson(releaseCloseout);
+                releaseCloseoutNextJsonLink.href = releaseCloseout.next_component_next_route || '/api/release/closeout/next';
+                document.getElementById('release-closeout-command').textContent = formatReleaseCloseoutCommand(releaseCloseout);
             } catch (e) { }
         }
 
@@ -965,6 +1106,170 @@
                 return '未加载';
             }
             return `${summary.ready_domains || 0}/${summary.total_domains} ready · ${summary.diagnostic_ready_domains || 0} diagnostic`;
+        }
+
+        function formatReleaseNext(releaseNext) {
+            const kind = releaseNext.primary_kind || '';
+            const name = releaseNext.primary_name || '';
+            const status = releaseNext.primary_status || '';
+            if (!name) {
+                return '无';
+            }
+            return `${kind}:${name} · ${status || '-'}`;
+        }
+
+        function formatReleaseNextPrimary(releaseNext) {
+            const name = releaseNext.primary_name || '';
+            const status = releaseNext.primary_status || '';
+            if (!name) {
+                return '无';
+            }
+            return `${name}:${status || '-'}`;
+        }
+
+        function formatReleaseNextPrimaryJson(releaseNext) {
+            const name = releaseNext.primary_name || '';
+            if (!name) {
+                return '无';
+            }
+            return `${name} JSON`;
+        }
+
+        function formatReleaseNextFollowUp(releaseNext) {
+            const label = releaseNext.primary_follow_up_label || releaseNext.primary_follow_up_kind || '';
+            const text = releaseNext.primary_follow_up_text || releaseNext.primary_follow_up_route || '';
+            if (!label) {
+                return '无';
+            }
+            if (!text) {
+                return label;
+            }
+            const compact = text.length <= 40 ? text : `${text.slice(0, 37)}...`;
+            return `${label} · ${compact}`;
+        }
+
+        function formatReleaseNextFollowUpJson(releaseNext) {
+            const label = releaseNext.primary_follow_up_label || releaseNext.primary_follow_up_kind || '';
+            if (!label) {
+                return '无';
+            }
+            return `${label} JSON`;
+        }
+
+        function formatReleaseNextFollowUpDownload(releaseNext) {
+            const label = releaseNext.request_file_status === 'success'
+                ? 'request-file'
+                : (releaseNext.primary_follow_up_label || releaseNext.primary_follow_up_kind || '');
+            const downloadRoute = releaseNext.request_file_status === 'success'
+                ? releaseNext.request_file_download_route
+                : releaseNext.primary_follow_up_download_route;
+            if (!downloadRoute) {
+                return '无';
+            }
+            return `${label || 'follow-up'} 下载`;
+        }
+
+        function formatReleaseNextRequestFile(releaseNext) {
+            if (releaseNext.request_file_status !== 'success') {
+                return '无';
+            }
+            return releaseNext.request_file_name || 'request-file JSON';
+        }
+
+        function formatReleaseControlPlaneStatus(releaseControlPlane) {
+            const status = releaseControlPlane.status || 'unknown';
+            const closeoutStatus = releaseControlPlane.release_closeout_status || '';
+            const labels = {
+                success: '就绪',
+                running: '运行中',
+                blocked: '阻塞',
+                error: '错误',
+                unknown: '未加载',
+            };
+            const closeoutLabels = {
+                ready: 'closeout 就绪',
+                action_required: 'closeout 待收口',
+                blocked: 'closeout 阻塞',
+                missing: 'closeout 缺失',
+            };
+            const closeoutSummary = closeoutStatus
+                ? ` · ${closeoutLabels[closeoutStatus] || closeoutStatus}`
+                : '';
+            return `${labels[status] || status} · ${releaseControlPlane.actions_count || 0} actions${closeoutSummary}`;
+        }
+
+        function formatReleaseControlPlaneCounts(releaseControlPlane) {
+            return `${releaseControlPlane.actions_count || 0} actions · ${releaseControlPlane.request_templates_count || 0} templates`;
+        }
+
+        function formatReleaseControlPlaneProfiles(releaseControlPlane) {
+            const profiles = releaseControlPlane.policy_profiles_count || 0;
+            return `${profiles} profiles · ${releaseControlPlane.route || '/api/release/control-plane'}`;
+        }
+
+        function formatReleaseControlPlaneNextLink(releaseControlPlane) {
+            const action = releaseControlPlane.next_action || '';
+            if (!action) {
+                return '无';
+            }
+            const policy = releaseControlPlane.next_action_default_policy_profile || '-';
+            return `${action} · ${policy}`;
+        }
+
+        function formatReleaseControlPlaneRequestFileLink(releaseControlPlane) {
+            const action = releaseControlPlane.next_action || '';
+            if (!action) {
+                return '无';
+            }
+            return releaseControlPlane.next_action_request_file_name || `${action}.json`;
+        }
+
+        function formatReleaseCloseoutStatus(releaseCloseout) {
+            const status = releaseCloseout.status || 'missing';
+            const labels = {
+                ready: '就绪',
+                action_required: '待收口',
+                blocked: '阻塞',
+                missing: '缺失',
+            };
+            return labels[status] || status;
+        }
+
+        function formatReleaseCloseoutCounts(releaseCloseout) {
+            return `${releaseCloseout.blocked_components || 0} blocked · ${releaseCloseout.waiting_external_input_components || 0} waiting · ${releaseCloseout.ready_to_run_components || 0} ready`;
+        }
+
+        function formatReleaseCloseoutRoute(releaseCloseout) {
+            return `${releaseCloseout.missing_components || 0} missing · ${releaseCloseout.route || '/api/release/closeout'}`;
+        }
+
+        function formatReleaseCloseoutNext(releaseCloseout) {
+            const component = releaseCloseout.next_component || '';
+            const status = releaseCloseout.next_component_status || '';
+            if (!component) {
+                return '无';
+            }
+            return `${component}:${status || 'unknown'}`;
+        }
+
+        function formatReleaseCloseoutNextJson(releaseCloseout) {
+            const component = releaseCloseout.next_component || '';
+            if (!component) {
+                return '无';
+            }
+            return `${component} JSON`;
+        }
+
+        function formatReleaseCloseoutCommand(releaseCloseout) {
+            const items = Array.isArray(releaseCloseout.top_action_items) ? releaseCloseout.top_action_items : [];
+            const command = items.find((item) => item && item.command)?.command || '';
+            if (!command) {
+                return '-';
+            }
+            if (command.length <= 72) {
+                return command;
+            }
+            return `${command.slice(0, 69)}...`;
         }
 
         // 渲染任务列表

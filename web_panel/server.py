@@ -64,6 +64,14 @@ from web_panel.workflows_api import (
 from web_panel.auth_api import (
     build_router as build_auth_router,
 )
+from agi_walker.core.api.release_control_plane import (
+    build_release_closeout_next_payload,
+    build_release_closeout_payload,
+    build_release_control_plane_index_payload,
+    build_release_control_plane_next_payload,
+    build_release_next_payload,
+    build_release_control_plane_surface_payload,
+)
 
 # Godot integration currently has two transport modes:
 # 1. Legacy controller mode: command-oriented connect/load/start/stop/update flow.
@@ -159,6 +167,24 @@ app.include_router(
         lambda: get_godot_agent_status(app),
         lambda: get_nightly_regression_status(app),
         lambda limit=5: get_nightly_regression_dashboard(app, limit),
+        lambda: build_release_control_plane_index_payload(
+            project_root=Path(__file__).resolve().parent.parent
+        ),
+        lambda: build_release_control_plane_surface_payload(
+            project_root=Path(__file__).resolve().parent.parent
+        ),
+        lambda: build_release_control_plane_next_payload(
+            project_root=Path(__file__).resolve().parent.parent
+        ),
+        lambda: build_release_closeout_payload(
+            project_root=Path(__file__).resolve().parent.parent
+        ),
+        lambda: build_release_closeout_next_payload(
+            project_root=Path(__file__).resolve().parent.parent
+        ),
+        lambda: build_release_next_payload(
+            project_root=Path(__file__).resolve().parent.parent
+        ),
     )
 )
 app.include_router(build_tasks_router(tasks_db, broadcast_all))

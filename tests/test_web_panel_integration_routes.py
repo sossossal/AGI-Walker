@@ -1924,6 +1924,8 @@ def test_workflows_api_loads_runtime_env_file_on_reload(
                     "AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE=25",
                     "AGI_WALKER_WEB_ARCHIVE_MAX_RUNS=17",
                     "AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS=5",
+                    "AGI_WALKER_WEB_OUTPUT_ROOT=runtime/workflow_runs",
+                    "AGI_WALKER_WEB_ARCHIVE_ROOT=runtime/workflow_archive",
                 ]
             ),
             encoding="utf-8",
@@ -1943,12 +1945,33 @@ def test_workflows_api_loads_runtime_env_file_on_reload(
             assert reloaded.MAX_RUNS_PAGE_SIZE == 25
             assert reloaded.ARCHIVE_RETENTION_MAX_RUNS == 17
             assert reloaded.ARCHIVE_RETENTION_MAX_AGE_DAYS == 5
+            assert reloaded.DEFAULT_WEB_OUTPUT_ROOT == Path("runtime/workflow_runs")
+            assert reloaded.WORKFLOW_ARCHIVE_ROOT == Path("runtime/workflow_archive")
             assert reloaded._get_archive_retention_policy()["env_file"] == str(env_file)
+            assert (
+                reloaded._get_archive_retention_policy()["default_output_root"]
+                == str(Path("runtime/workflow_runs"))
+            )
+            assert (
+                reloaded._get_archive_retention_policy()["archive_root"]
+                == str(Path("runtime/workflow_archive"))
+            )
 
-        restored = importlib.reload(web_panel.workflows_api)
-        assert restored.DEFAULT_RUNS_PAGE_SIZE == 20
-        assert restored.MAX_RUNS_PAGE_SIZE == 100
-        assert restored.ARCHIVE_RETENTION_MAX_RUNS == 200
-        assert restored.ARCHIVE_RETENTION_MAX_AGE_DAYS == 30
+        with monkeypatch.context() as ctx:
+            ctx.delenv("AGI_WALKER_WEB_ENV_FILE", raising=False)
+            ctx.delenv("AGI_WALKER_WEB_RUNS_PAGE_SIZE", raising=False)
+            ctx.delenv("AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE", raising=False)
+            ctx.delenv("AGI_WALKER_WEB_ARCHIVE_MAX_RUNS", raising=False)
+            ctx.delenv("AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS", raising=False)
+            ctx.delenv("AGI_WALKER_WEB_OUTPUT_ROOT", raising=False)
+            ctx.delenv("AGI_WALKER_WEB_ARCHIVE_ROOT", raising=False)
+
+            restored = importlib.reload(web_panel.workflows_api)
+            assert restored.DEFAULT_RUNS_PAGE_SIZE == 20
+            assert restored.MAX_RUNS_PAGE_SIZE == 100
+            assert restored.ARCHIVE_RETENTION_MAX_RUNS == 200
+            assert restored.ARCHIVE_RETENTION_MAX_AGE_DAYS == 30
+            assert restored.DEFAULT_WEB_OUTPUT_ROOT == Path("test_env") / "web_workflow_runs"
+            assert restored.WORKFLOW_ARCHIVE_ROOT == Path(".output") / "web_workflow_archive"
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
