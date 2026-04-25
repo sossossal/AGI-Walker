@@ -285,6 +285,7 @@ python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live"
 ROS2 bridge smoke 本地环境补齐清单：
 
 - `docs/guides/ROS2_LOCAL_ENV_CHECKLIST_20260425.md`
+- `docs/guides/ROS2_WINDOWS_BOOTSTRAP_20260425.md`
 
 本地测试状态摘要：
 
