@@ -139,15 +139,19 @@ def test_robot_creation_pipeline_completes_with_mock_executors() -> None:
 def test_robot_creation_pipeline_completes_with_real_executors() -> None:
     tmp_path = _make_test_dir("robot_creation_real")
     try:
+        output_root = tmp_path.resolve()
         orchestrator = _create_orchestrator_with_workflow(
             "robot_creation_pipeline_smoke_real",
-            _build_robot_creation_steps(tmp_path),
+            _build_robot_creation_steps(output_root),
             "Real smoke test for robot creation workflow",
         )
 
         result = orchestrator.execute_workflow(
             "robot_creation_pipeline_smoke_real",
-            parameters={"execution_strategy": "force"},
+            parameters={
+                "execution_strategy": "force",
+                "output_root": str(output_root),
+            },
             use_real=True,
         )
 
@@ -161,6 +165,11 @@ def test_robot_creation_pipeline_completes_with_real_executors() -> None:
         assert (tmp_path / "created_robot.json").exists()
         assert (tmp_path / "optimized_robot.json").exists()
         assert (tmp_path / "robot.urdf").exists()
+        assert all(
+            Path(step.artifact_path).resolve().is_relative_to(output_root)
+            for step in result.steps
+            if step.artifact_path
+        )
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -194,15 +203,19 @@ def test_simulation_ready_robot_completes_with_mock_executors() -> None:
 def test_simulation_ready_robot_completes_with_real_executors() -> None:
     tmp_path = _make_test_dir("simulation_ready_real")
     try:
+        output_root = tmp_path.resolve()
         orchestrator = _create_orchestrator_with_workflow(
             "simulation_ready_robot_smoke_real",
-            _build_simulation_ready_steps(tmp_path),
+            _build_simulation_ready_steps(output_root),
             "Real smoke test for simulation-ready workflow",
         )
 
         result = orchestrator.execute_workflow(
             "simulation_ready_robot_smoke_real",
-            parameters={"execution_strategy": "force"},
+            parameters={
+                "execution_strategy": "force",
+                "output_root": str(output_root),
+            },
             use_real=True,
         )
 
@@ -216,6 +229,11 @@ def test_simulation_ready_robot_completes_with_real_executors() -> None:
         assert (tmp_path / "sim_robot.json").exists()
         assert (tmp_path / "validated_robot.json").exists()
         assert (tmp_path / "robot_sim.sdf").exists()
+        assert all(
+            Path(step.artifact_path).resolve().is_relative_to(output_root)
+            for step in result.steps
+            if step.artifact_path
+        )
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
