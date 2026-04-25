@@ -290,6 +290,10 @@ ROS2 bridge smoke 本地环境补齐清单：
 
 - `docs/guides/LOCAL_TEST_STATUS_SUMMARY_20260425.md`
 
+当前仓库 + 本地验证完成度摘要：
+
+- `docs/guides/CURRENT_REPO_AND_LOCAL_VALIDATION_STATUS_20260425.md`
+
 ## 目录概览
 
 - `agi_walker/`：核心 Python 包，包含 CLI、workflow、skills、integrations 和 MCP server。
