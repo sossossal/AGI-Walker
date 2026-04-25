@@ -62,6 +62,7 @@ DISTIBUTED_SIDECAR = Path("agi_walker/core/distributed/sidecar.py")
 HEADLESS_SMOKE_TEST = Path("tests/test_godot_headless_smoke.py")
 RUN_SMOKE_TESTS = Path("tests/run_smoke_tests.py")
 CI_WORKFLOW = Path(".github/workflows/ci.yml")
+TESTING_GUIDE = Path("docs/guides/TESTING_GUIDE.md")
 
 
 def test_dockerfile_does_not_reference_removed_source_layout() -> None:
@@ -570,6 +571,16 @@ def test_production_runbook_uses_current_compose_entrypoints() -> None:
     assert "kubectl cluster-info" not in runbook
     assert "helm lint ./helm/agi-walker" not in runbook
     assert "docker compose -f docker-compose.prod.yml" not in runbook
+
+
+def test_testing_guide_references_instruction_control_validation_runner() -> None:
+    content = TESTING_GUIDE.read_text(encoding="utf-8")
+
+    assert "Godot instruction-set smoke" in content
+    assert "ROS2 instruction-set smoke" in content
+    assert "simulated circuit replay smoke" in content
+    assert "python tools/run_instruction_control_validation.py" in content
+    assert "instruction_control_validation_report.json" in content
 
 
 def test_customer_deployment_docs_and_compose_defaults_use_current_single_path() -> None:

@@ -94,6 +94,22 @@ python tests/run_smoke_tests.py
 - ROS2 instruction-set smoke
 - simulated circuit replay smoke
 
+如需把这三条专项 smoke 与总 smoke 收口成一份结构化验收报告，可直接运行：
+
+```bash
+python tools/run_instruction_control_validation.py --output-root test_env/instruction_control_validation
+```
+
+默认会执行 `tests/run_smoke_tests.py`，并校验：
+- `smoke_report.json`
+- `godot_instruction_smoke/godot_instruction_smoke_report.json`
+- `ros2_instruction_smoke/ros2_instruction_smoke_report.json`
+- `simulated_circuit_smoke/simulated_circuit_replay_smoke_report.json`
+
+结构化摘要默认写到：
+
+`test_env/instruction_control_validation/instruction_control_validation_report.json`
+
 ## 5. 重型集成测试
 
 ### 真实 Godot headless smoke

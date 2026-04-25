@@ -230,6 +230,17 @@ python tests/run_smoke_tests.py
 - ROS2 instruction-set smoke
 - simulated circuit replay smoke
 
+如需把这三条专项 smoke 与总 smoke 收口成一份演示/交付验证摘要，可直接运行：
+
+```bash
+python tools/run_instruction_control_validation.py --output-root test_env/instruction_control_validation
+```
+
+该命令会生成：
+
+- `test_env/instruction_control_validation/smoke_report.json`
+- `test_env/instruction_control_validation/instruction_control_validation_report.json`
+
 统一 release-ops control plane：
 
 ```bash
