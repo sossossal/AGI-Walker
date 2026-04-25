@@ -282,6 +282,14 @@ $env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'
 python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live" --tb=short -vv
 ```
 
+ROS2 bridge smoke 本地环境补齐清单：
+
+- `docs/guides/ROS2_LOCAL_ENV_CHECKLIST_20260425.md`
+
+本地测试状态摘要：
+
+- `docs/guides/LOCAL_TEST_STATUS_SUMMARY_20260425.md`
+
 ## 目录概览
 
 - `agi_walker/`：核心 Python 包，包含 CLI、workflow、skills、integrations 和 MCP server。
