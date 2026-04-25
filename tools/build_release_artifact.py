@@ -91,13 +91,53 @@ def _build_release_approval_payload(args: argparse.Namespace) -> dict[str, str |
     }
 
 
+def _format_release_ops_execution(component: object) -> str:
+    if not isinstance(component, dict):
+        return "missing"
+    status = str(component.get("status") or "").strip() or "missing"
+    event_count = component.get("event_count")
+    if not isinstance(event_count, int):
+        metrics = component.get("metrics")
+        if isinstance(metrics, dict):
+            event_count = metrics.get("event_count")
+    if isinstance(event_count, int) and event_count >= 0:
+        return f"{status}/{event_count}"
+    return status
+
+
+def _format_control_plane_events(payload: object) -> str:
+    if not isinstance(payload, dict):
+        return "missing"
+    event_stream = payload.get("control_plane_event_stream")
+    if not isinstance(event_stream, dict):
+        return "missing"
+    event_count = event_stream.get("event_count")
+    if isinstance(event_count, int) and event_count >= 0:
+        return str(event_count)
+    return "missing"
+
+
+def _format_control_plane_surface(payload: object) -> str:
+    if not isinstance(payload, dict):
+        return "missing"
+    status = str(payload.get("status") or "").strip() or "missing"
+    event_count = payload.get("event_count")
+    if not isinstance(event_count, int):
+        event_stream = payload.get("control_plane_event_stream")
+        if isinstance(event_stream, dict):
+            event_count = event_stream.get("event_count")
+    if isinstance(event_count, int) and event_count >= 0:
+        return f"{status}/{event_count}"
+    return status
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build an AGI-Walker release manifest.")
     parser.add_argument("--version", required=True, help="Release version, e.g. 2026.04.12-rc1")
     parser.add_argument(
         "--channel",
         required=True,
-        choices=("dev", "rc", "stable"),
+        choices=("dev", "rc", "stable", "industrial"),
         help="Release channel.",
     )
     parser.add_argument("--build-id", required=True, help="Stable build identifier.")
@@ -147,10 +187,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional override path for ROS2 bridge smoke report evidence.",
     )
     parser.add_argument(
+        "--clean-checkout-report",
+        default=None,
+        help="Optional override path for clean checkout smoke report evidence.",
+    )
+    parser.add_argument(
         "--approval-status",
         choices=sorted(RELEASE_APPROVAL_STATUSES - {"not_required"}),
         default=None,
-        help="Optional release approval status override. Stable releases require approved signoff before the gate can become ready.",
+        help="Optional release approval status override. Stable and industrial releases require approved signoff before the gate can become ready.",
     )
     parser.add_argument(
         "--approved-by",
@@ -193,6 +238,7 @@ def main(argv: list[str] | None = None) -> int:
 
     test_evidence = default_release_test_evidence()
     artifact_overrides = {
+        "clean_checkout_smoke": args.clean_checkout_report,
         "distributed_runtime_live": args.distributed_report,
         "godot_headless_live": args.godot_headless_report,
         "ros2_bridge_live": args.ros2_bridge_report,
@@ -219,8 +265,60 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"release_manifest_written={output_path}")
     print(f"release_gate_status={payload['release_gate_status']}")
+    print(
+        "release_manifest_release_ops_execution="
+        f"{_format_release_ops_execution(payload.get('release_ops_execution'))}"
+    )
+    print(
+        "release_manifest_control_plane_events="
+        f"{_format_control_plane_events(payload)}"
+    )
+    print(
+        "release_manifest_control_plane_surface="
+        f"{_format_control_plane_surface(payload.get('control_plane_surface'))}"
+    )
     print(f"release_source_commit_sha={payload['release_source']['commit_sha']}")
     print(f"release_source_worktree_clean={str(payload['release_source']['worktree_clean']).lower()}")
+    print(f"customer_delivery_status={payload['customer_delivery_surface']['status']}")
+    print(
+        "customer_delivery_phase_e_docs="
+        f"{payload['customer_delivery_surface']['phase_e_documents_ready']}/"
+        f"{payload['customer_delivery_surface']['phase_e_documents']}"
+    )
+    print(
+        "customer_delivery_release_ops_execution="
+        f"{_format_release_ops_execution(payload['customer_delivery_surface'].get('release_ops_execution'))}"
+    )
+    print(f"industrial_delivery_status={payload['industrial_delivery_gate']['status']}")
+    print(
+        "industrial_delivery_release_ops_execution="
+        f"{_format_release_ops_execution(payload['industrial_delivery_gate'].get('release_ops_execution'))}"
+    )
+    print(
+        "extension_execution_evidence_status="
+        f"{payload['extension_execution_evidence']['status']}"
+    )
+    print(
+        "extension_execution_instance_status="
+        f"{payload['extension_execution_instance']['status']}"
+    )
+    print(
+        "extension_execution_schedule_status="
+        f"{payload['extension_execution_schedule']['status']}"
+    )
+    print(
+        "extension_execution_actuals_status="
+        f"{payload['extension_execution_actuals']['status']}"
+    )
+    print(
+        "industrial_delivery_evidence="
+        f"{payload['industrial_delivery_gate']['attested_required_evidence']}/"
+        f"{payload['industrial_delivery_gate']['required_evidence']}"
+    )
+    print(
+        "industrial_delivery_vuln_scan_status="
+        f"{payload['industrial_delivery_gate']['vuln_scan_status']}"
+    )
     print(f"known_limitations_count={len(payload['known_limitations'])}")
     return 0
 

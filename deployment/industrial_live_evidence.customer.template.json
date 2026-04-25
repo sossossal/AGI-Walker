@@ -1,0 +1,14 @@
+{
+  "industrial_live_evidence": {
+    "enabled": true,
+    "target_environment": "<customer-production-environment-id>",
+    "access_method": "<vpn-bastion-sso-or-other-access-method>",
+    "install_entrypoint": "<install-command-or-runbook-path>",
+    "upgrade_entrypoint": "<upgrade-command-or-runbook-path>",
+    "rollback_entrypoint": "<rollback-command-or-runbook-path>",
+    "backup_restore_entrypoint": "<backup-restore-command-or-runbook-path>",
+    "closure_archive_root": "<customer-archive-root-or-uri>",
+    "evidence_output_root": "test_env/industrial_live_evidence/<customer-production-environment-id>",
+    "notes": "Replace all placeholders with the real customer environment, execution entrypoints, and archive destination before re-running external mainline execution."
+  }
+}

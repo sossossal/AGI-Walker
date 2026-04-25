@@ -1,0 +1,34 @@
+{
+  "approval_identity": {
+    "binding_state": "confirmed",
+    "source_path": "test_env/release_delivery/customer_001/approval_identity_source.json",
+    "source_type": "customer_ticket_registry",
+    "reference": "customer-001/window-001/customer_operator",
+    "system_name": "Customer Ticket Registry",
+    "portal_url": "https://tickets.example/customers/customer-001/window-001",
+    "confirmed_by": "customer-delivery-owner",
+    "confirmed_at": "2026-04-16T12:10:00+00:00",
+    "confirmation_ticket": "CHG-CUSTOMER-001"
+  },
+  "archive_target": {
+    "binding_state": "confirmed",
+    "binding_type": "customer_sharepoint_archive",
+    "binding_reference_base": "sharepoint://customer-001/windows/window-001",
+    "system_name": "Customer SharePoint",
+    "portal_url": "https://sharepoint.example/customer-001/windows/window-001",
+    "confirmed_by": "customer-delivery-owner",
+    "confirmed_at": "2026-04-16T12:10:00+00:00",
+    "confirmation_ticket": "CHG-CUSTOMER-001"
+  },
+  "due_trigger": {
+    "binding_state": "confirmed",
+    "binding_type": "customer_service_now_schedule",
+    "binding_reference_base": "servicenow://customer-001/windows/window-001",
+    "checked_at": "2026-04-16T12:10:00+00:00",
+    "system_name": "Customer ServiceNow",
+    "portal_url": "https://servicenow.example/customer-001/windows/window-001",
+    "confirmed_by": "customer-delivery-owner",
+    "confirmed_at": "2026-04-16T12:10:00+00:00",
+    "confirmation_ticket": "CHG-CUSTOMER-001"
+  }
+}

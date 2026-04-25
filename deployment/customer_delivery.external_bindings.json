@@ -1,0 +1,17 @@
+{
+  "approval_identity": {
+    "source_type": "customer_signoff_registry",
+    "system_name": "Customer Signoff Registry",
+    "integration_notes": "Replace with the customer-owned approval registry before industrial promotion."
+  },
+  "archive_target": {
+    "binding_type": "customer_archive_destination",
+    "system_name": "Customer Archive Destination",
+    "integration_notes": "Replace with the customer-owned archive destination before industrial promotion."
+  },
+  "due_trigger": {
+    "binding_type": "customer_due_trigger_schedule",
+    "system_name": "Customer Due Trigger Schedule",
+    "integration_notes": "Replace with the customer-owned due-trigger scheduler before industrial promotion."
+  }
+}

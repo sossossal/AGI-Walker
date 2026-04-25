@@ -1,0 +1,41 @@
+{
+  "customer_external_bindings": {
+    "enabled": true,
+    "config": "deployment/customer_delivery.external_bindings.customer.json",
+    "overrides_file": "deployment/customer_delivery.external_bindings.customer.overrides.json",
+    "sections": [
+      "approval_identity",
+      "archive_target",
+      "due_trigger"
+    ],
+    "confirmed_by": "<real-customer-confirmed-by>",
+    "confirmed_at": "<real-confirmed-at-iso8601>",
+    "confirmation_ticket": "<real-customer-confirmation-ticket>",
+    "confirmation_notes": "Replace placeholders with the real customer confirmation metadata before running the external mainline runner.",
+    "confirmation_evidence": "<customer-confirmation-evidence-path>",
+    "skip_collect_release_evidence": false
+  },
+  "vulnerability_exception_review": {
+    "enabled": true,
+    "report_output": "test_env/release_evidence/security/vulnerability_exception_review_report.json"
+  },
+  "industrial_rehearsal": {
+    "refresh": false,
+    "version": "2026.04.17-industrial-rehearsal",
+    "build_id": "release-rehearsal-industrial",
+    "output_root": "test_env/release_rehearsal_industrial",
+    "report_path": "test_env/release_rehearsal_industrial/industrial_delivery_rehearsal_report.json"
+  },
+  "industrial_live_evidence": {
+    "enabled": true,
+    "target_environment": "<real-customer-production-environment-id>",
+    "access_method": "<real-access-method>",
+    "install_entrypoint": "<real-install-command-or-runbook>",
+    "upgrade_entrypoint": "<real-upgrade-command-or-runbook>",
+    "rollback_entrypoint": "<real-rollback-command-or-runbook>",
+    "backup_restore_entrypoint": "<real-backup-restore-command-or-runbook>",
+    "closure_archive_root": "<real-customer-archive-root>",
+    "evidence_output_root": "test_env/industrial_live_evidence/<real-customer-production-environment-id>",
+    "notes": "Replace placeholders with the real customer environment access, execution entrypoints, and archive destination before executing industrial live evidence."
+  }
+}

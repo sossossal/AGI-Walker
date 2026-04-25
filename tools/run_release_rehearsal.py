@@ -1,16 +1,11 @@
 #!/usr/bin/env python
-"""Run an end-to-end stable release gate rehearsal in a temporary Git repo."""
+"""Run a stable release rehearsal with a temporary Git source repo."""
 
 from __future__ import annotations
 
 import argparse
-import json
-import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
-from uuid import uuid4
 
 
 def _find_repo_root() -> Path:
@@ -28,101 +23,39 @@ def _configure_stdio() -> None:
             stream.reconfigure(encoding="utf-8", errors="replace")
 
 
+def _format_external_mainline_execution_plan_summary(component: dict[str, object]) -> str:
+    status = str(component.get("status") or "missing").strip() or "missing"
+    counts: list[str] = []
+    for field in [
+        "completed_steps",
+        "ready_to_run_steps",
+        "waiting_external_input_steps",
+        "blocked_steps",
+    ]:
+        value = component.get(field)
+        if not isinstance(value, int) or value < 0:
+            return status
+        counts.append(str(value))
+    return "/".join([status, *counts])
+
+
+def _format_release_ops_execution_summary(component: dict[str, object]) -> str:
+    status = str(component.get("status") or "missing").strip() or "missing"
+    event_count = component.get("event_count")
+    if isinstance(event_count, int) and event_count >= 0:
+        return f"{status}/{event_count}"
+    return status
+
+
 _configure_stdio()
 PROJECT_ROOT = _find_repo_root()
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from agi_walker.core.api.release_contracts import validate_release_manifest_artifact  # noqa: E402
-
-
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def _run_command(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        command,
-        cwd=str(cwd),
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
-
-
-def _init_git_repo(source_root: Path, *, version: str, tag: str) -> dict[str, Any]:
-    source_root.mkdir(parents=True, exist_ok=True)
-    (source_root / "README.md").write_text(
-        f"# Release rehearsal for {version}\n",
-        encoding="utf-8",
-    )
-    commands = [
-        ["git", "init"],
-        ["git", "config", "user.name", "AGI-Walker Release Rehearsal"],
-        ["git", "config", "user.email", "release-rehearsal@example.com"],
-        ["git", "add", "README.md"],
-        ["git", "commit", "-m", "seed rehearsal repo"],
-        ["git", "tag", tag],
-    ]
-    for command in commands:
-        result = _run_command(command, cwd=source_root)
-        if result.returncode != 0:
-            raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "git command failed")
-
-    commit_sha = _run_command(["git", "rev-parse", "HEAD"], cwd=source_root).stdout.strip()
-    short_commit_sha = _run_command(
-        ["git", "rev-parse", "--short=12", "HEAD"],
-        cwd=source_root,
-    ).stdout.strip()
-    return {
-        "source_root": str(source_root),
-        "commit_sha": commit_sha,
-        "short_commit_sha": short_commit_sha,
-        "tag": tag,
-    }
-
-
-def _seed_live_evidence(project_root: Path) -> list[dict[str, str]]:
-    reports = {
-        project_root / "test_env" / "distributed_smoke" / "distributed_smoke_report.json": {
-            "schema_version": "1.0",
-            "status": "passed",
-            "actor_id": "release-rehearsal-actor",
-            "checks": [
-                {"name": "compose_build", "status": "pass"},
-                {"name": "compose_up", "status": "pass"},
-                {"name": "web_panel_status", "status": "pass"},
-            ],
-        },
-        project_root / "test_env" / "godot_headless_smoke" / "headless_smoke_report.json": {
-            "status": "passed",
-            "message": "Seeded Godot headless live smoke evidence for release rehearsal.",
-        },
-        project_root / "test_env" / "ros2_bridge_smoke" / "ros2_bridge_smoke_report.json": {
-            "status": "passed",
-            "message": "Seeded ROS2 bridge live smoke evidence for release rehearsal.",
-        },
-    }
-    seeded_paths: list[dict[str, str]] = []
-    for path, payload in reports.items():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
-        seeded_paths.append({"name": path.name, "path": str(path)})
-    return seeded_paths
-
-
-def _write_report(report_path: Path, payload: dict[str, Any]) -> Path:
-    report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    return report_path
+from agi_walker.core.api.release_ops_contracts import (  # noqa: E402
+    ReleaseRehearsalRequest,
+)
+from agi_walker.ops.rehearsal import execute_release_rehearsal  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -154,6 +87,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional override path for the structured rehearsal report.",
     )
+    parser.add_argument(
+        "--external-bindings-config-source",
+        default=str(
+            Path("deployment") / "customer_delivery.external_bindings.rehearsal.json"
+        ),
+        help="Managed external bindings config copied into the rehearsal workspace and passed to actuals generation.",
+    )
     return parser
 
 
@@ -161,147 +101,95 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    output_root = Path(args.output_root)
-    output_root.mkdir(parents=True, exist_ok=True)
-    report_path = (
-        Path(args.report_file)
-        if args.report_file
-        else output_root / "release_rehearsal_report.json"
+    result = execute_release_rehearsal(
+        ReleaseRehearsalRequest(
+            version=args.version,
+            tag=args.tag,
+            build_id=args.build_id,
+            output_root=args.output_root,
+            report_file=args.report_file,
+            external_bindings_config_source=args.external_bindings_config_source,
+        )
     )
-    source_root = output_root / f"git_source_{uuid4().hex[:8]}"
-    manifest_path = output_root / "release_manifest.json"
-    tag = args.tag or args.version
 
-    checks: list[dict[str, str]] = []
-    status = "failed"
-    builder_stdout = ""
-    builder_stderr = ""
-    git_source: dict[str, Any] | None = None
-    evidence_paths: list[dict[str, str]] = []
-
-    try:
-        git_source = _init_git_repo(source_root, version=args.version, tag=tag)
-        checks.append(
-            {
-                "name": "git_repo_init",
-                "status": "pass",
-                "detail": f"temporary Git repo initialized at {source_root}",
-            }
+    print(f"release_rehearsal_written={result.report_path}")
+    print(
+        "industrial_delivery_rehearsal_report_written="
+        f"{result.industrial_delivery_rehearsal_report_path}"
+    )
+    print(
+        "industrial_delivery_rehearsal_status="
+        f"{result.industrial_delivery_rehearsal_payload['status']}"
+    )
+    review_payload = result.industrial_delivery_rehearsal_payload.get(
+        "vulnerability_exception_review",
+        {},
+    )
+    review_status = str(review_payload.get("status") or "missing").strip() or "missing"
+    review_candidate_count = review_payload.get("review_candidate_count")
+    review_summary = (
+        f"{review_status}/{review_candidate_count}"
+        if isinstance(review_candidate_count, int) and review_candidate_count >= 0
+        else review_status
+    )
+    print(f"industrial_delivery_vulnerability_exception_review={review_summary}")
+    closure_payload = result.industrial_delivery_rehearsal_payload.get(
+        "customer_external_bindings_closure",
+        {},
+    )
+    closure_status = (
+        str(closure_payload.get("status") or "missing").strip() or "missing"
+    )
+    print(f"industrial_delivery_customer_external_bindings_closure={closure_status}")
+    external_mainline_payload = result.industrial_delivery_rehearsal_payload.get(
+        "external_mainline_execution_plan",
+        {},
+    )
+    external_mainline_summary = _format_external_mainline_execution_plan_summary(
+        external_mainline_payload
+        if isinstance(external_mainline_payload, dict)
+        else {},
+    )
+    print(
+        "industrial_delivery_external_mainline_execution_plan="
+        f"{external_mainline_summary}"
+    )
+    release_ops_execution_payload = result.industrial_delivery_rehearsal_payload.get(
+        "release_ops_execution",
+        {},
+    )
+    print(
+        "industrial_delivery_release_ops_execution="
+        f"{_format_release_ops_execution_summary(release_ops_execution_payload if isinstance(release_ops_execution_payload, dict) else {})}"
+    )
+    rehearsal_control_plane_events = (
+        result.payload.get("control_plane_event_stream", {})
+        if isinstance(result.payload.get("control_plane_event_stream"), dict)
+        else {}
+    )
+    if isinstance(rehearsal_control_plane_events.get("event_count"), int):
+        print(
+            "release_rehearsal_control_plane_events="
+            f"{rehearsal_control_plane_events['event_count']}"
         )
-        checks.append(
-            {
-                "name": "version_tag_created",
-                "status": "pass",
-                "detail": f"created matching tag {tag}",
-            }
+    industrial_control_plane_events = (
+        result.industrial_delivery_rehearsal_payload.get("control_plane_event_stream", {})
+        if isinstance(
+            result.industrial_delivery_rehearsal_payload.get(
+                "control_plane_event_stream"
+            ),
+            dict,
         )
-
-        evidence_paths = _seed_live_evidence(output_root)
-        checks.append(
-            {
-                "name": "live_evidence_seeded",
-                "status": "pass",
-                "detail": "seeded distributed, Godot, and ROS2 live evidence reports",
-            }
+        else {}
+    )
+    if isinstance(industrial_control_plane_events.get("event_count"), int):
+        print(
+            "industrial_delivery_control_plane_events="
+            f"{industrial_control_plane_events['event_count']}"
         )
-
-        builder = _run_command(
-            [
-                sys.executable,
-                str(PROJECT_ROOT / "tools" / "build_release_artifact.py"),
-                "--version",
-                args.version,
-                "--channel",
-                "stable",
-                "--build-id",
-                args.build_id,
-                "--release-summary",
-                "Stable release rehearsal validation.",
-                "--project-root",
-                str(output_root),
-                "--source-root",
-                str(source_root),
-                "--approval-status",
-                "approved",
-                "--approved-by",
-                "release-manager",
-                "--approved-at",
-                _now_iso(),
-                "--approval-notes",
-                "stable rehearsal signoff",
-                "--output",
-                str(manifest_path),
-            ],
-            cwd=PROJECT_ROOT,
-        )
-        builder_stdout = builder.stdout.strip()
-        builder_stderr = builder.stderr.strip()
-        if builder.returncode != 0:
-            raise RuntimeError(builder_stderr or builder_stdout or "release builder failed")
-        checks.append(
-            {
-                "name": "release_manifest_built",
-                "status": "pass",
-                "detail": f"built stable manifest at {manifest_path}",
-            }
-        )
-
-        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-        validation_errors = validate_release_manifest_artifact(payload)
-        if validation_errors:
-            raise RuntimeError("; ".join(validation_errors))
-        checks.append(
-            {
-                "name": "release_manifest_validated",
-                "status": "pass",
-                "detail": "manifest matches release contract",
-            }
-        )
-
-        if payload.get("release_gate_status") != "ready":
-            raise RuntimeError(
-                f"expected release_gate_status='ready', got {payload.get('release_gate_status')!r}"
-            )
-        checks.append(
-            {
-                "name": "stable_gate_ready",
-                "status": "pass",
-                "detail": "stable rehearsal reached release_gate_status=ready",
-            }
-        )
-        status = "passed"
-    except Exception as exc:
-        checks.append(
-            {
-                "name": "release_rehearsal",
-                "status": "fail",
-                "detail": str(exc),
-            }
-        )
-        status = "failed"
-
-    report = {
-        "schema_version": "1.0",
-        "artifact_type": "release_rehearsal_report",
-        "status": status,
-        "version": args.version,
-        "tag": tag,
-        "generated_at": _now_iso(),
-        "source_root": str(source_root),
-        "manifest_path": str(manifest_path),
-        "report_path": str(report_path),
-        "git_source": git_source,
-        "evidence_paths": evidence_paths,
-        "checks": checks,
-        "builder_stdout": builder_stdout,
-        "builder_stderr": builder_stderr,
-    }
-    written_report = _write_report(report_path, report)
-
-    print(f"release_rehearsal_written={written_report}")
-    print(f"release_rehearsal_gate={'ready' if status == 'passed' else 'blocked'}")
-    print(f"release_rehearsal_tag={tag}")
-    return 0 if status == "passed" else 1
+    print(f"release_rehearsal_gate={result.gate_status}")
+    print(f"release_rehearsal_tag={result.tag}")
+    return 0 if result.payload.get("status") == "passed" else 1
 
 
 if __name__ == "__main__":

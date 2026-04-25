@@ -1,0 +1,43 @@
+{
+  "approval_identity": {
+    "binding_state": "confirmed",
+    "source_path": "<export-root>/changes/CHG-2026-0001/approval.json",
+    "source_type": "customer_change_registry",
+    "reference": "change://<customer-tenant>/CHG-2026-0001",
+    "system_name": "<Customer Change Registry>",
+    "integration_notes": "Replace generated approval metadata with the real customer-owned approval system before marking this binding confirmed.",
+    "portal_url": "https://<customer-change-portal>/records/CHG-2026-0001",
+    "confirmed_by": "customer-release-manager",
+    "confirmed_at": "2026-04-24T16:00:00+00:00",
+    "confirmation_ticket": "CHG-CUSTOMER-2026-0424",
+    "confirmation_notes": "First-round closeout values applied from the completed example; replace with the real customer confirmation metadata before final release signoff.",
+    "confirmation_evidence": "docs/customer/change-window/CHG-CUSTOMER-2026-0424.md"
+  },
+  "archive_target": {
+    "binding_state": "confirmed",
+    "binding_type": "sharepoint_archive_library",
+    "binding_reference_base": "sharepoint://<customer-tenant>/releases/2026-04/window-001",
+    "system_name": "<Customer Release Archive>",
+    "integration_notes": "Replace generated archive metadata with the real customer-owned archive destination before marking this binding confirmed.",
+    "portal_url": "https://<customer-sharepoint>/sites/releases/archive/2026-04/window-001",
+    "confirmed_by": "customer-release-manager",
+    "confirmed_at": "2026-04-24T16:00:00+00:00",
+    "confirmation_ticket": "CHG-CUSTOMER-2026-0424",
+    "confirmation_notes": "First-round closeout values applied from the completed example; replace with the real customer confirmation metadata before final release signoff.",
+    "confirmation_evidence": "docs/customer/change-window/CHG-CUSTOMER-2026-0424.md"
+  },
+  "due_trigger": {
+    "binding_state": "confirmed",
+    "binding_type": "service_now_schedule",
+    "binding_reference_base": "servicenow://<customer-tenant>/change-window/CHG-2026-0001",
+    "checked_at": "2026-04-24T15:30:00+00:00",
+    "system_name": "<Customer Change Schedule>",
+    "integration_notes": "Replace generated due-trigger metadata with the real customer-owned scheduler before marking this binding confirmed.",
+    "portal_url": "https://<customer-servicenow>/change/CHG-2026-0001",
+    "confirmed_by": "customer-release-manager",
+    "confirmed_at": "2026-04-24T16:00:00+00:00",
+    "confirmation_ticket": "CHG-CUSTOMER-2026-0424",
+    "confirmation_notes": "First-round closeout values applied from the completed example; replace with the real customer confirmation metadata before final release signoff.",
+    "confirmation_evidence": "docs/customer/change-window/CHG-CUSTOMER-2026-0424.md"
+  }
+}

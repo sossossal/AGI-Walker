@@ -1,0 +1,12 @@
+{
+  "ArtifactName": "agi-walker:latest",
+  "ArtifactType": "container_image",
+  "Results": [
+    {
+      "Target": "python:3.12-slim",
+      "Class": "os-pkgs",
+      "Type": "debian",
+      "Vulnerabilities": []
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "dependencies": [
+    {
+      "name": "fastapi",
+      "version": "0.110.0",
+      "vulns": []
+    },
+    {
+      "name": "uvicorn",
+      "version": "0.29.0",
+      "vulns": []
+    }
+  ]
+}

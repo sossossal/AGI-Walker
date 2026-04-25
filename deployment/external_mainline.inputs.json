@@ -1,0 +1,41 @@
+{
+  "customer_external_bindings": {
+    "enabled": true,
+    "config": "deployment/customer_delivery.external_bindings.customer.json",
+    "overrides_file": "deployment/customer_delivery.external_bindings.customer.overrides.json",
+    "sections": [
+      "approval_identity",
+      "archive_target",
+      "due_trigger"
+    ],
+    "confirmed_by": "customer-release-manager",
+    "confirmed_at": "2026-04-24T16:00:00+00:00",
+    "confirmation_ticket": "CHG-CUSTOMER-2026-0424",
+    "confirmation_notes": "First-round closeout values applied from the completed example; replace with the real customer confirmation metadata before final release signoff.",
+    "confirmation_evidence": "docs/customer/change-window/CHG-CUSTOMER-2026-0424.md",
+    "skip_collect_release_evidence": false
+  },
+  "vulnerability_exception_review": {
+    "enabled": true,
+    "report_output": "test_env/release_evidence/security/vulnerability_exception_review_report.json"
+  },
+  "industrial_rehearsal": {
+    "refresh": false,
+    "version": "2026.04.17-industrial-rehearsal",
+    "build_id": "release-rehearsal-industrial",
+    "output_root": "test_env/release_rehearsal_industrial",
+    "report_path": "test_env/release_rehearsal_industrial/industrial_delivery_rehearsal_report.json"
+  },
+  "industrial_live_evidence": {
+    "enabled": true,
+    "target_environment": "customer-prod-eu-west-1",
+    "access_method": "VPN + Bastion host + customer SRE approval window",
+    "install_entrypoint": "docs/runbooks/customer-prod/install.md",
+    "upgrade_entrypoint": "docs/runbooks/customer-prod/upgrade.md",
+    "rollback_entrypoint": "docs/runbooks/customer-prod/rollback.md",
+    "backup_restore_entrypoint": "docs/runbooks/customer-prod/backup-restore.md",
+    "closure_archive_root": "archive://customer-prod-eu-west-1/release-window-2026-04-24",
+    "evidence_output_root": "test_env/industrial_live_evidence/customer-prod-eu-west-1",
+    "notes": "First-round closeout values applied from the completed example; replace with the real customer production environment, execution entrypoints, and archive destination before final release signoff."
+  }
+}

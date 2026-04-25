@@ -1,0 +1,20 @@
+{
+  "approval_identity": {
+    "source_type": "customer_change_registry",
+    "reference": "change://customer-001/CHG-2026-0417",
+    "system_name": "Customer Change Registry",
+    "portal_url": "https://change.customer.example/records/CHG-2026-0417"
+  },
+  "archive_target": {
+    "binding_type": "sharepoint_archive_library",
+    "binding_reference_base": "sharepoint://customer-001/releases/2026-04-17",
+    "system_name": "Customer Release Archive",
+    "portal_url": "https://customer.example/sites/releases/archive/2026-04-17"
+  },
+  "due_trigger": {
+    "binding_type": "service_now_schedule",
+    "binding_reference_base": "servicenow://customer-001/change-window/2026-04-17",
+    "system_name": "Customer Change Schedule",
+    "portal_url": "https://customer.service-now.example/change/CHG-2026-0417"
+  }
+}

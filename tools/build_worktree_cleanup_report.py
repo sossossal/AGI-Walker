@@ -70,6 +70,7 @@ SOURCE_PATTERNS = (
     "web_panel/",
     "weights/",
     ".gitignore",
+    "*.md",
     "README.md",
     "RELEASE_NOTES.md",
     "pyproject.toml",
@@ -98,6 +99,24 @@ CATEGORY_METADATA = {
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _default_tracked_review_report_path(output_root: Path) -> Path:
+    return output_root / "tracked_artifact_review_report.json"
+
+
+def _build_tracked_review_command(
+    *,
+    source_root: Path,
+    cleanup_report_path: Path,
+    tracked_review_report_path: Path,
+) -> str:
+    return (
+        "python tools/build_tracked_artifact_review_report.py "
+        f"--source-root {source_root} "
+        f"--cleanup-report {cleanup_report_path} "
+        f"--report-file {tracked_review_report_path}"
+    )
 
 
 def _run_git_status(source_root: Path) -> list[str]:
@@ -205,6 +224,22 @@ def _build_next_step_plan(entries: list[dict[str, Any]]) -> list[str]:
         return ["工作区已 clean，可继续 stable promotion。"]
 
     plan: list[str] = []
+    staged_paths = sum(
+        1
+        for item in entries
+        if item["status_label"] in {"staged", "staged_and_unstaged"}
+    )
+    unstaged_tracked_paths = sum(
+        1
+        for item in entries
+        if item["status_label"] in {"modified", "staged_and_unstaged"}
+    )
+    untracked_paths = sum(1 for item in entries if item["status_label"] == "untracked")
+    if staged_paths > 0 and (unstaged_tracked_paths > 0 or untracked_paths > 0):
+        plan.append(
+            f"当前已有 {staged_paths} 个路径进入暂存区；优先继续拆分剩余 "
+            f"{unstaged_tracked_paths} 个未暂存 tracked 路径与 {untracked_paths} 个 untracked 路径。"
+        )
     if counts["runtime_artifact"] > 0:
         plan.append(
             f"先审查并清理 {counts['runtime_artifact']} 个运行时产物，避免把本地状态带入 stable promotion。"
@@ -222,6 +257,40 @@ def _build_next_step_plan(entries: list[dict[str, Any]]) -> list[str]:
             f"还需人工判断 {counts['unknown']} 个未知分类路径，再决定清理还是保留。"
         )
     return plan
+
+
+def _tracked_review_candidates(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        item
+        for item in entries
+        if item["tracked"] is True
+        and item["category"] in {"runtime_artifact", "generated_artifact"}
+    ]
+
+
+def _build_status_summary(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    ordered_statuses = [
+        ("staged", "已暂存"),
+        ("modified", "未暂存 tracked"),
+        ("staged_and_unstaged", "已暂存且仍有未暂存"),
+        ("untracked", "未跟踪"),
+    ]
+    summaries: list[dict[str, Any]] = []
+    for status_label, title in ordered_statuses:
+        matching_entries = [
+            item for item in entries if item.get("status_label") == status_label
+        ]
+        if not matching_entries:
+            continue
+        summaries.append(
+            {
+                "id": status_label,
+                "title": title,
+                "count": len(matching_entries),
+                "sample_paths": [item["path"] for item in matching_entries[:5]],
+            }
+        )
+    return summaries
 
 
 def _write_report(report_path: Path, payload: dict[str, Any]) -> Path:
@@ -272,8 +341,35 @@ def main(argv: list[str] | None = None) -> int:
     lines = _run_git_status(source_root)
     entries = _build_path_entries(lines)
     category_summary = _build_category_summary(entries)
+    tracked_review_candidates = _tracked_review_candidates(entries)
+    tracked_review_report_path = _default_tracked_review_report_path(output_root)
+    tracked_review_command = (
+        _build_tracked_review_command(
+            source_root=source_root,
+            cleanup_report_path=report_path,
+            tracked_review_report_path=tracked_review_report_path,
+        )
+        if tracked_review_candidates
+        else None
+    )
     tracked_count = sum(1 for item in entries if item["tracked"])
     untracked_count = len(entries) - tracked_count
+    staged_count = sum(
+        1 for item in entries if item["status_label"] in {"staged", "staged_and_unstaged"}
+    )
+    unstaged_tracked_count = sum(
+        1 for item in entries if item["status_label"] in {"modified", "staged_and_unstaged"}
+    )
+    staged_and_unstaged_count = sum(
+        1 for item in entries if item["status_label"] == "staged_and_unstaged"
+    )
+    next_step_plan = _build_next_step_plan(entries)
+    status_summary = _build_status_summary(entries)
+    if tracked_review_candidates and tracked_review_command:
+        next_step_plan.append(
+            f"cleanup report 显示 {len(tracked_review_candidates)} 个 tracked runtime/generated artifact，"
+            f"继续生成 review report: {tracked_review_command}"
+        )
     payload = {
         "schema_version": "1.0",
         "artifact_type": "worktree_cleanup_report",
@@ -284,9 +380,19 @@ def main(argv: list[str] | None = None) -> int:
         "total_paths": len(entries),
         "tracked_paths": tracked_count,
         "untracked_paths": untracked_count,
+        "staged_paths": staged_count,
+        "unstaged_tracked_paths": unstaged_tracked_count,
+        "staged_and_unstaged_paths": staged_and_unstaged_count,
+        "tracked_review_candidate_count": len(tracked_review_candidates),
+        "tracked_review_candidate_paths": [
+            item["path"] for item in tracked_review_candidates
+        ],
+        "tracked_review_report_path": str(tracked_review_report_path),
+        "tracked_review_command": tracked_review_command,
         "category_summary": category_summary,
+        "status_summary": status_summary,
         "paths": entries,
-        "next_step_plan": _build_next_step_plan(entries),
+        "next_step_plan": next_step_plan,
     }
     written_report = _write_report(report_path, payload)
 
@@ -294,6 +400,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"worktree_cleanup_clean={str(not entries).lower()}")
     print(f"worktree_cleanup_total_paths={len(entries)}")
     print(f"worktree_cleanup_categories={len(category_summary)}")
+    print(
+        "worktree_cleanup_tracked_review_candidates="
+        f"{len(tracked_review_candidates)}"
+    )
+    if tracked_review_command:
+        print(f"worktree_cleanup_tracked_review_command={tracked_review_command}")
     return 0
 
 
