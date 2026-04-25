@@ -20,21 +20,8 @@
 
 - Godot headless smoke 已通过
   - `python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live"`
-
-## 当前未全绿项
-
-- ROS2 bridge smoke 当前为 `skip`
-  - 原因不是代码失败，而是当前机器缺少 ROS2 Python runtime
-  - 缺失模块：
-    - `rclpy`
-    - `tf2_ros`
-    - `sensor_msgs.msg`
-    - `geometry_msgs.msg`
-    - `std_srvs.srv`
-
-对应补齐清单见：
-
-- `docs/guides/ROS2_LOCAL_ENV_CHECKLIST_20260425.md`
+- ROS2 bridge smoke 已通过
+  - `tests/test_ros2_bridge_smoke.py`
 
 ## 当前结论
 
@@ -43,19 +30,15 @@
 - 基础控制面：可运行
 - distributed 链路：可运行
 - Godot headless 专项：可运行
-- ROS2 bridge 专项：待补本机 ROS2 环境
+- ROS2 bridge 专项：可运行
 
-也就是说，**本地功能验证已经基本完成，剩余缺口只集中在 ROS2 宿主环境。**
+也就是说，**本地功能验证已经完成并全绿。**
 
 ## 建议下一步
 
 优先顺序建议如下：
 
-1. 如果只是继续本地开发或演示，当前状态已经足够使用
-2. 如果要完成“本地专项全绿”，先补 ROS2 本机运行时
-3. 补齐后重跑：
-
-```powershell
-$env:AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE='1'
-python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live"
-```
+1. 如果继续本地开发或演示，当前状态已经足够使用
+2. 如果要复现 ROS2 专项通过环境，参考：
+   - `docs/guides/ROS2_WINDOWS_BOOTSTRAP_20260425.md`
+3. 如果要做阶段性同步，直接引用本页即可

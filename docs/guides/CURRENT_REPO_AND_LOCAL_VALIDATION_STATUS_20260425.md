@@ -32,26 +32,18 @@
   - `test_env/local_distributed_smoke_20260425/distributed_smoke_report.json`
 - Godot headless smoke
   - `tests/test_godot_headless_smoke.py`
+- ROS2 bridge smoke
+  - `tests/test_ros2_bridge_smoke.py`
 
-## 3. 当前唯一未全绿项
+## 3. 当前本地专项状态
 
-当前唯一没有实测通过的本地专项是：
+当前本机的本地专项能力已经全绿：
 
-- `ROS2 bridge smoke`
-
-它当前不是失败，而是 **skip**。原因已经确认是：
-
-- 当前机器缺少 ROS2 Python runtime
-- 缺少模块：
-  - `rclpy`
-  - `tf2_ros`
-  - `sensor_msgs.msg`
-  - `geometry_msgs.msg`
-  - `std_srvs.srv`
-
-对应补齐清单：
-
-- `docs/guides/ROS2_LOCAL_ENV_CHECKLIST_20260425.md`
+- 最小本地部署：通过
+- 仓库 smoke：通过
+- distributed 本地链路：通过
+- Godot headless smoke：通过
+- ROS2 bridge smoke：通过
 
 ## 4. 当前整体判断
 
@@ -61,7 +53,7 @@
 
 如果按“本机专项能力全绿”来评估：
 
-- **只差 ROS2 宿主环境**
+- **当前已达成**
 
 如果按“工业级交付链是否已有实现与验证闭环”来评估：
 
@@ -72,7 +64,7 @@
 按优先级建议如下：
 
 1. 如果只是继续开发/演示：现在可以直接进入正常使用
-2. 如果要补齐本机专项验证：先补 ROS2 runtime，再重跑 ROS2 bridge smoke
+2. 如果要复现 ROS2 通过环境：参考 `docs/guides/ROS2_WINDOWS_BOOTSTRAP_20260425.md`
 3. 如果要继续交付推进：把当前本地验证结果同步给团队，作为阶段性结论
 
 ## 6. 建议同时查看
