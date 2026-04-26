@@ -15,6 +15,9 @@ import pytest
 from agi_walker.core.api.godot_robot_env import hardware_controller as hw
 
 REPLAY_FIXTURE = Path(__file__).with_name("fixtures") / "imc22_status_replay.json"
+SERIAL_REPLAY_FIXTURE = (
+    Path(__file__).with_name("fixtures") / "real_robot_driver_replay.json"
+)
 
 
 class FakeMessage:
@@ -39,6 +42,40 @@ def fake_can_runtime(monkeypatch):
 
 
 class TestIMC22Controller:
+    def test_default_transport_profiles(self) -> None:
+        socketcan = hw.default_imc22_transport_profile()
+        pcan = hw.default_imc22_transport_profile("pcan")
+        serial_bridge = hw.default_imc22_transport_profile("serial_bridge")
+
+        assert socketcan["transport"] == "socketcan"
+        assert socketcan["channel"] == "can0"
+        assert socketcan["bustype"] == "socketcan"
+        assert pcan["channel"] == "PCAN_USBBUS1"
+        assert pcan["bustype"] == "pcan"
+        assert serial_bridge["serial_port"] == "COM3"
+        assert serial_bridge["baudrate"] == 115200
+
+    def test_replay_transport_profile_requires_source(self) -> None:
+        errors = hw.validate_imc22_transport_profile(
+            hw.default_imc22_transport_profile("replay")
+        )
+
+        assert errors == ["transport_profile.replay_source is required for replay"]
+
+    def test_transport_profile_rejects_mismatched_bustype(self) -> None:
+        errors = hw.validate_imc22_transport_profile(
+            {
+                **hw.default_imc22_transport_profile(),
+                "transport": "socketcan",
+                "bustype": "pcan",
+            }
+        )
+
+        assert (
+            "transport_profile.bustype must match transport 'socketcan' as 'socketcan'"
+            in errors
+        )
+
     def test_controller_initialization(self, fake_can_runtime) -> None:
         controller = hw.IMC22Controller(
             channel="virtual0", bustype="virtual", bitrate=500000
@@ -139,6 +176,55 @@ class TestIMC22Controller:
         angle_raw, compliance_raw = struct.unpack("<hB", sent_message.data)
         assert angle_raw == 1000
         assert compliance_raw == 102
+
+        controller.close()
+        assert controller.bus.closed is True
+
+    def test_controller_from_transport_profile_socketcan(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller.from_transport_profile(
+            {
+                **hw.default_imc22_transport_profile(),
+                "channel": "can7",
+                "bitrate": 500000,
+            }
+        )
+
+        fake_can_runtime["bus_factory"].assert_called_once_with(
+            channel="can7",
+            bustype="socketcan",
+            bitrate=500000,
+        )
+        assert controller.bus is fake_can_runtime["bus"]
+
+    def test_controller_from_transport_profile_replay(self) -> None:
+        controller = hw.IMC22Controller.from_transport_profile(
+            {
+                **hw.default_imc22_transport_profile("replay"),
+                "replay_source": REPLAY_FIXTURE,
+            }
+        )
+
+        assert controller.discover_nodes(timeout=0.01, expected_count=2) == [1, 2]
+        controller.close()
+
+    def test_controller_from_transport_profile_serial_bridge_replay(self) -> None:
+        controller = hw.IMC22Controller.from_transport_profile(
+            {
+                **hw.default_imc22_transport_profile("serial_bridge"),
+                "replay_source": SERIAL_REPLAY_FIXTURE,
+            }
+        )
+
+        assert controller.discover_nodes(timeout=0.01, expected_count=2) == [1, 2]
+        controller.send_command(node_id=1, target_angle=0.25, compliance=0.5)
+        sent_message = controller.bus.sent_messages[-1]
+        assert sent_message.arbitration_id == controller.ID_COMMAND_BASE + 1
+
+        controller.set_config(node_id=1, max_torque=2.5, kp=0.8, ki=0.1)
+        motor_config = controller.bus.driver.get_state()["motor_configs"]["motor_1"]
+        assert motor_config["max_torque"] == pytest.approx(2.5)
+        assert motor_config["kp"] == pytest.approx(0.8)
+        assert controller.bus.config_messages[-1]["node_id"] == 1
 
         controller.close()
         assert controller.bus.closed is True
@@ -250,6 +336,45 @@ class TestHardwareEnvironment:
         assert truncated is False
         assert info["states"][1]["angle"] == 1.5
         assert len(controller.bus.sent_messages) == 4
+
+    def test_hardware_env_from_transport_profile(self, monkeypatch) -> None:
+        monkeypatch.setattr(hw.time, "sleep", lambda *_args, **_kwargs: None)
+
+        env = hw.HardwareEnvironment.from_transport_profile(
+            {
+                **hw.default_imc22_transport_profile("replay"),
+                "replay_source": REPLAY_FIXTURE,
+            },
+            num_joints=2,
+            control_freq_hz=50,
+        )
+
+        reset_obs = env.reset()
+
+        assert env.node_ids == [1, 2]
+        assert reset_obs == [1.0, 0.11, 0.0, -1.0, 0.12, 0.0]
+        env.close()
+
+    def test_hardware_env_from_serial_bridge_transport_profile(
+        self, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(hw.time, "sleep", lambda *_args, **_kwargs: None)
+
+        env = hw.HardwareEnvironment.from_transport_profile(
+            {
+                **hw.default_imc22_transport_profile("serial_bridge"),
+                "replay_source": SERIAL_REPLAY_FIXTURE,
+            },
+            num_joints=2,
+            control_freq_hz=50,
+        )
+
+        reset_obs = env.reset()
+
+        assert env.node_ids == [1, 2]
+        assert reset_obs[:3] == pytest.approx([1.5, 0.25, 0.0])
+        assert reset_obs[3:] == pytest.approx([-1.0, 0.3, 0.0])
+        env.close()
 
 
 class TestCANProtocol:

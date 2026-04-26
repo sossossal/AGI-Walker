@@ -22,6 +22,7 @@ PACKET_HEAD = b"\xaa\x55"
 CMD_MOTOR_COMMAND = 0x01
 CMD_SENSOR_STATE = 0x02
 CMD_SYSID_DATA = 0x03
+CMD_MOTOR_CONFIG = 0x04
 REAL_ROBOT_REPLAY_SCHEMA_VERSION = "1.0"
 
 
@@ -104,6 +105,41 @@ def decode_motor_state_payload(payload: bytes) -> Dict[str, Dict[str, float]]:
             "torque": torque,
         }
     return motors
+
+
+def encode_motor_config_payload(configs: Dict[str, Dict[str, float]]) -> bytes:
+    payload = bytearray([len(configs)])
+    for motor_name, config in configs.items():
+        motor_id = int(motor_name.split("_")[-1]) if "_" in motor_name else 0
+        payload.append(motor_id)
+        payload.extend(
+            struct.pack(
+                "<fff",
+                float(config.get("max_torque", 0.0)),
+                float(config.get("kp", 0.0)),
+                float(config.get("ki", 0.0)),
+            )
+        )
+    return bytes(payload)
+
+
+def decode_motor_config_payload(payload: bytes) -> Dict[str, Dict[str, float]]:
+    if not payload:
+        return {}
+    count = payload[0]
+    offset = 1
+    configs: Dict[str, Dict[str, float]] = {}
+    for _ in range(count):
+        motor_id = payload[offset]
+        offset += 1
+        max_torque, kp, ki = struct.unpack_from("<fff", payload, offset)
+        offset += 12
+        configs[f"motor_{motor_id}"] = {
+            "max_torque": max_torque,
+            "kp": kp,
+            "ki": ki,
+        }
+    return configs
 
 
 def validate_real_robot_replay_payload(payload: Dict[str, Any]) -> List[str]:
@@ -203,6 +239,7 @@ class RealRobotDriver:
 
         # Robot State
         self.motor_states: Dict[str, Dict] = {}  # {id: {pos, vel, torque, temp}}
+        self.motor_configs: Dict[str, Dict[str, float]] = {}
         self.imu_data = {"rpy": [0, 0, 0], "acc": [0, 0, 0], "gyro": [0, 0, 0]}
 
         self.logger = logging.getLogger("RealRobotDriver")
@@ -279,6 +316,31 @@ class RealRobotDriver:
             self.logger.error(f"Send failed: {e}")
             return False
 
+    def send_motor_config(self, configs: Dict[str, Dict[str, float]]) -> bool:
+        if self.mock:
+            with self.lock:
+                for motor_name, config in configs.items():
+                    self.motor_configs[motor_name] = {
+                        "max_torque": float(config.get("max_torque", 0.0)),
+                        "kp": float(config.get("kp", 0.0)),
+                        "ki": float(config.get("ki", 0.0)),
+                    }
+            return True
+
+        try:
+            self._send_packet(CMD_MOTOR_CONFIG, encode_motor_config_payload(configs))
+            with self.lock:
+                for motor_name, config in configs.items():
+                    self.motor_configs[motor_name] = {
+                        "max_torque": float(config.get("max_torque", 0.0)),
+                        "kp": float(config.get("kp", 0.0)),
+                        "ki": float(config.get("ki", 0.0)),
+                    }
+            return True
+        except Exception as e:
+            self.logger.error(f"Config send failed: {e}")
+            return False
+
     def _send_packet(self, cmd: int, payload: bytes):
         if not self.ser:
             return
@@ -335,4 +397,8 @@ class RealRobotDriver:
 
     def get_state(self):
         with self.lock:
-            return {"motors": self.motor_states.copy(), "imu": self.imu_data.copy()}
+            return {
+                "motors": self.motor_states.copy(),
+                "motor_configs": self.motor_configs.copy(),
+                "imu": self.imu_data.copy(),
+            }

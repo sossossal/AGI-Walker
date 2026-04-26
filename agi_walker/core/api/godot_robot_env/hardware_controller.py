@@ -10,6 +10,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from agi_walker.core.drivers.real_robot_driver import RealRobotDriver
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -19,6 +21,13 @@ except ImportError:
 
 
 IMC22_REPLAY_SCHEMA_VERSION = "1.0"
+IMC22_TRANSPORT_PROFILE_SCHEMA_VERSION = "1.0"
+SUPPORTED_IMC22_TRANSPORTS = {
+    "socketcan",
+    "pcan",
+    "replay",
+    "serial_bridge",
+}
 
 
 class ReplayCANMessage:
@@ -85,6 +94,120 @@ def load_imc22_replay_payload(source: str | Path | Dict[str, Any]) -> Dict[str, 
     return payload
 
 
+def default_imc22_transport_profile(transport: str = "socketcan") -> Dict[str, Any]:
+    if transport not in SUPPORTED_IMC22_TRANSPORTS:
+        raise ValueError(
+            f"Unsupported IMC-22 transport {transport!r}; "
+            f"expected one of {sorted(SUPPORTED_IMC22_TRANSPORTS)!r}"
+        )
+
+    profile: Dict[str, Any] = {
+        "schema_version": IMC22_TRANSPORT_PROFILE_SCHEMA_VERSION,
+        "transport": transport,
+        "channel": "can0",
+        "bustype": "socketcan",
+        "bitrate": 1_000_000,
+    }
+    if transport == "pcan":
+        profile.update(
+            {
+                "channel": "PCAN_USBBUS1",
+                "bustype": "pcan",
+            }
+        )
+    elif transport == "replay":
+        profile.update(
+            {
+                "channel": "replay",
+                "bustype": "replay",
+                "replay_source": None,
+            }
+        )
+    elif transport == "serial_bridge":
+        profile.update(
+            {
+                "channel": "serial-bridge",
+                "bustype": "serial_bridge",
+                "serial_port": "COM3",
+                "baudrate": 115_200,
+                "replay_source": None,
+            }
+        )
+    return profile
+
+
+def normalize_imc22_transport_profile(
+    profile: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    requested_transport = "socketcan"
+    if profile and isinstance(profile.get("transport"), str) and profile["transport"]:
+        requested_transport = profile["transport"]
+    normalized = default_imc22_transport_profile(requested_transport)
+    if profile:
+        normalized.update(profile)
+    return normalized
+
+
+def validate_imc22_transport_profile(profile: Dict[str, Any]) -> List[str]:
+    errors: List[str] = []
+    if not isinstance(profile, dict):
+        return ["transport profile must be a dict"]
+    if profile.get("schema_version") != IMC22_TRANSPORT_PROFILE_SCHEMA_VERSION:
+        errors.append(
+            "transport_profile.schema_version must be "
+            f"{IMC22_TRANSPORT_PROFILE_SCHEMA_VERSION!r}"
+        )
+
+    transport = profile.get("transport")
+    if transport not in SUPPORTED_IMC22_TRANSPORTS:
+        errors.append(
+            "transport_profile.transport must be one of "
+            f"{sorted(SUPPORTED_IMC22_TRANSPORTS)!r}"
+        )
+        return errors
+
+    if not isinstance(profile.get("channel"), str) or not profile["channel"]:
+        errors.append("transport_profile.channel must be a non-empty string")
+    if not isinstance(profile.get("bustype"), str) or not profile["bustype"]:
+        errors.append("transport_profile.bustype must be a non-empty string")
+
+    bitrate = profile.get("bitrate")
+    if not isinstance(bitrate, int) or bitrate <= 0:
+        errors.append("transport_profile.bitrate must be a positive int")
+
+    expected_bustype = {
+        "socketcan": "socketcan",
+        "pcan": "pcan",
+        "replay": "replay",
+        "serial_bridge": "serial_bridge",
+    }[transport]
+    if profile.get("bustype") != expected_bustype:
+        errors.append(
+            "transport_profile.bustype must match transport "
+            f"{transport!r} as {expected_bustype!r}"
+        )
+
+    if transport == "replay":
+        replay_source = profile.get("replay_source")
+        if replay_source is None:
+            errors.append("transport_profile.replay_source is required for replay")
+    elif transport == "serial_bridge":
+        if (
+            not isinstance(profile.get("serial_port"), str)
+            or not profile["serial_port"]
+        ):
+            errors.append(
+                "transport_profile.serial_port must be a non-empty string "
+                "for serial_bridge"
+            )
+        baudrate = profile.get("baudrate")
+        if not isinstance(baudrate, int) or baudrate <= 0:
+            errors.append(
+                "transport_profile.baudrate must be a positive int for serial_bridge"
+            )
+    return errors
+
+
 def command_batch_to_imc22_replay_payload(
     command_batch: List[Dict[str, Any]],
     *,
@@ -136,6 +259,46 @@ def simulate_imc22_command_batch_feedback(
         }
     finally:
         controller.close()
+
+
+def create_imc22_controller_from_transport_profile(
+    profile: Dict[str, Any],
+    *,
+    bus: Any = None,
+    message_factory: Any = None,
+) -> "IMC22Controller":
+    normalized = normalize_imc22_transport_profile(profile)
+    errors = validate_imc22_transport_profile(normalized)
+    if errors:
+        raise ValueError("; ".join(errors))
+
+    transport = normalized["transport"]
+    if transport == "replay":
+        return IMC22Controller.from_replay(
+            normalized["replay_source"],
+            message_factory=message_factory,
+        )
+    if transport == "serial_bridge":
+        return IMC22Controller(
+            channel=normalized["channel"],
+            bustype=normalized["bustype"],
+            bitrate=normalized["bitrate"],
+            bus=SerialBridgeBus.from_transport_profile(
+                normalized,
+                status_id_base=IMC22Controller.ID_STATUS_BASE,
+                command_id_base=IMC22Controller.ID_COMMAND_BASE,
+                config_id_base=IMC22Controller.ID_CONFIG_BASE,
+                message_factory=message_factory or ReplayCANMessage,
+            ),
+            message_factory=message_factory or ReplayCANMessage,
+        )
+    return IMC22Controller(
+        channel=normalized["channel"],
+        bustype=normalized["bustype"],
+        bitrate=normalized["bitrate"],
+        bus=bus,
+        message_factory=message_factory,
+    )
 
 
 class ReplayCANBus:
@@ -194,6 +357,137 @@ class ReplayCANBus:
         self.closed = True
 
 
+class SerialBridgeBus:
+    is_serial_bridge = True
+
+    def __init__(
+        self,
+        driver: RealRobotDriver,
+        *,
+        status_id_base: int,
+        command_id_base: int,
+        config_id_base: int,
+        message_factory=ReplayCANMessage,
+    ) -> None:
+        self.driver = driver
+        self._status_id_base = status_id_base
+        self._command_id_base = command_id_base
+        self._config_id_base = config_id_base
+        self._message_factory = message_factory or ReplayCANMessage
+        self._pending_node_ids: List[int] = []
+        self.sent_messages: List[Any] = []
+        self.config_messages: List[Dict[str, Any]] = []
+        self.closed = False
+
+    @classmethod
+    def from_transport_profile(
+        cls,
+        profile: Dict[str, Any],
+        *,
+        status_id_base: int,
+        command_id_base: int,
+        config_id_base: int,
+        message_factory=ReplayCANMessage,
+    ) -> "SerialBridgeBus":
+        replay_source = profile.get("replay_source")
+        if replay_source is not None:
+            driver = RealRobotDriver.from_replay(replay_source)
+        else:
+            driver = RealRobotDriver(
+                port=profile["serial_port"],
+                baudrate=profile["baudrate"],
+            )
+        if not driver.connect():
+            raise RuntimeError("failed to connect serial bridge driver")
+        return cls(
+            driver,
+            status_id_base=status_id_base,
+            command_id_base=command_id_base,
+            config_id_base=config_id_base,
+            message_factory=message_factory,
+        )
+
+    def _refresh_pending_node_ids(self) -> None:
+        motors = self.driver.get_state().get("motors", {})
+        self._pending_node_ids = sorted(
+            int(name.split("_")[-1])
+            for name in motors
+            if "_" in name and name.split("_")[-1].isdigit()
+        )
+
+    def _build_status_message(self, node_id: int) -> Optional[Any]:
+        motor_state = self.driver.get_state().get("motors", {}).get(f"motor_{node_id}")
+        if not motor_state:
+            return None
+        return self._message_factory(
+            arbitration_id=self._status_id_base + node_id,
+            data=encode_status_payload(
+                angle=float(motor_state.get("pos", 0.0)),
+                current=float(motor_state.get("torque", 0.0)),
+                error=0.0,
+            ),
+            is_extended_id=False,
+        )
+
+    def send(self, message: Any) -> None:
+        self.sent_messages.append(message)
+        arbitration_id = getattr(message, "arbitration_id", 0)
+        if (
+            arbitration_id >= self._command_id_base
+            and arbitration_id < self._config_id_base
+        ):
+            node_id = arbitration_id - self._command_id_base
+            target_raw, compliance_raw = struct.unpack("<hB", message.data[:3])
+            target_angle = target_raw * 0.01
+            _compliance = compliance_raw / 255.0
+            self.driver.send_motor_commands({f"motor_{node_id}": target_angle})
+            self._pending_node_ids = [node_id]
+            return
+        if arbitration_id >= self._config_id_base:
+            node_id = arbitration_id - self._config_id_base
+            max_torque, kp, ki = struct.unpack("<fff", message.data[:12])
+            config_message = {
+                "node_id": node_id,
+                "max_torque": max_torque,
+                "kp": kp,
+                "ki": ki,
+            }
+            self.config_messages.append(config_message)
+            self.driver.send_motor_config(
+                {
+                    f"motor_{node_id}": {
+                        "max_torque": max_torque,
+                        "kp": kp,
+                        "ki": ki,
+                    }
+                }
+            )
+
+    def recv(self, timeout: float = 0.1) -> Optional[Any]:
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if getattr(self.driver.ser, "is_replay", False):
+                self.driver.poll_once()
+            if not self._pending_node_ids:
+                self._refresh_pending_node_ids()
+            if self._pending_node_ids:
+                node_id = self._pending_node_ids.pop(0)
+                message = self._build_status_message(node_id)
+                if message is not None:
+                    return message
+            if (
+                getattr(self.driver.ser, "is_replay", False)
+                and not self.driver.ser.has_pending_packets()
+            ):
+                break
+            time.sleep(0.001)
+        return None
+
+    def shutdown(self) -> None:
+        self.driver.disconnect()
+        self.closed = True
+
+
 class IMC22Controller:
     """IMC-22 硬件控制器接口"""
 
@@ -245,8 +539,12 @@ class IMC22Controller:
 
     @classmethod
     def from_replay(
-        cls, replay_source: str | Path | Dict[str, Any]
+        cls,
+        replay_source: str | Path | Dict[str, Any],
+        *,
+        message_factory=ReplayCANMessage,
     ) -> "IMC22Controller":
+        message_factory = message_factory or ReplayCANMessage
         payload = load_imc22_replay_payload(replay_source)
         return cls(
             channel="replay",
@@ -254,9 +552,23 @@ class IMC22Controller:
             bus=ReplayCANBus.from_payload(
                 payload,
                 status_id_base=cls.ID_STATUS_BASE,
-                message_factory=ReplayCANMessage,
+                message_factory=message_factory,
             ),
-            message_factory=ReplayCANMessage,
+            message_factory=message_factory,
+        )
+
+    @classmethod
+    def from_transport_profile(
+        cls,
+        profile: Dict[str, Any],
+        *,
+        bus: Any = None,
+        message_factory: Any = None,
+    ) -> "IMC22Controller":
+        return create_imc22_controller_from_transport_profile(
+            profile,
+            bus=bus,
+            message_factory=message_factory,
         )
 
     def send_command(self, node_id: int, target_angle: float, compliance: float = 0.5):
@@ -429,6 +741,26 @@ class HardwareEnvironment:
             logger.warning(
                 f"期望 {num_joints} 个节点，实际发现 {len(self.node_ids)} 个"
             )
+
+    @classmethod
+    def from_transport_profile(
+        cls,
+        profile: Dict[str, Any],
+        *,
+        num_joints: int = 12,
+        control_freq_hz: int = 100,
+        bus: Any = None,
+        message_factory: Any = None,
+    ) -> "HardwareEnvironment":
+        return cls(
+            num_joints=num_joints,
+            control_freq_hz=control_freq_hz,
+            controller=IMC22Controller.from_transport_profile(
+                profile,
+                bus=bus,
+                message_factory=message_factory,
+            ),
+        )
 
     def reset(self):
         """重置到初始状态"""

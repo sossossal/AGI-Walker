@@ -7,8 +7,10 @@ import pytest
 
 from agi_walker.core.drivers.collect_sysid_data import collect_data
 from agi_walker.core.drivers.real_robot_driver import (
+    CMD_MOTOR_CONFIG,
     CMD_MOTOR_COMMAND,
     RealRobotDriver,
+    decode_motor_config_payload,
     decode_motor_command_payload,
     parse_packet,
     validate_real_robot_replay_payload,
@@ -71,6 +73,33 @@ def test_real_robot_driver_from_replay_updates_state_and_records_command() -> No
 
     driver.disconnect()
     assert driver.ser.closed is True
+
+
+def test_real_robot_driver_send_motor_config_updates_state_and_records_packet() -> None:
+    driver = RealRobotDriver.from_replay(REPLAY_FIXTURE)
+
+    assert driver.connect() is True
+    assert (
+        driver.send_motor_config(
+            {"motor_1": {"max_torque": 2.5, "kp": 0.8, "ki": 0.1}}
+        )
+        is True
+    )
+
+    packet = driver.ser.writes[0]
+    cmd, payload = parse_packet(packet)
+
+    assert cmd == CMD_MOTOR_CONFIG
+    assert decode_motor_config_payload(payload) == {
+        "motor_1": {
+            "max_torque": pytest.approx(2.5),
+            "kp": pytest.approx(0.8),
+            "ki": pytest.approx(0.1),
+        }
+    }
+    assert driver.get_state()["motor_configs"]["motor_1"]["kp"] == pytest.approx(0.8)
+
+    driver.disconnect()
 
 
 def test_collect_sysid_data_with_mock_writes_csv(

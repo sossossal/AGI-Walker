@@ -13,6 +13,7 @@ AGI-Walker 是一个面向机器人设计、仿真、工作流编排和 Web/Godo
 - `Godot 集成`：同时支持 legacy backend 和 modern `godot-agent` backend。
 - `Godot 扩展控制面`：新增结构化指令集控制与模拟电路通信契约，可复用到 Godot / ROS2 / IMC-22 近似层。
 - `ROS2 指令集模拟`：支持通过 JSON topic / service 重放结构化 `instruction_set` 与模拟电路配置，并发布运行态快照。
+- `IMC-22 Transport Profiles`：统一 `socketcan / pcan / replay / serial_bridge` 的控制器构造 contract，其中 `serial_bridge` 复用 `RealRobotDriver` 作为最小串口桥。
 - `Distributed / Smoke`：仓库内置 CLI、workflow、Web、distributed 和可选的 Godot headless smoke 测试。
 - `MCP Server`：通过 `agi_walker.mcp.server` 把任务执行、workflow、skills 和 Godot 能力暴露给 MCP 客户端。
 

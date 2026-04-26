@@ -125,6 +125,60 @@ python -m agi_walker.core.drivers.collect_sysid_data --mock --duration 1 --out s
 
 Windows 场景下则需要你显式传入对应总线类型和设备名。
 
+仓库现在还补了一层 canonical transport profile，优先建议通过 profile 构造控制器，而不是在调用点散落 `channel / bustype / bitrate`：
+
+- `default_imc22_transport_profile()`
+- `validate_imc22_transport_profile()`
+- `IMC22Controller.from_transport_profile(...)`
+- `HardwareEnvironment.from_transport_profile(...)`
+
+当前支持的 transport 值：
+
+- `socketcan`
+- `pcan`
+- `replay`
+- `serial_bridge`
+
+其中：
+
+- `socketcan` / `pcan` 已可直接构造真实 CAN controller
+- `replay` 已可直接加载 replay fixture
+- `serial_bridge` 已通过 `RealRobotDriver` 接到最小串口桥 adapter
+
+`serial_bridge` 当前行为边界：
+
+- 可直接走 `serial_port + baudrate` 真实串口路径
+- 也支持 `replay_source`，用于默认 pytest 下复用串口 replay fixture
+- 上层仍复用 `IMC22Controller` / `HardwareEnvironment` 的 `send_command / read_status / discover_nodes` 面
+- `set_config()` 现在会落到 `RealRobotDriver.send_motor_config(...)`，通过独立串口 config packet 下发并同步到 driver state
+
+最小示例：
+
+```python
+from agi_walker.core.api.godot_robot_env.hardware_controller import (
+    HardwareEnvironment,
+    IMC22Controller,
+    default_imc22_transport_profile,
+)
+
+profile = {
+    **default_imc22_transport_profile("pcan"),
+    "channel": "PCAN_USBBUS1",
+    "bitrate": 1_000_000,
+}
+controller = IMC22Controller.from_transport_profile(profile)
+controller.close()
+
+replay_env = HardwareEnvironment.from_transport_profile(
+    {
+        **default_imc22_transport_profile("replay"),
+        "replay_source": "tests/fixtures/imc22_status_replay.json",
+    },
+    num_joints=2,
+)
+replay_env.close()
+```
+
 ## 6. 协议级 mock / replay 路径
 
 当前仓库已经补上协议级 replay 骨架，位置仍在：
