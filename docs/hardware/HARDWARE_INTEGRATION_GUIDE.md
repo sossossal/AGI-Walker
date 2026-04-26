@@ -217,6 +217,24 @@ replay_env.close()
 - `status_base_id=0x100`
 - `config_base_id=0x300`
 
+当前 controller 级安全执行面还新增了：
+
+- 指令限幅：`max_abs_target_angle`
+- compliance 边界：`min_compliance / max_compliance`
+- stale-command watchdog：`watchdog_timeout_s`
+- watchdog 保持位：`watchdog_hold_angle`
+- 恢复接口：`clear_faults()` / `recover()`
+- 错误分类：`ok / overload / overcurrent / sensor_fault / communication_fault`
+- 分级恢复：`build_recovery_plan()` / `recover_by_fault_class()`
+
+也就是说，在进入真实设备前，仓库现在至少能先验证：
+
+- 越界目标角会被限制
+- 过期命令会触发 hold-angle 安全回退
+- fault 状态可显式清除或重新下发恢复命令
+- 节点错误值会被收敛成 machine-readable fault class
+- 不同 fault class 会走不同恢复动作，而不是统一 recover
+
 ROS2 一期指令集模拟控制面现已提供：
 
 - topic `/instruction_set/json`
@@ -249,6 +267,24 @@ ROS2 一期指令集模拟控制面现已提供：
 ```bash
 python -m pytest tests/test_hardware_controller.py -q
 ```
+
+如果要在进入真实设备前先做 transport 预检，仓库现在有一个最小诊断 runner：
+
+```bash
+python tools/run_hardware_transport_diagnostics.py --transport replay --replay-source tests/fixtures/imc22_status_replay.json --attempt-connect
+```
+
+对于串口桥 replay：
+
+```bash
+python tools/run_hardware_transport_diagnostics.py --transport serial_bridge --replay-source tests/fixtures/real_robot_driver_replay.json --attempt-connect
+```
+
+它会输出：
+
+- 归一化后的 transport profile
+- 结构化 checks 列表
+- 最终 `ready / blocked` 结论
 
 ## 7. `HardwareEnvironment`
 

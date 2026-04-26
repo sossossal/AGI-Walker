@@ -42,6 +42,29 @@ def fake_can_runtime(monkeypatch):
 
 
 class TestIMC22Controller:
+    def test_fault_classifier_thresholds(self) -> None:
+        assert hw.classify_imc22_fault(0.0) == "ok"
+        assert hw.classify_imc22_fault(5.0) == "unknown_fault"
+        assert hw.classify_imc22_fault(15.0) == "overload"
+        assert hw.classify_imc22_fault(45.0) == "overcurrent"
+        assert hw.classify_imc22_fault(75.0) == "sensor_fault"
+        assert hw.classify_imc22_fault(95.0) == "communication_fault"
+
+    def test_default_safety_profile_is_valid(self) -> None:
+        profile = hw.default_imc22_safety_profile()
+        assert hw.validate_imc22_safety_profile(profile) == []
+        assert profile["watchdog_timeout_s"] == 1.0
+
+    def test_invalid_safety_profile_rejected(self) -> None:
+        errors = hw.validate_imc22_safety_profile(
+            {
+                **hw.default_imc22_safety_profile(),
+                "min_compliance": 0.9,
+                "max_compliance": 0.1,
+            }
+        )
+        assert "safety_profile.min_compliance must be <= max_compliance" in errors
+
     def test_default_transport_profiles(self) -> None:
         socketcan = hw.default_imc22_transport_profile()
         pcan = hw.default_imc22_transport_profile("pcan")
@@ -76,6 +99,46 @@ class TestIMC22Controller:
             in errors
         )
 
+    def test_transport_diagnostics_replay_ready(self) -> None:
+        report = hw.run_imc22_transport_diagnostics(
+            {
+                **hw.default_imc22_transport_profile("replay"),
+                "replay_source": REPLAY_FIXTURE,
+            },
+            attempt_connect=True,
+        )
+
+        assert report["status"] == "ready"
+        assert report["checks"][0]["name"] == "profile_validation"
+        assert any(
+            check["name"] == "transport_connect" and check["status"] == "passed"
+            for check in report["checks"]
+        )
+
+    def test_transport_diagnostics_serial_bridge_replay_ready(self) -> None:
+        report = hw.run_imc22_transport_diagnostics(
+            {
+                **hw.default_imc22_transport_profile("serial_bridge"),
+                "replay_source": SERIAL_REPLAY_FIXTURE,
+            },
+            attempt_connect=True,
+        )
+
+        assert report["status"] == "ready"
+        assert any(
+            check["name"] == "serial_replay_source" and check["status"] == "passed"
+            for check in report["checks"]
+        )
+
+    def test_transport_diagnostics_blocks_invalid_profile(self) -> None:
+        report = hw.run_imc22_transport_diagnostics(
+            {"transport": "socketcan", "schema_version": "0.0"},
+            attempt_connect=False,
+        )
+
+        assert report["status"] == "blocked"
+        assert report["checks"][0]["name"] == "profile_validation"
+
     def test_controller_initialization(self, fake_can_runtime) -> None:
         controller = hw.IMC22Controller(
             channel="virtual0", bustype="virtual", bitrate=500000
@@ -95,6 +158,32 @@ class TestIMC22Controller:
         angle_raw, compliance_raw = struct.unpack("<hB", sent_message.data)
         assert angle_raw == 1234
         assert compliance_raw == 153
+
+    def test_send_command_updates_safety_status(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller()
+        controller.send_command(node_id=5, target_angle=12.34, compliance=0.6)
+
+        status = controller.get_safety_status()
+
+        assert status["state"] == "active"
+        assert status["last_command_details"]["node_id"] == 5
+        assert status["last_command_details"]["clamped"] is False
+
+    def test_send_command_clamps_by_safety_profile(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller(
+            safety_profile={
+                **hw.default_imc22_safety_profile(),
+                "max_abs_target_angle": 10.0,
+                "max_compliance": 0.4,
+            }
+        )
+        controller.send_command(node_id=2, target_angle=25.0, compliance=0.8)
+
+        sent_message = fake_can_runtime["bus"].send.call_args.args[0]
+        angle_raw, compliance_raw = struct.unpack("<hB", sent_message.data)
+        assert angle_raw == 1000
+        assert compliance_raw == 102
+        assert controller.get_safety_status()["last_command_details"]["clamped"] is True
 
     def test_command_angle_bounds(self, fake_can_runtime) -> None:
         controller = hw.IMC22Controller()
@@ -138,6 +227,108 @@ class TestIMC22Controller:
             "error": 0.12,
         }
         assert controller.node_states[3] == status
+
+    def test_watchdog_sends_hold_commands_for_known_nodes(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller(
+            safety_profile={
+                **hw.default_imc22_safety_profile(),
+                "watchdog_timeout_s": 0.5,
+                "watchdog_hold_angle": -2.0,
+            }
+        )
+        controller.send_command(node_id=1, target_angle=3.0, compliance=0.5)
+        controller.send_command(node_id=2, target_angle=4.0, compliance=0.5)
+        fake_can_runtime["bus"].send.reset_mock()
+
+        status = controller.poll_watchdog(now=controller.last_command_at + 1.0)
+
+        assert status["state"] == "watchdog_tripped"
+        assert fake_can_runtime["bus"].send.call_count == 2
+        first_msg = fake_can_runtime["bus"].send.call_args_list[0].args[0]
+        second_msg = fake_can_runtime["bus"].send.call_args_list[1].args[0]
+        assert first_msg.arbitration_id == controller.ID_COMMAND_BASE + 1
+        assert second_msg.arbitration_id == controller.ID_COMMAND_BASE + 2
+
+    def test_clear_faults_resets_watchdog_state(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller()
+        controller.send_command(node_id=1, target_angle=1.0, compliance=0.5)
+        controller.poll_watchdog(now=controller.last_command_at + 2.0)
+
+        status = controller.clear_faults()
+
+        assert status["state"] == "ready"
+        assert status["watchdog_tripped"] is False
+
+    def test_recover_reissues_safe_commands(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller()
+        controller.send_command(node_id=1, target_angle=1.0, compliance=0.5)
+        controller.send_command(node_id=2, target_angle=2.0, compliance=0.5)
+        controller.poll_watchdog(now=controller.last_command_at + 2.0)
+        fake_can_runtime["bus"].send.reset_mock()
+
+        status = controller.recover(recovery_angle=0.0, compliance=0.3)
+
+        assert status["state"] == "ready"
+        assert fake_can_runtime["bus"].send.call_count == 2
+        sent_message = fake_can_runtime["bus"].send.call_args_list[0].args[0]
+        angle_raw, compliance_raw = struct.unpack("<hB", sent_message.data)
+        assert angle_raw == 0
+        assert compliance_raw == 76
+
+    def test_fault_summary_groups_node_errors(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller()
+        controller.node_states = {
+            1: {"node_id": 1, "angle": 0.0, "current": 0.1, "error": 12.0},
+            2: {"node_id": 2, "angle": 0.0, "current": 0.2, "error": 45.0},
+            3: {"node_id": 3, "angle": 0.0, "current": 0.3, "error": 95.0},
+        }
+        summary = controller.get_fault_summary()
+
+        assert summary["fault_counts"]["overload"] == 1
+        assert summary["fault_counts"]["overcurrent"] == 1
+        assert summary["fault_counts"]["communication_fault"] == 1
+        assert summary["per_node"][2]["fault_class"] == "overcurrent"
+
+    def test_build_recovery_plan_is_fault_specific(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller()
+        controller._known_node_ids = {1, 2, 3}
+        controller.node_states = {
+            1: {"node_id": 1, "angle": 0.0, "current": 0.1, "error": 12.0},
+            2: {"node_id": 2, "angle": 0.0, "current": 0.2, "error": 45.0},
+            3: {"node_id": 3, "angle": 0.0, "current": 0.3, "error": 95.0},
+        }
+
+        plan = controller.build_recovery_plan()
+
+        assert plan["status"] == "ready"
+        actions = {entry["node_id"]: entry for entry in plan["actions"]}
+        assert actions[1]["action"] == "recover_hold_position"
+        assert actions[2]["action"] == "recover_relaxed_hold"
+        assert actions[3]["action"] == "rediscover_node"
+
+    def test_recover_by_fault_class_executes_fault_specific_actions(
+        self, fake_can_runtime
+    ) -> None:
+        controller = hw.IMC22Controller()
+        controller._known_node_ids = {1, 2, 3}
+        controller.node_states = {
+            1: {"node_id": 1, "angle": 0.0, "current": 0.1, "error": 12.0},
+            2: {"node_id": 2, "angle": 0.0, "current": 0.2, "error": 45.0},
+            3: {"node_id": 3, "angle": 0.0, "current": 0.3, "error": 95.0},
+        }
+        controller.discover_nodes = MagicMock(return_value=[1, 2, 3])
+
+        result = controller.recover_by_fault_class()
+
+        assert result["status"] == "applied"
+        assert fake_can_runtime["bus"].send.call_count == 2
+        controller.discover_nodes.assert_called_once()
+        first_msg = fake_can_runtime["bus"].send.call_args_list[0].args[0]
+        second_msg = fake_can_runtime["bus"].send.call_args_list[1].args[0]
+        _, compliance_a = struct.unpack("<hB", first_msg.data)
+        _, compliance_b = struct.unpack("<hB", second_msg.data)
+        assert compliance_a == 127
+        assert compliance_b == 0
 
     def test_discover_nodes(self, fake_can_runtime) -> None:
         controller = hw.IMC22Controller()

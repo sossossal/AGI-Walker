@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from agi_walker.core.drivers import real_robot_driver as real_driver
 from agi_walker.core.drivers.real_robot_driver import RealRobotDriver
 
 logger = logging.getLogger(__name__)
@@ -22,12 +23,101 @@ except ImportError:
 
 IMC22_REPLAY_SCHEMA_VERSION = "1.0"
 IMC22_TRANSPORT_PROFILE_SCHEMA_VERSION = "1.0"
+IMC22_TRANSPORT_DIAGNOSTICS_SCHEMA_VERSION = "1.0"
+IMC22_SAFETY_PROFILE_SCHEMA_VERSION = "1.0"
+IMC22_FAULT_SUMMARY_SCHEMA_VERSION = "1.0"
 SUPPORTED_IMC22_TRANSPORTS = {
     "socketcan",
     "pcan",
     "replay",
     "serial_bridge",
 }
+
+IMC22_FAULT_CLASSES = {
+    "ok",
+    "watchdog_timeout",
+    "sensor_fault",
+    "overcurrent",
+    "overload",
+    "communication_fault",
+    "unknown_fault",
+}
+
+
+def _build_transport_check(
+    name: str,
+    status: str,
+    message: str,
+    *,
+    details: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    return {
+        "name": name,
+        "status": status,
+        "message": message,
+        "details": details or {},
+    }
+
+
+def default_imc22_safety_profile() -> Dict[str, Any]:
+    return {
+        "schema_version": IMC22_SAFETY_PROFILE_SCHEMA_VERSION,
+        "max_abs_target_angle": 327.68,
+        "min_compliance": 0.0,
+        "max_compliance": 1.0,
+        "watchdog_timeout_s": 1.0,
+        "watchdog_hold_angle": 0.0,
+    }
+
+
+def normalize_imc22_safety_profile(
+    profile: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    normalized = default_imc22_safety_profile()
+    if profile:
+        normalized.update(profile)
+    return normalized
+
+
+def validate_imc22_safety_profile(profile: Dict[str, Any]) -> List[str]:
+    errors: List[str] = []
+    if not isinstance(profile, dict):
+        return ["safety profile must be a dict"]
+    if profile.get("schema_version") != IMC22_SAFETY_PROFILE_SCHEMA_VERSION:
+        errors.append(
+            f"safety_profile.schema_version must be {IMC22_SAFETY_PROFILE_SCHEMA_VERSION!r}"
+        )
+    for key in ["max_abs_target_angle", "min_compliance", "max_compliance", "watchdog_timeout_s", "watchdog_hold_angle"]:
+        if not isinstance(profile.get(key), (int, float)):
+            errors.append(f"safety_profile.{key} must be numeric")
+    min_compliance = profile.get("min_compliance")
+    max_compliance = profile.get("max_compliance")
+    if isinstance(min_compliance, (int, float)) and isinstance(max_compliance, (int, float)):
+        if float(min_compliance) < 0.0 or float(max_compliance) > 1.0:
+            errors.append("safety_profile compliance bounds must stay within [0.0, 1.0]")
+        if float(min_compliance) > float(max_compliance):
+            errors.append("safety_profile.min_compliance must be <= max_compliance")
+    watchdog_timeout_s = profile.get("watchdog_timeout_s")
+    if isinstance(watchdog_timeout_s, (int, float)) and float(watchdog_timeout_s) <= 0.0:
+        errors.append("safety_profile.watchdog_timeout_s must be positive")
+    max_abs_target_angle = profile.get("max_abs_target_angle")
+    if isinstance(max_abs_target_angle, (int, float)) and float(max_abs_target_angle) <= 0.0:
+        errors.append("safety_profile.max_abs_target_angle must be positive")
+    return errors
+
+
+def classify_imc22_fault(error_value: float) -> str:
+    if error_value <= 0.0:
+        return "ok"
+    if error_value >= 90.0:
+        return "communication_fault"
+    if error_value >= 70.0:
+        return "sensor_fault"
+    if error_value >= 40.0:
+        return "overcurrent"
+    if error_value >= 10.0:
+        return "overload"
+    return "unknown_fault"
 
 
 class ReplayCANMessage:
@@ -301,6 +391,196 @@ def create_imc22_controller_from_transport_profile(
     )
 
 
+def run_imc22_transport_diagnostics(
+    profile: Dict[str, Any],
+    *,
+    attempt_connect: bool = False,
+) -> Dict[str, Any]:
+    normalized = normalize_imc22_transport_profile(profile)
+    checks: List[Dict[str, Any]] = []
+    errors = validate_imc22_transport_profile(normalized)
+    if errors:
+        checks.append(
+            _build_transport_check(
+                "profile_validation",
+                "blocked",
+                "transport profile validation failed",
+                details={"errors": errors},
+            )
+        )
+        return {
+            "schema_version": IMC22_TRANSPORT_DIAGNOSTICS_SCHEMA_VERSION,
+            "status": "blocked",
+            "attempt_connect": attempt_connect,
+            "transport_profile": normalized,
+            "checks": checks,
+        }
+
+    checks.append(
+        _build_transport_check(
+            "profile_validation",
+            "passed",
+            "transport profile is structurally valid",
+        )
+    )
+
+    transport = normalized["transport"]
+    if transport in {"socketcan", "pcan"}:
+        if can is None:
+            checks.append(
+                _build_transport_check(
+                    "python_can_runtime",
+                    "blocked",
+                    "python-can is not installed",
+                )
+            )
+        else:
+            checks.append(
+                _build_transport_check(
+                    "python_can_runtime",
+                    "passed",
+                    "python-can runtime is available",
+                )
+            )
+        if attempt_connect and can is not None:
+            try:
+                controller = IMC22Controller.from_transport_profile(normalized)
+                controller.close()
+                checks.append(
+                    _build_transport_check(
+                        "transport_connect",
+                        "passed",
+                        "transport connection opened and closed successfully",
+                    )
+                )
+            except Exception as exc:
+                checks.append(
+                    _build_transport_check(
+                        "transport_connect",
+                        "blocked",
+                        "transport connection failed",
+                        details={"error": str(exc)},
+                    )
+                )
+    elif transport == "replay":
+        try:
+            payload = load_imc22_replay_payload(normalized["replay_source"])
+            checks.append(
+                _build_transport_check(
+                    "replay_source",
+                    "passed",
+                    "replay payload loaded successfully",
+                    details={"frame_count": len(payload["frames"])},
+                )
+            )
+        except Exception as exc:
+            checks.append(
+                _build_transport_check(
+                    "replay_source",
+                    "blocked",
+                    "replay payload failed to load",
+                    details={"error": str(exc)},
+                )
+            )
+        if attempt_connect:
+            try:
+                controller = IMC22Controller.from_transport_profile(normalized)
+                node_ids = controller.discover_nodes(timeout=0.05)
+                controller.close()
+                checks.append(
+                    _build_transport_check(
+                        "transport_connect",
+                        "passed",
+                        "replay controller opened successfully",
+                        details={"node_ids": node_ids},
+                    )
+                )
+            except Exception as exc:
+                checks.append(
+                    _build_transport_check(
+                        "transport_connect",
+                        "blocked",
+                        "replay controller failed to initialize",
+                        details={"error": str(exc)},
+                    )
+                )
+    elif transport == "serial_bridge":
+        if normalized.get("replay_source") is not None:
+            try:
+                payload = real_driver.load_real_robot_replay_payload(
+                    normalized["replay_source"]
+                )
+                checks.append(
+                    _build_transport_check(
+                        "serial_replay_source",
+                        "passed",
+                        "serial replay payload loaded successfully",
+                        details={"frame_count": len(payload["frames"])},
+                    )
+                )
+            except Exception as exc:
+                checks.append(
+                    _build_transport_check(
+                        "serial_replay_source",
+                        "blocked",
+                        "serial replay payload failed to load",
+                        details={"error": str(exc)},
+                    )
+                )
+        elif real_driver.serial is None:
+            checks.append(
+                _build_transport_check(
+                    "pyserial_runtime",
+                    "blocked",
+                    "pyserial is not installed",
+                )
+            )
+        else:
+            checks.append(
+                _build_transport_check(
+                    "pyserial_runtime",
+                    "passed",
+                    "pyserial runtime is available",
+                )
+            )
+
+        if attempt_connect:
+            try:
+                controller = IMC22Controller.from_transport_profile(normalized)
+                node_ids = controller.discover_nodes(timeout=0.05)
+                controller.close()
+                checks.append(
+                    _build_transport_check(
+                        "transport_connect",
+                        "passed",
+                        "serial bridge transport opened successfully",
+                        details={"node_ids": node_ids},
+                    )
+                )
+            except Exception as exc:
+                checks.append(
+                    _build_transport_check(
+                        "transport_connect",
+                        "blocked",
+                        "serial bridge transport failed to initialize",
+                        details={"error": str(exc)},
+                    )
+                )
+
+    status = (
+        "blocked"
+        if any(check["status"] == "blocked" for check in checks)
+        else "ready"
+    )
+    return {
+        "schema_version": IMC22_TRANSPORT_DIAGNOSTICS_SCHEMA_VERSION,
+        "status": status,
+        "attempt_connect": attempt_connect,
+        "transport_profile": normalized,
+        "checks": checks,
+    }
+
+
 class ReplayCANBus:
     is_replay = True
 
@@ -506,6 +786,7 @@ class IMC22Controller:
         *,
         bus=None,
         message_factory=None,
+        safety_profile: Optional[Dict[str, Any]] = None,
     ):
         """
         初始化硬件控制器
@@ -536,6 +817,15 @@ class IMC22Controller:
                 raise
 
         self.node_states = {}  # 存储各节点状态
+        self.safety_profile = normalize_imc22_safety_profile(safety_profile)
+        errors = validate_imc22_safety_profile(self.safety_profile)
+        if errors:
+            raise ValueError("; ".join(errors))
+        self.last_command_at: Optional[float] = None
+        self.last_command_details: Optional[Dict[str, Any]] = None
+        self.watchdog_tripped_at: Optional[float] = None
+        self.safety_state = "ready"
+        self._known_node_ids: set[int] = set()
 
     @classmethod
     def from_replay(
@@ -580,14 +870,39 @@ class IMC22Controller:
             target_angle: 目标角度 (度)
             compliance: 柔顺系数 (0.0 = 刚性, 1.0 = 柔性)
         """
+        bounded_angle = max(
+            -float(self.safety_profile["max_abs_target_angle"]),
+            min(float(self.safety_profile["max_abs_target_angle"]), float(target_angle)),
+        )
+        bounded_compliance = max(
+            float(self.safety_profile["min_compliance"]),
+            min(float(self.safety_profile["max_compliance"]), float(compliance)),
+        )
         msg = self.message_factory(
             arbitration_id=self.ID_COMMAND_BASE + node_id,
-            data=encode_command_payload(target_angle, compliance),
+            data=encode_command_payload(bounded_angle, bounded_compliance),
             is_extended_id=False,
         )
 
         try:
             self.bus.send(msg)
+            self.last_command_at = time.time()
+            self.last_command_details = {
+                "node_id": node_id,
+                "requested_target_angle": float(target_angle),
+                "bounded_target_angle": bounded_angle,
+                "requested_compliance": float(compliance),
+                "bounded_compliance": bounded_compliance,
+                "clamped": (
+                    bounded_angle != float(target_angle)
+                    or bounded_compliance != float(compliance)
+                ),
+            }
+            self._known_node_ids.add(int(node_id))
+            if self.watchdog_tripped_at is not None:
+                self.safety_state = "recovered_pending_clear"
+            else:
+                self.safety_state = "active"
         except Exception as e:
             logger.error(f"发送命令失败 (节点 {node_id}): {e}")
 
@@ -618,6 +933,7 @@ class IMC22Controller:
 
             # 缓存状态
             self.node_states[node_id] = status
+            self._known_node_ids.add(int(node_id))
 
             return status
 
@@ -670,6 +986,190 @@ class IMC22Controller:
 
         self.bus.send(msg)
         logger.info(f"节点 {node_id} 配置已更新")
+        self._known_node_ids.add(int(node_id))
+
+    def get_safety_status(self) -> Dict[str, Any]:
+        return {
+            "schema_version": IMC22_SAFETY_PROFILE_SCHEMA_VERSION,
+            "state": self.safety_state,
+            "watchdog_tripped": self.watchdog_tripped_at is not None,
+            "watchdog_tripped_at": self.watchdog_tripped_at,
+            "last_command_at": self.last_command_at,
+            "last_command_details": self.last_command_details,
+            "known_node_ids": sorted(self._known_node_ids),
+            "safety_profile": dict(self.safety_profile),
+            "fault_summary": self.get_fault_summary(),
+        }
+
+    def get_fault_summary(self) -> Dict[str, Any]:
+        per_node: Dict[int, Dict[str, Any]] = {}
+        fault_counts: Dict[str, int] = {}
+        for node_id, status in sorted(self.node_states.items()):
+            fault_class = classify_imc22_fault(float(status.get("error", 0.0)))
+            per_node[node_id] = {
+                "fault_class": fault_class,
+                "error": float(status.get("error", 0.0)),
+                "angle": float(status.get("angle", 0.0)),
+                "current": float(status.get("current", 0.0)),
+            }
+            fault_counts[fault_class] = fault_counts.get(fault_class, 0) + 1
+        if self.watchdog_tripped_at is not None:
+            fault_counts["watchdog_timeout"] = fault_counts.get("watchdog_timeout", 0) + len(
+                self._known_node_ids
+            )
+        return {
+            "schema_version": IMC22_FAULT_SUMMARY_SCHEMA_VERSION,
+            "fault_counts": fault_counts,
+            "per_node": per_node,
+            "watchdog_tripped": self.watchdog_tripped_at is not None,
+        }
+
+    def build_recovery_plan(self) -> Dict[str, Any]:
+        summary = self.get_fault_summary()
+        actions: List[Dict[str, Any]] = []
+        seen_node_ids = set()
+        if summary["watchdog_tripped"]:
+            for node_id in sorted(self._known_node_ids):
+                actions.append(
+                    {
+                        "node_id": node_id,
+                        "fault_class": "watchdog_timeout",
+                        "action": "recover_hold_position",
+                        "target_angle": float(self.safety_profile["watchdog_hold_angle"]),
+                        "compliance": float(self.safety_profile["max_compliance"]),
+                    }
+                )
+                seen_node_ids.add(node_id)
+        for node_id, node_summary in summary["per_node"].items():
+            fault_class = node_summary["fault_class"]
+            if fault_class == "ok" or node_id in seen_node_ids:
+                continue
+            if fault_class == "overload":
+                actions.append(
+                    {
+                        "node_id": node_id,
+                        "fault_class": fault_class,
+                        "action": "recover_hold_position",
+                        "target_angle": float(self.safety_profile["watchdog_hold_angle"]),
+                        "compliance": 0.5,
+                    }
+                )
+            elif fault_class == "overcurrent":
+                actions.append(
+                    {
+                        "node_id": node_id,
+                        "fault_class": fault_class,
+                        "action": "recover_relaxed_hold",
+                        "target_angle": float(self.safety_profile["watchdog_hold_angle"]),
+                        "compliance": float(self.safety_profile["min_compliance"]),
+                    }
+                )
+            elif fault_class == "sensor_fault":
+                actions.append(
+                    {
+                        "node_id": node_id,
+                        "fault_class": fault_class,
+                        "action": "clear_only",
+                    }
+                )
+            elif fault_class == "communication_fault":
+                actions.append(
+                    {
+                        "node_id": node_id,
+                        "fault_class": fault_class,
+                        "action": "rediscover_node",
+                    }
+                )
+            else:
+                actions.append(
+                    {
+                        "node_id": node_id,
+                        "fault_class": fault_class,
+                        "action": "clear_only",
+                    }
+                )
+        return {
+            "schema_version": IMC22_FAULT_SUMMARY_SCHEMA_VERSION,
+            "status": "ready" if actions else "noop",
+            "actions": actions,
+            "fault_summary": summary,
+        }
+
+    def clear_faults(self) -> Dict[str, Any]:
+        self.watchdog_tripped_at = None
+        self.safety_state = "ready"
+        return self.get_safety_status()
+
+    def recover(
+        self,
+        *,
+        recovery_angle: Optional[float] = None,
+        compliance: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        target_angle = (
+            float(recovery_angle)
+            if recovery_angle is not None
+            else float(self.safety_profile["watchdog_hold_angle"])
+        )
+        target_compliance = (
+            float(compliance)
+            if compliance is not None
+            else float(self.safety_profile["max_compliance"])
+        )
+        for node_id in sorted(self._known_node_ids):
+            self.send_command(
+                node_id=node_id,
+                target_angle=target_angle,
+                compliance=target_compliance,
+            )
+        self.watchdog_tripped_at = None
+        self.safety_state = "ready"
+        return self.get_safety_status()
+
+    def recover_by_fault_class(self) -> Dict[str, Any]:
+        plan = self.build_recovery_plan()
+        for action in plan["actions"]:
+            node_id = action["node_id"]
+            if action["action"] in {"recover_hold_position", "recover_relaxed_hold"}:
+                self.send_command(
+                    node_id=node_id,
+                    target_angle=float(action["target_angle"]),
+                    compliance=float(action["compliance"]),
+                )
+            elif action["action"] == "rediscover_node":
+                self.discover_nodes(timeout=0.05)
+        self.watchdog_tripped_at = None
+        self.safety_state = "ready" if plan["actions"] else self.safety_state
+        return {
+            "status": "applied" if plan["actions"] else "noop",
+            "recovery_plan": plan,
+            "safety_status": self.get_safety_status(),
+        }
+
+    def poll_watchdog(self, *, now: Optional[float] = None) -> Dict[str, Any]:
+        effective_now = now if now is not None else time.time()
+        timeout_s = float(self.safety_profile["watchdog_timeout_s"])
+        if self.last_command_at is None:
+            return self.get_safety_status()
+        if (effective_now - self.last_command_at) <= timeout_s:
+            return self.get_safety_status()
+
+        hold_angle = float(self.safety_profile["watchdog_hold_angle"])
+        target_node_ids = sorted(self._known_node_ids)
+        for node_id in target_node_ids:
+            msg = self.message_factory(
+                arbitration_id=self.ID_COMMAND_BASE + node_id,
+                data=encode_command_payload(
+                    hold_angle,
+                    float(self.safety_profile["max_compliance"]),
+                ),
+                is_extended_id=False,
+            )
+            self.bus.send(msg)
+
+        self.watchdog_tripped_at = effective_now
+        self.safety_state = "watchdog_tripped"
+        return self.get_safety_status()
 
     def discover_nodes(
         self, timeout: float = 2.0, expected_count: Optional[int] = None
