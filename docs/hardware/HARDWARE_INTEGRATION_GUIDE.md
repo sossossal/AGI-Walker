@@ -244,6 +244,9 @@ ROS2 一期指令集模拟控制面现已提供：
 - publisher `/instruction_runtime/json`
 - service `/instruction_set/replay_last`
 - service `/simulated_circuit/apply_default`
+- service `/hardware/recovery_plan`
+- service `/hardware/recover_by_fault_class`
+- service `/hardware/clear_faults`
 
 这些入口会把结构化 payload 投影到：
 
@@ -264,6 +267,13 @@ ROS2 一期指令集模拟控制面现已提供：
 - 指令集投影出的 command batch
 - 模拟电路回放后的反馈状态
 - ROS2 运行态快照中的 feedback 透传
+- 按 fault class 生成 recovery plan 并执行恢复/清故障
+
+Web session bridge 对应也提供：
+
+- `GET /api/godot/{session_id}/hardware/recovery-plan`
+- `POST /api/godot/{session_id}/hardware/recover`
+- `POST /api/godot/{session_id}/hardware/clear-faults`
 
 推荐命令：
 

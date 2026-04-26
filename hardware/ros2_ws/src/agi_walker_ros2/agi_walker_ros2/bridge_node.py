@@ -139,6 +139,7 @@ try:
         validate_simulated_circuit_config,
     )
     from agi_walker.core.api.godot_robot_env.hardware_controller import (
+        build_imc22_controller_from_feedback,
         simulate_imc22_command_batch_feedback,
     )
 except ImportError:
@@ -184,6 +185,16 @@ except ImportError:
             "states": {},
             "node_ids": [],
         }
+
+    def build_imc22_controller_from_feedback(
+        feedback: Dict[str, Any],
+        *,
+        safety_profile: Optional[Dict[str, Any]] = None,
+        fault_vendor: Optional[str] = None,
+        fault_table: Optional[Dict[str, Any]] = None,
+        recovery_policy: Optional[Dict[str, Any]] = None,
+    ) -> Any:
+        raise RuntimeError("hardware controller runtime is unavailable")
 
 
 class AGIWalkerROS2Bridge(Node):
@@ -352,6 +363,21 @@ class AGIWalkerROS2Bridge(Node):
             Trigger,
             "/simulated_circuit/apply_default",
             self.apply_default_circuit_callback,
+        )
+        self.hardware_recovery_plan_srv = self.create_service(
+            Trigger,
+            "/hardware/recovery_plan",
+            self.recovery_plan_callback,
+        )
+        self.hardware_recover_srv = self.create_service(
+            Trigger,
+            "/hardware/recover_by_fault_class",
+            self.recover_by_fault_class_callback,
+        )
+        self.hardware_clear_faults_srv = self.create_service(
+            Trigger,
+            "/hardware/clear_faults",
+            self.clear_faults_callback,
         )
 
         self.get_logger().info("Services initialized")
@@ -536,6 +562,13 @@ class AGIWalkerROS2Bridge(Node):
         )
         self.instruction_runtime_pub.publish(message)
 
+    def _build_recovery_controller(self):
+        if not self.latest_simulated_feedback:
+            raise RuntimeError(
+                "No simulated circuit feedback is available; apply one instruction set first"
+            )
+        return build_imc22_controller_from_feedback(self.latest_simulated_feedback)
+
     def replay_instruction_set_callback(self, request, response):
         """重放最近一次结构化指令集。"""
         if not self.latest_instruction_runtime:
@@ -570,6 +603,83 @@ class AGIWalkerROS2Bridge(Node):
         )
         response.success = True
         response.message = "✅ Applied default simulated circuit config"
+        return response
+
+    def recovery_plan_callback(self, request, response):
+        try:
+            controller = self._build_recovery_controller()
+            plan = controller.build_recovery_plan()
+            self.publish_instruction_runtime(
+                "hardware_recovery_plan_built",
+                {
+                    "status": "success",
+                    "recovery_plan": plan,
+                    "hardware_fault_summary": plan["fault_summary"],
+                },
+            )
+            response.success = True
+            response.message = json.dumps(
+                {
+                    "status": "success",
+                    "recovery_plan": plan,
+                    "hardware_fault_summary": plan["fault_summary"],
+                }
+            )
+        except RuntimeError as exc:
+            response.success = False
+            response.message = str(exc)
+        return response
+
+    def recover_by_fault_class_callback(self, request, response):
+        try:
+            controller = self._build_recovery_controller()
+            result = controller.recover_by_fault_class()
+            self.publish_instruction_runtime(
+                "hardware_faults_recovered",
+                {
+                    "status": "success",
+                    "recovery_result": result,
+                    "hardware_fault_summary": result["safety_status"]["fault_summary"],
+                },
+            )
+            response.success = True
+            response.message = json.dumps(
+                {
+                    "status": "success",
+                    "recovery_result": result,
+                    "hardware_fault_summary": result["safety_status"][
+                        "fault_summary"
+                    ],
+                }
+            )
+        except RuntimeError as exc:
+            response.success = False
+            response.message = str(exc)
+        return response
+
+    def clear_faults_callback(self, request, response):
+        try:
+            controller = self._build_recovery_controller()
+            safety_status = controller.clear_faults()
+            self.publish_instruction_runtime(
+                "hardware_faults_cleared",
+                {
+                    "status": "success",
+                    "clear_result": safety_status,
+                    "hardware_fault_summary": safety_status["fault_summary"],
+                },
+            )
+            response.success = True
+            response.message = json.dumps(
+                {
+                    "status": "success",
+                    "clear_result": safety_status,
+                    "hardware_fault_summary": safety_status["fault_summary"],
+                }
+            )
+        except RuntimeError as exc:
+            response.success = False
+            response.message = str(exc)
         return response
 
     def start_simulation_callback(self, request, response):

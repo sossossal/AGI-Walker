@@ -521,6 +521,30 @@ def test_session_bridge_instruction_and_circuit_routes(
                 "dispatch_result": {"status": "success"},
             }
 
+        def build_hardware_recovery_plan(self) -> dict[str, object]:
+            observed["recovery_plan_called"] = True
+            return {
+                "status": "success",
+                "recovery_plan": {"status": "ready", "actions": [{"node_id": 1}]},
+                "hardware_fault_summary": {"fault_counts": {"overload": 1}},
+            }
+
+        def recover_hardware_faults(self) -> dict[str, object]:
+            observed["recover_faults_called"] = True
+            return {
+                "status": "success",
+                "recovery_result": {"status": "applied"},
+                "hardware_fault_summary": {"fault_counts": {"overload": 1}},
+            }
+
+        def clear_hardware_faults(self) -> dict[str, object]:
+            observed["clear_faults_called"] = True
+            return {
+                "status": "success",
+                "clear_result": {"state": "ready"},
+                "hardware_fault_summary": {"fault_counts": {}},
+            }
+
     fake_bridge = FakeBridge()
     monkeypatch.setattr(web_panel.server._session_manager, "get_session", lambda _: fake_bridge)
     monkeypatch.setattr(
@@ -575,6 +599,15 @@ def test_session_bridge_instruction_and_circuit_routes(
         json={"entry_id": "entry-1"},
     )
     clear_response = client.post(f"/api/godot/{session_id}/history/clear")
+    recovery_plan_response = client.get(
+        f"/api/godot/{session_id}/hardware/recovery-plan"
+    )
+    recover_response = client.post(
+        f"/api/godot/{session_id}/hardware/recover",
+    )
+    clear_faults_response = client.post(
+        f"/api/godot/{session_id}/hardware/clear-faults",
+    )
 
     assert instruction_response.status_code == 200
     assert instruction_response.json()["status"] == "success"
@@ -611,6 +644,12 @@ def test_session_bridge_instruction_and_circuit_routes(
     assert replay_response.json()["status"] == "success"
     assert clear_response.status_code == 200
     assert clear_response.json()["history_count"] == 0
+    assert recovery_plan_response.status_code == 200
+    assert recovery_plan_response.json()["status"] == "success"
+    assert recover_response.status_code == 200
+    assert recover_response.json()["status"] == "success"
+    assert clear_faults_response.status_code == 200
+    assert clear_faults_response.json()["status"] == "success"
     assert observed["instruction_set"]["sequence_name"] == "route-demo"
     assert observed["compatibility_params"]["velocity_scale"] == 0.1
     assert observed["command_batch"][0]["frame_id"] == 0x200
@@ -628,6 +667,9 @@ def test_session_bridge_instruction_and_circuit_routes(
     assert observed["simulated_circuit_metadata"]["audit_username"] == "audit-user"
     assert observed["simulated_circuit_metadata"]["audit_source"] == "bearer"
     assert observed["replayed_entry_id"] == "entry-1"
+    assert observed["recovery_plan_called"] is True
+    assert observed["recover_faults_called"] is True
+    assert observed["clear_faults_called"] is True
 
 
 def test_session_bridge_history_rejects_invalid_datetime(

@@ -24,9 +24,20 @@ from web_panel.models import OperatorHistoryEntry, User
 
 try:
     from agi_walker.core.api.godot_robot_env.hardware_controller import (
+        build_imc22_controller_from_feedback,
         simulate_imc22_command_batch_feedback,
     )
 except ImportError:
+    def build_imc22_controller_from_feedback(
+        feedback: Dict[str, Any],
+        *,
+        safety_profile: Optional[Dict[str, Any]] = None,
+        fault_vendor: Optional[str] = None,
+        fault_table: Optional[Dict[str, Any]] = None,
+        recovery_policy: Optional[Dict[str, Any]] = None,
+    ) -> Any:
+        raise RuntimeError("hardware controller runtime is unavailable")
+
     def simulate_imc22_command_batch_feedback(
         command_batch: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
@@ -925,6 +936,59 @@ class GodotBridge:
             self._set_state("running")
         return response
 
+    def _require_simulated_feedback(self) -> Dict[str, Any]:
+        feedback = self.last_instruction_runtime.get("simulated_circuit_feedback") or {}
+        if not feedback:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "No simulated circuit feedback is available for this session. "
+                    "Apply one instruction_set with command batch first."
+                ),
+            )
+        return feedback
+
+    def build_hardware_recovery_plan(self) -> Dict[str, Any]:
+        feedback = self._require_simulated_feedback()
+        controller = build_imc22_controller_from_feedback(feedback)
+        plan = controller.build_recovery_plan()
+        self.last_instruction_runtime["hardware_recovery_plan"] = plan
+        self.last_instruction_runtime["hardware_fault_summary"] = plan["fault_summary"]
+        return {
+            "status": "success",
+            "recovery_plan": plan,
+            "hardware_fault_summary": plan["fault_summary"],
+        }
+
+    def recover_hardware_faults(self) -> Dict[str, Any]:
+        feedback = self._require_simulated_feedback()
+        controller = build_imc22_controller_from_feedback(feedback)
+        result = controller.recover_by_fault_class()
+        safety_status = result["safety_status"]
+        self.last_instruction_runtime["hardware_recovery_result"] = result
+        self.last_instruction_runtime["hardware_fault_summary"] = safety_status[
+            "fault_summary"
+        ]
+        return {
+            "status": "success",
+            "recovery_result": result,
+            "hardware_fault_summary": safety_status["fault_summary"],
+        }
+
+    def clear_hardware_faults(self) -> Dict[str, Any]:
+        feedback = self._require_simulated_feedback()
+        controller = build_imc22_controller_from_feedback(feedback)
+        safety_status = controller.clear_faults()
+        self.last_instruction_runtime["hardware_clear_result"] = safety_status
+        self.last_instruction_runtime["hardware_fault_summary"] = safety_status[
+            "fault_summary"
+        ]
+        return {
+            "status": "success",
+            "clear_result": safety_status,
+            "hardware_fault_summary": safety_status["fault_summary"],
+        }
+
     async def _load_command_history(
         self,
         *,
@@ -1641,6 +1705,57 @@ def build_router(
             "note": _normalize_optional_text(str(payload.get("note") or "")),
             "audit_identity": audit_identity,
             "dispatch_result": result,
+            "session": bridge.get_status_payload(),
+            "session_state": bridge.session_state,
+        }
+
+    @router.get("/api/godot/{session_id}/hardware/recovery-plan")
+    async def get_session_hardware_recovery_plan(session_id: str):
+        bridge = manager.get_session(session_id)
+        if bridge is None:
+            return {
+                "status": "error",
+                "message": f"Session '{session_id}' not found.",
+                "session": disconnected_session_status(session_id),
+                "session_state": "disconnected",
+            }
+        result = bridge.build_hardware_recovery_plan()
+        return {
+            **result,
+            "session": bridge.get_status_payload(),
+            "session_state": bridge.session_state,
+        }
+
+    @router.post("/api/godot/{session_id}/hardware/recover")
+    async def recover_session_hardware_faults(session_id: str):
+        bridge = manager.get_session(session_id)
+        if bridge is None:
+            return {
+                "status": "error",
+                "message": f"Session '{session_id}' not found.",
+                "session": disconnected_session_status(session_id),
+                "session_state": "disconnected",
+            }
+        result = bridge.recover_hardware_faults()
+        return {
+            **result,
+            "session": bridge.get_status_payload(),
+            "session_state": bridge.session_state,
+        }
+
+    @router.post("/api/godot/{session_id}/hardware/clear-faults")
+    async def clear_session_hardware_faults(session_id: str):
+        bridge = manager.get_session(session_id)
+        if bridge is None:
+            return {
+                "status": "error",
+                "message": f"Session '{session_id}' not found.",
+                "session": disconnected_session_status(session_id),
+                "session_state": "disconnected",
+            }
+        result = bridge.clear_hardware_faults()
+        return {
+            **result,
             "session": bridge.get_status_payload(),
             "session_state": bridge.session_state,
         }

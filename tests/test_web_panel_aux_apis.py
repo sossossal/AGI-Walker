@@ -284,6 +284,9 @@ def test_core_panel_routes_smoke():
     assert 'id="send-circuit-button"' in response.text
     assert 'id="refresh-status-button"' in response.text
     assert 'id="connect-ws-button"' in response.text
+    assert 'id="build-recovery-plan-button"' in response.text
+    assert 'id="recover-faults-button"' in response.text
+    assert 'id="clear-faults-button"' in response.text
     assert 'id="history-operator"' in response.text
     assert 'id="history-tag"' in response.text
     assert 'id="history-note"' in response.text
@@ -298,7 +301,11 @@ def test_core_panel_routes_smoke():
     assert 'id="runtime-feedback-nodes"' in response.text
     assert 'id="runtime-fault-classes"' in response.text
     assert 'id="runtime-fault-nodes"' in response.text
+    assert 'id="hardware-recovery-response"' in response.text
     assert "/static/operator-history.html" in response.text
+    assert "/hardware/recovery-plan" in response.text
+    assert "/hardware/recover" in response.text
+    assert "/hardware/clear-faults" in response.text
 
     response = client.get("/static/operator-history.html")
     assert response.status_code == 200

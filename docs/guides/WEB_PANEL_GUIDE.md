@@ -158,6 +158,9 @@ session bridge：
 - `POST /api/godot/simulated-circuit`
 - `POST /api/godot/{session_id}/instruction-set`
 - `POST /api/godot/{session_id}/simulated-circuit`
+- `GET /api/godot/{session_id}/hardware/recovery-plan`
+- `POST /api/godot/{session_id}/hardware/recover`
+- `POST /api/godot/{session_id}/hardware/clear-faults`
 - `GET /api/godot/{session_id}/status`
 - `GET /api/godot/{session_id}/history`
 - `GET /api/godot/history`
@@ -202,6 +205,9 @@ session bridge：
 - 监听 `telemetry.update`
 - 把最新 telemetry 投影到 runtime / circuit 展示区
 - 发送 `operator / tag / note` metadata
+- 生成 `recovery plan`
+- 执行 `recover_by_fault_class`
+- 执行 `clear_faults`
 - 如果带 `Authorization: Bearer <token>`，session bridge 会把当前用户写入审计字段
 
 `/static/operator-history.html` 当前支持：

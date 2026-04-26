@@ -482,3 +482,80 @@ def test_ros2_bridge_instruction_topics_and_services(monkeypatch) -> None:
     )
     assert "simulated_circuit_feedback" in latest_payload
     assert "hardware_fault_summary" in latest_payload
+
+
+def test_ros2_bridge_hardware_recovery_services(monkeypatch) -> None:
+    module = _load_bridge_module(monkeypatch)
+    bridge = module.AGIWalkerROS2Bridge()
+
+    bridge.apply_instruction_set_payload(
+        {
+            "schema_version": "1.0",
+            "sequence_name": "fault-demo",
+            "simulated_circuit": {
+                "schema_version": "1.0",
+                "transport": "imc22_can_fd",
+                "channel": "simulated-can0",
+                "bustype": "virtual",
+                "bitrate": 1_000_000,
+                "control_freq_hz": 100,
+                "status_rate_hz": 200,
+                "command_base_id": 0x200,
+                "status_base_id": 0x100,
+                "config_base_id": 0x300,
+                "default_compliance": 0.4,
+                "joint_order": [
+                    "hip_left",
+                    "knee_left",
+                    "hip_right",
+                    "knee_right",
+                ],
+            },
+            "steps": [
+                {
+                    "kind": "set_joint_targets",
+                    "joint_targets": {"hip_left": 1.2},
+                    "compliance": 0.4,
+                }
+            ],
+        }
+    )
+    assert bridge.latest_simulated_feedback is not None
+    bridge.latest_simulated_feedback["states"][1]["error"] = 11.0
+    bridge.latest_simulated_feedback["fault_telemetry_report"]["entries"][0][
+        "raw_error_value"
+    ] = 11.0
+    bridge.latest_simulated_feedback["fault_telemetry_report"]["entries"][0][
+        "fault_class"
+    ] = "overload"
+    bridge.latest_simulated_feedback["fault_telemetry_report"]["fault_summary"] = {
+        "schema_version": "1.0",
+        "fault_table_schema_version": "1.0",
+        "fault_vendor": "imc22_reflex",
+        "fault_counts": {"overload": 1},
+        "per_node": {1: {"fault_class": "overload", "error": 11.0, "angle": 1.2, "current": 1.26}},
+        "watchdog_tripped": False,
+    }
+
+    plan_response = types.SimpleNamespace(success=None, message=None)
+    bridge.recovery_plan_callback(None, plan_response)
+    recover_response = types.SimpleNamespace(success=None, message=None)
+    bridge.recover_by_fault_class_callback(None, recover_response)
+    clear_response = types.SimpleNamespace(success=None, message=None)
+    bridge.clear_faults_callback(None, clear_response)
+
+    assert plan_response.success is True
+    assert recover_response.success is True
+    assert clear_response.success is True
+
+    plan_payload = json.loads(plan_response.message)
+    recover_payload = json.loads(recover_response.message)
+    clear_payload = json.loads(clear_response.message)
+    assert plan_payload["status"] == "success"
+    assert recover_payload["status"] == "success"
+    assert clear_payload["status"] == "success"
+
+    runtime_messages = [json.loads(item.data) for item in bridge.instruction_runtime_pub.published]
+    assert any(item["event"] == "hardware_recovery_plan_built" for item in runtime_messages)
+    assert any(item["event"] == "hardware_faults_recovered" for item in runtime_messages)
+    assert any(item["event"] == "hardware_faults_cleared" for item in runtime_messages)

@@ -187,6 +187,9 @@
                     <button class="button secondary" id="send-circuit-button" type="button">发送 Simulated Circuit</button>
                     <button class="button secondary" id="refresh-status-button" type="button">查询 Session 状态</button>
                     <button class="button secondary" id="connect-ws-button" type="button">连接实时 Telemetry</button>
+                    <button class="button secondary" id="build-recovery-plan-button" type="button">生成 Recovery Plan</button>
+                    <button class="button secondary" id="recover-faults-button" type="button">执行 Fault Recovery</button>
+                    <button class="button secondary" id="clear-faults-button" type="button">清除 Fault 状态</button>
                 </div>
                 <p class="hint">Session 模式使用 `/api/godot/{session_id}/...`；Legacy 模式使用 `/api/godot/...?...session_id=`。</p>
             </section>
@@ -237,6 +240,10 @@
                     <label for="session-status-response">Session Status</label>
                     <pre id="session-status-response">{}</pre>
                 </div>
+                <div class="field">
+                    <label for="hardware-recovery-response">Hardware Recovery</label>
+                    <pre id="hardware-recovery-response">{}</pre>
+                </div>
             </section>
         </div>
 
@@ -264,6 +271,7 @@
         const runtimeNode = document.getElementById('instruction-runtime-response');
         const circuitConfigNode = document.getElementById('circuit-config-response');
         const sessionStatusNode = document.getElementById('session-status-response');
+        const hardwareRecoveryNode = document.getElementById('hardware-recovery-response');
         const runtimeSequenceNameNode = document.getElementById('runtime-sequence-name');
         const runtimeStepCountNode = document.getElementById('runtime-step-count');
         const runtimeCircuitTransportNode = document.getElementById('runtime-circuit-transport');
@@ -298,6 +306,18 @@
 
         function buildStatusUrl() {
             return `/api/godot/${encodeURIComponent(currentSessionId())}/status`;
+        }
+
+        function buildRecoveryPlanUrl() {
+            return `/api/godot/${encodeURIComponent(currentSessionId())}/hardware/recovery-plan`;
+        }
+
+        function buildRecoverUrl() {
+            return `/api/godot/${encodeURIComponent(currentSessionId())}/hardware/recover`;
+        }
+
+        function buildClearFaultsUrl() {
+            return `/api/godot/${encodeURIComponent(currentSessionId())}/hardware/clear-faults`;
         }
 
         async function postJson(url, payload) {
@@ -464,10 +484,58 @@
             }
         }
 
+        async function buildRecoveryPlan() {
+            try {
+                setStatus(`读取 recovery plan ${buildRecoveryPlanUrl()}`);
+                const result = await getJson(buildRecoveryPlanUrl());
+                renderJson(hardwareRecoveryNode, result);
+                if (result.session) {
+                    renderJson(sessionStatusNode, result.session);
+                    renderRuntimeStatus(result.session);
+                }
+                setStatus('recovery plan 已生成');
+            } catch (error) {
+                setStatus(`recovery plan 失败: ${error.message}`, true);
+            }
+        }
+
+        async function recoverFaults() {
+            try {
+                setStatus(`执行 fault recovery ${buildRecoverUrl()}`);
+                const result = await postJson(buildRecoverUrl(), {});
+                renderJson(hardwareRecoveryNode, result);
+                if (result.session) {
+                    renderJson(sessionStatusNode, result.session);
+                    renderRuntimeStatus(result.session);
+                }
+                setStatus('fault recovery 已执行');
+            } catch (error) {
+                setStatus(`fault recovery 失败: ${error.message}`, true);
+            }
+        }
+
+        async function clearFaults() {
+            try {
+                setStatus(`清除 fault 状态 ${buildClearFaultsUrl()}`);
+                const result = await postJson(buildClearFaultsUrl(), {});
+                renderJson(hardwareRecoveryNode, result);
+                if (result.session) {
+                    renderJson(sessionStatusNode, result.session);
+                    renderRuntimeStatus(result.session);
+                }
+                setStatus('fault 状态已清除');
+            } catch (error) {
+                setStatus(`clear fault 失败: ${error.message}`, true);
+            }
+        }
+
         document.getElementById('send-instruction-button').addEventListener('click', sendInstruction);
         document.getElementById('send-circuit-button').addEventListener('click', sendCircuit);
         document.getElementById('refresh-status-button').addEventListener('click', refreshSessionStatus);
         document.getElementById('connect-ws-button').addEventListener('click', connectTelemetry);
+        document.getElementById('build-recovery-plan-button').addEventListener('click', buildRecoveryPlan);
+        document.getElementById('recover-faults-button').addEventListener('click', recoverFaults);
+        document.getElementById('clear-faults-button').addEventListener('click', clearFaults);
     </script>
 </body>
 </html>

@@ -598,6 +598,67 @@ def simulate_imc22_command_batch_feedback(
         controller.close()
 
 
+def build_imc22_controller_from_feedback(
+    feedback: Dict[str, Any],
+    *,
+    safety_profile: Optional[Dict[str, Any]] = None,
+    fault_vendor: Optional[str] = None,
+    fault_table: Optional[Dict[str, Any]] = None,
+    recovery_policy: Optional[Dict[str, Any]] = None,
+) -> "IMC22Controller":
+    """Rehydrate one replay-backed controller from structured simulated feedback."""
+    replay_bus = ReplayCANBus(
+        [],
+        status_id_base=IMC22Controller.ID_STATUS_BASE,
+        message_factory=ReplayCANMessage,
+    )
+    telemetry_report = feedback.get("fault_telemetry_report") or {}
+    summary = telemetry_report.get("fault_summary") or {}
+    effective_fault_vendor = (
+        fault_vendor
+        or telemetry_report.get("fault_vendor")
+        or summary.get("fault_vendor")
+        or "imc22_reflex"
+    )
+    controller = IMC22Controller(
+        channel="recovery-replay",
+        bustype="replay",
+        bus=replay_bus,
+        message_factory=ReplayCANMessage,
+        safety_profile=safety_profile,
+        fault_vendor=effective_fault_vendor,
+        fault_table=fault_table,
+        recovery_policy=recovery_policy,
+    )
+    if telemetry_report.get("fault_table_source"):
+        controller.fault_table_source = str(telemetry_report["fault_table_source"])
+    states = feedback.get("states") or {}
+    normalized_states: Dict[int, Dict[str, float]] = {}
+    for raw_node_id, raw_state in states.items():
+        if not isinstance(raw_state, dict):
+            continue
+        try:
+            node_id = int(raw_node_id)
+        except (TypeError, ValueError):
+            continue
+        normalized_states[node_id] = {
+            "angle": float(raw_state.get("angle", 0.0)),
+            "current": float(raw_state.get("current", 0.0)),
+            "error": float(raw_state.get("error", 0.0)),
+        }
+    controller.node_states = normalized_states
+    known_node_ids = feedback.get("node_ids") or normalized_states.keys()
+    controller._known_node_ids = {
+        int(node_id)
+        for node_id in known_node_ids
+        if isinstance(node_id, (int, float, str)) and str(node_id).strip()
+    }
+    if bool(summary.get("watchdog_tripped")):
+        controller.watchdog_tripped_at = time.time()
+        controller.safety_state = "watchdog_tripped"
+    return controller
+
+
 def create_imc22_controller_from_transport_profile(
     profile: Dict[str, Any],
     *,
