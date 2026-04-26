@@ -414,6 +414,8 @@ def test_ros2_bridge_instruction_runtime_contract(monkeypatch) -> None:
     assert bridge.godot_client.instruction_sets[-1]["sequence_name"] == "walk-demo"
     assert result["simulated_circuit_feedback"]["node_ids"] == [1, 4]
     assert result["simulated_circuit_feedback"]["states"][1]["angle"] == 0.3
+    assert "fault_telemetry_report" in result["simulated_circuit_feedback"]
+    assert "hardware_fault_summary" in result
 
 
 def test_ros2_bridge_instruction_topics_and_services(monkeypatch) -> None:
@@ -479,3 +481,4 @@ def test_ros2_bridge_instruction_topics_and_services(monkeypatch) -> None:
         latest_payload["simulated_circuit_config"]["transport"] == "imc22_can_fd"
     )
     assert "simulated_circuit_feedback" in latest_payload
+    assert "hardware_fault_summary" in latest_payload

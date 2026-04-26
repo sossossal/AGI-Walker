@@ -905,6 +905,8 @@ async def _run_session_bridge_instruction_and_circuit_state(
         status["last_instruction_runtime"]["instruction_set"]["sequence_name"]
         == "bridge-demo"
     )
+    assert "simulated_circuit_feedback" in status["last_instruction_runtime"]
+    assert "hardware_fault_summary" in status["last_instruction_runtime"]
     assert status["history_count"] == 2
     assert status["session_state"] == "running"
 

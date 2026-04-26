@@ -22,6 +22,26 @@ from web_panel.database import AsyncSessionLocal, engine
 from web_panel.auth import decode_access_token
 from web_panel.models import OperatorHistoryEntry, User
 
+try:
+    from agi_walker.core.api.godot_robot_env.hardware_controller import (
+        simulate_imc22_command_batch_feedback,
+    )
+except ImportError:
+    def simulate_imc22_command_batch_feedback(
+        command_batch: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        return {
+            "schema_version": "1.0",
+            "replay_payload": {"schema_version": "1.0", "frames": []},
+            "states": {},
+            "node_ids": [],
+            "fault_telemetry_report": {
+                "schema_version": "1.0",
+                "entries": [],
+                "fault_summary": {},
+            },
+        }
+
 logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -861,12 +881,27 @@ class GodotBridge:
                 failure_message=str(response.get("message") or response),
             )
         elif response:
+            simulated_feedback = {}
+            if simulated_circuit_command_batch and all(
+                isinstance(entry, dict)
+                and "node_id" in entry
+                and "target_angle" in entry
+                for entry in simulated_circuit_command_batch
+            ):
+                simulated_feedback = simulate_imc22_command_batch_feedback(
+                    simulated_circuit_command_batch
+                )
             self.last_instruction_runtime = {
                 "instruction_set": instruction_set,
                 "compatibility_params": compatibility_params or {},
                 "simulated_circuit_command_batch": (
                     simulated_circuit_command_batch or []
                 ),
+                "simulated_circuit_feedback": simulated_feedback,
+                "hardware_fault_summary": simulated_feedback.get(
+                    "fault_telemetry_report",
+                    {},
+                ).get("fault_summary", {}),
                 "response": response,
             }
             await self._record_command_history(
@@ -884,6 +919,7 @@ class GodotBridge:
                     "audit_user_id": audit_user_id,
                     "audit_username": audit_username,
                     "audit_source": audit_source,
+                    "instruction_runtime": self.last_instruction_runtime,
                 },
             )
             self._set_state("running")

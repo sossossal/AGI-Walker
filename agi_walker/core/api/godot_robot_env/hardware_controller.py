@@ -592,6 +592,7 @@ def simulate_imc22_command_batch_feedback(
             "replay_payload": replay_payload,
             "states": states,
             "node_ids": node_ids,
+            "fault_telemetry_report": build_imc22_fault_telemetry_report(controller),
         }
     finally:
         controller.close()

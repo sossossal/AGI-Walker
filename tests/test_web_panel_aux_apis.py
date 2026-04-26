@@ -296,6 +296,8 @@ def test_core_panel_routes_smoke():
     assert 'id="runtime-step-count"' in response.text
     assert 'id="runtime-circuit-transport"' in response.text
     assert 'id="runtime-feedback-nodes"' in response.text
+    assert 'id="runtime-fault-classes"' in response.text
+    assert 'id="runtime-fault-nodes"' in response.text
     assert "/static/operator-history.html" in response.text
 
     response = client.get("/static/operator-history.html")

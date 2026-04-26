@@ -212,6 +212,14 @@
                         <div class="metric-label">Feedback Nodes</div>
                         <div class="metric-value" id="runtime-feedback-nodes">-</div>
                     </div>
+                    <div class="metric">
+                        <div class="metric-label">Fault Classes</div>
+                        <div class="metric-value" id="runtime-fault-classes">-</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Fault Nodes</div>
+                        <div class="metric-value" id="runtime-fault-nodes">-</div>
+                    </div>
                 </div>
                 <div class="field">
                     <label for="instruction-response">最近一次响应</label>
@@ -260,6 +268,8 @@
         const runtimeStepCountNode = document.getElementById('runtime-step-count');
         const runtimeCircuitTransportNode = document.getElementById('runtime-circuit-transport');
         const runtimeFeedbackNodesNode = document.getElementById('runtime-feedback-nodes');
+        const runtimeFaultClassesNode = document.getElementById('runtime-fault-classes');
+        const runtimeFaultNodesNode = document.getElementById('runtime-fault-nodes');
         let telemetrySocket = null;
 
         function currentMode() {
@@ -332,11 +342,19 @@
             const simulatedCircuit = statusPayload?.simulated_circuit_config || runtime?.simulated_circuit || {};
             const feedback = runtime?.simulated_circuit_feedback || {};
             const nodeIds = Array.isArray(feedback?.node_ids) ? feedback.node_ids : [];
+            const faultSummary = runtime?.hardware_fault_summary || feedback?.fault_telemetry_report?.fault_summary || {};
+            const faultCounts = faultSummary?.fault_counts || {};
+            const faultClasses = Object.entries(faultCounts)
+                .filter(([, count]) => Number(count) > 0)
+                .map(([faultClass, count]) => `${faultClass}:${count}`);
+            const faultNodeCount = Object.keys(faultSummary?.per_node || {}).length;
 
             runtimeSequenceNameNode.textContent = instructionSet.sequence_name || '-';
             runtimeStepCountNode.textContent = Array.isArray(instructionSet.steps) ? String(instructionSet.steps.length) : '-';
             runtimeCircuitTransportNode.textContent = simulatedCircuit.transport || '-';
             runtimeFeedbackNodesNode.textContent = nodeIds.length ? nodeIds.join(', ') : '-';
+            runtimeFaultClassesNode.textContent = faultClasses.length ? faultClasses.join(', ') : '-';
+            runtimeFaultNodesNode.textContent = faultNodeCount ? String(faultNodeCount) : '-';
 
             renderJson(runtimeNode, runtime);
             renderJson(circuitConfigNode, simulatedCircuit);

@@ -194,6 +194,7 @@ session bridge：
 - `last_instruction_runtime`
 - `simulated_circuit_config`
 - `simulated_circuit_feedback` 摘要
+- `hardware_fault_summary` 摘要
 
 并支持：
 

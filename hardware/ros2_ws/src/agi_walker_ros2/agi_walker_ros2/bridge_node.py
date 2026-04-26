@@ -509,6 +509,10 @@ class AGIWalkerROS2Bridge(Node):
                 runtime_contract["simulated_circuit_command_batch"]
             )
             result["simulated_circuit_feedback"] = replay_feedback
+            result["hardware_fault_summary"] = replay_feedback.get(
+                "fault_telemetry_report",
+                {},
+            ).get("fault_summary", {})
             self.latest_simulated_feedback = replay_feedback
         self.latest_instruction_result = result
         return result
@@ -525,6 +529,9 @@ class AGIWalkerROS2Bridge(Node):
                 "latest_result": result,
                 "simulated_circuit_config": self.simulated_circuit_config,
                 "simulated_circuit_feedback": self.latest_simulated_feedback,
+                "hardware_fault_summary": (
+                    self.latest_simulated_feedback or {}
+                ).get("fault_telemetry_report", {}).get("fault_summary", {}),
             }
         )
         self.instruction_runtime_pub.publish(message)
