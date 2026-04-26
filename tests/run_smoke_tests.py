@@ -484,9 +484,27 @@ class FakeBridge:
     def is_connected(self):
         return True
 
-    async def configure_simulated_circuit(self, simulated_circuit):
+    async def configure_simulated_circuit(
+        self,
+        simulated_circuit,
+        *,
+        operator=None,
+        tag=None,
+        note=None,
+        audit_user_id=None,
+        audit_username=None,
+        audit_source=None,
+    ):
         observed["simulated_circuit"] = simulated_circuit
         self.simulated_circuit_config = dict(simulated_circuit)
+        observed["simulated_circuit_metadata"] = {
+            "operator": operator,
+            "tag": tag,
+            "note": note,
+            "audit_user_id": audit_user_id,
+            "audit_username": audit_username,
+            "audit_source": audit_source,
+        }
         return {"status": "success", "simulated_circuit": simulated_circuit}
 
     async def apply_instruction_set(
@@ -495,10 +513,24 @@ class FakeBridge:
         *,
         compatibility_params=None,
         simulated_circuit_command_batch=None,
+        operator=None,
+        tag=None,
+        note=None,
+        audit_user_id=None,
+        audit_username=None,
+        audit_source=None,
     ):
         observed["instruction_set"] = instruction_set
         observed["compatibility_params"] = compatibility_params or {}
         observed["simulated_circuit_command_batch"] = simulated_circuit_command_batch or []
+        observed["instruction_metadata"] = {
+            "operator": operator,
+            "tag": tag,
+            "note": note,
+            "audit_user_id": audit_user_id,
+            "audit_username": audit_username,
+            "audit_source": audit_source,
+        }
         return {"status": "success", "instruction_step_count": len(instruction_set.get("steps", []))}
 
     def get_status_payload(self):
