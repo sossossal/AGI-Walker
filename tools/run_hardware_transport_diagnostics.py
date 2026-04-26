@@ -26,6 +26,10 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default="socketcan",
     )
     parser.add_argument("--profile-file", help="Optional JSON profile override file.")
+    parser.add_argument(
+        "--fault-table-file",
+        help="Optional vendor fault table JSON file.",
+    )
     parser.add_argument("--replay-source", help="Replay fixture path override.")
     parser.add_argument("--channel", help="Transport channel override.")
     parser.add_argument("--serial-port", help="Serial bridge port override.")
@@ -41,6 +45,10 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default="test_env/hardware_transport_diagnostics_report.json",
         help="Output report path.",
     )
+    parser.add_argument(
+        "--telemetry-output",
+        help="Optional JSON path for exporting fault telemetry mapping.",
+    )
     return parser.parse_args(argv)
 
 
@@ -54,6 +62,7 @@ def _load_profile(args: argparse.Namespace) -> dict[str, Any]:
         "serial_port": args.serial_port,
         "baudrate": args.baudrate,
         "bitrate": args.bitrate,
+        "fault_table_source": args.fault_table_file,
     }.items():
         if value is not None:
             profile[key] = value
@@ -73,6 +82,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         json.dumps(report, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    if args.telemetry_output and "fault_telemetry_report" in report:
+        telemetry_path = Path(args.telemetry_output)
+        telemetry_path.parent.mkdir(parents=True, exist_ok=True)
+        telemetry_path.write_text(
+            json.dumps(report["fault_telemetry_report"], ensure_ascii=False, indent=2)
+            + "\n",
+            encoding="utf-8",
+        )
     return 0 if report["status"] == "ready" else 1
 
 

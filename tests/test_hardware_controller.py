@@ -18,6 +18,9 @@ REPLAY_FIXTURE = Path(__file__).with_name("fixtures") / "imc22_status_replay.jso
 SERIAL_REPLAY_FIXTURE = (
     Path(__file__).with_name("fixtures") / "real_robot_driver_replay.json"
 )
+FAULT_TABLE_FIXTURE = (
+    Path(__file__).with_name("fixtures") / "imc22_reflex_fault_table.json"
+)
 
 
 class FakeMessage:
@@ -77,6 +80,12 @@ class TestIMC22Controller:
         )
 
         assert "fault_table.fallback_fault_class must be a valid fault class" in errors
+
+    def test_load_fault_table_fixture(self) -> None:
+        fault_table = hw.load_imc22_fault_table(FAULT_TABLE_FIXTURE)
+
+        assert fault_table["vendor"] == "imc22_reflex"
+        assert fault_table["exact_codes"][95] == "communication_fault"
 
     def test_default_safety_profile_is_valid(self) -> None:
         profile = hw.default_imc22_safety_profile()
@@ -139,10 +148,26 @@ class TestIMC22Controller:
 
         assert report["status"] == "ready"
         assert report["checks"][0]["name"] == "profile_validation"
+        assert report["fault_telemetry_report"]["entries"]
         assert any(
             check["name"] == "transport_connect" and check["status"] == "passed"
             for check in report["checks"]
         )
+
+    def test_transport_profile_loads_external_fault_table(self) -> None:
+        controller = hw.IMC22Controller.from_transport_profile(
+            {
+                **hw.default_imc22_transport_profile("replay"),
+                "replay_source": REPLAY_FIXTURE,
+                "fault_table_source": FAULT_TABLE_FIXTURE,
+            }
+        )
+
+        try:
+            assert controller.fault_table_source == str(FAULT_TABLE_FIXTURE)
+            assert controller.fault_table["vendor"] == "imc22_reflex"
+        finally:
+            controller.close()
 
     def test_transport_diagnostics_serial_bridge_replay_ready(self) -> None:
         report = hw.run_imc22_transport_diagnostics(
@@ -337,6 +362,19 @@ class TestIMC22Controller:
         summary = controller.get_fault_summary()
 
         assert summary["per_node"][1]["fault_class"] == "sensor_fault"
+
+    def test_build_fault_telemetry_report_exports_raw_error_values(
+        self, fake_can_runtime
+    ) -> None:
+        controller = hw.IMC22Controller()
+        controller.node_states = {
+            1: {"node_id": 1, "angle": 1.2, "current": 0.3, "error": 45.0},
+        }
+
+        report = hw.build_imc22_fault_telemetry_report(controller)
+
+        assert report["entries"][0]["raw_error_value"] == 45.0
+        assert report["entries"][0]["fault_class"] == "overcurrent"
 
     def test_build_recovery_plan_is_fault_specific(self, fake_can_runtime) -> None:
         controller = hw.IMC22Controller()

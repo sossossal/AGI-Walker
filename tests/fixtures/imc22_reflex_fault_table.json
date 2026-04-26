@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0",
+  "vendor": "imc22_reflex",
+  "exact_codes": {
+    "0": "ok",
+    "11": "overload",
+    "12": "overload",
+    "41": "overcurrent",
+    "45": "overcurrent",
+    "71": "sensor_fault",
+    "75": "sensor_fault",
+    "91": "communication_fault",
+    "95": "communication_fault"
+  },
+  "ranges": [
+    {
+      "min": 90.0,
+      "max": null,
+      "fault_class": "communication_fault"
+    },
+    {
+      "min": 70.0,
+      "max": 89.999,
+      "fault_class": "sensor_fault"
+    },
+    {
+      "min": 40.0,
+      "max": 69.999,
+      "fault_class": "overcurrent"
+    },
+    {
+      "min": 10.0,
+      "max": 39.999,
+      "fault_class": "overload"
+    }
+  ],
+  "fallback_fault_class": "unknown_fault"
+}

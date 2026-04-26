@@ -27,6 +27,7 @@ IMC22_TRANSPORT_DIAGNOSTICS_SCHEMA_VERSION = "1.0"
 IMC22_SAFETY_PROFILE_SCHEMA_VERSION = "1.0"
 IMC22_FAULT_SUMMARY_SCHEMA_VERSION = "1.0"
 IMC22_FAULT_TABLE_SCHEMA_VERSION = "1.0"
+IMC22_FAULT_TELEMETRY_REPORT_SCHEMA_VERSION = "1.0"
 SUPPORTED_IMC22_TRANSPORTS = {
     "socketcan",
     "pcan",
@@ -105,6 +106,20 @@ def validate_imc22_safety_profile(profile: Dict[str, Any]) -> List[str]:
     if isinstance(max_abs_target_angle, (int, float)) and float(max_abs_target_angle) <= 0.0:
         errors.append("safety_profile.max_abs_target_angle must be positive")
     return errors
+
+
+def load_imc22_fault_table(source: str | Path | Dict[str, Any]) -> Dict[str, Any]:
+    if isinstance(source, dict):
+        payload = dict(source)
+    else:
+        payload = json.loads(Path(source).read_text(encoding="utf-8"))
+    exact_codes = payload.get("exact_codes")
+    if isinstance(exact_codes, dict):
+        payload["exact_codes"] = {int(code): value for code, value in exact_codes.items()}
+    errors = validate_imc22_fault_table(payload)
+    if errors:
+        raise ValueError("; ".join(errors))
+    return payload
 
 
 def default_imc22_fault_table(vendor: str = "imc22_reflex") -> Dict[str, Any]:
@@ -306,6 +321,7 @@ def default_imc22_transport_profile(transport: str = "socketcan") -> Dict[str, A
         "bustype": "socketcan",
         "bitrate": 1_000_000,
         "fault_vendor": "imc22_reflex",
+        "fault_table_source": None,
     }
     if transport == "pcan":
         profile.update(
@@ -369,6 +385,11 @@ def validate_imc22_transport_profile(profile: Dict[str, Any]) -> List[str]:
         errors.append("transport_profile.channel must be a non-empty string")
     if not isinstance(profile.get("fault_vendor"), str) or not profile["fault_vendor"]:
         errors.append("transport_profile.fault_vendor must be a non-empty string")
+    if (
+        profile.get("fault_table_source") is not None
+        and not isinstance(profile.get("fault_table_source"), (str, Path))
+    ):
+        errors.append("transport_profile.fault_table_source must be a string path when set")
     if not isinstance(profile.get("bustype"), str) or not profile["bustype"]:
         errors.append("transport_profile.bustype must be a non-empty string")
 
@@ -472,16 +493,26 @@ def create_imc22_controller_from_transport_profile(
     errors = validate_imc22_transport_profile(normalized)
     if errors:
         raise ValueError("; ".join(errors))
+    fault_table = None
+    if normalized.get("fault_table_source"):
+        fault_table = load_imc22_fault_table(normalized["fault_table_source"])
 
     transport = normalized["transport"]
     if transport == "replay":
-        return IMC22Controller.from_replay(
+        controller = IMC22Controller.from_replay(
             normalized["replay_source"],
             message_factory=message_factory,
             fault_vendor=normalized["fault_vendor"],
+            fault_table=fault_table,
         )
+        controller.fault_table_source = (
+            str(normalized["fault_table_source"])
+            if normalized.get("fault_table_source")
+            else None
+        )
+        return controller
     if transport == "serial_bridge":
-        return IMC22Controller(
+        controller = IMC22Controller(
             channel=normalized["channel"],
             bustype=normalized["bustype"],
             bitrate=normalized["bitrate"],
@@ -494,15 +525,58 @@ def create_imc22_controller_from_transport_profile(
             ),
             message_factory=message_factory or ReplayCANMessage,
             fault_vendor=normalized["fault_vendor"],
+            fault_table=fault_table,
         )
-    return IMC22Controller(
+        controller.fault_table_source = (
+            str(normalized["fault_table_source"])
+            if normalized.get("fault_table_source")
+            else None
+        )
+        return controller
+    controller = IMC22Controller(
         channel=normalized["channel"],
         bustype=normalized["bustype"],
         bitrate=normalized["bitrate"],
         bus=bus,
         message_factory=message_factory,
         fault_vendor=normalized["fault_vendor"],
+        fault_table=fault_table,
     )
+    controller.fault_table_source = (
+        str(normalized["fault_table_source"])
+        if normalized.get("fault_table_source")
+        else None
+    )
+    return controller
+
+
+def build_imc22_fault_telemetry_report(
+    controller: "IMC22Controller",
+) -> Dict[str, Any]:
+    entries = []
+    for node_id, status in sorted(controller.node_states.items()):
+        raw_error_value = float(status.get("error", 0.0))
+        entries.append(
+            {
+                "node_id": int(node_id),
+                "raw_error_value": raw_error_value,
+                "fault_class": classify_imc22_fault(
+                    raw_error_value,
+                    vendor=controller.fault_vendor,
+                    fault_table=controller.fault_table,
+                ),
+                "angle": float(status.get("angle", 0.0)),
+                "current": float(status.get("current", 0.0)),
+            }
+        )
+    return {
+        "schema_version": IMC22_FAULT_TELEMETRY_REPORT_SCHEMA_VERSION,
+        "fault_vendor": controller.fault_vendor,
+        "fault_table_schema_version": controller.fault_table["schema_version"],
+        "fault_table_source": controller.fault_table_source,
+        "entries": entries,
+        "fault_summary": controller.get_fault_summary(),
+    }
 
 
 def run_imc22_transport_diagnostics(
@@ -512,6 +586,7 @@ def run_imc22_transport_diagnostics(
 ) -> Dict[str, Any]:
     normalized = normalize_imc22_transport_profile(profile)
     checks: List[Dict[str, Any]] = []
+    telemetry_report: Optional[Dict[str, Any]] = None
     errors = validate_imc22_transport_profile(normalized)
     if errors:
         checks.append(
@@ -559,12 +634,19 @@ def run_imc22_transport_diagnostics(
         if attempt_connect and can is not None:
             try:
                 controller = IMC22Controller.from_transport_profile(normalized)
+                node_ids = controller.discover_nodes(timeout=0.05)
+                controller.get_all_states(len(node_ids), timeout=0.05)
+                telemetry_report = build_imc22_fault_telemetry_report(controller)
                 controller.close()
                 checks.append(
                     _build_transport_check(
                         "transport_connect",
                         "passed",
                         "transport connection opened and closed successfully",
+                        details={
+                            "node_ids": node_ids,
+                            "fault_entry_count": len(telemetry_report["entries"]),
+                        },
                     )
                 )
             except Exception as exc:
@@ -600,13 +682,18 @@ def run_imc22_transport_diagnostics(
             try:
                 controller = IMC22Controller.from_transport_profile(normalized)
                 node_ids = controller.discover_nodes(timeout=0.05)
+                controller.get_all_states(len(node_ids), timeout=0.05)
+                telemetry_report = build_imc22_fault_telemetry_report(controller)
                 controller.close()
                 checks.append(
                     _build_transport_check(
                         "transport_connect",
                         "passed",
                         "replay controller opened successfully",
-                        details={"node_ids": node_ids},
+                        details={
+                            "node_ids": node_ids,
+                            "fault_entry_count": len(telemetry_report["entries"]),
+                        },
                     )
                 )
             except Exception as exc:
@@ -662,13 +749,18 @@ def run_imc22_transport_diagnostics(
             try:
                 controller = IMC22Controller.from_transport_profile(normalized)
                 node_ids = controller.discover_nodes(timeout=0.05)
+                controller.get_all_states(len(node_ids), timeout=0.05)
+                telemetry_report = build_imc22_fault_telemetry_report(controller)
                 controller.close()
                 checks.append(
                     _build_transport_check(
                         "transport_connect",
                         "passed",
                         "serial bridge transport opened successfully",
-                        details={"node_ids": node_ids},
+                        details={
+                            "node_ids": node_ids,
+                            "fault_entry_count": len(telemetry_report["entries"]),
+                        },
                     )
                 )
             except Exception as exc:
@@ -686,13 +778,16 @@ def run_imc22_transport_diagnostics(
         if any(check["status"] == "blocked" for check in checks)
         else "ready"
     )
-    return {
+    report = {
         "schema_version": IMC22_TRANSPORT_DIAGNOSTICS_SCHEMA_VERSION,
         "status": status,
         "attempt_connect": attempt_connect,
         "transport_profile": normalized,
         "checks": checks,
     }
+    if telemetry_report is not None:
+        report["fault_telemetry_report"] = telemetry_report
+    return report
 
 
 class ReplayCANBus:
@@ -942,6 +1037,7 @@ class IMC22Controller:
             fault_table,
             vendor=fault_vendor,
         )
+        self.fault_table_source: Optional[str] = None
         fault_table_errors = validate_imc22_fault_table(self.fault_table)
         if fault_table_errors:
             raise ValueError("; ".join(fault_table_errors))

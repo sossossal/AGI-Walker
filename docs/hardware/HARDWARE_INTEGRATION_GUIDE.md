@@ -286,6 +286,19 @@ python tools/run_hardware_transport_diagnostics.py --transport serial_bridge --r
 - 归一化后的 transport profile
 - 结构化 checks 列表
 - 最终 `ready / blocked` 结论
+- 可选 `fault_telemetry_report`，用于导出原始 error 值与 fault class 对照
+
+如果你要把 vendor-specific fault table 外置化：
+
+```bash
+python tools/run_hardware_transport_diagnostics.py --transport replay --replay-source tests/fixtures/imc22_status_replay.json --fault-table-file deployment/hardware/imc22_reflex_fault_table.json --attempt-connect --telemetry-output test_env/hardware_fault_telemetry_report.json
+```
+
+这条链现在支持：
+
+- `fault_table_source`：从 JSON 文件加载 vendor-specific fault table
+- `fault_telemetry_report.entries[].raw_error_value`：保留原始错误值
+- `fault_telemetry_report.entries[].fault_class`：保留映射后的标准 fault class
 
 ## 7. `HardwareEnvironment`
 
