@@ -19,6 +19,7 @@ AGI-Walker 是一个面向机器人设计、仿真、工作流编排和 Web/Godo
 - `Hardware Recovery Policy`：controller 现可加载外置 recovery policy，把 fault class 到恢复动作的映射配置化。
 - `Hardware Fault Visualization`：ROS2 runtime 与 Web instruction console 现会透传并展示 `hardware_fault_summary`。
 - `Hardware Recovery Operations`：Web session bridge 与 ROS2 现已暴露 `recovery plan / recover_by_fault_class / clear_faults` 操作面。
+- `Hardware Recovery Visualization`：Web console 与 ROS2 runtime 现会透传 recovery plan / recovery result / clear result 摘要。
 - `Hardware Safety Controls`：IMC-22 controller 增加限幅、watchdog 和显式恢复接口，先在 controller 层 fail-closed。
 - `Hardware Fault Recovery`：节点错误值会按 vendor-specific fault table 映射到标准 fault class，并支持按 fault 类型分级恢复。
 - `Distributed / Smoke`：仓库内置 CLI、workflow、Web、distributed 和可选的 Godot headless smoke 测试。

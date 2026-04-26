@@ -139,6 +139,8 @@ try:
         validate_simulated_circuit_config,
     )
     from agi_walker.core.api.godot_robot_env.hardware_controller import (
+        build_imc22_recovery_plan_summary,
+        build_imc22_recovery_result_summary,
         build_imc22_controller_from_feedback,
         simulate_imc22_command_batch_feedback,
     )
@@ -185,6 +187,12 @@ except ImportError:
             "states": {},
             "node_ids": [],
         }
+
+    def build_imc22_recovery_plan_summary(plan: Dict[str, Any]) -> Dict[str, Any]:
+        return {"status": plan.get("status", "unknown"), "action_count": 0}
+
+    def build_imc22_recovery_result_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+        return {"status": result.get("status", "unknown")}
 
     def build_imc22_controller_from_feedback(
         feedback: Dict[str, Any],
@@ -614,6 +622,9 @@ class AGIWalkerROS2Bridge(Node):
                 {
                     "status": "success",
                     "recovery_plan": plan,
+                    "hardware_recovery_plan_summary": (
+                        build_imc22_recovery_plan_summary(plan)
+                    ),
                     "hardware_fault_summary": plan["fault_summary"],
                 },
             )
@@ -622,6 +633,9 @@ class AGIWalkerROS2Bridge(Node):
                 {
                     "status": "success",
                     "recovery_plan": plan,
+                    "hardware_recovery_plan_summary": (
+                        build_imc22_recovery_plan_summary(plan)
+                    ),
                     "hardware_fault_summary": plan["fault_summary"],
                 }
             )
@@ -639,6 +653,9 @@ class AGIWalkerROS2Bridge(Node):
                 {
                     "status": "success",
                     "recovery_result": result,
+                    "hardware_recovery_result_summary": (
+                        build_imc22_recovery_result_summary(result)
+                    ),
                     "hardware_fault_summary": result["safety_status"]["fault_summary"],
                 },
             )
@@ -647,6 +664,9 @@ class AGIWalkerROS2Bridge(Node):
                 {
                     "status": "success",
                     "recovery_result": result,
+                    "hardware_recovery_result_summary": (
+                        build_imc22_recovery_result_summary(result)
+                    ),
                     "hardware_fault_summary": result["safety_status"][
                         "fault_summary"
                     ],
@@ -661,11 +681,22 @@ class AGIWalkerROS2Bridge(Node):
         try:
             controller = self._build_recovery_controller()
             safety_status = controller.clear_faults()
+            clear_summary = {
+                "status": "success",
+                "post_clear_state": safety_status["state"],
+                "post_clear_watchdog_tripped": bool(
+                    safety_status["watchdog_tripped"]
+                ),
+                "post_clear_fault_counts": safety_status["fault_summary"][
+                    "fault_counts"
+                ],
+            }
             self.publish_instruction_runtime(
                 "hardware_faults_cleared",
                 {
                     "status": "success",
                     "clear_result": safety_status,
+                    "hardware_clear_result_summary": clear_summary,
                     "hardware_fault_summary": safety_status["fault_summary"],
                 },
             )
@@ -674,6 +705,7 @@ class AGIWalkerROS2Bridge(Node):
                 {
                     "status": "success",
                     "clear_result": safety_status,
+                    "hardware_clear_result_summary": clear_summary,
                     "hardware_fault_summary": safety_status["fault_summary"],
                 }
             )

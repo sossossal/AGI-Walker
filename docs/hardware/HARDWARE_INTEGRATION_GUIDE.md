@@ -261,6 +261,7 @@ ROS2 一期指令集模拟控制面现已提供：
 - `IMC22 replay payload -> status feedback`
 - `status feedback -> /instruction_runtime/json`
 - `fault_telemetry_report / hardware_fault_summary -> /instruction_runtime/json`
+- `recovery_plan / recovery_result / clear_result summaries -> /instruction_runtime/json`
 
 也就是说，一期已经可以在非 live 模式下验证：
 

@@ -223,6 +223,14 @@
                         <div class="metric-label">Fault Nodes</div>
                         <div class="metric-value" id="runtime-fault-nodes">-</div>
                     </div>
+                    <div class="metric">
+                        <div class="metric-label">Recovery Actions</div>
+                        <div class="metric-value" id="runtime-recovery-actions">-</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Recovery Result</div>
+                        <div class="metric-value" id="runtime-recovery-status">-</div>
+                    </div>
                 </div>
                 <div class="field">
                     <label for="instruction-response">最近一次响应</label>
@@ -278,6 +286,8 @@
         const runtimeFeedbackNodesNode = document.getElementById('runtime-feedback-nodes');
         const runtimeFaultClassesNode = document.getElementById('runtime-fault-classes');
         const runtimeFaultNodesNode = document.getElementById('runtime-fault-nodes');
+        const runtimeRecoveryActionsNode = document.getElementById('runtime-recovery-actions');
+        const runtimeRecoveryStatusNode = document.getElementById('runtime-recovery-status');
         let telemetrySocket = null;
 
         function currentMode() {
@@ -364,10 +374,14 @@
             const nodeIds = Array.isArray(feedback?.node_ids) ? feedback.node_ids : [];
             const faultSummary = runtime?.hardware_fault_summary || feedback?.fault_telemetry_report?.fault_summary || {};
             const faultCounts = faultSummary?.fault_counts || {};
+            const recoveryPlanSummary = runtime?.hardware_recovery_plan_summary || {};
+            const recoveryResultSummary = runtime?.hardware_recovery_result_summary || runtime?.hardware_clear_result_summary || {};
             const faultClasses = Object.entries(faultCounts)
                 .filter(([, count]) => Number(count) > 0)
                 .map(([faultClass, count]) => `${faultClass}:${count}`);
             const faultNodeCount = Object.keys(faultSummary?.per_node || {}).length;
+            const recoveryActionCount = recoveryPlanSummary?.action_count;
+            const recoveryResultStatus = recoveryResultSummary?.status || '-';
 
             runtimeSequenceNameNode.textContent = instructionSet.sequence_name || '-';
             runtimeStepCountNode.textContent = Array.isArray(instructionSet.steps) ? String(instructionSet.steps.length) : '-';
@@ -375,6 +389,8 @@
             runtimeFeedbackNodesNode.textContent = nodeIds.length ? nodeIds.join(', ') : '-';
             runtimeFaultClassesNode.textContent = faultClasses.length ? faultClasses.join(', ') : '-';
             runtimeFaultNodesNode.textContent = faultNodeCount ? String(faultNodeCount) : '-';
+            runtimeRecoveryActionsNode.textContent = Number.isFinite(recoveryActionCount) ? String(recoveryActionCount) : '-';
+            runtimeRecoveryStatusNode.textContent = recoveryResultStatus;
 
             renderJson(runtimeNode, runtime);
             renderJson(circuitConfigNode, simulatedCircuit);

@@ -24,10 +24,18 @@ from web_panel.models import OperatorHistoryEntry, User
 
 try:
     from agi_walker.core.api.godot_robot_env.hardware_controller import (
+        build_imc22_recovery_plan_summary,
+        build_imc22_recovery_result_summary,
         build_imc22_controller_from_feedback,
         simulate_imc22_command_batch_feedback,
     )
 except ImportError:
+    def build_imc22_recovery_plan_summary(plan: Dict[str, Any]) -> Dict[str, Any]:
+        return {"status": plan.get("status", "unknown"), "action_count": 0}
+
+    def build_imc22_recovery_result_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+        return {"status": result.get("status", "unknown")}
+
     def build_imc22_controller_from_feedback(
         feedback: Dict[str, Any],
         *,
@@ -952,11 +960,14 @@ class GodotBridge:
         feedback = self._require_simulated_feedback()
         controller = build_imc22_controller_from_feedback(feedback)
         plan = controller.build_recovery_plan()
+        plan_summary = build_imc22_recovery_plan_summary(plan)
         self.last_instruction_runtime["hardware_recovery_plan"] = plan
+        self.last_instruction_runtime["hardware_recovery_plan_summary"] = plan_summary
         self.last_instruction_runtime["hardware_fault_summary"] = plan["fault_summary"]
         return {
             "status": "success",
             "recovery_plan": plan,
+            "hardware_recovery_plan_summary": plan_summary,
             "hardware_fault_summary": plan["fault_summary"],
         }
 
@@ -965,13 +976,18 @@ class GodotBridge:
         controller = build_imc22_controller_from_feedback(feedback)
         result = controller.recover_by_fault_class()
         safety_status = result["safety_status"]
+        result_summary = build_imc22_recovery_result_summary(result)
         self.last_instruction_runtime["hardware_recovery_result"] = result
+        self.last_instruction_runtime["hardware_recovery_result_summary"] = (
+            result_summary
+        )
         self.last_instruction_runtime["hardware_fault_summary"] = safety_status[
             "fault_summary"
         ]
         return {
             "status": "success",
             "recovery_result": result,
+            "hardware_recovery_result_summary": result_summary,
             "hardware_fault_summary": safety_status["fault_summary"],
         }
 
@@ -979,13 +995,21 @@ class GodotBridge:
         feedback = self._require_simulated_feedback()
         controller = build_imc22_controller_from_feedback(feedback)
         safety_status = controller.clear_faults()
+        clear_summary = {
+            "status": "success",
+            "post_clear_state": safety_status["state"],
+            "post_clear_watchdog_tripped": bool(safety_status["watchdog_tripped"]),
+            "post_clear_fault_counts": safety_status["fault_summary"]["fault_counts"],
+        }
         self.last_instruction_runtime["hardware_clear_result"] = safety_status
+        self.last_instruction_runtime["hardware_clear_result_summary"] = clear_summary
         self.last_instruction_runtime["hardware_fault_summary"] = safety_status[
             "fault_summary"
         ]
         return {
             "status": "success",
             "clear_result": safety_status,
+            "hardware_clear_result_summary": clear_summary,
             "hardware_fault_summary": safety_status["fault_summary"],
         }
 

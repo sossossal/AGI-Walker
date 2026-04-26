@@ -552,10 +552,16 @@ def test_ros2_bridge_hardware_recovery_services(monkeypatch) -> None:
     recover_payload = json.loads(recover_response.message)
     clear_payload = json.loads(clear_response.message)
     assert plan_payload["status"] == "success"
+    assert plan_payload["hardware_recovery_plan_summary"]["action_count"] == 1
     assert recover_payload["status"] == "success"
+    assert recover_payload["hardware_recovery_result_summary"]["status"] == "applied"
     assert clear_payload["status"] == "success"
+    assert clear_payload["hardware_clear_result_summary"]["status"] == "success"
 
     runtime_messages = [json.loads(item.data) for item in bridge.instruction_runtime_pub.published]
     assert any(item["event"] == "hardware_recovery_plan_built" for item in runtime_messages)
     assert any(item["event"] == "hardware_faults_recovered" for item in runtime_messages)
     assert any(item["event"] == "hardware_faults_cleared" for item in runtime_messages)
+    assert any("hardware_recovery_plan_summary" in item["latest_result"] for item in runtime_messages if item["event"] == "hardware_recovery_plan_built")
+    assert any("hardware_recovery_result_summary" in item["latest_result"] for item in runtime_messages if item["event"] == "hardware_faults_recovered")
+    assert any("hardware_clear_result_summary" in item["latest_result"] for item in runtime_messages if item["event"] == "hardware_faults_cleared")

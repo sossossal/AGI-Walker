@@ -526,6 +526,7 @@ def test_session_bridge_instruction_and_circuit_routes(
             return {
                 "status": "success",
                 "recovery_plan": {"status": "ready", "actions": [{"node_id": 1}]},
+                "hardware_recovery_plan_summary": {"status": "ready", "action_count": 1},
                 "hardware_fault_summary": {"fault_counts": {"overload": 1}},
             }
 
@@ -534,6 +535,7 @@ def test_session_bridge_instruction_and_circuit_routes(
             return {
                 "status": "success",
                 "recovery_result": {"status": "applied"},
+                "hardware_recovery_result_summary": {"status": "applied"},
                 "hardware_fault_summary": {"fault_counts": {"overload": 1}},
             }
 
@@ -542,6 +544,7 @@ def test_session_bridge_instruction_and_circuit_routes(
             return {
                 "status": "success",
                 "clear_result": {"state": "ready"},
+                "hardware_clear_result_summary": {"status": "success"},
                 "hardware_fault_summary": {"fault_counts": {}},
             }
 
@@ -646,10 +649,13 @@ def test_session_bridge_instruction_and_circuit_routes(
     assert clear_response.json()["history_count"] == 0
     assert recovery_plan_response.status_code == 200
     assert recovery_plan_response.json()["status"] == "success"
+    assert recovery_plan_response.json()["hardware_recovery_plan_summary"]["action_count"] == 1
     assert recover_response.status_code == 200
     assert recover_response.json()["status"] == "success"
+    assert recover_response.json()["hardware_recovery_result_summary"]["status"] == "applied"
     assert clear_faults_response.status_code == 200
     assert clear_faults_response.json()["status"] == "success"
+    assert clear_faults_response.json()["hardware_clear_result_summary"]["status"] == "success"
     assert observed["instruction_set"]["sequence_name"] == "route-demo"
     assert observed["compatibility_params"]["velocity_scale"] == 0.1
     assert observed["command_batch"][0]["frame_id"] == 0x200

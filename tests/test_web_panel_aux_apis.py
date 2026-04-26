@@ -301,6 +301,8 @@ def test_core_panel_routes_smoke():
     assert 'id="runtime-feedback-nodes"' in response.text
     assert 'id="runtime-fault-classes"' in response.text
     assert 'id="runtime-fault-nodes"' in response.text
+    assert 'id="runtime-recovery-actions"' in response.text
+    assert 'id="runtime-recovery-status"' in response.text
     assert 'id="hardware-recovery-response"' in response.text
     assert "/static/operator-history.html" in response.text
     assert "/hardware/recovery-plan" in response.text

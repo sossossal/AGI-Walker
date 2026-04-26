@@ -198,6 +198,8 @@ session bridge：
 - `simulated_circuit_config`
 - `simulated_circuit_feedback` 摘要
 - `hardware_fault_summary` 摘要
+- `hardware_recovery_plan_summary`
+- `hardware_recovery_result_summary / hardware_clear_result_summary`
 
 并支持：
 

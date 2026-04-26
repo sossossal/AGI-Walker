@@ -778,6 +778,45 @@ def build_imc22_fault_telemetry_report(
     }
 
 
+def build_imc22_recovery_plan_summary(plan: Dict[str, Any]) -> Dict[str, Any]:
+    """Build one compact machine-readable summary for a recovery plan."""
+    actions = plan.get("actions") or []
+    action_counts: Dict[str, int] = {}
+    affected_node_ids: List[int] = []
+    fault_classes: Dict[str, int] = {}
+    for action in actions:
+        action_name = str(action.get("action", "unknown"))
+        action_counts[action_name] = action_counts.get(action_name, 0) + 1
+        node_id = action.get("node_id")
+        if isinstance(node_id, (int, float)):
+            affected_node_ids.append(int(node_id))
+        fault_class = str(action.get("fault_class", "unknown_fault"))
+        fault_classes[fault_class] = fault_classes.get(fault_class, 0) + 1
+    return {
+        "status": plan.get("status", "unknown"),
+        "action_count": len(actions),
+        "action_counts": action_counts,
+        "fault_class_counts": fault_classes,
+        "affected_node_ids": sorted(set(affected_node_ids)),
+    }
+
+
+def build_imc22_recovery_result_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Build one compact summary for one applied recovery result."""
+    plan = result.get("recovery_plan") or {}
+    safety_status = result.get("safety_status") or {}
+    fault_summary = safety_status.get("fault_summary") or {}
+    return {
+        "status": result.get("status", "unknown"),
+        "recovery_plan": build_imc22_recovery_plan_summary(plan),
+        "post_recovery_fault_counts": fault_summary.get("fault_counts", {}),
+        "post_recovery_watchdog_tripped": bool(
+            safety_status.get("watchdog_tripped", False)
+        ),
+        "post_recovery_state": safety_status.get("state", "unknown"),
+    }
+
+
 def run_imc22_transport_diagnostics(
     profile: Dict[str, Any],
     *,
