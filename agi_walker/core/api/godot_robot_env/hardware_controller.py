@@ -28,6 +28,7 @@ IMC22_SAFETY_PROFILE_SCHEMA_VERSION = "1.0"
 IMC22_FAULT_SUMMARY_SCHEMA_VERSION = "1.0"
 IMC22_FAULT_TABLE_SCHEMA_VERSION = "1.0"
 IMC22_FAULT_TELEMETRY_REPORT_SCHEMA_VERSION = "1.0"
+IMC22_RECOVERY_POLICY_SCHEMA_VERSION = "1.0"
 SUPPORTED_IMC22_TRANSPORTS = {
     "socketcan",
     "pcan",
@@ -117,6 +118,111 @@ def load_imc22_fault_table(source: str | Path | Dict[str, Any]) -> Dict[str, Any
     if isinstance(exact_codes, dict):
         payload["exact_codes"] = {int(code): value for code, value in exact_codes.items()}
     errors = validate_imc22_fault_table(payload)
+    if errors:
+        raise ValueError("; ".join(errors))
+    return payload
+
+
+def default_imc22_recovery_policy(vendor: str = "imc22_reflex") -> Dict[str, Any]:
+    if vendor != "imc22_reflex":
+        raise ValueError(
+            f"Unsupported IMC-22 recovery vendor {vendor!r}; expected 'imc22_reflex'"
+        )
+    return {
+        "schema_version": IMC22_RECOVERY_POLICY_SCHEMA_VERSION,
+        "vendor": vendor,
+        "watchdog_action": {
+            "action": "recover_hold_position",
+            "target_angle_mode": "watchdog_hold_angle",
+            "compliance_mode": "max_compliance",
+        },
+        "fault_actions": {
+            "overload": {
+                "action": "recover_hold_position",
+                "target_angle_mode": "watchdog_hold_angle",
+                "compliance_mode": "fixed",
+                "fixed_compliance": 0.5,
+            },
+            "overcurrent": {
+                "action": "recover_relaxed_hold",
+                "target_angle_mode": "watchdog_hold_angle",
+                "compliance_mode": "min_compliance",
+            },
+            "sensor_fault": {"action": "clear_only"},
+            "communication_fault": {"action": "rediscover_node"},
+            "unknown_fault": {"action": "clear_only"},
+        },
+    }
+
+
+def normalize_imc22_recovery_policy(
+    recovery_policy: Optional[Dict[str, Any]] = None,
+    *,
+    vendor: str = "imc22_reflex",
+) -> Dict[str, Any]:
+    normalized = default_imc22_recovery_policy(vendor)
+    if recovery_policy:
+        normalized.update(recovery_policy)
+    return normalized
+
+
+def validate_imc22_recovery_policy(recovery_policy: Dict[str, Any]) -> List[str]:
+    errors: List[str] = []
+    if not isinstance(recovery_policy, dict):
+        return ["recovery policy must be a dict"]
+    if recovery_policy.get("schema_version") != IMC22_RECOVERY_POLICY_SCHEMA_VERSION:
+        errors.append(
+            "recovery_policy.schema_version must be "
+            f"{IMC22_RECOVERY_POLICY_SCHEMA_VERSION!r}"
+        )
+    vendor = recovery_policy.get("vendor")
+    if not isinstance(vendor, str) or not vendor:
+        errors.append("recovery_policy.vendor must be a non-empty string")
+    watchdog_action = recovery_policy.get("watchdog_action")
+    if not isinstance(watchdog_action, dict):
+        errors.append("recovery_policy.watchdog_action must be a dict")
+    fault_actions = recovery_policy.get("fault_actions")
+    if not isinstance(fault_actions, dict):
+        errors.append("recovery_policy.fault_actions must be a dict")
+    else:
+        for fault_class, action_spec in fault_actions.items():
+            if fault_class not in IMC22_FAULT_CLASSES:
+                errors.append(
+                    f"recovery_policy.fault_actions key {fault_class!r} must be a valid fault class"
+                )
+            if not isinstance(action_spec, dict):
+                errors.append(
+                    f"recovery_policy.fault_actions[{fault_class!r}] must be a dict"
+                )
+                continue
+            action = action_spec.get("action")
+            if action not in {
+                "recover_hold_position",
+                "recover_relaxed_hold",
+                "rediscover_node",
+                "clear_only",
+            }:
+                errors.append(
+                    f"recovery_policy.fault_actions[{fault_class!r}].action is invalid"
+                )
+            compliance_mode = action_spec.get("compliance_mode")
+            if compliance_mode is not None and compliance_mode not in {
+                "min_compliance",
+                "max_compliance",
+                "fixed",
+            }:
+                errors.append(
+                    f"recovery_policy.fault_actions[{fault_class!r}].compliance_mode is invalid"
+                )
+    return errors
+
+
+def load_imc22_recovery_policy(source: str | Path | Dict[str, Any]) -> Dict[str, Any]:
+    if isinstance(source, dict):
+        payload = dict(source)
+    else:
+        payload = json.loads(Path(source).read_text(encoding="utf-8"))
+    errors = validate_imc22_recovery_policy(payload)
     if errors:
         raise ValueError("; ".join(errors))
     return payload
@@ -322,6 +428,7 @@ def default_imc22_transport_profile(transport: str = "socketcan") -> Dict[str, A
         "bitrate": 1_000_000,
         "fault_vendor": "imc22_reflex",
         "fault_table_source": None,
+        "recovery_policy_source": None,
     }
     if transport == "pcan":
         profile.update(
@@ -390,6 +497,13 @@ def validate_imc22_transport_profile(profile: Dict[str, Any]) -> List[str]:
         and not isinstance(profile.get("fault_table_source"), (str, Path))
     ):
         errors.append("transport_profile.fault_table_source must be a string path when set")
+    if (
+        profile.get("recovery_policy_source") is not None
+        and not isinstance(profile.get("recovery_policy_source"), (str, Path))
+    ):
+        errors.append(
+            "transport_profile.recovery_policy_source must be a string path when set"
+        )
     if not isinstance(profile.get("bustype"), str) or not profile["bustype"]:
         errors.append("transport_profile.bustype must be a non-empty string")
 
@@ -496,6 +610,11 @@ def create_imc22_controller_from_transport_profile(
     fault_table = None
     if normalized.get("fault_table_source"):
         fault_table = load_imc22_fault_table(normalized["fault_table_source"])
+    recovery_policy = None
+    if normalized.get("recovery_policy_source"):
+        recovery_policy = load_imc22_recovery_policy(
+            normalized["recovery_policy_source"]
+        )
 
     transport = normalized["transport"]
     if transport == "replay":
@@ -504,10 +623,16 @@ def create_imc22_controller_from_transport_profile(
             message_factory=message_factory,
             fault_vendor=normalized["fault_vendor"],
             fault_table=fault_table,
+            recovery_policy=recovery_policy,
         )
         controller.fault_table_source = (
             str(normalized["fault_table_source"])
             if normalized.get("fault_table_source")
+            else None
+        )
+        controller.recovery_policy_source = (
+            str(normalized["recovery_policy_source"])
+            if normalized.get("recovery_policy_source")
             else None
         )
         return controller
@@ -526,10 +651,16 @@ def create_imc22_controller_from_transport_profile(
             message_factory=message_factory or ReplayCANMessage,
             fault_vendor=normalized["fault_vendor"],
             fault_table=fault_table,
+            recovery_policy=recovery_policy,
         )
         controller.fault_table_source = (
             str(normalized["fault_table_source"])
             if normalized.get("fault_table_source")
+            else None
+        )
+        controller.recovery_policy_source = (
+            str(normalized["recovery_policy_source"])
+            if normalized.get("recovery_policy_source")
             else None
         )
         return controller
@@ -541,10 +672,16 @@ def create_imc22_controller_from_transport_profile(
         message_factory=message_factory,
         fault_vendor=normalized["fault_vendor"],
         fault_table=fault_table,
+        recovery_policy=recovery_policy,
     )
     controller.fault_table_source = (
         str(normalized["fault_table_source"])
         if normalized.get("fault_table_source")
+        else None
+    )
+    controller.recovery_policy_source = (
+        str(normalized["recovery_policy_source"])
+        if normalized.get("recovery_policy_source")
         else None
     )
     return controller
@@ -998,6 +1135,7 @@ class IMC22Controller:
         safety_profile: Optional[Dict[str, Any]] = None,
         fault_vendor: str = "imc22_reflex",
         fault_table: Optional[Dict[str, Any]] = None,
+        recovery_policy: Optional[Dict[str, Any]] = None,
     ):
         """
         初始化硬件控制器
@@ -1041,6 +1179,14 @@ class IMC22Controller:
         fault_table_errors = validate_imc22_fault_table(self.fault_table)
         if fault_table_errors:
             raise ValueError("; ".join(fault_table_errors))
+        self.recovery_policy = normalize_imc22_recovery_policy(
+            recovery_policy,
+            vendor=fault_vendor,
+        )
+        self.recovery_policy_source: Optional[str] = None
+        recovery_policy_errors = validate_imc22_recovery_policy(self.recovery_policy)
+        if recovery_policy_errors:
+            raise ValueError("; ".join(recovery_policy_errors))
         self.last_command_at: Optional[float] = None
         self.last_command_details: Optional[Dict[str, Any]] = None
         self.watchdog_tripped_at: Optional[float] = None
@@ -1055,6 +1201,7 @@ class IMC22Controller:
         message_factory=ReplayCANMessage,
         fault_vendor: str = "imc22_reflex",
         fault_table: Optional[Dict[str, Any]] = None,
+        recovery_policy: Optional[Dict[str, Any]] = None,
     ) -> "IMC22Controller":
         message_factory = message_factory or ReplayCANMessage
         payload = load_imc22_replay_payload(replay_source)
@@ -1069,6 +1216,7 @@ class IMC22Controller:
             message_factory=message_factory,
             fault_vendor=fault_vendor,
             fault_table=fault_table,
+            recovery_policy=recovery_policy,
         )
 
     @classmethod
@@ -1223,8 +1371,41 @@ class IMC22Controller:
             "known_node_ids": sorted(self._known_node_ids),
             "safety_profile": dict(self.safety_profile),
             "fault_vendor": self.fault_vendor,
+            "recovery_policy_schema_version": self.recovery_policy["schema_version"],
             "fault_summary": self.get_fault_summary(),
         }
+
+    def _resolve_recovery_action(
+        self,
+        fault_class: str,
+        *,
+        node_id: int,
+        action_spec: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        action = {
+            "node_id": node_id,
+            "fault_class": fault_class,
+            "action": action_spec["action"],
+        }
+        if action_spec["action"] not in {
+            "recover_hold_position",
+            "recover_relaxed_hold",
+        }:
+            return action
+        target_angle_mode = action_spec.get(
+            "target_angle_mode",
+            "watchdog_hold_angle",
+        )
+        if target_angle_mode == "watchdog_hold_angle":
+            action["target_angle"] = float(self.safety_profile["watchdog_hold_angle"])
+        compliance_mode = action_spec.get("compliance_mode", "max_compliance")
+        if compliance_mode == "min_compliance":
+            action["compliance"] = float(self.safety_profile["min_compliance"])
+        elif compliance_mode == "fixed":
+            action["compliance"] = float(action_spec.get("fixed_compliance", 0.5))
+        else:
+            action["compliance"] = float(self.safety_profile["max_compliance"])
+        return action
 
     def get_fault_summary(self) -> Dict[str, Any]:
         per_node: Dict[int, Dict[str, Any]] = {}
@@ -1260,67 +1441,38 @@ class IMC22Controller:
         actions: List[Dict[str, Any]] = []
         seen_node_ids = set()
         if summary["watchdog_tripped"]:
+            watchdog_action = self.recovery_policy["watchdog_action"]
             for node_id in sorted(self._known_node_ids):
                 actions.append(
-                    {
-                        "node_id": node_id,
-                        "fault_class": "watchdog_timeout",
-                        "action": "recover_hold_position",
-                        "target_angle": float(self.safety_profile["watchdog_hold_angle"]),
-                        "compliance": float(self.safety_profile["max_compliance"]),
-                    }
+                    self._resolve_recovery_action(
+                        "watchdog_timeout",
+                        node_id=node_id,
+                        action_spec=watchdog_action,
+                    )
                 )
                 seen_node_ids.add(node_id)
         for node_id, node_summary in summary["per_node"].items():
             fault_class = node_summary["fault_class"]
             if fault_class == "ok" or node_id in seen_node_ids:
                 continue
-            if fault_class == "overload":
-                actions.append(
-                    {
-                        "node_id": node_id,
-                        "fault_class": fault_class,
-                        "action": "recover_hold_position",
-                        "target_angle": float(self.safety_profile["watchdog_hold_angle"]),
-                        "compliance": 0.5,
-                    }
+            action_spec = self.recovery_policy["fault_actions"].get(
+                fault_class,
+                self.recovery_policy["fault_actions"].get(
+                    "unknown_fault",
+                    {"action": "clear_only"},
+                ),
+            )
+            actions.append(
+                self._resolve_recovery_action(
+                    fault_class,
+                    node_id=node_id,
+                    action_spec=action_spec,
                 )
-            elif fault_class == "overcurrent":
-                actions.append(
-                    {
-                        "node_id": node_id,
-                        "fault_class": fault_class,
-                        "action": "recover_relaxed_hold",
-                        "target_angle": float(self.safety_profile["watchdog_hold_angle"]),
-                        "compliance": float(self.safety_profile["min_compliance"]),
-                    }
-                )
-            elif fault_class == "sensor_fault":
-                actions.append(
-                    {
-                        "node_id": node_id,
-                        "fault_class": fault_class,
-                        "action": "clear_only",
-                    }
-                )
-            elif fault_class == "communication_fault":
-                actions.append(
-                    {
-                        "node_id": node_id,
-                        "fault_class": fault_class,
-                        "action": "rediscover_node",
-                    }
-                )
-            else:
-                actions.append(
-                    {
-                        "node_id": node_id,
-                        "fault_class": fault_class,
-                        "action": "clear_only",
-                    }
-                )
+            )
         return {
             "schema_version": IMC22_FAULT_SUMMARY_SCHEMA_VERSION,
+            "recovery_policy_schema_version": self.recovery_policy["schema_version"],
+            "recovery_policy_source": self.recovery_policy_source,
             "status": "ready" if actions else "noop",
             "actions": actions,
             "fault_summary": summary,

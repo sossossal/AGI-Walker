@@ -30,6 +30,10 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--fault-table-file",
         help="Optional vendor fault table JSON file.",
     )
+    parser.add_argument(
+        "--recovery-policy-file",
+        help="Optional vendor recovery policy JSON file.",
+    )
     parser.add_argument("--replay-source", help="Replay fixture path override.")
     parser.add_argument("--channel", help="Transport channel override.")
     parser.add_argument("--serial-port", help="Serial bridge port override.")
@@ -63,6 +67,7 @@ def _load_profile(args: argparse.Namespace) -> dict[str, Any]:
         "baudrate": args.baudrate,
         "bitrate": args.bitrate,
         "fault_table_source": args.fault_table_file,
+        "recovery_policy_source": args.recovery_policy_file,
     }.items():
         if value is not None:
             profile[key] = value

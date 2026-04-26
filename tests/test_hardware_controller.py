@@ -21,6 +21,9 @@ SERIAL_REPLAY_FIXTURE = (
 FAULT_TABLE_FIXTURE = (
     Path(__file__).with_name("fixtures") / "imc22_reflex_fault_table.json"
 )
+RECOVERY_POLICY_FIXTURE = (
+    Path(__file__).with_name("fixtures") / "imc22_reflex_recovery_policy.json"
+)
 
 
 class FakeMessage:
@@ -86,6 +89,17 @@ class TestIMC22Controller:
 
         assert fault_table["vendor"] == "imc22_reflex"
         assert fault_table["exact_codes"][95] == "communication_fault"
+
+    def test_default_recovery_policy_is_valid(self) -> None:
+        recovery_policy = hw.default_imc22_recovery_policy()
+
+        assert hw.validate_imc22_recovery_policy(recovery_policy) == []
+        assert recovery_policy["vendor"] == "imc22_reflex"
+
+    def test_load_recovery_policy_fixture(self) -> None:
+        recovery_policy = hw.load_imc22_recovery_policy(RECOVERY_POLICY_FIXTURE)
+
+        assert recovery_policy["fault_actions"]["overcurrent"]["action"] == "clear_only"
 
     def test_default_safety_profile_is_valid(self) -> None:
         profile = hw.default_imc22_safety_profile()
@@ -166,6 +180,24 @@ class TestIMC22Controller:
         try:
             assert controller.fault_table_source == str(FAULT_TABLE_FIXTURE)
             assert controller.fault_table["vendor"] == "imc22_reflex"
+        finally:
+            controller.close()
+
+    def test_transport_profile_loads_external_recovery_policy(self) -> None:
+        controller = hw.IMC22Controller.from_transport_profile(
+            {
+                **hw.default_imc22_transport_profile("replay"),
+                "replay_source": REPLAY_FIXTURE,
+                "recovery_policy_source": RECOVERY_POLICY_FIXTURE,
+            }
+        )
+
+        try:
+            assert controller.recovery_policy_source == str(RECOVERY_POLICY_FIXTURE)
+            assert (
+                controller.recovery_policy["fault_actions"]["overcurrent"]["action"]
+                == "clear_only"
+            )
         finally:
             controller.close()
 
@@ -392,6 +424,21 @@ class TestIMC22Controller:
         assert actions[1]["action"] == "recover_hold_position"
         assert actions[2]["action"] == "recover_relaxed_hold"
         assert actions[3]["action"] == "rediscover_node"
+
+    def test_build_recovery_plan_uses_external_recovery_policy(
+        self, fake_can_runtime
+    ) -> None:
+        controller = hw.IMC22Controller(
+            recovery_policy=hw.load_imc22_recovery_policy(RECOVERY_POLICY_FIXTURE)
+        )
+        controller._known_node_ids = {2}
+        controller.node_states = {
+            2: {"node_id": 2, "angle": 0.0, "current": 0.2, "error": 45.0},
+        }
+
+        plan = controller.build_recovery_plan()
+
+        assert plan["actions"][0]["action"] == "clear_only"
 
     def test_recover_by_fault_class_executes_fault_specific_actions(
         self, fake_can_runtime

@@ -16,6 +16,7 @@ AGI-Walker 是一个面向机器人设计、仿真、工作流编排和 Web/Godo
 - `IMC-22 Transport Profiles`：统一 `socketcan / pcan / replay / serial_bridge` 的控制器构造 contract，其中 `serial_bridge` 复用 `RealRobotDriver` 作为最小串口桥。
 - `Hardware Transport Diagnostics`：提供 `tools/run_hardware_transport_diagnostics.py`，可对 replay / CAN / serial bridge profile 做结构化预检。
 - `Hardware Fault Telemetry Export`：transport diagnostics 现可加载外置 fault table，并导出原始错误值到 fault class 的对照报告。
+- `Hardware Recovery Policy`：controller 现可加载外置 recovery policy，把 fault class 到恢复动作的映射配置化。
 - `Hardware Safety Controls`：IMC-22 controller 增加限幅、watchdog 和显式恢复接口，先在 controller 层 fail-closed。
 - `Hardware Fault Recovery`：节点错误值会按 vendor-specific fault table 映射到标准 fault class，并支持按 fault 类型分级恢复。
 - `Distributed / Smoke`：仓库内置 CLI、workflow、Web、distributed 和可选的 Godot headless smoke 测试。

@@ -226,6 +226,7 @@ replay_env.close()
 - 恢复接口：`clear_faults()` / `recover()`
 - 错误分类：`ok / overload / overcurrent / sensor_fault / communication_fault`
 - vendor-specific fault table：默认 `imc22_reflex`，优先按 exact code 映射，再按 range 兜底
+- vendor-specific recovery policy：默认 `imc22_reflex`，支持把 fault class 到恢复动作的映射外置到 JSON
 - 分级恢复：`build_recovery_plan()` / `recover_by_fault_class()`
 
 也就是说，在进入真实设备前，仓库现在至少能先验证：
@@ -297,6 +298,7 @@ python tools/run_hardware_transport_diagnostics.py --transport replay --replay-s
 这条链现在支持：
 
 - `fault_table_source`：从 JSON 文件加载 vendor-specific fault table
+- `recovery_policy_source`：从 JSON 文件加载 vendor-specific recovery policy
 - `fault_telemetry_report.entries[].raw_error_value`：保留原始错误值
 - `fault_telemetry_report.entries[].fault_class`：保留映射后的标准 fault class
 

@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "vendor": "imc22_reflex",
+  "watchdog_action": {
+    "action": "recover_hold_position",
+    "target_angle_mode": "watchdog_hold_angle",
+    "compliance_mode": "max_compliance"
+  },
+  "fault_actions": {
+    "overload": {
+      "action": "recover_hold_position",
+      "target_angle_mode": "watchdog_hold_angle",
+      "compliance_mode": "fixed",
+      "fixed_compliance": 0.5
+    },
+    "overcurrent": {
+      "action": "recover_relaxed_hold",
+      "target_angle_mode": "watchdog_hold_angle",
+      "compliance_mode": "min_compliance"
+    },
+    "sensor_fault": {
+      "action": "clear_only"
+    },
+    "communication_fault": {
+      "action": "rediscover_node"
+    },
+    "unknown_fault": {
+      "action": "clear_only"
+    }
+  }
+}
