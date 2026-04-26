@@ -42,6 +42,12 @@ def fake_can_runtime(monkeypatch):
 
 
 class TestIMC22Controller:
+    def test_default_fault_table_is_valid(self) -> None:
+        fault_table = hw.default_imc22_fault_table()
+
+        assert hw.validate_imc22_fault_table(fault_table) == []
+        assert fault_table["vendor"] == "imc22_reflex"
+
     def test_fault_classifier_thresholds(self) -> None:
         assert hw.classify_imc22_fault(0.0) == "ok"
         assert hw.classify_imc22_fault(5.0) == "unknown_fault"
@@ -49,6 +55,28 @@ class TestIMC22Controller:
         assert hw.classify_imc22_fault(45.0) == "overcurrent"
         assert hw.classify_imc22_fault(75.0) == "sensor_fault"
         assert hw.classify_imc22_fault(95.0) == "communication_fault"
+
+    def test_fault_classifier_prefers_exact_vendor_codes(self) -> None:
+        fault_table = hw.default_imc22_fault_table()
+        fault_table["exact_codes"][51] = "sensor_fault"
+        fault_table["ranges"] = [
+            {"min": 50.0, "max": 59.999, "fault_class": "overcurrent"}
+        ]
+
+        assert (
+            hw.classify_imc22_fault(51.0, fault_table=fault_table)
+            == "sensor_fault"
+        )
+
+    def test_invalid_fault_table_rejected(self) -> None:
+        errors = hw.validate_imc22_fault_table(
+            {
+                **hw.default_imc22_fault_table(),
+                "fallback_fault_class": "not_a_fault",
+            }
+        )
+
+        assert "fault_table.fallback_fault_class must be a valid fault class" in errors
 
     def test_default_safety_profile_is_valid(self) -> None:
         profile = hw.default_imc22_safety_profile()
@@ -71,6 +99,7 @@ class TestIMC22Controller:
         serial_bridge = hw.default_imc22_transport_profile("serial_bridge")
 
         assert socketcan["transport"] == "socketcan"
+        assert socketcan["fault_vendor"] == "imc22_reflex"
         assert socketcan["channel"] == "can0"
         assert socketcan["bustype"] == "socketcan"
         assert pcan["channel"] == "PCAN_USBBUS1"
@@ -284,10 +313,30 @@ class TestIMC22Controller:
         }
         summary = controller.get_fault_summary()
 
+        assert summary["fault_vendor"] == "imc22_reflex"
         assert summary["fault_counts"]["overload"] == 1
         assert summary["fault_counts"]["overcurrent"] == 1
         assert summary["fault_counts"]["communication_fault"] == 1
         assert summary["per_node"][2]["fault_class"] == "overcurrent"
+
+    def test_fault_summary_supports_custom_vendor_fault_table(self, fake_can_runtime) -> None:
+        controller = hw.IMC22Controller(
+            fault_vendor="imc22_reflex",
+            fault_table={
+                **hw.default_imc22_fault_table(),
+                "exact_codes": {
+                    **hw.default_imc22_fault_table()["exact_codes"],
+                    55: "sensor_fault",
+                },
+            },
+        )
+        controller.node_states = {
+            1: {"node_id": 1, "angle": 0.0, "current": 0.1, "error": 55.0},
+        }
+
+        summary = controller.get_fault_summary()
+
+        assert summary["per_node"][1]["fault_class"] == "sensor_fault"
 
     def test_build_recovery_plan_is_fault_specific(self, fake_can_runtime) -> None:
         controller = hw.IMC22Controller()

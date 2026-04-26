@@ -225,6 +225,7 @@ replay_env.close()
 - watchdog 保持位：`watchdog_hold_angle`
 - 恢复接口：`clear_faults()` / `recover()`
 - 错误分类：`ok / overload / overcurrent / sensor_fault / communication_fault`
+- vendor-specific fault table：默认 `imc22_reflex`，优先按 exact code 映射，再按 range 兜底
 - 分级恢复：`build_recovery_plan()` / `recover_by_fault_class()`
 
 也就是说，在进入真实设备前，仓库现在至少能先验证：
@@ -232,7 +233,7 @@ replay_env.close()
 - 越界目标角会被限制
 - 过期命令会触发 hold-angle 安全回退
 - fault 状态可显式清除或重新下发恢复命令
-- 节点错误值会被收敛成 machine-readable fault class
+- 节点错误值会按 vendor-specific fault table 收敛成 machine-readable fault class
 - 不同 fault class 会走不同恢复动作，而不是统一 recover
 
 ROS2 一期指令集模拟控制面现已提供：

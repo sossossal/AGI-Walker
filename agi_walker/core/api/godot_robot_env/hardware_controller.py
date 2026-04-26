@@ -26,6 +26,7 @@ IMC22_TRANSPORT_PROFILE_SCHEMA_VERSION = "1.0"
 IMC22_TRANSPORT_DIAGNOSTICS_SCHEMA_VERSION = "1.0"
 IMC22_SAFETY_PROFILE_SCHEMA_VERSION = "1.0"
 IMC22_FAULT_SUMMARY_SCHEMA_VERSION = "1.0"
+IMC22_FAULT_TABLE_SCHEMA_VERSION = "1.0"
 SUPPORTED_IMC22_TRANSPORTS = {
     "socketcan",
     "pcan",
@@ -106,18 +107,125 @@ def validate_imc22_safety_profile(profile: Dict[str, Any]) -> List[str]:
     return errors
 
 
-def classify_imc22_fault(error_value: float) -> str:
+def default_imc22_fault_table(vendor: str = "imc22_reflex") -> Dict[str, Any]:
+    if vendor != "imc22_reflex":
+        raise ValueError(
+            f"Unsupported IMC-22 fault vendor {vendor!r}; expected 'imc22_reflex'"
+        )
+    return {
+        "schema_version": IMC22_FAULT_TABLE_SCHEMA_VERSION,
+        "vendor": vendor,
+        "exact_codes": {
+            0: "ok",
+            11: "overload",
+            12: "overload",
+            41: "overcurrent",
+            45: "overcurrent",
+            71: "sensor_fault",
+            75: "sensor_fault",
+            91: "communication_fault",
+            95: "communication_fault",
+        },
+        "ranges": [
+            {"min": 90.0, "max": None, "fault_class": "communication_fault"},
+            {"min": 70.0, "max": 89.999, "fault_class": "sensor_fault"},
+            {"min": 40.0, "max": 69.999, "fault_class": "overcurrent"},
+            {"min": 10.0, "max": 39.999, "fault_class": "overload"},
+        ],
+        "fallback_fault_class": "unknown_fault",
+    }
+
+
+def normalize_imc22_fault_table(
+    fault_table: Optional[Dict[str, Any]] = None,
+    *,
+    vendor: str = "imc22_reflex",
+) -> Dict[str, Any]:
+    normalized = default_imc22_fault_table(vendor)
+    if fault_table:
+        normalized.update(fault_table)
+    return normalized
+
+
+def validate_imc22_fault_table(fault_table: Dict[str, Any]) -> List[str]:
+    errors: List[str] = []
+    if not isinstance(fault_table, dict):
+        return ["fault table must be a dict"]
+    if fault_table.get("schema_version") != IMC22_FAULT_TABLE_SCHEMA_VERSION:
+        errors.append(
+            "fault_table.schema_version must be "
+            f"{IMC22_FAULT_TABLE_SCHEMA_VERSION!r}"
+        )
+    vendor = fault_table.get("vendor")
+    if not isinstance(vendor, str) or not vendor:
+        errors.append("fault_table.vendor must be a non-empty string")
+    exact_codes = fault_table.get("exact_codes")
+    if not isinstance(exact_codes, dict):
+        errors.append("fault_table.exact_codes must be a dict")
+    else:
+        for code, fault_class in exact_codes.items():
+            if not isinstance(code, int):
+                errors.append("fault_table.exact_codes keys must be ints")
+            if fault_class not in IMC22_FAULT_CLASSES:
+                errors.append(
+                    "fault_table.exact_codes values must be valid fault classes"
+                )
+    ranges = fault_table.get("ranges")
+    if not isinstance(ranges, list):
+        errors.append("fault_table.ranges must be a list")
+    else:
+        for index, entry in enumerate(ranges):
+            if not isinstance(entry, dict):
+                errors.append(f"fault_table.ranges[{index}] must be a dict")
+                continue
+            fault_class = entry.get("fault_class")
+            if fault_class not in IMC22_FAULT_CLASSES:
+                errors.append(
+                    f"fault_table.ranges[{index}].fault_class must be a valid fault class"
+                )
+            min_value = entry.get("min")
+            max_value = entry.get("max")
+            if min_value is not None and not isinstance(min_value, (int, float)):
+                errors.append(f"fault_table.ranges[{index}].min must be numeric or null")
+            if max_value is not None and not isinstance(max_value, (int, float)):
+                errors.append(f"fault_table.ranges[{index}].max must be numeric or null")
+            if isinstance(min_value, (int, float)) and isinstance(max_value, (int, float)):
+                if float(min_value) > float(max_value):
+                    errors.append(
+                        f"fault_table.ranges[{index}].min must be <= max"
+                    )
+    fallback_fault_class = fault_table.get("fallback_fault_class")
+    if fallback_fault_class not in IMC22_FAULT_CLASSES:
+        errors.append("fault_table.fallback_fault_class must be a valid fault class")
+    return errors
+
+
+def classify_imc22_fault(
+    error_value: float,
+    *,
+    vendor: str = "imc22_reflex",
+    fault_table: Optional[Dict[str, Any]] = None,
+) -> str:
     if error_value <= 0.0:
         return "ok"
-    if error_value >= 90.0:
-        return "communication_fault"
-    if error_value >= 70.0:
-        return "sensor_fault"
-    if error_value >= 40.0:
-        return "overcurrent"
-    if error_value >= 10.0:
-        return "overload"
-    return "unknown_fault"
+    normalized = normalize_imc22_fault_table(fault_table, vendor=vendor)
+    errors = validate_imc22_fault_table(normalized)
+    if errors:
+        raise ValueError("; ".join(errors))
+    rounded_code = round(float(error_value))
+    if abs(float(error_value) - rounded_code) < 1e-6:
+        exact_match = normalized["exact_codes"].get(int(rounded_code))
+        if exact_match:
+            return exact_match
+    for entry in normalized["ranges"]:
+        min_value = entry.get("min")
+        max_value = entry.get("max")
+        if min_value is not None and float(error_value) < float(min_value):
+            continue
+        if max_value is not None and float(error_value) > float(max_value):
+            continue
+        return entry["fault_class"]
+    return normalized["fallback_fault_class"]
 
 
 class ReplayCANMessage:
@@ -197,6 +305,7 @@ def default_imc22_transport_profile(transport: str = "socketcan") -> Dict[str, A
         "channel": "can0",
         "bustype": "socketcan",
         "bitrate": 1_000_000,
+        "fault_vendor": "imc22_reflex",
     }
     if transport == "pcan":
         profile.update(
@@ -258,6 +367,8 @@ def validate_imc22_transport_profile(profile: Dict[str, Any]) -> List[str]:
 
     if not isinstance(profile.get("channel"), str) or not profile["channel"]:
         errors.append("transport_profile.channel must be a non-empty string")
+    if not isinstance(profile.get("fault_vendor"), str) or not profile["fault_vendor"]:
+        errors.append("transport_profile.fault_vendor must be a non-empty string")
     if not isinstance(profile.get("bustype"), str) or not profile["bustype"]:
         errors.append("transport_profile.bustype must be a non-empty string")
 
@@ -367,6 +478,7 @@ def create_imc22_controller_from_transport_profile(
         return IMC22Controller.from_replay(
             normalized["replay_source"],
             message_factory=message_factory,
+            fault_vendor=normalized["fault_vendor"],
         )
     if transport == "serial_bridge":
         return IMC22Controller(
@@ -381,6 +493,7 @@ def create_imc22_controller_from_transport_profile(
                 message_factory=message_factory or ReplayCANMessage,
             ),
             message_factory=message_factory or ReplayCANMessage,
+            fault_vendor=normalized["fault_vendor"],
         )
     return IMC22Controller(
         channel=normalized["channel"],
@@ -388,6 +501,7 @@ def create_imc22_controller_from_transport_profile(
         bitrate=normalized["bitrate"],
         bus=bus,
         message_factory=message_factory,
+        fault_vendor=normalized["fault_vendor"],
     )
 
 
@@ -787,6 +901,8 @@ class IMC22Controller:
         bus=None,
         message_factory=None,
         safety_profile: Optional[Dict[str, Any]] = None,
+        fault_vendor: str = "imc22_reflex",
+        fault_table: Optional[Dict[str, Any]] = None,
     ):
         """
         初始化硬件控制器
@@ -821,6 +937,14 @@ class IMC22Controller:
         errors = validate_imc22_safety_profile(self.safety_profile)
         if errors:
             raise ValueError("; ".join(errors))
+        self.fault_vendor = fault_vendor
+        self.fault_table = normalize_imc22_fault_table(
+            fault_table,
+            vendor=fault_vendor,
+        )
+        fault_table_errors = validate_imc22_fault_table(self.fault_table)
+        if fault_table_errors:
+            raise ValueError("; ".join(fault_table_errors))
         self.last_command_at: Optional[float] = None
         self.last_command_details: Optional[Dict[str, Any]] = None
         self.watchdog_tripped_at: Optional[float] = None
@@ -833,6 +957,8 @@ class IMC22Controller:
         replay_source: str | Path | Dict[str, Any],
         *,
         message_factory=ReplayCANMessage,
+        fault_vendor: str = "imc22_reflex",
+        fault_table: Optional[Dict[str, Any]] = None,
     ) -> "IMC22Controller":
         message_factory = message_factory or ReplayCANMessage
         payload = load_imc22_replay_payload(replay_source)
@@ -845,6 +971,8 @@ class IMC22Controller:
                 message_factory=message_factory,
             ),
             message_factory=message_factory,
+            fault_vendor=fault_vendor,
+            fault_table=fault_table,
         )
 
     @classmethod
@@ -998,6 +1126,7 @@ class IMC22Controller:
             "last_command_details": self.last_command_details,
             "known_node_ids": sorted(self._known_node_ids),
             "safety_profile": dict(self.safety_profile),
+            "fault_vendor": self.fault_vendor,
             "fault_summary": self.get_fault_summary(),
         }
 
@@ -1005,7 +1134,11 @@ class IMC22Controller:
         per_node: Dict[int, Dict[str, Any]] = {}
         fault_counts: Dict[str, int] = {}
         for node_id, status in sorted(self.node_states.items()):
-            fault_class = classify_imc22_fault(float(status.get("error", 0.0)))
+            fault_class = classify_imc22_fault(
+                float(status.get("error", 0.0)),
+                vendor=self.fault_vendor,
+                fault_table=self.fault_table,
+            )
             per_node[node_id] = {
                 "fault_class": fault_class,
                 "error": float(status.get("error", 0.0)),
@@ -1019,6 +1152,8 @@ class IMC22Controller:
             )
         return {
             "schema_version": IMC22_FAULT_SUMMARY_SCHEMA_VERSION,
+            "fault_table_schema_version": self.fault_table["schema_version"],
+            "fault_vendor": self.fault_vendor,
             "fault_counts": fault_counts,
             "per_node": per_node,
             "watchdog_tripped": self.watchdog_tripped_at is not None,
