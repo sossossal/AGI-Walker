@@ -24,9 +24,11 @@
         .timeline-group-title { font-size: 1rem; font-weight: 700; margin-bottom: 12px; }
         .timeline-list { display: grid; gap: 10px; }
         .timeline-item { background: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; }
+        .timeline-item.selected { border-color: #60a5fa; box-shadow: 0 0 0 1px #60a5fa inset; }
         .timeline-item-header { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
         .timeline-item-title { font-weight: 700; }
         .timeline-item-meta { color: #93c5fd; font-size: 0.88rem; }
+        .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         pre { margin: 0; white-space: pre-wrap; word-break: break-word; background: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; }
         .empty { color: #94a3b8; }
     </style>
@@ -61,6 +63,13 @@
                 <div class="field">
                     <label for="timeline-note-filter">Note</label>
                     <input id="timeline-note-filter" type="text" placeholder="按 note 模糊搜索" />
+                </div>
+                <div class="field">
+                    <label for="timeline-note-exact-filter">Note Match</label>
+                    <select id="timeline-note-exact-filter">
+                        <option value="false">contains</option>
+                        <option value="true">exact</option>
+                    </select>
                 </div>
                 <div class="field">
                     <label for="timeline-kind-filter">Kind</label>
@@ -98,6 +107,7 @@
                 <button class="button secondary" id="timeline-apply-button" type="button">刷新 Timeline</button>
                 <button class="button secondary" id="timeline-export-json-button" type="button">导出 JSON</button>
                 <button class="button secondary" id="timeline-export-csv-button" type="button">导出 CSV</button>
+                <button class="button secondary" id="timeline-clear-compare-button" type="button">清空 Compare</button>
             </div>
         </section>
 
@@ -117,6 +127,25 @@
             <p class="empty" id="timeline-status">尚未加载 timeline。</p>
             <div id="timeline-groups"></div>
         </section>
+
+        <section class="panel">
+            <h2>Compare</h2>
+            <p class="empty" id="timeline-compare-status">选择两条记录后自动比较。</p>
+            <div class="compare-grid">
+                <div class="field">
+                    <label for="timeline-compare-left">Left Entry</label>
+                    <pre id="timeline-compare-left">{}</pre>
+                </div>
+                <div class="field">
+                    <label for="timeline-compare-right">Right Entry</label>
+                    <pre id="timeline-compare-right">{}</pre>
+                </div>
+            </div>
+            <div class="field" style="margin-top: 12px;">
+                <label for="timeline-compare-diff">Diff Summary</label>
+                <pre id="timeline-compare-diff">[]</pre>
+            </div>
+        </section>
     </div>
 
     <script>
@@ -124,6 +153,7 @@
         const timelineOperatorFilterInput = document.getElementById('timeline-operator-filter');
         const timelineTagFilterInput = document.getElementById('timeline-tag-filter');
         const timelineNoteFilterInput = document.getElementById('timeline-note-filter');
+        const timelineNoteExactFilterInput = document.getElementById('timeline-note-exact-filter');
         const timelineKindFilterInput = document.getElementById('timeline-kind-filter');
         const timelineRouteModeFilterInput = document.getElementById('timeline-route-mode-filter');
         const timelineCreatedAfterInput = document.getElementById('timeline-created-after');
@@ -132,10 +162,15 @@
         const timelineGroupsNode = document.getElementById('timeline-groups');
         const timelineStatusNode = document.getElementById('timeline-status');
         const timelineSummaryNode = document.getElementById('timeline-summary-response');
+        const timelineCompareStatusNode = document.getElementById('timeline-compare-status');
+        const timelineCompareLeftNode = document.getElementById('timeline-compare-left');
+        const timelineCompareRightNode = document.getElementById('timeline-compare-right');
+        const timelineCompareDiffNode = document.getElementById('timeline-compare-diff');
         const timelineTotalEntriesNode = document.getElementById('timeline-total-entries');
         const timelineSessionCountNode = document.getElementById('timeline-session-count');
         const timelineKindSummaryNode = document.getElementById('timeline-kind-summary');
         const timelineRouteSummaryNode = document.getElementById('timeline-route-summary');
+        const compareState = { selected: [] };
 
         async function getJson(url) {
             const response = await fetch(url);
@@ -150,6 +185,7 @@
                 operator: timelineOperatorFilterInput.value || '',
                 tag: timelineTagFilterInput.value || '',
                 note: timelineNoteFilterInput.value || '',
+                note_exact: timelineNoteExactFilterInput.value || 'false',
                 kind: timelineKindFilterInput.value || '',
                 route_mode: timelineRouteModeFilterInput.value || '',
                 created_after: timelineCreatedAfterInput.value || '',
@@ -164,6 +200,7 @@
             if (filters.operator) params.set('operator', filters.operator);
             if (filters.tag) params.set('tag', filters.tag);
             if (filters.note) params.set('note', filters.note);
+            params.set('note_exact', filters.note_exact);
             if (filters.kind) params.set('kind', filters.kind);
             if (filters.route_mode) params.set('route_mode', filters.route_mode);
             if (filters.created_after) params.set('created_after', new Date(filters.created_after).toISOString());
@@ -187,10 +224,97 @@
                 : '-';
         }
 
+        function summarizeEntry(entry) {
+            return {
+                entry_id: entry.entry_id,
+                session_id: entry.session_id,
+                kind: entry.kind,
+                route_mode: entry.payload?.route_mode || entry.route_mode || null,
+                operator: entry.operator || null,
+                tag: entry.tag || null,
+                note: entry.note || null,
+                audit_username: entry.audit_username || null,
+                created_at: entry.created_at || null,
+                payload: entry.payload || {},
+            };
+        }
+
+        function buildDiffSummary(left, right) {
+            const diff = [];
+            const topLevelKeys = new Set([
+                ...Object.keys(left || {}),
+                ...Object.keys(right || {}),
+            ]);
+            for (const key of topLevelKeys) {
+                if (JSON.stringify(left?.[key] ?? null) !== JSON.stringify(right?.[key] ?? null)) {
+                    diff.push({
+                        field: key,
+                        left: left?.[key] ?? null,
+                        right: right?.[key] ?? null,
+                    });
+                }
+            }
+            const payloadKeys = new Set([
+                ...Object.keys((left && left.payload) || {}),
+                ...Object.keys((right && right.payload) || {}),
+            ]);
+            for (const key of payloadKeys) {
+                if (JSON.stringify(left?.payload?.[key] ?? null) !== JSON.stringify(right?.payload?.[key] ?? null)) {
+                    diff.push({
+                        field: `payload.${key}`,
+                        left: left?.payload?.[key] ?? null,
+                        right: right?.payload?.[key] ?? null,
+                    });
+                }
+            }
+            return diff;
+        }
+
+        function renderCompare() {
+            const [left, right] = compareState.selected;
+            timelineCompareLeftNode.textContent = JSON.stringify(left ? summarizeEntry(left) : {}, null, 2);
+            timelineCompareRightNode.textContent = JSON.stringify(right ? summarizeEntry(right) : {}, null, 2);
+            if (!left || !right) {
+                timelineCompareStatusNode.textContent = '选择两条记录后自动比较。';
+                timelineCompareDiffNode.textContent = '[]';
+                return;
+            }
+            timelineCompareStatusNode.textContent = `Comparing ${left.entry_id} ↔ ${right.entry_id}`;
+            timelineCompareDiffNode.textContent = JSON.stringify(
+                buildDiffSummary(summarizeEntry(left), summarizeEntry(right)),
+                null,
+                2,
+            );
+        }
+
+        function toggleCompareEntry(entry, element) {
+            const existingIndex = compareState.selected.findIndex((item) => item.entry_id === entry.entry_id);
+            if (existingIndex >= 0) {
+                compareState.selected.splice(existingIndex, 1);
+                element.classList.remove('selected');
+                renderCompare();
+                return;
+            }
+            if (compareState.selected.length >= 2) {
+                compareState.selected.shift();
+                document.querySelectorAll('.timeline-item.selected').forEach((node) => {
+                    const entryId = node.getAttribute('data-entry-id');
+                    if (!compareState.selected.find((item) => item.entry_id === entryId)) {
+                        node.classList.remove('selected');
+                    }
+                });
+            }
+            compareState.selected.push(entry);
+            element.classList.add('selected');
+            renderCompare();
+        }
+
         function renderTimeline(entries) {
             timelineGroupsNode.innerHTML = '';
             if (!entries.length) {
                 timelineStatusNode.textContent = '没有匹配的 timeline 条目。';
+                compareState.selected = [];
+                renderCompare();
                 return;
             }
             timelineStatusNode.textContent = `已加载 ${entries.length} 条 timeline 记录。`;
@@ -213,6 +337,7 @@
                 group.entries.forEach((entry) => {
                     const item = document.createElement('div');
                     item.className = 'timeline-item';
+                    item.setAttribute('data-entry-id', entry.entry_id);
                     const header = document.createElement('div');
                     header.className = 'timeline-item-header';
                     const titleNode = document.createElement('div');
@@ -224,9 +349,11 @@
                     if (entry.operator) metaParts.push(`operator:${entry.operator}`);
                     if (entry.tag) metaParts.push(`tag:${entry.tag}`);
                     if (entry.note) metaParts.push(`note:${entry.note}`);
+                    if (entry.audit_username) metaParts.push(`audit:${entry.audit_username}`);
                     metaNode.textContent = metaParts.join(' · ');
                     const body = document.createElement('pre');
                     body.textContent = JSON.stringify(entry.payload || {}, null, 2);
+                    item.addEventListener('click', () => toggleCompareEntry(entry, item));
                     header.appendChild(titleNode);
                     header.appendChild(metaNode);
                     item.appendChild(header);
@@ -258,6 +385,11 @@
         }
 
         document.getElementById('timeline-apply-button').addEventListener('click', refreshTimeline);
+        document.getElementById('timeline-clear-compare-button').addEventListener('click', () => {
+            compareState.selected = [];
+            document.querySelectorAll('.timeline-item.selected').forEach((node) => node.classList.remove('selected'));
+            renderCompare();
+        });
         document.getElementById('timeline-export-json-button').addEventListener('click', () => {
             const params = buildParams(currentFilters());
             window.open(`/api/godot/history/export?format=json&${params.toString()}`, '_blank');

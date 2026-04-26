@@ -322,6 +322,7 @@ def test_core_panel_routes_smoke():
     assert 'id="history-operator-filter"' in response.text
     assert 'id="history-tag-filter"' in response.text
     assert 'id="history-note-filter"' in response.text
+    assert 'id="history-note-exact-filter"' in response.text
     assert 'id="history-sort-by-filter"' in response.text
     assert 'id="history-sort-order-filter"' in response.text
     assert 'id="export-history-json-button"' in response.text
@@ -340,6 +341,7 @@ def test_core_panel_routes_smoke():
     assert 'id="timeline-operator-filter"' in response.text
     assert 'id="timeline-tag-filter"' in response.text
     assert 'id="timeline-note-filter"' in response.text
+    assert 'id="timeline-note-exact-filter"' in response.text
     assert 'id="timeline-kind-filter"' in response.text
     assert 'id="timeline-route-mode-filter"' in response.text
     assert 'id="timeline-created-after"' in response.text
@@ -348,8 +350,12 @@ def test_core_panel_routes_smoke():
     assert 'id="timeline-apply-button"' in response.text
     assert 'id="timeline-export-json-button"' in response.text
     assert 'id="timeline-export-csv-button"' in response.text
+    assert 'id="timeline-clear-compare-button"' in response.text
     assert 'id="timeline-summary-response"' in response.text
     assert 'id="timeline-groups"' in response.text
+    assert 'id="timeline-compare-left"' in response.text
+    assert 'id="timeline-compare-right"' in response.text
+    assert 'id="timeline-compare-diff"' in response.text
     assert "/api/godot/history/summary" in response.text
     assert "/api/godot/history/export?format=json" in response.text
 

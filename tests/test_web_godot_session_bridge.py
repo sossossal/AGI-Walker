@@ -9,6 +9,7 @@ pytest.importorskip("fastapi")
 
 from fastapi.testclient import TestClient
 
+import web_panel.godot_session_bridge
 import web_panel.server
 from web_panel.godot_session_bridge import (
     DEFAULT_OPERATOR_HISTORY_PAGE_SIZE,
@@ -93,6 +94,8 @@ def test_godot_bridge_persists_operator_history() -> None:
             {
                 "instruction_set": {"sequence_name": "persist-demo"},
                 "route_mode": "session_bridge",
+                "audit_username": "persist-audit",
+                "audit_source": "bearer",
             },
         )
     )
@@ -123,6 +126,8 @@ def test_godot_bridge_persists_operator_history() -> None:
     assert reloaded_history_payload["history"][0]["operator"] is None
     assert reloaded_history_payload["history"][0]["tag"] is None
     assert reloaded_history_payload["history"][0]["note"] is None
+    assert reloaded_history_payload["history"][1]["audit_username"] == "persist-audit"
+    assert reloaded_history_payload["history"][1]["audit_source"] == "bearer"
 
     clear_payload = asyncio.run(reloaded_bridge.clear_history())
     assert clear_payload["history_count"] == 0
@@ -394,12 +399,18 @@ def test_session_bridge_instruction_and_circuit_routes(
             operator: str | None = None,
             tag: str | None = None,
             note: str | None = None,
+            audit_user_id: int | None = None,
+            audit_username: str | None = None,
+            audit_source: str | None = None,
         ) -> dict[str, object]:
             observed["simulated_circuit"] = simulated_circuit
             observed["simulated_circuit_metadata"] = {
                 "operator": operator,
                 "tag": tag,
                 "note": note,
+                "audit_user_id": audit_user_id,
+                "audit_username": audit_username,
+                "audit_source": audit_source,
             }
             self.simulated_circuit_config = dict(simulated_circuit)
             return {
@@ -416,6 +427,9 @@ def test_session_bridge_instruction_and_circuit_routes(
             operator: str | None = None,
             tag: str | None = None,
             note: str | None = None,
+            audit_user_id: int | None = None,
+            audit_username: str | None = None,
+            audit_source: str | None = None,
         ) -> dict[str, object]:
             observed["instruction_set"] = instruction_set
             observed["compatibility_params"] = compatibility_params or {}
@@ -424,6 +438,9 @@ def test_session_bridge_instruction_and_circuit_routes(
                 "operator": operator,
                 "tag": tag,
                 "note": note,
+                "audit_user_id": audit_user_id,
+                "audit_username": audit_username,
+                "audit_source": audit_source,
             }
             return {
                 "status": "success",
@@ -449,6 +466,7 @@ def test_session_bridge_instruction_and_circuit_routes(
             operator: str | None = None,
             tag: str | None = None,
             note: str | None = None,
+            note_exact: bool = False,
             kind: str | None = None,
             route_mode: str | None = None,
             created_after=None,
@@ -461,6 +479,7 @@ def test_session_bridge_instruction_and_circuit_routes(
                 "operator": operator,
                 "tag": tag,
                 "note": note,
+                "note_exact": note_exact,
                 "kind": kind,
                 "route_mode": route_mode,
                 "created_after": created_after.isoformat() if created_after else None,
@@ -507,6 +526,17 @@ def test_session_bridge_instruction_and_circuit_routes(
     monkeypatch.setattr(
         web_panel.server._session_manager, "get_or_create", lambda _: fake_bridge
     )
+    async def _fake_audit_identity(_authorization):
+        return {
+            "audit_user_id": 7,
+            "audit_username": "audit-user",
+            "audit_source": "bearer",
+        }
+    monkeypatch.setattr(
+        web_panel.godot_session_bridge,
+        "_resolve_optional_audit_identity",
+        _fake_audit_identity,
+    )
 
     instruction_response = client.post(
         f"/api/godot/{session_id}/instruction-set",
@@ -522,6 +552,7 @@ def test_session_bridge_instruction_and_circuit_routes(
             "tag": "route",
             "note": "route coverage",
         },
+        headers={"Authorization": "Bearer test-token"},
     )
     circuit_response = client.post(
         f"/api/godot/{session_id}/simulated-circuit",
@@ -534,9 +565,10 @@ def test_session_bridge_instruction_and_circuit_routes(
             "tag": "circuit",
             "note": "circuit coverage",
         },
+        headers={"Authorization": "Bearer test-token"},
     )
     history_response = client.get(
-        f"/api/godot/{session_id}/history?limit=1&offset=0&session_query=route&operator=tester-a&tag=route&note=coverage&kind=instruction_set&route_mode=session_bridge&created_after=2026-04-25T00:00:00&created_before=2026-04-27T00:00:00&sort_by=session_id&sort_order=asc"
+        f"/api/godot/{session_id}/history?limit=1&offset=0&session_query=route&operator=tester-a&tag=route&note=coverage&note_exact=true&kind=instruction_set&route_mode=session_bridge&created_after=2026-04-25T00:00:00&created_before=2026-04-27T00:00:00&sort_by=session_id&sort_order=asc"
     )
     replay_response = client.post(
         f"/api/godot/{session_id}/history/replay",
@@ -559,6 +591,7 @@ def test_session_bridge_instruction_and_circuit_routes(
     assert history_response.json()["filters"]["operator"] == "tester-a"
     assert history_response.json()["filters"]["tag"] == "route"
     assert history_response.json()["filters"]["note"] == "coverage"
+    assert history_response.json()["filters"]["note_exact"] is True
     assert history_response.json()["filters"]["kind"] == "instruction_set"
     assert history_response.json()["filters"]["route_mode"] == "session_bridge"
     assert history_response.json()["filters"]["created_after"] == "2026-04-25T00:00:00"
@@ -569,6 +602,7 @@ def test_session_bridge_instruction_and_circuit_routes(
     assert observed["history_filters"]["operator"] == "tester-a"
     assert observed["history_filters"]["tag"] == "route"
     assert observed["history_filters"]["note"] == "coverage"
+    assert observed["history_filters"]["note_exact"] is True
     assert observed["history_filters"]["kind"] == "instruction_set"
     assert observed["history_filters"]["route_mode"] == "session_bridge"
     assert observed["history_filters"]["sort_by"] == "session_id"
@@ -583,10 +617,16 @@ def test_session_bridge_instruction_and_circuit_routes(
     assert observed["instruction_metadata"]["operator"] == "tester-a"
     assert observed["instruction_metadata"]["tag"] == "route"
     assert observed["instruction_metadata"]["note"] == "route coverage"
+    assert observed["instruction_metadata"]["audit_user_id"] == 7
+    assert observed["instruction_metadata"]["audit_username"] == "audit-user"
+    assert observed["instruction_metadata"]["audit_source"] == "bearer"
     assert observed["simulated_circuit"]["transport"] == "imc22_can_fd"
     assert observed["simulated_circuit_metadata"]["operator"] == "tester-b"
     assert observed["simulated_circuit_metadata"]["tag"] == "circuit"
     assert observed["simulated_circuit_metadata"]["note"] == "circuit coverage"
+    assert observed["simulated_circuit_metadata"]["audit_user_id"] == 7
+    assert observed["simulated_circuit_metadata"]["audit_username"] == "audit-user"
+    assert observed["simulated_circuit_metadata"]["audit_source"] == "bearer"
     assert observed["replayed_entry_id"] == "entry-1"
 
 
@@ -639,6 +679,7 @@ def test_operator_history_summary_across_sessions(client: TestClient) -> None:
                 "operator": "summary-operator-a",
                 "tag": "summary-a",
                 "note": "alpha note",
+                "audit_username": "audit-a",
             },
         )
     )
@@ -651,24 +692,24 @@ def test_operator_history_summary_across_sessions(client: TestClient) -> None:
                 "operator": "summary-operator-b",
                 "tag": "summary-b",
                 "note": "beta note",
+                "audit_username": "audit-b",
             },
         )
     )
 
-    response = client.get("/api/godot/history/summary")
+    response = client.get("/api/godot/history/summary?note=alpha%20note&note_exact=true")
 
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "success"
     assert payload["history_storage"] == "database"
-    assert payload["total_entries"] >= 2
-    assert payload["session_count"] >= 2
+    assert payload["total_entries"] >= 1
+    assert payload["session_count"] >= 1
+    assert payload["filters"]["note"] == "alpha note"
+    assert payload["filters"]["note_exact"] is True
     assert payload["kind_counts"]["instruction_set"] >= 1
-    assert payload["kind_counts"]["simulated_circuit"] >= 1
     assert payload["route_mode_counts"]["session_bridge"] >= 1
-    assert payload["route_mode_counts"]["legacy"] >= 1
     assert any(item["session_id"] == session_a for item in payload["sessions"])
-    assert any(item["session_id"] == session_b for item in payload["sessions"])
 
     asyncio.run(bridge_a.clear_history())
     asyncio.run(bridge_b.clear_history())
@@ -681,6 +722,7 @@ def test_operator_history_summary_across_sessions(client: TestClient) -> None:
                 "operator": "summary-operator-a",
                 "tag": "summary-a",
                 "note": "alpha note",
+                "audit_username": "audit-a",
             },
         )
     )
@@ -693,6 +735,7 @@ def test_operator_history_summary_across_sessions(client: TestClient) -> None:
                 "operator": "summary-operator-b",
                 "tag": "summary-b",
                 "note": "beta note",
+                "audit_username": "audit-b",
             },
         )
     )
@@ -717,6 +760,7 @@ def test_operator_history_summary_across_sessions(client: TestClient) -> None:
     assert all(item["operator"] == "summary-operator-b" for item in payload["history"])
     assert all(item["tag"] == "summary-b" for item in payload["history"])
     assert all("beta" in (item["note"] or "") for item in payload["history"])
+    assert all(item["audit_username"] == "audit-b" for item in payload["history"])
 
     asyncio.run(bridge_a.clear_history())
     asyncio.run(bridge_b.clear_history())

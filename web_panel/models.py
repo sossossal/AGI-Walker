@@ -173,6 +173,9 @@ class OperatorHistoryEntry(Base):
     operator: Mapped[Optional[str]] = mapped_column(String(96), nullable=True, index=True)
     tag: Mapped[Optional[str]] = mapped_column(String(96), nullable=True, index=True)
     note: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    audit_user_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    audit_username: Mapped[Optional[str]] = mapped_column(String(96), nullable=True, index=True)
+    audit_source: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     payload: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, index=True)
 
@@ -186,6 +189,9 @@ class OperatorHistoryEntry(Base):
             "operator": self.operator,
             "tag": self.tag,
             "note": self.note,
+            "audit_user_id": self.audit_user_id,
+            "audit_username": self.audit_username,
+            "audit_source": self.audit_source,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "payload": self.payload,
         }

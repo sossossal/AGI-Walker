@@ -181,6 +181,13 @@
                     <input id="history-note-filter" type="text" placeholder="按 note 模糊搜索" />
                 </div>
                 <div class="field">
+                    <label for="history-note-exact-filter">Note Match</label>
+                    <select id="history-note-exact-filter">
+                        <option value="false">contains</option>
+                        <option value="true">exact</option>
+                    </select>
+                </div>
+                <div class="field">
                     <label for="history-kind-filter">Kind</label>
                     <select id="history-kind-filter">
                         <option value="">全部</option>
@@ -311,6 +318,7 @@
         const historyOperatorFilterInput = document.getElementById('history-operator-filter');
         const historyTagFilterInput = document.getElementById('history-tag-filter');
         const historyNoteFilterInput = document.getElementById('history-note-filter');
+        const historyNoteExactFilterInput = document.getElementById('history-note-exact-filter');
         const historyKindFilterInput = document.getElementById('history-kind-filter');
         const historyRouteModeFilterInput = document.getElementById('history-route-mode-filter');
         const historyAllSessionsFilterInput = document.getElementById('history-all-sessions-filter');
@@ -354,6 +362,7 @@
                 operator: historyOperatorFilterInput.value || '',
                 tag: historyTagFilterInput.value || '',
                 note: historyNoteFilterInput.value || '',
+                note_exact: historyNoteExactFilterInput.value || 'false',
                 kind: historyKindFilterInput.value || '',
                 route_mode: historyRouteModeFilterInput.value || '',
                 created_after: historyCreatedAfterFilterInput.value || '',
@@ -450,6 +459,7 @@
                 ];
                 if (entry.operator) metaParts.push(`operator:${entry.operator}`);
                 if (entry.tag) metaParts.push(`tag:${entry.tag}`);
+                if (entry.audit_username) metaParts.push(`audit:${entry.audit_username}`);
                 meta.textContent = metaParts.join(' · ');
 
                 const body = document.createElement('pre');
@@ -457,6 +467,11 @@
                     operator: entry.operator || null,
                     tag: entry.tag || null,
                     note: entry.note || null,
+                    audit_identity: {
+                        user_id: entry.audit_user_id || null,
+                        username: entry.audit_username || null,
+                        source: entry.audit_source || null,
+                    },
                     payload: entry.payload,
                 }, null, 2);
 
@@ -509,6 +524,7 @@
                 if (filters.operator) params.set('operator', filters.operator);
                 if (filters.tag) params.set('tag', filters.tag);
                 if (filters.note) params.set('note', filters.note);
+                params.set('note_exact', filters.note_exact);
                 if (filters.kind) params.set('kind', filters.kind);
                 if (filters.route_mode) params.set('route_mode', filters.route_mode);
                 if (filters.created_after) params.set('created_after', new Date(filters.created_after).toISOString());
@@ -538,6 +554,7 @@
                 if (filters.operator) params.set('operator', filters.operator);
                 if (filters.tag) params.set('tag', filters.tag);
                 if (filters.note) params.set('note', filters.note);
+                params.set('note_exact', filters.note_exact);
                 if (filters.kind) params.set('kind', filters.kind);
                 if (filters.route_mode) params.set('route_mode', filters.route_mode);
                 if (filters.created_after) params.set('created_after', new Date(filters.created_after).toISOString());
@@ -590,6 +607,7 @@
             if (filters.operator) params.set('operator', filters.operator);
             if (filters.tag) params.set('tag', filters.tag);
             if (filters.note) params.set('note', filters.note);
+            params.set('note_exact', filters.note_exact);
             if (filters.kind) params.set('kind', filters.kind);
             if (filters.route_mode) params.set('route_mode', filters.route_mode);
             if (filters.created_after) params.set('created_after', new Date(filters.created_after).toISOString());
@@ -606,6 +624,7 @@
             if (filters.operator) params.set('operator', filters.operator);
             if (filters.tag) params.set('tag', filters.tag);
             if (filters.note) params.set('note', filters.note);
+            params.set('note_exact', filters.note_exact);
             if (filters.kind) params.set('kind', filters.kind);
             if (filters.route_mode) params.set('route_mode', filters.route_mode);
             if (filters.created_after) params.set('created_after', new Date(filters.created_after).toISOString());

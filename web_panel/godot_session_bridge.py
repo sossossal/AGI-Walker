@@ -14,12 +14,13 @@ from typing import Any, Callable, Dict, List, Literal, Optional
 from sqlalchemy import delete, func, inspect, select, text
 from sqlalchemy.sql import Select
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from agi_walker.core.utils.paths import RuntimePaths
 from web_panel.database import AsyncSessionLocal, engine
-from web_panel.models import OperatorHistoryEntry
+from web_panel.auth import decode_access_token
+from web_panel.models import OperatorHistoryEntry, User
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,9 @@ async def _ensure_operator_history_table() -> None:
                 "operator": "ALTER TABLE operator_history_entries ADD COLUMN operator VARCHAR(96)",
                 "tag": "ALTER TABLE operator_history_entries ADD COLUMN tag VARCHAR(96)",
                 "note": "ALTER TABLE operator_history_entries ADD COLUMN note VARCHAR(512)",
+                "audit_user_id": "ALTER TABLE operator_history_entries ADD COLUMN audit_user_id INTEGER",
+                "audit_username": "ALTER TABLE operator_history_entries ADD COLUMN audit_username VARCHAR(96)",
+                "audit_source": "ALTER TABLE operator_history_entries ADD COLUMN audit_source VARCHAR(32)",
             }
             for column_name, ddl in missing_columns.items():
                 if column_name not in existing_columns:
@@ -121,6 +125,47 @@ def _parse_history_sort_order(raw_value: Optional[str]) -> Literal["asc", "desc"
     return normalized  # type: ignore[return-value]
 
 
+def _parse_note_exact(raw_value: Optional[bool]) -> bool:
+    """Normalize one optional exact-match flag for note filtering."""
+    return bool(raw_value)
+
+
+async def _resolve_optional_audit_identity(
+    authorization: Optional[str],
+) -> Dict[str, Optional[Any]]:
+    """Resolve one optional Bearer token into persisted audit identity fields."""
+    raw_header = _normalize_optional_text(authorization)
+    if not raw_header:
+        return {
+            "audit_user_id": None,
+            "audit_username": None,
+            "audit_source": None,
+        }
+
+    scheme, _, token = raw_header.partition(" ")
+    if scheme.lower() != "bearer" or not token.strip():
+        raise HTTPException(status_code=401, detail="Invalid Authorization header")
+
+    payload = decode_access_token(token.strip())
+    if payload is None or not payload.get("sub"):
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.username == str(payload["sub"]))
+        )
+        user = result.scalar_one_or_none()
+
+    if user is None:
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
+
+    return {
+        "audit_user_id": user.id,
+        "audit_username": user.username,
+        "audit_source": "bearer",
+    }
+
+
 def _apply_history_filters(
     statement: Any,
     *,
@@ -129,6 +174,7 @@ def _apply_history_filters(
     operator: Optional[str] = None,
     tag: Optional[str] = None,
     note: Optional[str] = None,
+    note_exact: bool = False,
     kind: Optional[str] = None,
     route_mode: Optional[str] = None,
     created_after: Optional[datetime] = None,
@@ -146,7 +192,10 @@ def _apply_history_filters(
     if tag:
         statement = statement.where(OperatorHistoryEntry.tag.ilike(f"%{tag}%"))
     if note:
-        statement = statement.where(OperatorHistoryEntry.note.ilike(f"%{note}%"))
+        if note_exact:
+            statement = statement.where(OperatorHistoryEntry.note == note)
+        else:
+            statement = statement.where(OperatorHistoryEntry.note.ilike(f"%{note}%"))
     if kind:
         statement = statement.where(OperatorHistoryEntry.kind == kind)
     if route_mode:
@@ -187,6 +236,7 @@ async def _get_operator_history_listing(
     operator: Optional[str] = None,
     tag: Optional[str] = None,
     note: Optional[str] = None,
+    note_exact: bool = False,
     limit: int = DEFAULT_OPERATOR_HISTORY_PAGE_SIZE,
     offset: int = 0,
     kind: Optional[str] = None,
@@ -208,6 +258,7 @@ async def _get_operator_history_listing(
         operator=operator,
         tag=tag,
         note=note,
+        note_exact=note_exact,
         kind=kind,
         route_mode=route_mode,
         created_after=created_after,
@@ -225,6 +276,7 @@ async def _get_operator_history_listing(
         operator=operator,
         tag=tag,
         note=note,
+        note_exact=note_exact,
         kind=kind,
         route_mode=route_mode,
         created_after=created_after,
@@ -253,6 +305,7 @@ async def _get_operator_history_listing(
             "operator": operator,
             "tag": tag,
             "note": note,
+            "note_exact": note_exact,
             "kind": kind,
             "route_mode": route_mode,
             "created_after": created_after.isoformat() if created_after else None,
@@ -270,6 +323,7 @@ async def _get_operator_history_summary(
     operator: Optional[str] = None,
     tag: Optional[str] = None,
     note: Optional[str] = None,
+    note_exact: bool = False,
     kind: Optional[str] = None,
     route_mode: Optional[str] = None,
     created_after: Optional[datetime] = None,
@@ -284,6 +338,7 @@ async def _get_operator_history_summary(
         operator=operator,
         tag=tag,
         note=note,
+        note_exact=note_exact,
         kind=kind,
         route_mode=route_mode,
         created_after=created_after,
@@ -340,6 +395,7 @@ async def _get_operator_history_summary(
             "operator": operator,
             "tag": tag,
             "note": note,
+            "note_exact": note_exact,
             "kind": kind,
             "route_mode": route_mode,
             "created_after": created_after.isoformat() if created_after else None,
@@ -355,6 +411,7 @@ async def _export_operator_history(
     operator: Optional[str] = None,
     tag: Optional[str] = None,
     note: Optional[str] = None,
+    note_exact: bool = False,
     kind: Optional[str] = None,
     route_mode: Optional[str] = None,
     created_after: Optional[datetime] = None,
@@ -370,6 +427,7 @@ async def _export_operator_history(
         operator=operator,
         tag=tag,
         note=note,
+        note_exact=note_exact,
         limit=max(1, GODOT_OPERATOR_HISTORY_MAX_ITEMS),
         offset=0,
         kind=kind,
@@ -731,6 +789,9 @@ class GodotBridge:
         operator: Optional[str] = None,
         tag: Optional[str] = None,
         note: Optional[str] = None,
+        audit_user_id: Optional[int] = None,
+        audit_username: Optional[str] = None,
+        audit_source: Optional[str] = None,
     ) -> Dict[str, Any]:
         response = (
             await self._send_recv(
@@ -759,6 +820,9 @@ class GodotBridge:
                     "operator": operator,
                     "tag": tag,
                     "note": note,
+                    "audit_user_id": audit_user_id,
+                    "audit_username": audit_username,
+                    "audit_source": audit_source,
                 },
             )
             self._set_state("schema_ready" if self._schema else "connected")
@@ -773,6 +837,9 @@ class GodotBridge:
         operator: Optional[str] = None,
         tag: Optional[str] = None,
         note: Optional[str] = None,
+        audit_user_id: Optional[int] = None,
+        audit_username: Optional[str] = None,
+        audit_source: Optional[str] = None,
     ) -> Dict[str, Any]:
         response = (
             await self._send_recv(
@@ -814,6 +881,9 @@ class GodotBridge:
                     "operator": operator,
                     "tag": tag,
                     "note": note,
+                    "audit_user_id": audit_user_id,
+                    "audit_username": audit_username,
+                    "audit_source": audit_source,
                 },
             )
             self._set_state("running")
@@ -864,6 +934,13 @@ class GodotBridge:
         operator = _normalize_optional_text(str(payload.get("operator") or ""))
         tag = _normalize_optional_text(str(payload.get("tag") or ""))
         note = _normalize_optional_text(str(payload.get("note") or ""))
+        audit_user_id = payload.get("audit_user_id")
+        audit_username = _normalize_optional_text(
+            str(payload.get("audit_username") or "")
+        )
+        audit_source = _normalize_optional_text(str(payload.get("audit_source") or ""))
+        if operator is None and audit_username:
+            operator = audit_username
         entry = {
             "entry_id": f"{kind}-{int(time.time() * 1000)}-{len(self.command_history)}",
             "schema_version": "1.0",
@@ -871,6 +948,9 @@ class GodotBridge:
             "operator": operator,
             "tag": tag,
             "note": note,
+            "audit_user_id": audit_user_id,
+            "audit_username": audit_username,
+            "audit_source": audit_source,
             "created_at": datetime.now().isoformat(),
             "session_id": self.session_id,
             "payload": payload,
@@ -886,6 +966,11 @@ class GodotBridge:
                     operator=operator,
                     tag=tag,
                     note=note,
+                    audit_user_id=int(audit_user_id)
+                    if isinstance(audit_user_id, int)
+                    else None,
+                    audit_username=audit_username,
+                    audit_source=audit_source,
                     payload=payload,
                     created_at=datetime.fromisoformat(entry["created_at"]),
                 )
@@ -928,6 +1013,7 @@ class GodotBridge:
         operator: Optional[str] = None,
         tag: Optional[str] = None,
         note: Optional[str] = None,
+        note_exact: bool = False,
         kind: Optional[str] = None,
         route_mode: Optional[str] = None,
         created_after: Optional[datetime] = None,
@@ -943,6 +1029,7 @@ class GodotBridge:
             operator=operator,
             tag=tag,
             note=note,
+            note_exact=note_exact,
             limit=safe_limit,
             offset=safe_offset,
             kind=kind,
@@ -1178,6 +1265,7 @@ def build_router(
         operator: Optional[str] = None,
         tag: Optional[str] = None,
         note: Optional[str] = None,
+        note_exact: Optional[bool] = None,
         limit: int = DEFAULT_OPERATOR_HISTORY_PAGE_SIZE,
         offset: int = 0,
         kind: Optional[str] = None,
@@ -1191,6 +1279,7 @@ def build_router(
         resolved_operator = _normalize_optional_text(operator)
         resolved_tag = _normalize_optional_text(tag)
         resolved_note = _normalize_optional_text(note)
+        resolved_note_exact = _parse_note_exact(note_exact)
         resolved_created_after = _parse_optional_iso_datetime(
             created_after, "created_after"
         )
@@ -1208,6 +1297,7 @@ def build_router(
                     operator=resolved_operator,
                     tag=resolved_tag,
                     note=resolved_note,
+                    note_exact=resolved_note_exact,
                     limit=limit,
                     offset=offset,
                     kind=kind,
@@ -1227,6 +1317,7 @@ def build_router(
         operator: Optional[str] = None,
         tag: Optional[str] = None,
         note: Optional[str] = None,
+        note_exact: Optional[bool] = None,
         kind: Optional[str] = None,
         route_mode: Optional[str] = None,
         created_after: Optional[str] = None,
@@ -1239,6 +1330,7 @@ def build_router(
         resolved_operator = _normalize_optional_text(operator)
         resolved_tag = _normalize_optional_text(tag)
         resolved_note = _normalize_optional_text(note)
+        resolved_note_exact = _parse_note_exact(note_exact)
         resolved_created_after = _parse_optional_iso_datetime(
             created_after, "created_after"
         )
@@ -1259,6 +1351,7 @@ def build_router(
             operator=resolved_operator,
             tag=resolved_tag,
             note=resolved_note,
+            note_exact=resolved_note_exact,
             kind=kind,
             route_mode=route_mode,
             created_after=resolved_created_after,
@@ -1275,6 +1368,7 @@ def build_router(
         operator: Optional[str] = None,
         tag: Optional[str] = None,
         note: Optional[str] = None,
+        note_exact: Optional[bool] = None,
         kind: Optional[str] = None,
         route_mode: Optional[str] = None,
         created_after: Optional[str] = None,
@@ -1284,6 +1378,7 @@ def build_router(
         resolved_operator = _normalize_optional_text(operator)
         resolved_tag = _normalize_optional_text(tag)
         resolved_note = _normalize_optional_text(note)
+        resolved_note_exact = _parse_note_exact(note_exact)
         resolved_created_after = _parse_optional_iso_datetime(
             created_after, "created_after"
         )
@@ -1299,6 +1394,7 @@ def build_router(
                     operator=resolved_operator,
                     tag=resolved_tag,
                     note=resolved_note,
+                    note_exact=resolved_note_exact,
                     kind=kind,
                     route_mode=route_mode,
                     created_after=resolved_created_after,
@@ -1323,6 +1419,7 @@ def build_router(
         operator: Optional[str] = None,
         tag: Optional[str] = None,
         note: Optional[str] = None,
+        note_exact: Optional[bool] = None,
         kind: Optional[str] = None,
         route_mode: Optional[str] = None,
         created_after: Optional[str] = None,
@@ -1335,6 +1432,7 @@ def build_router(
         resolved_operator = _normalize_optional_text(operator)
         resolved_tag = _normalize_optional_text(tag)
         resolved_note = _normalize_optional_text(note)
+        resolved_note_exact = _parse_note_exact(note_exact)
         resolved_created_after = _parse_optional_iso_datetime(
             created_after, "created_after"
         )
@@ -1353,6 +1451,7 @@ def build_router(
                     operator=resolved_operator,
                     tag=resolved_tag,
                     note=resolved_note,
+                    note_exact=resolved_note_exact,
                     kind=kind,
                     route_mode=route_mode,
                     created_after=resolved_created_after,
@@ -1416,7 +1515,7 @@ def build_router(
 
     @router.post("/api/godot/{session_id}/simulated-circuit")
     async def configure_session_simulated_circuit(
-        session_id: str, payload: Dict[str, Any]
+        session_id: str, payload: Dict[str, Any], request: Request
     ):
         bridge = manager.get_session(session_id)
         if bridge is None:
@@ -1433,12 +1532,18 @@ def build_router(
                 "session": bridge.get_status_payload(),
                 "session_state": bridge.session_state,
             }
+        audit_identity = await _resolve_optional_audit_identity(
+            request.headers.get("Authorization")
+        )
         simulated_circuit = payload.get("simulated_circuit") or payload
         result = await bridge.configure_simulated_circuit(
             simulated_circuit,
             operator=_normalize_optional_text(str(payload.get("operator") or "")),
             tag=_normalize_optional_text(str(payload.get("tag") or "")),
             note=_normalize_optional_text(str(payload.get("note") or "")),
+            audit_user_id=audit_identity["audit_user_id"],
+            audit_username=audit_identity["audit_username"],
+            audit_source=audit_identity["audit_source"],
         )
         return {
             "status": "error" if result.get("status") == "error" else "success",
@@ -1448,6 +1553,7 @@ def build_router(
             "operator": _normalize_optional_text(str(payload.get("operator") or "")),
             "tag": _normalize_optional_text(str(payload.get("tag") or "")),
             "note": _normalize_optional_text(str(payload.get("note") or "")),
+            "audit_identity": audit_identity,
             "dispatch_result": result,
             "session": bridge.get_status_payload(),
             "session_state": bridge.session_state,
@@ -1455,7 +1561,7 @@ def build_router(
 
     @router.post("/api/godot/{session_id}/instruction-set")
     async def apply_session_instruction_set(
-        session_id: str, payload: Dict[str, Any]
+        session_id: str, payload: Dict[str, Any], request: Request
     ):
         bridge = manager.get_session(session_id)
         if bridge is None:
@@ -1472,6 +1578,9 @@ def build_router(
                 "session": bridge.get_status_payload(),
                 "session_state": bridge.session_state,
             }
+        audit_identity = await _resolve_optional_audit_identity(
+            request.headers.get("Authorization")
+        )
         instruction_set = payload.get("instruction_set") or {}
         compatibility_params = payload.get("compatibility_params") or {}
         command_batch = payload.get("simulated_circuit_command_batch") or []
@@ -1482,6 +1591,9 @@ def build_router(
             operator=_normalize_optional_text(str(payload.get("operator") or "")),
             tag=_normalize_optional_text(str(payload.get("tag") or "")),
             note=_normalize_optional_text(str(payload.get("note") or "")),
+            audit_user_id=audit_identity["audit_user_id"],
+            audit_username=audit_identity["audit_username"],
+            audit_source=audit_identity["audit_source"],
         )
         return {
             "status": "error" if result.get("status") == "error" else "success",
@@ -1491,6 +1603,7 @@ def build_router(
             "operator": _normalize_optional_text(str(payload.get("operator") or "")),
             "tag": _normalize_optional_text(str(payload.get("tag") or "")),
             "note": _normalize_optional_text(str(payload.get("note") or "")),
+            "audit_identity": audit_identity,
             "dispatch_result": result,
             "session": bridge.get_status_payload(),
             "session_state": bridge.session_state,

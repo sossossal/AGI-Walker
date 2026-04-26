@@ -176,6 +176,7 @@ session bridge：
 - `operator`
 - `tag`
 - `note`
+- `note_exact`
 - `kind`
 - `route_mode`
 - `created_after`
@@ -200,11 +201,12 @@ session bridge：
 - 监听 `telemetry.update`
 - 把最新 telemetry 投影到 runtime / circuit 展示区
 - 发送 `operator / tag / note` metadata
+- 如果带 `Authorization: Bearer <token>`，session bridge 会把当前用户写入审计字段
 
 `/static/operator-history.html` 当前支持：
 
 - 使用服务端持久化 operator history
-- 分页、按当前/全部 session 切换、session 搜索、按 `operator / tag / note` 搜索、筛选、排序
+- 分页、按当前/全部 session 切换、session 搜索、按 `operator / tag / note` 搜索、`note_exact` 精确过滤、筛选、排序
 - 回填、重放、清空
 - JSON / CSV 导出
 - 查看聚合摘要：总条目数、session 数、kind 分布、route mode 分布
@@ -212,8 +214,9 @@ session bridge：
 `/static/operator-history-timeline.html` 当前支持：
 
 - 按 timeline 查看跨 session history
-- 使用 `session_query / operator / tag / note / kind / route_mode / created_after / created_before`
+- 使用 `session_query / operator / tag / note / note_exact / kind / route_mode / created_after / created_before`
 - 查看聚合摘要
+- 选择两条记录做 compare，查看 metadata / payload 差异摘要
 - JSON / CSV 导出
 
 ## 关键环境变量
