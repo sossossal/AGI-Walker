@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 import web_panel.server
 from web_panel.godot_session_bridge import (
+    DEFAULT_OPERATOR_HISTORY_PAGE_SIZE,
     GODOT_PROJECT_DIR,
     GODOT_SESSION_STATUS_SCHEMA_VERSION,
     GodotBridge,
@@ -80,6 +81,51 @@ def test_session_bridge_status_defaults_to_disconnected(client: TestClient) -> N
     assert payload["tcp_connected"] is False
     assert payload["schema_available"] is False
     assert payload["last_sensor"] == {}
+
+
+def test_godot_bridge_persists_operator_history() -> None:
+    session_id = f"history-{uuid.uuid4().hex}"
+    bridge = GodotBridge(session_id, 9001)
+    asyncio.run(bridge.clear_history())
+    asyncio.run(
+        bridge._record_command_history(
+            "instruction_set",
+            {
+                "instruction_set": {"sequence_name": "persist-demo"},
+                "route_mode": "session_bridge",
+            },
+        )
+    )
+    asyncio.run(
+        bridge._record_command_history(
+            "simulated_circuit",
+            {
+                "simulated_circuit": {"transport": "imc22_can_fd"},
+                "route_mode": "session_bridge",
+            },
+        )
+    )
+
+    history_payload = asyncio.run(bridge.get_history_payload(limit=1, offset=0))
+    reloaded_bridge = GodotBridge(session_id, 9002)
+    reloaded_history_payload = asyncio.run(
+        reloaded_bridge.get_history_payload(limit=10, offset=0)
+    )
+
+    assert history_payload["history_count"] == 2
+    assert history_payload["limit"] == 1
+    assert history_payload["offset"] == 0
+    assert history_payload["has_more"] is True
+    assert history_payload["history_storage"] == "database"
+    assert reloaded_history_payload["history_count"] == 2
+    assert reloaded_history_payload["history"][0]["kind"] == "simulated_circuit"
+    assert reloaded_history_payload["history"][1]["kind"] == "instruction_set"
+    assert reloaded_history_payload["history"][0]["operator"] is None
+    assert reloaded_history_payload["history"][0]["tag"] is None
+    assert reloaded_history_payload["history"][0]["note"] is None
+
+    clear_payload = asyncio.run(reloaded_bridge.clear_history())
+    assert clear_payload["history_count"] == 0
 
 
 def test_session_bridge_launch_without_godot_exe_returns_real_error(
@@ -324,14 +370,37 @@ def test_session_bridge_instruction_and_circuit_routes(
     class FakeBridge:
         session_state = "running"
         simulated_circuit_config = {"transport": "imc22_can_fd"}
+        command_history = [
+            {
+                "entry_id": "entry-1",
+                "schema_version": "1.0",
+                "kind": "instruction_set",
+                "created_at": "2026-04-26T00:00:00",
+                "session_id": session_id,
+                "payload": {
+                    "instruction_set": {"sequence_name": "route-demo"},
+                    "route_mode": "session_bridge",
+                },
+            }
+        ]
 
         def is_connected(self) -> bool:
             return True
 
         async def configure_simulated_circuit(
-            self, simulated_circuit: dict[str, object]
+            self,
+            simulated_circuit: dict[str, object],
+            *,
+            operator: str | None = None,
+            tag: str | None = None,
+            note: str | None = None,
         ) -> dict[str, object]:
             observed["simulated_circuit"] = simulated_circuit
+            observed["simulated_circuit_metadata"] = {
+                "operator": operator,
+                "tag": tag,
+                "note": note,
+            }
             self.simulated_circuit_config = dict(simulated_circuit)
             return {
                 "status": "success",
@@ -344,10 +413,18 @@ def test_session_bridge_instruction_and_circuit_routes(
             *,
             compatibility_params: dict[str, object] | None = None,
             simulated_circuit_command_batch: list[dict[str, object]] | None = None,
+            operator: str | None = None,
+            tag: str | None = None,
+            note: str | None = None,
         ) -> dict[str, object]:
             observed["instruction_set"] = instruction_set
             observed["compatibility_params"] = compatibility_params or {}
             observed["command_batch"] = simulated_circuit_command_batch or []
+            observed["instruction_metadata"] = {
+                "operator": operator,
+                "tag": tag,
+                "note": note,
+            }
             return {
                 "status": "success",
                 "instruction_step_count": len(instruction_set.get("steps", [])),
@@ -360,10 +437,76 @@ def test_session_bridge_instruction_and_circuit_routes(
                 "engine_running": True,
                 "tcp_connected": True,
                 "simulated_circuit_config": self.simulated_circuit_config,
+                "history_count": len(self.command_history),
+            }
+
+        async def get_history_payload(
+            self,
+            limit: int = 10,
+            offset: int = 0,
+            *,
+            session_query: str | None = None,
+            operator: str | None = None,
+            tag: str | None = None,
+            note: str | None = None,
+            kind: str | None = None,
+            route_mode: str | None = None,
+            created_after=None,
+            created_before=None,
+            sort_by: str = "created_at",
+            sort_order: str = "desc",
+        ) -> dict[str, object]:
+            observed["history_filters"] = {
+                "session_query": session_query,
+                "operator": operator,
+                "tag": tag,
+                "note": note,
+                "kind": kind,
+                "route_mode": route_mode,
+                "created_after": created_after.isoformat() if created_after else None,
+                "created_before": created_before.isoformat() if created_before else None,
+                "sort_by": sort_by,
+                "sort_order": sort_order,
+            }
+            return {
+                "session_id": session_id,
+                "history": self.command_history[offset : offset + limit],
+                "history_count": len(self.command_history),
+                "offset": offset,
+                "limit": limit,
+                "has_more": offset + limit < len(self.command_history),
+                "history_storage": "database",
+                "filters": observed["history_filters"],
+            }
+
+        async def clear_history(self) -> dict[str, object]:
+            self.command_history = []
+            return {
+                "session_id": session_id,
+                "history": [],
+                "history_count": 0,
+                "offset": 0,
+                "limit": DEFAULT_OPERATOR_HISTORY_PAGE_SIZE,
+                "has_more": False,
+                "history_storage": "database",
+            }
+
+        async def replay_history_entry(self, entry_id: str | None = None) -> dict[str, object]:
+            observed["replayed_entry_id"] = entry_id
+            return {
+                "status": "success",
+                "entry": {
+                    "entry_id": entry_id or "entry-1",
+                    "kind": "instruction_set",
+                },
+                "dispatch_result": {"status": "success"},
             }
 
     fake_bridge = FakeBridge()
     monkeypatch.setattr(web_panel.server._session_manager, "get_session", lambda _: fake_bridge)
+    monkeypatch.setattr(
+        web_panel.server._session_manager, "get_or_create", lambda _: fake_bridge
+    )
 
     instruction_response = client.post(
         f"/api/godot/{session_id}/instruction-set",
@@ -375,6 +518,9 @@ def test_session_bridge_instruction_and_circuit_routes(
             },
             "compatibility_params": {"velocity_scale": 0.1},
             "simulated_circuit_command_batch": [{"frame_id": 0x200}],
+            "operator": "tester-a",
+            "tag": "route",
+            "note": "route coverage",
         },
     )
     circuit_response = client.post(
@@ -383,18 +529,238 @@ def test_session_bridge_instruction_and_circuit_routes(
             "simulated_circuit": {
                 "transport": "imc22_can_fd",
                 "bitrate": 1_000_000,
-            }
+            },
+            "operator": "tester-b",
+            "tag": "circuit",
+            "note": "circuit coverage",
         },
     )
+    history_response = client.get(
+        f"/api/godot/{session_id}/history?limit=1&offset=0&session_query=route&operator=tester-a&tag=route&note=coverage&kind=instruction_set&route_mode=session_bridge&created_after=2026-04-25T00:00:00&created_before=2026-04-27T00:00:00&sort_by=session_id&sort_order=asc"
+    )
+    replay_response = client.post(
+        f"/api/godot/{session_id}/history/replay",
+        json={"entry_id": "entry-1"},
+    )
+    clear_response = client.post(f"/api/godot/{session_id}/history/clear")
 
     assert instruction_response.status_code == 200
     assert instruction_response.json()["status"] == "success"
     assert circuit_response.status_code == 200
     assert circuit_response.json()["status"] == "success"
+    assert history_response.status_code == 200
+    assert history_response.json()["status"] == "success"
+    assert history_response.json()["history_count"] == 1
+    assert history_response.json()["limit"] == 1
+    assert history_response.json()["offset"] == 0
+    assert history_response.json()["has_more"] is False
+    assert history_response.json()["history_storage"] == "database"
+    assert history_response.json()["filters"]["session_query"] == "route"
+    assert history_response.json()["filters"]["operator"] == "tester-a"
+    assert history_response.json()["filters"]["tag"] == "route"
+    assert history_response.json()["filters"]["note"] == "coverage"
+    assert history_response.json()["filters"]["kind"] == "instruction_set"
+    assert history_response.json()["filters"]["route_mode"] == "session_bridge"
+    assert history_response.json()["filters"]["created_after"] == "2026-04-25T00:00:00"
+    assert history_response.json()["filters"]["created_before"] == "2026-04-27T00:00:00"
+    assert history_response.json()["filters"]["sort_by"] == "session_id"
+    assert history_response.json()["filters"]["sort_order"] == "asc"
+    assert observed["history_filters"]["session_query"] == "route"
+    assert observed["history_filters"]["operator"] == "tester-a"
+    assert observed["history_filters"]["tag"] == "route"
+    assert observed["history_filters"]["note"] == "coverage"
+    assert observed["history_filters"]["kind"] == "instruction_set"
+    assert observed["history_filters"]["route_mode"] == "session_bridge"
+    assert observed["history_filters"]["sort_by"] == "session_id"
+    assert observed["history_filters"]["sort_order"] == "asc"
+    assert replay_response.status_code == 200
+    assert replay_response.json()["status"] == "success"
+    assert clear_response.status_code == 200
+    assert clear_response.json()["history_count"] == 0
     assert observed["instruction_set"]["sequence_name"] == "route-demo"
     assert observed["compatibility_params"]["velocity_scale"] == 0.1
     assert observed["command_batch"][0]["frame_id"] == 0x200
+    assert observed["instruction_metadata"]["operator"] == "tester-a"
+    assert observed["instruction_metadata"]["tag"] == "route"
+    assert observed["instruction_metadata"]["note"] == "route coverage"
     assert observed["simulated_circuit"]["transport"] == "imc22_can_fd"
+    assert observed["simulated_circuit_metadata"]["operator"] == "tester-b"
+    assert observed["simulated_circuit_metadata"]["tag"] == "circuit"
+    assert observed["simulated_circuit_metadata"]["note"] == "circuit coverage"
+    assert observed["replayed_entry_id"] == "entry-1"
+
+
+def test_session_bridge_history_rejects_invalid_datetime(
+    client: TestClient,
+) -> None:
+    session_id = f"bridge-invalid-datetime-{uuid.uuid4().hex}"
+
+    response = client.get(
+        f"/api/godot/{session_id}/history?created_after=not-a-datetime"
+    )
+
+    assert response.status_code == 400
+    assert "Invalid created_after" in response.json()["detail"]
+
+
+def test_operator_history_rejects_invalid_sort(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/godot/history?sort_by=bad-field")
+
+    assert response.status_code == 400
+    assert "Invalid sort_by" in response.json()["detail"]
+
+
+def test_operator_history_listing_across_sessions(client: TestClient) -> None:
+    session_a = f"aggregate-a-{uuid.uuid4().hex}"
+    session_b = f"aggregate-b-{uuid.uuid4().hex}"
+    bridge_a = GodotBridge(session_a, 9101)
+    bridge_b = GodotBridge(session_b, 9102)
+
+    asyncio.run(bridge_a.clear_history())
+    asyncio.run(bridge_b.clear_history())
+
+
+def test_operator_history_summary_across_sessions(client: TestClient) -> None:
+    session_a = f"summary-a-{uuid.uuid4().hex}"
+    session_b = f"summary-b-{uuid.uuid4().hex}"
+    bridge_a = GodotBridge(session_a, 9201)
+    bridge_b = GodotBridge(session_b, 9202)
+
+    asyncio.run(bridge_a.clear_history())
+    asyncio.run(bridge_b.clear_history())
+    asyncio.run(
+        bridge_a._record_command_history(
+            "instruction_set",
+            {
+                "instruction_set": {"sequence_name": "summary-a"},
+                "route_mode": "session_bridge",
+                "operator": "summary-operator-a",
+                "tag": "summary-a",
+                "note": "alpha note",
+            },
+        )
+    )
+    asyncio.run(
+        bridge_b._record_command_history(
+            "simulated_circuit",
+            {
+                "simulated_circuit": {"transport": "imc22_can_fd"},
+                "route_mode": "legacy",
+                "operator": "summary-operator-b",
+                "tag": "summary-b",
+                "note": "beta note",
+            },
+        )
+    )
+
+    response = client.get("/api/godot/history/summary")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "success"
+    assert payload["history_storage"] == "database"
+    assert payload["total_entries"] >= 2
+    assert payload["session_count"] >= 2
+    assert payload["kind_counts"]["instruction_set"] >= 1
+    assert payload["kind_counts"]["simulated_circuit"] >= 1
+    assert payload["route_mode_counts"]["session_bridge"] >= 1
+    assert payload["route_mode_counts"]["legacy"] >= 1
+    assert any(item["session_id"] == session_a for item in payload["sessions"])
+    assert any(item["session_id"] == session_b for item in payload["sessions"])
+
+    asyncio.run(bridge_a.clear_history())
+    asyncio.run(bridge_b.clear_history())
+    asyncio.run(
+        bridge_a._record_command_history(
+            "instruction_set",
+            {
+                "instruction_set": {"sequence_name": "aggregate-a"},
+                "route_mode": "session_bridge",
+                "operator": "summary-operator-a",
+                "tag": "summary-a",
+                "note": "alpha note",
+            },
+        )
+    )
+    asyncio.run(
+        bridge_b._record_command_history(
+            "simulated_circuit",
+            {
+                "simulated_circuit": {"transport": "imc22_can_fd"},
+                "route_mode": "legacy",
+                "operator": "summary-operator-b",
+                "tag": "summary-b",
+                "note": "beta note",
+            },
+        )
+    )
+
+    response = client.get(
+        "/api/godot/history?limit=10&offset=0&operator=summary-operator-b&tag=summary-b&note=beta&route_mode=legacy&sort_by=session_id&sort_order=asc"
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "success"
+    assert payload["session_id"] is None
+    assert payload["history_count"] >= 1
+    assert payload["filters"]["operator"] == "summary-operator-b"
+    assert payload["filters"]["tag"] == "summary-b"
+    assert payload["filters"]["note"] == "beta"
+    assert payload["filters"]["route_mode"] == "legacy"
+    assert payload["filters"]["sort_by"] == "session_id"
+    assert payload["filters"]["sort_order"] == "asc"
+    assert any(item["session_id"] == session_b for item in payload["history"])
+    assert all(item["payload"].get("route_mode") == "legacy" for item in payload["history"])
+    assert all(item["operator"] == "summary-operator-b" for item in payload["history"])
+    assert all(item["tag"] == "summary-b" for item in payload["history"])
+    assert all("beta" in (item["note"] or "") for item in payload["history"])
+
+    asyncio.run(bridge_a.clear_history())
+    asyncio.run(bridge_b.clear_history())
+
+
+def test_operator_history_export_json_and_csv(client: TestClient) -> None:
+    session_id = f"export-{uuid.uuid4().hex}"
+    bridge = GodotBridge(session_id, 9301)
+
+    asyncio.run(bridge.clear_history())
+    asyncio.run(
+        bridge._record_command_history(
+            "instruction_set",
+            {
+                "instruction_set": {"sequence_name": "export-demo"},
+                "route_mode": "session_bridge",
+                "operator": "export-user",
+                "tag": "acceptance",
+                "note": "export note",
+            },
+        )
+    )
+
+    json_response = client.get(
+        f"/api/godot/history/export?session_id={session_id}&format=json&sort_by=created_at&sort_order=desc"
+    )
+    csv_response = client.get(
+        f"/api/godot/history/export?session_id={session_id}&format=csv&sort_by=created_at&sort_order=desc"
+    )
+
+    assert json_response.status_code == 200
+    assert json_response.json()["status"] == "success"
+    assert json_response.json()["history_storage"] == "database"
+    assert "attachment; filename=\"operator_history_export.json\"" in json_response.headers["content-disposition"]
+
+    assert csv_response.status_code == 200
+    assert csv_response.headers["content-type"].startswith("text/csv")
+    assert "entry_id,session_id,operator,tag,note,kind,route_mode,created_at,payload_json" in csv_response.text
+    assert session_id in csv_response.text
+    assert "export-user" in csv_response.text
+    assert "acceptance" in csv_response.text
+    assert "attachment; filename=\"operator_history_export.csv\"" in csv_response.headers["content-disposition"]
+
+    asyncio.run(bridge.clear_history())
 
 
 async def _run_session_bridge_get_sensors_polls_with_step(
@@ -449,7 +815,7 @@ def test_session_bridge_schema_state(monkeypatch: pytest.MonkeyPatch) -> None:
 async def _run_session_bridge_instruction_and_circuit_state(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    bridge = GodotBridge("instruction-runtime-test", 9003)
+    bridge = GodotBridge(f"instruction-runtime-test-{uuid.uuid4().hex}", 9003)
     observed: list[dict[str, object]] = []
 
     async def fake_send_recv(payload):
@@ -495,6 +861,7 @@ async def _run_session_bridge_instruction_and_circuit_state(
         status["last_instruction_runtime"]["instruction_set"]["sequence_name"]
         == "bridge-demo"
     )
+    assert status["history_count"] == 2
     assert status["session_state"] == "running"
 
 

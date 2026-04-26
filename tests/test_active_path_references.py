@@ -67,6 +67,8 @@ TESTING_GUIDE = Path("docs/guides/TESTING_GUIDE.md")
 INSTRUCTION_CONTROL_DEMO_RUNBOOK = Path(
     "docs/guides/INSTRUCTION_CONTROL_DEMO_RUNBOOK.md"
 )
+NEXT_STAGE_EXECUTION_PLAN = Path("docs/guides/NEXT_STAGE_EXECUTION_PLAN_20260426.md")
+OPERATOR_HISTORY_TIMELINE = Path("web_panel/static/operator-history-timeline.html")
 
 
 def test_dockerfile_does_not_reference_removed_source_layout() -> None:
@@ -599,6 +601,29 @@ def test_instruction_control_demo_runbook_is_referenced_and_actionable() -> None
     assert "godot_instruction_smoke_report.json" in runbook
     assert "ros2_instruction_smoke_report.json" in runbook
     assert "simulated_circuit_replay_smoke_report.json" in runbook
+
+
+def test_readme_references_next_stage_execution_plan() -> None:
+    readme = ROOT_RELEASE_NOTES.parent.joinpath("README.md").read_text(encoding="utf-8")
+    plan = NEXT_STAGE_EXECUTION_PLAN.read_text(encoding="utf-8")
+
+    assert "docs/guides/NEXT_STAGE_EXECUTION_PLAN_20260426.md" in readme
+    assert "Web 控制台深化" in plan
+    assert "真实硬件闭环" in plan
+    assert "ROS2 标准化与生态接入" in plan
+    assert "交付与运维产品化" in plan
+
+
+def test_operator_history_timeline_is_linked_from_active_surfaces() -> None:
+    readme = ROOT_RELEASE_NOTES.parent.joinpath("README.md").read_text(encoding="utf-8")
+    guide = WEB_PANEL_GUIDE.read_text(encoding="utf-8")
+    timeline = OPERATOR_HISTORY_TIMELINE.read_text(encoding="utf-8")
+
+    assert "/static/operator-history-timeline.html" in readme
+    assert "/static/operator-history-timeline.html" in guide
+    assert "Operator History Timeline" in timeline
+    assert 'id="timeline-note-filter"' in timeline
+    assert "/api/godot/history/summary" in timeline
 
 
 def test_customer_deployment_docs_and_compose_defaults_use_current_single_path() -> None:

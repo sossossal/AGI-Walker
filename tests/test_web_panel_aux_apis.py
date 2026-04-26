@@ -277,9 +277,88 @@ def test_core_panel_routes_smoke():
     assert 'id="release-next-follow-up-download-link"' in response.text
     assert 'id="release-next-primary-link"' in response.text
 
+    response = client.get("/static/instruction-control.html")
+    assert response.status_code == 200
+    assert "Instruction Control Console" in response.text
+    assert 'id="send-instruction-button"' in response.text
+    assert 'id="send-circuit-button"' in response.text
+    assert 'id="refresh-status-button"' in response.text
+    assert 'id="connect-ws-button"' in response.text
+    assert 'id="history-operator"' in response.text
+    assert 'id="history-tag"' in response.text
+    assert 'id="history-note"' in response.text
+    assert 'id="instruction-response"' in response.text
+    assert 'id="instruction-runtime-response"' in response.text
+    assert 'id="circuit-config-response"' in response.text
+    assert 'id="session-status-response"' in response.text
+    assert 'id="instruction-ws-status"' in response.text
+    assert 'id="runtime-sequence-name"' in response.text
+    assert 'id="runtime-step-count"' in response.text
+    assert 'id="runtime-circuit-transport"' in response.text
+    assert 'id="runtime-feedback-nodes"' in response.text
+    assert "/static/operator-history.html" in response.text
+
+    response = client.get("/static/operator-history.html")
+    assert response.status_code == 200
+    assert "Operator History Console" in response.text
+    assert 'id="instruction-history-list"' in response.text
+    assert 'id="instruction-history-empty"' in response.text
+    assert 'id="clear-history-button"' in response.text
+    assert 'id="apply-history-filters-button"' in response.text
+    assert 'id="history-summary-response"' in response.text
+    assert 'id="history-total-entries"' in response.text
+    assert 'id="history-session-count"' in response.text
+    assert 'id="history-kind-summary"' in response.text
+    assert 'id="history-route-summary"' in response.text
+    assert 'id="history-prev-button"' in response.text
+    assert 'id="history-next-button"' in response.text
+    assert 'id="history-page-status"' in response.text
+    assert 'id="history-kind-filter"' in response.text
+    assert 'id="history-route-mode-filter"' in response.text
+    assert 'id="history-all-sessions-filter"' in response.text
+    assert 'id="history-created-after-filter"' in response.text
+    assert 'id="history-created-before-filter"' in response.text
+    assert 'id="history-session-query-filter"' in response.text
+    assert 'id="history-operator-filter"' in response.text
+    assert 'id="history-tag-filter"' in response.text
+    assert 'id="history-note-filter"' in response.text
+    assert 'id="history-sort-by-filter"' in response.text
+    assert 'id="history-sort-order-filter"' in response.text
+    assert 'id="export-history-json-button"' in response.text
+    assert 'id="export-history-csv-button"' in response.text
+    assert "/static/operator-history-timeline.html" in response.text
+    assert "/api/godot/${encodeURIComponent(currentSessionId())}/history" in response.text
+    assert "/api/godot/history" in response.text
+    assert "/api/godot/history/summary" in response.text
+    assert "/api/godot/${encodeURIComponent(currentSessionId())}/history/replay" in response.text
+    assert "/api/godot/history/export?format=" in response.text
+
+    response = client.get("/static/operator-history-timeline.html")
+    assert response.status_code == 200
+    assert "Operator History Timeline" in response.text
+    assert 'id="timeline-session-query"' in response.text
+    assert 'id="timeline-operator-filter"' in response.text
+    assert 'id="timeline-tag-filter"' in response.text
+    assert 'id="timeline-note-filter"' in response.text
+    assert 'id="timeline-kind-filter"' in response.text
+    assert 'id="timeline-route-mode-filter"' in response.text
+    assert 'id="timeline-created-after"' in response.text
+    assert 'id="timeline-created-before"' in response.text
+    assert 'id="timeline-sort-order"' in response.text
+    assert 'id="timeline-apply-button"' in response.text
+    assert 'id="timeline-export-json-button"' in response.text
+    assert 'id="timeline-export-csv-button"' in response.text
+    assert 'id="timeline-summary-response"' in response.text
+    assert 'id="timeline-groups"' in response.text
+    assert "/api/godot/history/summary" in response.text
+    assert "/api/godot/history/export?format=json" in response.text
+
     assert "🧭 Control Plane 详情" in client.get("/").text
     assert "📦 Release 收口页" in client.get("/").text
     assert "🧩 Release 下一步" in client.get("/").text
+    assert "🎮 Instruction Console" in client.get("/").text
+    assert "🗂️ Operator History" in client.get("/").text
+    assert "🕒 Operator Timeline" in client.get("/").text
 
     response = client.get("/api/system/status")
     assert response.status_code == 200

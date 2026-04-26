@@ -35,6 +35,8 @@ http://localhost:8000/docs
 - `/static/distributed.html`
 - `/static/design.html`
 - `/static/godot-control.html`
+- `/static/instruction-control.html`
+- `/static/operator-history.html`
 
 静态资源目录位于 [web_panel/static](../../web_panel/static)。
 
@@ -141,6 +143,79 @@ session bridge：
 现在 session bridge 已经原生接通结构化 `instruction_set` 与
 `simulated_circuit` 配置，不再只限于 `step/load_robot`。
 
+如需最小控制与调试面，直接使用：
+
+- `/static/instruction-control.html`
+
+如需独立查看 operator history / 跨 session 总览 / replay，使用：
+
+- `/static/operator-history.html`
+- `/static/operator-history-timeline.html`
+
+这两个页面会直接调用：
+
+- `POST /api/godot/instruction-set`
+- `POST /api/godot/simulated-circuit`
+- `POST /api/godot/{session_id}/instruction-set`
+- `POST /api/godot/{session_id}/simulated-circuit`
+- `GET /api/godot/{session_id}/status`
+- `GET /api/godot/{session_id}/history`
+- `GET /api/godot/history`
+- `GET /api/godot/history/export`
+- `GET /api/godot/history/summary`
+- `POST /api/godot/{session_id}/history/replay`
+- `POST /api/godot/{session_id}/history/clear`
+
+其中 `GET /api/godot/{session_id}/history`、`GET /api/godot/history` 与
+`GET /api/godot/history/export` 还支持：
+
+- `limit`
+- `offset`
+- `session_id`（仅跨 session 总览接口）
+- `session_query`
+- `operator`
+- `tag`
+- `note`
+- `kind`
+- `route_mode`
+- `created_after`
+- `created_before`
+- `sort_by`
+- `sort_order`
+
+`GET /api/godot/history/export` 额外支持：
+
+- `format=json`
+- `format=csv`
+
+`/static/instruction-control.html` 当前最小版页面会额外展示：
+
+- `last_instruction_runtime`
+- `simulated_circuit_config`
+- `simulated_circuit_feedback` 摘要
+
+并支持：
+
+- 连接 `/ws/{session_id}`
+- 监听 `telemetry.update`
+- 把最新 telemetry 投影到 runtime / circuit 展示区
+- 发送 `operator / tag / note` metadata
+
+`/static/operator-history.html` 当前支持：
+
+- 使用服务端持久化 operator history
+- 分页、按当前/全部 session 切换、session 搜索、按 `operator / tag / note` 搜索、筛选、排序
+- 回填、重放、清空
+- JSON / CSV 导出
+- 查看聚合摘要：总条目数、session 数、kind 分布、route mode 分布
+
+`/static/operator-history-timeline.html` 当前支持：
+
+- 按 timeline 查看跨 session history
+- 使用 `session_query / operator / tag / note / kind / route_mode / created_after / created_before`
+- 查看聚合摘要
+- JSON / CSV 导出
+
 ## 关键环境变量
 
 ### Workflow Web 运行时
@@ -159,6 +234,8 @@ session bridge：
 - `AGI_WALKER_WEB_RUNS_MAX_PAGE_SIZE`
 - `AGI_WALKER_WEB_ARCHIVE_MAX_RUNS`
 - `AGI_WALKER_WEB_ARCHIVE_MAX_AGE_DAYS`
+- `AGI_WALKER_GODOT_OPERATOR_HISTORY_MAX_ITEMS`
+- `AGI_WALKER_GODOT_OPERATOR_HISTORY_PAGE_SIZE`
 
 默认行为：
 

@@ -6,6 +6,9 @@ AGI-Walker 是一个面向机器人设计、仿真、工作流编排和 Web/Godo
 
 - `Skills + Workflows`：用 `SKILL.md` 和 workflow 定义组织机器人建模、参数优化、任务执行等流程。
 - `Web Panel`：基于 FastAPI 的控制面板，提供 workflow、服务状态、Godot 会话和 nightly 状态接口。
+- `Instruction Console`：Web Panel 内置 `/static/instruction-control.html`，支持结构化指令发送与实时 telemetry。
+- `Operator History Console`：Web Panel 内置 `/static/operator-history.html`，支持可持久化 operator history、跨 session 总览、session 搜索、`operator / tag / note` 搜索、排序、导出与 replay。
+- `Operator History Timeline`：Web Panel 内置 `/static/operator-history-timeline.html`，按时间线查看跨 session history、聚合摘要和导出结果。
 - `Capability Matrix`：提供版本化发布面矩阵，统一描述 CLI、Web、MCP、distributed 和 Godot integration 的发布状态。
 - `Godot 集成`：同时支持 legacy backend 和 modern `godot-agent` backend。
 - `Godot 扩展控制面`：新增结构化指令集控制与模拟电路通信契约，可复用到 Godot / ROS2 / IMC-22 近似层。
@@ -317,6 +320,7 @@ ROS2 bridge smoke 本地环境补齐清单：
 当前仓库 + 本地验证完成度摘要：
 
 - `docs/guides/CURRENT_REPO_AND_LOCAL_VALIDATION_STATUS_20260425.md`
+- `docs/guides/NEXT_STAGE_EXECUTION_PLAN_20260426.md`
 
 ## 目录概览
 

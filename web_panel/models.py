@@ -158,3 +158,34 @@ class WorkflowRun(Base):
             "status_url": f"/api/workflows/runs/{self.run_id}/status",
             "cancel_url": f"/api/workflows/runs/{self.run_id}/cancel",
         }
+
+
+class OperatorHistoryEntry(Base):
+    """Persisted operator history for Godot instruction control sessions."""
+
+    __tablename__ = "operator_history_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    entry_id: Mapped[str] = mapped_column(String(96), unique=True, index=True)
+    session_id: Mapped[str] = mapped_column(String(96), index=True)
+    kind: Mapped[str] = mapped_column(String(32))
+    route_mode: Mapped[str] = mapped_column(String(32), default="session_bridge")
+    operator: Mapped[Optional[str]] = mapped_column(String(96), nullable=True, index=True)
+    tag: Mapped[Optional[str]] = mapped_column(String(96), nullable=True, index=True)
+    note: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    payload: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, index=True)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Return one operator-history entry in API shape."""
+        return {
+            "entry_id": self.entry_id,
+            "schema_version": "1.0",
+            "session_id": self.session_id,
+            "kind": self.kind,
+            "operator": self.operator,
+            "tag": self.tag,
+            "note": self.note,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "payload": self.payload,
+        }

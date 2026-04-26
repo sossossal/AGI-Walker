@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operator History Console</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        .header, .panel {
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .header h1, .panel h2 {
+            margin-top: 0;
+        }
+        .header .actions, .button-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .button.secondary {
+            background: #374151;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 20px;
+        }
+        .field {
+            margin-bottom: 14px;
+        }
+        .field label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        input, select {
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #020617;
+            color: #e2e8f0;
+            padding: 10px 12px;
+            font: inherit;
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 140px;
+        }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .metric {
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .metric-label {
+            font-size: 0.84rem;
+            color: #93c5fd;
+            margin-bottom: 6px;
+        }
+        .metric-value {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .status {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .hint {
+            color: #93c5fd;
+            font-size: 0.92rem;
+        }
+        .history-list {
+            display: grid;
+            gap: 10px;
+        }
+        .history-item {
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        .history-item-title {
+            font-weight: 700;
+        }
+        .history-item-meta {
+            color: #93c5fd;
+            font-size: 0.88rem;
+        }
+        .history-item-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .history-empty {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="header">
+            <h1>Operator History Console</h1>
+            <p>独立查看和重放 Godot 指令操作历史。支持跨 session 总览、筛选、聚合摘要和 replay。</p>
+            <div class="actions">
+                <a class="button secondary" href="/static/index.html">返回主控制台</a>
+                <a class="button secondary" href="/static/instruction-control.html">打开 Instruction Console</a>
+                <a class="button secondary" href="/static/operator-history-timeline.html">打开 Timeline</a>
+                <a class="button secondary" href="/docs/index.html">API 文档</a>
+            </div>
+        </section>
+
+        <div class="grid">
+            <section class="panel">
+                <h2>History Scope</h2>
+                <div class="field">
+                    <label for="session-id">Session ID</label>
+                    <input id="session-id" type="text" value="demo-session" />
+                </div>
+                <div class="field">
+                    <label for="history-session-query-filter">Session Search</label>
+                    <input id="history-session-query-filter" type="text" placeholder="按 session_id 模糊搜索" />
+                </div>
+                <div class="field">
+                    <label for="history-operator-filter">Operator</label>
+                    <input id="history-operator-filter" type="text" placeholder="按 operator 模糊搜索" />
+                </div>
+                <div class="field">
+                    <label for="history-tag-filter">Tag</label>
+                    <input id="history-tag-filter" type="text" placeholder="按 tag 模糊搜索" />
+                </div>
+                <div class="field">
+                    <label for="history-note-filter">Note</label>
+                    <input id="history-note-filter" type="text" placeholder="按 note 模糊搜索" />
+                </div>
+                <div class="field">
+                    <label for="history-kind-filter">Kind</label>
+                    <select id="history-kind-filter">
+                        <option value="">全部</option>
+                        <option value="instruction_set">instruction_set</option>
+                        <option value="simulated_circuit">simulated_circuit</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="history-route-mode-filter">Route Mode</label>
+                    <select id="history-route-mode-filter">
+                        <option value="">全部</option>
+                        <option value="session_bridge">session_bridge</option>
+                        <option value="legacy">legacy</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="history-all-sessions-filter">Scope</label>
+                    <select id="history-all-sessions-filter">
+                        <option value="session">当前 Session</option>
+                        <option value="all">全部 Session</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="history-created-after-filter">Created After</label>
+                    <input id="history-created-after-filter" type="datetime-local" />
+                </div>
+                <div class="field">
+                    <label for="history-created-before-filter">Created Before</label>
+                    <input id="history-created-before-filter" type="datetime-local" />
+                </div>
+                <div class="field">
+                    <label for="history-sort-by-filter">Sort By</label>
+                    <select id="history-sort-by-filter">
+                        <option value="created_at">created_at</option>
+                        <option value="session_id">session_id</option>
+                        <option value="kind">kind</option>
+                        <option value="route_mode">route_mode</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="history-sort-order-filter">Sort Order</label>
+                    <select id="history-sort-order-filter">
+                        <option value="desc">desc</option>
+                        <option value="asc">asc</option>
+                    </select>
+                </div>
+                <div class="button-row">
+                    <button class="button secondary" id="apply-history-filters-button" type="button">应用筛选</button>
+                    <button class="button secondary" id="history-prev-button" type="button">上一页</button>
+                    <button class="button secondary" id="history-next-button" type="button">下一页</button>
+                    <button class="button secondary" id="clear-history-button" type="button">清空 Operator History</button>
+                    <button class="button secondary" id="export-history-json-button" type="button">导出 JSON</button>
+                    <button class="button secondary" id="export-history-csv-button" type="button">导出 CSV</button>
+                </div>
+                <p class="hint" id="history-page-status">第 1 页</p>
+            </section>
+
+            <section class="panel">
+                <h2>Replay / Preview</h2>
+                <div class="status" id="instruction-console-status">尚未执行历史操作</div>
+                <div class="field">
+                    <label for="instruction-response">最近一次 replay 响应</label>
+                    <pre id="instruction-response">{}</pre>
+                </div>
+                <div class="field">
+                    <label for="session-status-response">Session Status</label>
+                    <pre id="session-status-response">{}</pre>
+                </div>
+                <div class="field">
+                    <label for="instruction-runtime-response">Instruction Runtime</label>
+                    <pre id="instruction-runtime-response">{}</pre>
+                </div>
+                <div class="field">
+                    <label for="circuit-config-response">Simulated Circuit Config</label>
+                    <pre id="circuit-config-response">{}</pre>
+                </div>
+            </section>
+        </div>
+
+        <section class="panel">
+            <h2>Operator History</h2>
+            <p class="hint">当前为数据库持久化 operator history。支持分页、跨 session 总览、筛选、聚合摘要和 replay。</p>
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-label">Total Entries</div>
+                    <div class="metric-value" id="history-total-entries">-</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Session Count</div>
+                    <div class="metric-value" id="history-session-count">-</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Kinds</div>
+                    <div class="metric-value" id="history-kind-summary">-</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Route Modes</div>
+                    <div class="metric-value" id="history-route-summary">-</div>
+                </div>
+            </div>
+            <div class="field">
+                <label for="history-summary-response">History Summary</label>
+                <pre id="history-summary-response">{}</pre>
+            </div>
+            <div class="history-list" id="instruction-history-list">
+                <div class="history-empty" id="instruction-history-empty">还没有 operator history。</div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const sessionIdInput = document.getElementById('session-id');
+        const statusNode = document.getElementById('instruction-console-status');
+        const responseNode = document.getElementById('instruction-response');
+        const runtimeNode = document.getElementById('instruction-runtime-response');
+        const circuitConfigNode = document.getElementById('circuit-config-response');
+        const sessionStatusNode = document.getElementById('session-status-response');
+        const historyListNode = document.getElementById('instruction-history-list');
+        const historyPageStatusNode = document.getElementById('history-page-status');
+        const historySummaryNode = document.getElementById('history-summary-response');
+        const historyTotalEntriesNode = document.getElementById('history-total-entries');
+        const historySessionCountNode = document.getElementById('history-session-count');
+        const historyKindSummaryNode = document.getElementById('history-kind-summary');
+        const historyRouteSummaryNode = document.getElementById('history-route-summary');
+        const historyPrevButton = document.getElementById('history-prev-button');
+        const historyNextButton = document.getElementById('history-next-button');
+        const historySessionQueryFilterInput = document.getElementById('history-session-query-filter');
+        const historyOperatorFilterInput = document.getElementById('history-operator-filter');
+        const historyTagFilterInput = document.getElementById('history-tag-filter');
+        const historyNoteFilterInput = document.getElementById('history-note-filter');
+        const historyKindFilterInput = document.getElementById('history-kind-filter');
+        const historyRouteModeFilterInput = document.getElementById('history-route-mode-filter');
+        const historyAllSessionsFilterInput = document.getElementById('history-all-sessions-filter');
+        const historyCreatedAfterFilterInput = document.getElementById('history-created-after-filter');
+        const historyCreatedBeforeFilterInput = document.getElementById('history-created-before-filter');
+        const historySortByFilterInput = document.getElementById('history-sort-by-filter');
+        const historySortOrderFilterInput = document.getElementById('history-sort-order-filter');
+        const historyState = { limit: 10, offset: 0, historyCount: 0, hasMore: false };
+
+        function currentSessionId() {
+            return (sessionIdInput.value || 'demo-session').trim();
+        }
+
+        function buildHistoryUrl() {
+            if (historyAllSessionsFilterInput.value === 'all') {
+                return '/api/godot/history';
+            }
+            return `/api/godot/${encodeURIComponent(currentSessionId())}/history`;
+        }
+
+        function buildHistoryReplayUrl() {
+            return `/api/godot/${encodeURIComponent(currentSessionId())}/history/replay`;
+        }
+
+        function buildHistoryClearUrl() {
+            return `/api/godot/${encodeURIComponent(currentSessionId())}/history/clear`;
+        }
+
+        function buildHistorySummaryUrl() {
+            return '/api/godot/history/summary';
+        }
+
+        function buildHistoryExportUrl(format) {
+            return `/api/godot/history/export?format=${encodeURIComponent(format)}`;
+        }
+
+        function currentHistoryFilters() {
+            return {
+                scope: historyAllSessionsFilterInput.value || 'session',
+                session_query: historySessionQueryFilterInput.value || '',
+                operator: historyOperatorFilterInput.value || '',
+                tag: historyTagFilterInput.value || '',
+                note: historyNoteFilterInput.value || '',
+                kind: historyKindFilterInput.value || '',
+                route_mode: historyRouteModeFilterInput.value || '',
+                created_after: historyCreatedAfterFilterInput.value || '',
+                created_before: historyCreatedBeforeFilterInput.value || '',
+                sort_by: historySortByFilterInput.value || 'created_at',
+                sort_order: historySortOrderFilterInput.value || 'desc',
+            };
+        }
+
+        async function postJson(url, payload) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(JSON.stringify(data));
+            }
+            return data;
+        }
+
+        async function getJson(url) {
+            const response = await fetch(url);
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(JSON.stringify(data));
+            }
+            return data;
+        }
+
+        function setStatus(text, isError = false) {
+            statusNode.textContent = text;
+            statusNode.style.color = isError ? '#fca5a5' : '#86efac';
+        }
+
+        function renderJson(node, payload) {
+            node.textContent = JSON.stringify(payload, null, 2);
+        }
+
+        function restoreHistoryEntry(entry) {
+            sessionIdInput.value = entry.session_id || 'demo-session';
+            renderJson(responseNode, entry.payload || {});
+            renderJson(runtimeNode, entry.payload?.instruction_runtime || {});
+            renderJson(circuitConfigNode, entry.payload?.simulated_circuit || {});
+            setStatus(`已回填 ${entry.kind} payload`);
+        }
+
+        async function replayHistoryEntry(entry) {
+            restoreHistoryEntry(entry);
+            try {
+                setStatus(`重放 history entry: ${entry.entry_id}`);
+                const result = await postJson(buildHistoryReplayUrl(), { entry_id: entry.entry_id });
+                renderJson(responseNode, result);
+                if (result.session) {
+                    renderJson(sessionStatusNode, result.session);
+                    renderJson(runtimeNode, result.session.last_instruction_runtime || {});
+                    renderJson(circuitConfigNode, result.session.simulated_circuit_config || {});
+                }
+                await refreshHistory();
+                setStatus(`history entry 已重放: ${entry.entry_id}`);
+            } catch (error) {
+                setStatus(`history replay 失败: ${error.message}`, true);
+            }
+        }
+
+        function renderHistory(entries) {
+            historyListNode.innerHTML = '';
+            if (!entries.length) {
+                const empty = document.createElement('div');
+                empty.className = 'history-empty';
+                empty.id = 'instruction-history-empty';
+                empty.textContent = '还没有 operator history。';
+                historyListNode.appendChild(empty);
+                return;
+            }
+
+            entries.forEach((entry) => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+
+                const header = document.createElement('div');
+                header.className = 'history-item-header';
+
+                const title = document.createElement('div');
+                title.className = 'history-item-title';
+                title.textContent = `${entry.kind} · ${entry.session_id}`;
+
+                const meta = document.createElement('div');
+                meta.className = 'history-item-meta';
+                const metaParts = [
+                    entry.payload?.route_mode || 'session_bridge',
+                    entry.created_at,
+                ];
+                if (entry.operator) metaParts.push(`operator:${entry.operator}`);
+                if (entry.tag) metaParts.push(`tag:${entry.tag}`);
+                meta.textContent = metaParts.join(' · ');
+
+                const body = document.createElement('pre');
+                body.textContent = JSON.stringify({
+                    operator: entry.operator || null,
+                    tag: entry.tag || null,
+                    note: entry.note || null,
+                    payload: entry.payload,
+                }, null, 2);
+
+                const actions = document.createElement('div');
+                actions.className = 'history-item-actions';
+
+                const restoreButton = document.createElement('button');
+                restoreButton.className = 'button secondary';
+                restoreButton.type = 'button';
+                restoreButton.textContent = '回填';
+                restoreButton.addEventListener('click', () => restoreHistoryEntry(entry));
+
+                const replayButton = document.createElement('button');
+                replayButton.className = 'button secondary';
+                replayButton.type = 'button';
+                replayButton.textContent = '重新发送';
+                replayButton.addEventListener('click', () => replayHistoryEntry(entry));
+
+                actions.appendChild(restoreButton);
+                actions.appendChild(replayButton);
+                header.appendChild(title);
+                header.appendChild(meta);
+                item.appendChild(header);
+                item.appendChild(body);
+                item.appendChild(actions);
+                historyListNode.appendChild(item);
+            });
+        }
+
+        function renderHistorySummary(summary) {
+            renderJson(historySummaryNode, summary || {});
+            historyTotalEntriesNode.textContent = String(summary?.total_entries ?? '-');
+            historySessionCountNode.textContent = String(summary?.session_count ?? '-');
+            const kindCounts = summary?.kind_counts || {};
+            const routeModeCounts = summary?.route_mode_counts || {};
+            historyKindSummaryNode.textContent = Object.keys(kindCounts).length
+                ? Object.entries(kindCounts).map(([key, value]) => `${key}:${value}`).join(' / ')
+                : '-';
+            historyRouteSummaryNode.textContent = Object.keys(routeModeCounts).length
+                ? Object.entries(routeModeCounts).map(([key, value]) => `${key}:${value}`).join(' / ')
+                : '-';
+        }
+
+        async function refreshHistorySummary() {
+            try {
+                const params = new URLSearchParams();
+                const filters = currentHistoryFilters();
+                if (filters.scope === 'session') params.set('session_id', currentSessionId());
+                if (filters.session_query) params.set('session_query', filters.session_query);
+                if (filters.operator) params.set('operator', filters.operator);
+                if (filters.tag) params.set('tag', filters.tag);
+                if (filters.note) params.set('note', filters.note);
+                if (filters.kind) params.set('kind', filters.kind);
+                if (filters.route_mode) params.set('route_mode', filters.route_mode);
+                if (filters.created_after) params.set('created_after', new Date(filters.created_after).toISOString());
+                if (filters.created_before) params.set('created_before', new Date(filters.created_before).toISOString());
+                params.set('sort_by', filters.sort_by);
+                params.set('sort_order', filters.sort_order);
+                const result = await getJson(`${buildHistorySummaryUrl()}?${params.toString()}`);
+                renderHistorySummary(result);
+            } catch (error) {
+                renderJson(historySummaryNode, { error: error.message });
+                historyTotalEntriesNode.textContent = '-';
+                historySessionCountNode.textContent = '-';
+                historyKindSummaryNode.textContent = '-';
+                historyRouteSummaryNode.textContent = '-';
+            }
+        }
+
+        async function refreshHistory() {
+            try {
+                const params = new URLSearchParams({
+                    limit: String(historyState.limit),
+                    offset: String(historyState.offset),
+                });
+                const filters = currentHistoryFilters();
+                if (filters.scope === 'session') params.set('session_id', currentSessionId());
+                if (filters.session_query) params.set('session_query', filters.session_query);
+                if (filters.operator) params.set('operator', filters.operator);
+                if (filters.tag) params.set('tag', filters.tag);
+                if (filters.note) params.set('note', filters.note);
+                if (filters.kind) params.set('kind', filters.kind);
+                if (filters.route_mode) params.set('route_mode', filters.route_mode);
+                if (filters.created_after) params.set('created_after', new Date(filters.created_after).toISOString());
+                if (filters.created_before) params.set('created_before', new Date(filters.created_before).toISOString());
+                params.set('sort_by', filters.sort_by);
+                params.set('sort_order', filters.sort_order);
+                const result = await getJson(`${buildHistoryUrl()}?${params.toString()}`);
+                historyState.historyCount = result.history_count || 0;
+                historyState.hasMore = Boolean(result.has_more);
+                renderHistory(result.history || []);
+                const pageNumber = Math.floor(historyState.offset / historyState.limit) + 1;
+                historyPageStatusNode.textContent = `第 ${pageNumber} 页 · 共 ${historyState.historyCount} 条 · 存储 ${result.history_storage || '-'} · 筛选 ${JSON.stringify(result.filters || {})}`;
+                historyPrevButton.disabled = historyState.offset === 0;
+                historyNextButton.disabled = !historyState.hasMore;
+                await refreshHistorySummary();
+            } catch (error) {
+                historyListNode.innerHTML = '';
+                const empty = document.createElement('div');
+                empty.className = 'history-empty';
+                empty.id = 'instruction-history-empty';
+                empty.textContent = `历史读取失败: ${error.message}`;
+                historyListNode.appendChild(empty);
+                historyPageStatusNode.textContent = '历史读取失败';
+                historyPrevButton.disabled = true;
+                historyNextButton.disabled = true;
+                await refreshHistorySummary();
+            }
+        }
+
+        document.getElementById('apply-history-filters-button').addEventListener('click', async () => {
+            historyState.offset = 0;
+            await refreshHistory();
+        });
+        historyPrevButton.addEventListener('click', async () => {
+            historyState.offset = Math.max(0, historyState.offset - historyState.limit);
+            await refreshHistory();
+        });
+        historyNextButton.addEventListener('click', async () => {
+            if (!historyState.hasMore) {
+                return;
+            }
+            historyState.offset += historyState.limit;
+            await refreshHistory();
+        });
+        document.getElementById('export-history-json-button').addEventListener('click', () => {
+            const params = new URLSearchParams();
+            const filters = currentHistoryFilters();
+            if (filters.scope === 'session') params.set('session_id', currentSessionId());
+            if (filters.session_query) params.set('session_query', filters.session_query);
+            if (filters.operator) params.set('operator', filters.operator);
+            if (filters.tag) params.set('tag', filters.tag);
+            if (filters.note) params.set('note', filters.note);
+            if (filters.kind) params.set('kind', filters.kind);
+            if (filters.route_mode) params.set('route_mode', filters.route_mode);
+            if (filters.created_after) params.set('created_after', new Date(filters.created_after).toISOString());
+            if (filters.created_before) params.set('created_before', new Date(filters.created_before).toISOString());
+            params.set('sort_by', filters.sort_by);
+            params.set('sort_order', filters.sort_order);
+            window.open(`${buildHistoryExportUrl('json')}&${params.toString()}`, '_blank');
+        });
+        document.getElementById('export-history-csv-button').addEventListener('click', () => {
+            const params = new URLSearchParams();
+            const filters = currentHistoryFilters();
+            if (filters.scope === 'session') params.set('session_id', currentSessionId());
+            if (filters.session_query) params.set('session_query', filters.session_query);
+            if (filters.operator) params.set('operator', filters.operator);
+            if (filters.tag) params.set('tag', filters.tag);
+            if (filters.note) params.set('note', filters.note);
+            if (filters.kind) params.set('kind', filters.kind);
+            if (filters.route_mode) params.set('route_mode', filters.route_mode);
+            if (filters.created_after) params.set('created_after', new Date(filters.created_after).toISOString());
+            if (filters.created_before) params.set('created_before', new Date(filters.created_before).toISOString());
+            params.set('sort_by', filters.sort_by);
+            params.set('sort_order', filters.sort_order);
+            window.open(`${buildHistoryExportUrl('csv')}&${params.toString()}`, '_blank');
+        });
+        document.getElementById('clear-history-button').addEventListener('click', async () => {
+            try {
+                await postJson(buildHistoryClearUrl(), {});
+                historyState.offset = 0;
+                await refreshHistory();
+                renderJson(sessionStatusNode, {});
+                renderJson(runtimeNode, {});
+                renderJson(circuitConfigNode, {});
+                setStatus('operator history 已清空');
+            } catch (error) {
+                setStatus(`清空历史失败: ${error.message}`, true);
+            }
+        });
+
+        (function hydrateFromQuery() {
+            const params = new URLSearchParams(window.location.search);
+            const sessionId = params.get('session_id');
+            if (sessionId) {
+                sessionIdInput.value = sessionId;
+            }
+        })();
+
+        refreshHistory();
+    </script>
+</body>
+</html>

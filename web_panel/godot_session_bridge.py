@@ -10,11 +10,16 @@ import time
 import queue
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Literal, Optional
+from sqlalchemy import delete, func, inspect, select, text
+from sqlalchemy.sql import Select
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from agi_walker.core.utils.paths import RuntimePaths
+from web_panel.database import AsyncSessionLocal, engine
+from web_panel.models import OperatorHistoryEntry
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +27,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 GODOT_PROJECT_DIR = str(REPO_ROOT / "godot_project")
 GODOT_SESSION_LOG_DIR = RuntimePaths.SESSIONS / "godot_logs"
 GODOT_SESSION_LOG_DIR.mkdir(parents=True, exist_ok=True)
+GODOT_OPERATOR_HISTORY_MAX_ITEMS = max(
+    1, int(os.getenv("AGI_WALKER_GODOT_OPERATOR_HISTORY_MAX_ITEMS", "200"))
+)
+DEFAULT_OPERATOR_HISTORY_PAGE_SIZE = max(
+    1, int(os.getenv("AGI_WALKER_GODOT_OPERATOR_HISTORY_PAGE_SIZE", "10"))
+)
+_OPERATOR_HISTORY_TABLE_READY = False
 GODOT_SESSION_STATUS_SCHEMA_VERSION = "1.0"
 GODOT_SESSION_STATES = (
     "disconnected",
@@ -31,6 +43,375 @@ GODOT_SESSION_STATES = (
     "running",
     "failed",
 )
+
+
+async def _ensure_operator_history_table() -> None:
+    """Create the operator-history table on demand when migrations are absent."""
+    global _OPERATOR_HISTORY_TABLE_READY
+    if _OPERATOR_HISTORY_TABLE_READY:
+        return
+    async with engine.begin() as conn:
+        def _ensure_schema(sync_conn: Any) -> None:
+            OperatorHistoryEntry.__table__.create(sync_conn, checkfirst=True)
+            existing_columns = {
+                column["name"]
+                for column in inspect(sync_conn).get_columns(
+                    OperatorHistoryEntry.__tablename__
+                )
+            }
+            missing_columns = {
+                "operator": "ALTER TABLE operator_history_entries ADD COLUMN operator VARCHAR(96)",
+                "tag": "ALTER TABLE operator_history_entries ADD COLUMN tag VARCHAR(96)",
+                "note": "ALTER TABLE operator_history_entries ADD COLUMN note VARCHAR(512)",
+            }
+            for column_name, ddl in missing_columns.items():
+                if column_name not in existing_columns:
+                    sync_conn.execute(text(ddl))
+
+        await conn.run_sync(_ensure_schema)
+    _OPERATOR_HISTORY_TABLE_READY = True
+
+
+def _parse_optional_iso_datetime(raw_value: Optional[str], field_name: str) -> Optional[datetime]:
+    """Parse one optional ISO datetime query parameter."""
+    if raw_value is None:
+        return None
+    normalized = raw_value.strip()
+    if not normalized:
+        return None
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid {field_name} '{raw_value}'. Expected ISO datetime.",
+        ) from exc
+
+
+def _normalize_optional_text(raw_value: Optional[str]) -> Optional[str]:
+    """Trim one optional text query parameter and collapse empty values to None."""
+    if raw_value is None:
+        return None
+    normalized = raw_value.strip()
+    return normalized or None
+
+
+def _parse_history_sort_field(raw_value: Optional[str]) -> str:
+    """Validate history sort field."""
+    normalized = _normalize_optional_text(raw_value) or "created_at"
+    if normalized not in {"created_at", "session_id", "kind", "route_mode"}:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid sort_by '{raw_value}'. "
+                "Expected one of: created_at, session_id, kind, route_mode."
+            ),
+        )
+    return normalized
+
+
+def _parse_history_sort_order(raw_value: Optional[str]) -> Literal["asc", "desc"]:
+    """Validate history sort order."""
+    normalized = (_normalize_optional_text(raw_value) or "desc").lower()
+    if normalized not in {"asc", "desc"}:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid sort_order '{raw_value}'. Expected 'asc' or 'desc'.",
+        )
+    return normalized  # type: ignore[return-value]
+
+
+def _apply_history_filters(
+    statement: Any,
+    *,
+    session_id: Optional[str] = None,
+    session_query: Optional[str] = None,
+    operator: Optional[str] = None,
+    tag: Optional[str] = None,
+    note: Optional[str] = None,
+    kind: Optional[str] = None,
+    route_mode: Optional[str] = None,
+    created_after: Optional[datetime] = None,
+    created_before: Optional[datetime] = None,
+) -> Any:
+    """Apply shared operator-history filters to one SQLAlchemy statement."""
+    if session_id:
+        statement = statement.where(OperatorHistoryEntry.session_id == session_id)
+    if session_query:
+        statement = statement.where(
+            OperatorHistoryEntry.session_id.ilike(f"%{session_query}%")
+        )
+    if operator:
+        statement = statement.where(OperatorHistoryEntry.operator.ilike(f"%{operator}%"))
+    if tag:
+        statement = statement.where(OperatorHistoryEntry.tag.ilike(f"%{tag}%"))
+    if note:
+        statement = statement.where(OperatorHistoryEntry.note.ilike(f"%{note}%"))
+    if kind:
+        statement = statement.where(OperatorHistoryEntry.kind == kind)
+    if route_mode:
+        statement = statement.where(OperatorHistoryEntry.route_mode == route_mode)
+    if created_after is not None:
+        statement = statement.where(OperatorHistoryEntry.created_at >= created_after)
+    if created_before is not None:
+        statement = statement.where(OperatorHistoryEntry.created_at <= created_before)
+    return statement
+
+
+def _apply_history_sorting(
+    statement: Select[Any],
+    *,
+    sort_by: str,
+    sort_order: Literal["asc", "desc"],
+) -> Select[Any]:
+    """Apply one validated sort order to history statements."""
+    sort_column = {
+        "created_at": OperatorHistoryEntry.created_at,
+        "session_id": OperatorHistoryEntry.session_id,
+        "kind": OperatorHistoryEntry.kind,
+        "route_mode": OperatorHistoryEntry.route_mode,
+    }[sort_by]
+    primary = sort_column.asc() if sort_order == "asc" else sort_column.desc()
+    secondary = (
+        OperatorHistoryEntry.id.asc()
+        if sort_order == "asc"
+        else OperatorHistoryEntry.id.desc()
+    )
+    return statement.order_by(primary, secondary)
+
+
+async def _get_operator_history_listing(
+    *,
+    session_id: Optional[str] = None,
+    session_query: Optional[str] = None,
+    operator: Optional[str] = None,
+    tag: Optional[str] = None,
+    note: Optional[str] = None,
+    limit: int = DEFAULT_OPERATOR_HISTORY_PAGE_SIZE,
+    offset: int = 0,
+    kind: Optional[str] = None,
+    route_mode: Optional[str] = None,
+    created_after: Optional[datetime] = None,
+    created_before: Optional[datetime] = None,
+    sort_by: str = "created_at",
+    sort_order: Literal["asc", "desc"] = "desc",
+) -> Dict[str, Any]:
+    """Return one paginated operator-history listing across one or all sessions."""
+    await _ensure_operator_history_table()
+    safe_limit = max(1, limit)
+    safe_offset = max(0, offset)
+
+    item_statement = _apply_history_filters(
+        select(OperatorHistoryEntry),
+        session_id=session_id,
+        session_query=session_query,
+        operator=operator,
+        tag=tag,
+        note=note,
+        kind=kind,
+        route_mode=route_mode,
+        created_after=created_after,
+        created_before=created_before,
+    )
+    item_statement = _apply_history_sorting(
+        item_statement,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
+    count_statement = _apply_history_filters(
+        select(func.count(OperatorHistoryEntry.id)),
+        session_id=session_id,
+        session_query=session_query,
+        operator=operator,
+        tag=tag,
+        note=note,
+        kind=kind,
+        route_mode=route_mode,
+        created_after=created_after,
+        created_before=created_before,
+    )
+
+    async with AsyncSessionLocal() as session:
+        item_result = await session.execute(
+            item_statement.offset(safe_offset).limit(safe_limit)
+        )
+        count_result = await session.execute(count_statement)
+        rows = item_result.scalars().all()
+        total_count = int(count_result.scalar_one() or 0)
+
+    return {
+        "session_id": session_id,
+        "history": [row.to_dict() for row in rows],
+        "history_count": total_count,
+        "offset": safe_offset,
+        "limit": safe_limit,
+        "has_more": safe_offset + safe_limit < total_count,
+        "history_storage": "database",
+        "filters": {
+            "session_id": session_id,
+            "session_query": session_query,
+            "operator": operator,
+            "tag": tag,
+            "note": note,
+            "kind": kind,
+            "route_mode": route_mode,
+            "created_after": created_after.isoformat() if created_after else None,
+            "created_before": created_before.isoformat() if created_before else None,
+            "sort_by": sort_by,
+            "sort_order": sort_order,
+        },
+    }
+
+
+async def _get_operator_history_summary(
+    *,
+    session_id: Optional[str] = None,
+    session_query: Optional[str] = None,
+    operator: Optional[str] = None,
+    tag: Optional[str] = None,
+    note: Optional[str] = None,
+    kind: Optional[str] = None,
+    route_mode: Optional[str] = None,
+    created_after: Optional[datetime] = None,
+    created_before: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Return aggregate summary data for operator history queries."""
+    await _ensure_operator_history_table()
+    statement = _apply_history_filters(
+        select(OperatorHistoryEntry),
+        session_id=session_id,
+        session_query=session_query,
+        operator=operator,
+        tag=tag,
+        note=note,
+        kind=kind,
+        route_mode=route_mode,
+        created_after=created_after,
+        created_before=created_before,
+    )
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(statement)
+        rows = list(result.scalars().all())
+
+    session_summary: Dict[str, Dict[str, Any]] = {}
+    kind_counts: Dict[str, int] = {}
+    route_mode_counts: Dict[str, int] = {}
+
+    for row in rows:
+        kind_counts[row.kind] = kind_counts.get(row.kind, 0) + 1
+        route_mode_counts[row.route_mode] = route_mode_counts.get(row.route_mode, 0) + 1
+        session_entry = session_summary.setdefault(
+            row.session_id,
+            {
+                "session_id": row.session_id,
+                "entry_count": 0,
+                "last_created_at": None,
+            },
+        )
+        session_entry["entry_count"] += 1
+        created_at_iso = row.created_at.isoformat() if row.created_at else None
+        if created_at_iso and (
+            session_entry["last_created_at"] is None
+            or created_at_iso > session_entry["last_created_at"]
+        ):
+            session_entry["last_created_at"] = created_at_iso
+
+    sessions = sorted(
+        session_summary.values(),
+        key=lambda item: (
+            item["last_created_at"] is not None,
+            item["last_created_at"] or "",
+        ),
+        reverse=True,
+    )
+
+    return {
+        "session_id": session_id,
+        "history_storage": "database",
+        "total_entries": len(rows),
+        "session_count": len(session_summary),
+        "sessions": sessions,
+        "kind_counts": kind_counts,
+        "route_mode_counts": route_mode_counts,
+        "filters": {
+            "session_id": session_id,
+            "session_query": session_query,
+            "operator": operator,
+            "tag": tag,
+            "note": note,
+            "kind": kind,
+            "route_mode": route_mode,
+            "created_after": created_after.isoformat() if created_after else None,
+            "created_before": created_before.isoformat() if created_before else None,
+        },
+    }
+
+
+async def _export_operator_history(
+    *,
+    session_id: Optional[str] = None,
+    session_query: Optional[str] = None,
+    operator: Optional[str] = None,
+    tag: Optional[str] = None,
+    note: Optional[str] = None,
+    kind: Optional[str] = None,
+    route_mode: Optional[str] = None,
+    created_after: Optional[datetime] = None,
+    created_before: Optional[datetime] = None,
+    sort_by: str = "created_at",
+    sort_order: Literal["asc", "desc"] = "desc",
+    export_format: Literal["json", "csv"] = "json",
+) -> Any:
+    """Export one filtered history result set as JSON or CSV."""
+    payload = await _get_operator_history_listing(
+        session_id=session_id,
+        session_query=session_query,
+        operator=operator,
+        tag=tag,
+        note=note,
+        limit=max(1, GODOT_OPERATOR_HISTORY_MAX_ITEMS),
+        offset=0,
+        kind=kind,
+        route_mode=route_mode,
+        created_after=created_after,
+        created_before=created_before,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
+    filename = f"operator_history_export.{export_format}"
+    if export_format == "json":
+        return JSONResponse(
+            content={"status": "success", **payload},
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    csv_lines = [
+        "entry_id,session_id,operator,tag,note,kind,route_mode,created_at,payload_json"
+    ]
+    for item in payload["history"]:
+        payload_json = json.dumps(item.get("payload") or {}, ensure_ascii=False).replace('"', '""')
+        note_value = str(item.get("note") or "").replace('"', '""')
+        csv_lines.append(
+            ",".join(
+                [
+                    str(item.get("entry_id") or ""),
+                    str(item.get("session_id") or ""),
+                    str(item.get("operator") or ""),
+                    str(item.get("tag") or ""),
+                    f'"{note_value}"',
+                    str(item.get("kind") or ""),
+                    str((item.get("payload") or {}).get("route_mode") or ""),
+                    str(item.get("created_at") or ""),
+                    f'"{payload_json}"',
+                ]
+            )
+        )
+    return PlainTextResponse(
+        "\n".join(csv_lines),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 def disconnected_session_status(session_id: str) -> Dict[str, Any]:
@@ -125,6 +506,7 @@ class GodotBridge:
         self.last_sensor: Dict[str, Any] = {}
         self.last_instruction_runtime: Dict[str, Any] = {}
         self.simulated_circuit_config: Dict[str, Any] = {}
+        self.command_history: List[Dict[str, Any]] = []
         self.on_telemetry = None
         self._schema: Optional[Dict[str, Any]] = None
         self._detached_pid: Optional[int] = None
@@ -343,7 +725,12 @@ class GodotBridge:
         return response
 
     async def configure_simulated_circuit(
-        self, simulated_circuit: Dict[str, Any]
+        self,
+        simulated_circuit: Dict[str, Any],
+        *,
+        operator: Optional[str] = None,
+        tag: Optional[str] = None,
+        note: Optional[str] = None,
     ) -> Dict[str, Any]:
         response = (
             await self._send_recv(
@@ -364,6 +751,16 @@ class GodotBridge:
             self.simulated_circuit_config = response.get(
                 "simulated_circuit", simulated_circuit
             )
+            await self._record_command_history(
+                "simulated_circuit",
+                {
+                    "simulated_circuit": simulated_circuit,
+                    "route_mode": "session_bridge",
+                    "operator": operator,
+                    "tag": tag,
+                    "note": note,
+                },
+            )
             self._set_state("schema_ready" if self._schema else "connected")
         return response
 
@@ -373,6 +770,9 @@ class GodotBridge:
         *,
         compatibility_params: Optional[Dict[str, Any]] = None,
         simulated_circuit_command_batch: Optional[List[Dict[str, Any]]] = None,
+        operator: Optional[str] = None,
+        tag: Optional[str] = None,
+        note: Optional[str] = None,
     ) -> Dict[str, Any]:
         response = (
             await self._send_recv(
@@ -402,8 +802,222 @@ class GodotBridge:
                 ),
                 "response": response,
             }
+            await self._record_command_history(
+                "instruction_set",
+                {
+                    "instruction_set": instruction_set,
+                    "compatibility_params": compatibility_params or {},
+                    "simulated_circuit_command_batch": (
+                        simulated_circuit_command_batch or []
+                    ),
+                    "route_mode": "session_bridge",
+                    "operator": operator,
+                    "tag": tag,
+                    "note": note,
+                },
+            )
             self._set_state("running")
         return response
+
+    async def _load_command_history(
+        self,
+        *,
+        limit: int = GODOT_OPERATOR_HISTORY_MAX_ITEMS,
+        offset: int = 0,
+        kind: Optional[str] = None,
+        route_mode: Optional[str] = None,
+        created_after: Optional[datetime] = None,
+        created_before: Optional[datetime] = None,
+    ) -> List[Dict[str, Any]]:
+        payload = await _get_operator_history_listing(
+            session_id=self.session_id,
+            limit=limit,
+            offset=offset,
+            kind=kind,
+            route_mode=route_mode,
+            created_after=created_after,
+            created_before=created_before,
+        )
+        return payload["history"]
+
+    async def _count_command_history(
+        self,
+        *,
+        kind: Optional[str] = None,
+        route_mode: Optional[str] = None,
+        created_after: Optional[datetime] = None,
+        created_before: Optional[datetime] = None,
+    ) -> int:
+        payload = await _get_operator_history_listing(
+            session_id=self.session_id,
+            limit=1,
+            offset=0,
+            kind=kind,
+            route_mode=route_mode,
+            created_after=created_after,
+            created_before=created_before,
+        )
+        return int(payload["history_count"])
+
+    async def _record_command_history(self, kind: str, payload: Dict[str, Any]) -> None:
+        await _ensure_operator_history_table()
+        operator = _normalize_optional_text(str(payload.get("operator") or ""))
+        tag = _normalize_optional_text(str(payload.get("tag") or ""))
+        note = _normalize_optional_text(str(payload.get("note") or ""))
+        entry = {
+            "entry_id": f"{kind}-{int(time.time() * 1000)}-{len(self.command_history)}",
+            "schema_version": "1.0",
+            "kind": kind,
+            "operator": operator,
+            "tag": tag,
+            "note": note,
+            "created_at": datetime.now().isoformat(),
+            "session_id": self.session_id,
+            "payload": payload,
+        }
+        route_mode = str(payload.get("route_mode") or "session_bridge")
+        async with AsyncSessionLocal() as session:
+            session.add(
+                OperatorHistoryEntry(
+                    entry_id=entry["entry_id"],
+                    session_id=self.session_id,
+                    kind=kind,
+                    route_mode=route_mode,
+                    operator=operator,
+                    tag=tag,
+                    note=note,
+                    payload=payload,
+                    created_at=datetime.fromisoformat(entry["created_at"]),
+                )
+            )
+            await session.commit()
+
+            count_result = await session.execute(
+                select(func.count(OperatorHistoryEntry.id)).where(
+                    OperatorHistoryEntry.session_id == self.session_id
+                )
+            )
+            total_count = int(count_result.scalar_one() or 0)
+            overflow = max(0, total_count - GODOT_OPERATOR_HISTORY_MAX_ITEMS)
+            if overflow > 0:
+                overflow_result = await session.execute(
+                    select(OperatorHistoryEntry.id)
+                    .where(OperatorHistoryEntry.session_id == self.session_id)
+                    .order_by(
+                        OperatorHistoryEntry.created_at.asc(),
+                        OperatorHistoryEntry.id.asc(),
+                    )
+                    .limit(overflow)
+                )
+                overflow_ids = list(overflow_result.scalars().all())
+                if overflow_ids:
+                    await session.execute(
+                        delete(OperatorHistoryEntry).where(
+                            OperatorHistoryEntry.id.in_(overflow_ids)
+                        )
+                    )
+                    await session.commit()
+        self.command_history = await self._load_command_history()
+
+    async def get_history_payload(
+        self,
+        limit: int = 10,
+        offset: int = 0,
+        *,
+        session_query: Optional[str] = None,
+        operator: Optional[str] = None,
+        tag: Optional[str] = None,
+        note: Optional[str] = None,
+        kind: Optional[str] = None,
+        route_mode: Optional[str] = None,
+        created_after: Optional[datetime] = None,
+        created_before: Optional[datetime] = None,
+        sort_by: str = "created_at",
+        sort_order: Literal["asc", "desc"] = "desc",
+    ) -> Dict[str, Any]:
+        safe_limit = max(1, limit)
+        safe_offset = max(0, offset)
+        payload = await _get_operator_history_listing(
+            session_id=self.session_id,
+            session_query=session_query,
+            operator=operator,
+            tag=tag,
+            note=note,
+            limit=safe_limit,
+            offset=safe_offset,
+            kind=kind,
+            route_mode=route_mode,
+            created_after=created_after,
+            created_before=created_before,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+        self.command_history = await self._load_command_history()
+        return payload
+
+    async def clear_history(self) -> Dict[str, Any]:
+        await _ensure_operator_history_table()
+        async with AsyncSessionLocal() as session:
+            await session.execute(
+                delete(OperatorHistoryEntry).where(
+                    OperatorHistoryEntry.session_id == self.session_id
+                )
+            )
+            await session.commit()
+        self.command_history = []
+        return {
+            "session_id": self.session_id,
+            "history": [],
+            "history_count": 0,
+            "offset": 0,
+            "limit": DEFAULT_OPERATOR_HISTORY_PAGE_SIZE,
+            "has_more": False,
+            "history_storage": "database",
+        }
+
+    async def replay_history_entry(
+        self, entry_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        self.command_history = await self._load_command_history()
+        entry: Optional[Dict[str, Any]]
+        if entry_id is None:
+            entry = self.command_history[0] if self.command_history else None
+        else:
+            entry = next(
+                (
+                    item
+                    for item in self.command_history
+                    if item.get("entry_id") == entry_id
+                ),
+                None,
+            )
+        if entry is None:
+            return {"status": "error", "message": "History entry not found."}
+
+        payload = entry.get("payload") or {}
+        if entry.get("kind") == "instruction_set":
+            result = await self.apply_instruction_set(
+                payload.get("instruction_set") or {},
+                compatibility_params=payload.get("compatibility_params") or {},
+                simulated_circuit_command_batch=(
+                    payload.get("simulated_circuit_command_batch") or []
+                ),
+            )
+        elif entry.get("kind") == "simulated_circuit":
+            result = await self.configure_simulated_circuit(
+                payload.get("simulated_circuit") or {}
+            )
+        else:
+            return {
+                "status": "error",
+                "message": f"Unsupported history entry kind: {entry.get('kind')}",
+            }
+
+        return {
+            "status": "success" if result.get("status") != "error" else "error",
+            "entry": entry,
+            "dispatch_result": result,
+        }
 
     async def wait_until_connected(self, timeout_seconds: float = 10.0) -> bool:
         deadline = time.monotonic() + timeout_seconds
@@ -475,6 +1089,8 @@ class GodotBridge:
             "last_sensor": self.last_sensor,
             "last_instruction_runtime": self.last_instruction_runtime,
             "simulated_circuit_config": self.simulated_circuit_config,
+            "history_count": len(self.command_history),
+            "history_storage": "database",
             "log_file_path": self._log_file_path,
             "last_connect_error": self._last_connect_error,
             "failure_stage": self.failure_stage,
@@ -555,12 +1171,205 @@ def build_router(
     async def get_sim_status():
         return {"status": "ok", "active_sessions": len(manager.sessions)}
 
+    @router.get("/api/godot/history")
+    async def get_operator_history(
+        session_id: Optional[str] = None,
+        session_query: Optional[str] = None,
+        operator: Optional[str] = None,
+        tag: Optional[str] = None,
+        note: Optional[str] = None,
+        limit: int = DEFAULT_OPERATOR_HISTORY_PAGE_SIZE,
+        offset: int = 0,
+        kind: Optional[str] = None,
+        route_mode: Optional[str] = None,
+        created_after: Optional[str] = None,
+        created_before: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_order: Optional[str] = None,
+    ):
+        resolved_session_query = _normalize_optional_text(session_query)
+        resolved_operator = _normalize_optional_text(operator)
+        resolved_tag = _normalize_optional_text(tag)
+        resolved_note = _normalize_optional_text(note)
+        resolved_created_after = _parse_optional_iso_datetime(
+            created_after, "created_after"
+        )
+        resolved_created_before = _parse_optional_iso_datetime(
+            created_before, "created_before"
+        )
+        resolved_sort_by = _parse_history_sort_field(sort_by)
+        resolved_sort_order = _parse_history_sort_order(sort_order)
+        return {
+            "status": "success",
+            **(
+                await _get_operator_history_listing(
+                    session_id=session_id,
+                    session_query=resolved_session_query,
+                    operator=resolved_operator,
+                    tag=resolved_tag,
+                    note=resolved_note,
+                    limit=limit,
+                    offset=offset,
+                    kind=kind,
+                    route_mode=route_mode,
+                    created_after=resolved_created_after,
+                    created_before=resolved_created_before,
+                    sort_by=resolved_sort_by,
+                    sort_order=resolved_sort_order,
+                )
+            ),
+        }
+
+    @router.get("/api/godot/history/export")
+    async def export_operator_history(
+        session_id: Optional[str] = None,
+        session_query: Optional[str] = None,
+        operator: Optional[str] = None,
+        tag: Optional[str] = None,
+        note: Optional[str] = None,
+        kind: Optional[str] = None,
+        route_mode: Optional[str] = None,
+        created_after: Optional[str] = None,
+        created_before: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_order: Optional[str] = None,
+        format: str = "json",
+    ):
+        resolved_session_query = _normalize_optional_text(session_query)
+        resolved_operator = _normalize_optional_text(operator)
+        resolved_tag = _normalize_optional_text(tag)
+        resolved_note = _normalize_optional_text(note)
+        resolved_created_after = _parse_optional_iso_datetime(
+            created_after, "created_after"
+        )
+        resolved_created_before = _parse_optional_iso_datetime(
+            created_before, "created_before"
+        )
+        resolved_sort_by = _parse_history_sort_field(sort_by)
+        resolved_sort_order = _parse_history_sort_order(sort_order)
+        normalized_format = (_normalize_optional_text(format) or "json").lower()
+        if normalized_format not in {"json", "csv"}:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid format '{format}'. Expected 'json' or 'csv'.",
+            )
+        return await _export_operator_history(
+            session_id=session_id,
+            session_query=resolved_session_query,
+            operator=resolved_operator,
+            tag=resolved_tag,
+            note=resolved_note,
+            kind=kind,
+            route_mode=route_mode,
+            created_after=resolved_created_after,
+            created_before=resolved_created_before,
+            sort_by=resolved_sort_by,
+            sort_order=resolved_sort_order,
+            export_format=normalized_format,
+        )
+
+    @router.get("/api/godot/history/summary")
+    async def get_operator_history_summary(
+        session_id: Optional[str] = None,
+        session_query: Optional[str] = None,
+        operator: Optional[str] = None,
+        tag: Optional[str] = None,
+        note: Optional[str] = None,
+        kind: Optional[str] = None,
+        route_mode: Optional[str] = None,
+        created_after: Optional[str] = None,
+        created_before: Optional[str] = None,
+    ):
+        resolved_session_query = _normalize_optional_text(session_query)
+        resolved_operator = _normalize_optional_text(operator)
+        resolved_tag = _normalize_optional_text(tag)
+        resolved_note = _normalize_optional_text(note)
+        resolved_created_after = _parse_optional_iso_datetime(
+            created_after, "created_after"
+        )
+        resolved_created_before = _parse_optional_iso_datetime(
+            created_before, "created_before"
+        )
+        return {
+            "status": "success",
+            **(
+                await _get_operator_history_summary(
+                    session_id=session_id,
+                    session_query=resolved_session_query,
+                    operator=resolved_operator,
+                    tag=resolved_tag,
+                    note=resolved_note,
+                    kind=kind,
+                    route_mode=route_mode,
+                    created_after=resolved_created_after,
+                    created_before=resolved_created_before,
+                )
+            ),
+        }
+
     @router.get("/api/godot/{session_id}/status")
     async def get_session_status(session_id: str):
         bridge = manager.get_session(session_id)
         if bridge is None:
             return disconnected_session_status(session_id)
         return bridge.get_status_payload()
+
+    @router.get("/api/godot/{session_id}/history")
+    async def get_session_history(
+        session_id: str,
+        limit: int = DEFAULT_OPERATOR_HISTORY_PAGE_SIZE,
+        offset: int = 0,
+        session_query: Optional[str] = None,
+        operator: Optional[str] = None,
+        tag: Optional[str] = None,
+        note: Optional[str] = None,
+        kind: Optional[str] = None,
+        route_mode: Optional[str] = None,
+        created_after: Optional[str] = None,
+        created_before: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_order: Optional[str] = None,
+    ):
+        bridge = manager.get_or_create(session_id)
+        resolved_session_query = _normalize_optional_text(session_query)
+        resolved_operator = _normalize_optional_text(operator)
+        resolved_tag = _normalize_optional_text(tag)
+        resolved_note = _normalize_optional_text(note)
+        resolved_created_after = _parse_optional_iso_datetime(
+            created_after, "created_after"
+        )
+        resolved_created_before = _parse_optional_iso_datetime(
+            created_before, "created_before"
+        )
+        resolved_sort_by = _parse_history_sort_field(sort_by)
+        resolved_sort_order = _parse_history_sort_order(sort_order)
+        return {
+            "status": "success",
+            **(
+                await bridge.get_history_payload(
+                    limit=limit,
+                    offset=offset,
+                    session_query=resolved_session_query,
+                    operator=resolved_operator,
+                    tag=resolved_tag,
+                    note=resolved_note,
+                    kind=kind,
+                    route_mode=route_mode,
+                    created_after=resolved_created_after,
+                    created_before=resolved_created_before,
+                    sort_by=resolved_sort_by,
+                    sort_order=resolved_sort_order,
+                )
+            ),
+        }
+
+    @router.post("/api/godot/{session_id}/history/clear")
+    async def clear_session_history(session_id: str):
+        bridge = manager.get_or_create(session_id)
+        return {
+            "status": "success",
+            **(await bridge.clear_history()),
+        }
 
     @router.post("/api/godot/{session_id}/launch")
     async def launch_session(session_id: str, payload: Dict[str, Any]):
@@ -625,12 +1434,20 @@ def build_router(
                 "session_state": bridge.session_state,
             }
         simulated_circuit = payload.get("simulated_circuit") or payload
-        result = await bridge.configure_simulated_circuit(simulated_circuit)
+        result = await bridge.configure_simulated_circuit(
+            simulated_circuit,
+            operator=_normalize_optional_text(str(payload.get("operator") or "")),
+            tag=_normalize_optional_text(str(payload.get("tag") or "")),
+            note=_normalize_optional_text(str(payload.get("note") or "")),
+        )
         return {
             "status": "error" if result.get("status") == "error" else "success",
             "simulated_circuit": result.get(
                 "simulated_circuit", bridge.simulated_circuit_config
             ),
+            "operator": _normalize_optional_text(str(payload.get("operator") or "")),
+            "tag": _normalize_optional_text(str(payload.get("tag") or "")),
+            "note": _normalize_optional_text(str(payload.get("note") or "")),
             "dispatch_result": result,
             "session": bridge.get_status_payload(),
             "session_state": bridge.session_state,
@@ -662,13 +1479,46 @@ def build_router(
             instruction_set,
             compatibility_params=compatibility_params,
             simulated_circuit_command_batch=command_batch,
+            operator=_normalize_optional_text(str(payload.get("operator") or "")),
+            tag=_normalize_optional_text(str(payload.get("tag") or "")),
+            note=_normalize_optional_text(str(payload.get("note") or "")),
         )
         return {
             "status": "error" if result.get("status") == "error" else "success",
             "instruction_set": instruction_set,
             "compatibility_params": compatibility_params,
             "simulated_circuit_command_batch": command_batch,
+            "operator": _normalize_optional_text(str(payload.get("operator") or "")),
+            "tag": _normalize_optional_text(str(payload.get("tag") or "")),
+            "note": _normalize_optional_text(str(payload.get("note") or "")),
             "dispatch_result": result,
+            "session": bridge.get_status_payload(),
+            "session_state": bridge.session_state,
+        }
+
+    @router.post("/api/godot/{session_id}/history/replay")
+    async def replay_session_history(
+        session_id: str, payload: Optional[Dict[str, Any]] = None
+    ):
+        bridge = manager.get_session(session_id)
+        if bridge is None:
+            return {
+                "status": "error",
+                "message": f"Session '{session_id}' not found.",
+                "session": disconnected_session_status(session_id),
+                "session_state": "disconnected",
+            }
+        if not bridge.is_connected():
+            return {
+                "status": "error",
+                "message": f"Session '{session_id}' is not connected.",
+                "session": bridge.get_status_payload(),
+                "session_state": bridge.session_state,
+            }
+        payload = payload or {}
+        result = await bridge.replay_history_entry(payload.get("entry_id"))
+        return {
+            **result,
             "session": bridge.get_status_payload(),
             "session_state": bridge.session_state,
         }

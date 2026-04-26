@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operator History Timeline</title>
+    <style>
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f172a; color: #e2e8f0; }
+        .container { max-width: 1280px; margin: 0 auto; padding: 24px; }
+        .header, .panel { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .header h1, .panel h2 { margin-top: 0; }
+        .actions, .button-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+        .button { display: inline-block; padding: 10px 16px; border-radius: 8px; background: #2563eb; color: white; text-decoration: none; border: none; cursor: pointer; font-weight: 600; }
+        .button.secondary { background: #374151; }
+        .filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+        .field label { display: block; font-weight: 600; margin-bottom: 6px; }
+        input, select { width: 100%; border-radius: 8px; border: 1px solid #334155; background: #020617; color: #e2e8f0; padding: 10px 12px; font: inherit; }
+        .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+        .metric { background: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; }
+        .metric-label { font-size: 0.84rem; color: #93c5fd; margin-bottom: 6px; }
+        .metric-value { font-weight: 700; font-size: 1rem; }
+        .timeline-group { border-top: 1px solid #1e293b; padding-top: 16px; margin-top: 16px; }
+        .timeline-group:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+        .timeline-group-title { font-size: 1rem; font-weight: 700; margin-bottom: 12px; }
+        .timeline-list { display: grid; gap: 10px; }
+        .timeline-item { background: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; }
+        .timeline-item-header { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+        .timeline-item-title { font-weight: 700; }
+        .timeline-item-meta { color: #93c5fd; font-size: 0.88rem; }
+        pre { margin: 0; white-space: pre-wrap; word-break: break-word; background: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; }
+        .empty { color: #94a3b8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="header">
+            <h1>Operator History Timeline</h1>
+            <p>按时间线查看跨 session operator history，适合演示、审计和 replay 前定位。</p>
+            <div class="actions">
+                <a class="button secondary" href="/static/index.html">返回主控制台</a>
+                <a class="button secondary" href="/static/operator-history.html">打开 Operator History Console</a>
+                <a class="button secondary" href="/static/instruction-control.html">打开 Instruction Console</a>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Filters</h2>
+            <div class="filters">
+                <div class="field">
+                    <label for="timeline-session-query">Session Search</label>
+                    <input id="timeline-session-query" type="text" placeholder="按 session_id 模糊搜索" />
+                </div>
+                <div class="field">
+                    <label for="timeline-operator-filter">Operator</label>
+                    <input id="timeline-operator-filter" type="text" placeholder="按 operator 模糊搜索" />
+                </div>
+                <div class="field">
+                    <label for="timeline-tag-filter">Tag</label>
+                    <input id="timeline-tag-filter" type="text" placeholder="按 tag 模糊搜索" />
+                </div>
+                <div class="field">
+                    <label for="timeline-note-filter">Note</label>
+                    <input id="timeline-note-filter" type="text" placeholder="按 note 模糊搜索" />
+                </div>
+                <div class="field">
+                    <label for="timeline-kind-filter">Kind</label>
+                    <select id="timeline-kind-filter">
+                        <option value="">全部</option>
+                        <option value="instruction_set">instruction_set</option>
+                        <option value="simulated_circuit">simulated_circuit</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="timeline-route-mode-filter">Route Mode</label>
+                    <select id="timeline-route-mode-filter">
+                        <option value="">全部</option>
+                        <option value="session_bridge">session_bridge</option>
+                        <option value="legacy">legacy</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="timeline-created-after">Created After</label>
+                    <input id="timeline-created-after" type="datetime-local" />
+                </div>
+                <div class="field">
+                    <label for="timeline-created-before">Created Before</label>
+                    <input id="timeline-created-before" type="datetime-local" />
+                </div>
+                <div class="field">
+                    <label for="timeline-sort-order">Sort Order</label>
+                    <select id="timeline-sort-order">
+                        <option value="desc">最新优先</option>
+                        <option value="asc">最早优先</option>
+                    </select>
+                </div>
+            </div>
+            <div class="button-row">
+                <button class="button secondary" id="timeline-apply-button" type="button">刷新 Timeline</button>
+                <button class="button secondary" id="timeline-export-json-button" type="button">导出 JSON</button>
+                <button class="button secondary" id="timeline-export-csv-button" type="button">导出 CSV</button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Summary</h2>
+            <div class="metrics">
+                <div class="metric"><div class="metric-label">Total Entries</div><div class="metric-value" id="timeline-total-entries">-</div></div>
+                <div class="metric"><div class="metric-label">Session Count</div><div class="metric-value" id="timeline-session-count">-</div></div>
+                <div class="metric"><div class="metric-label">Kinds</div><div class="metric-value" id="timeline-kind-summary">-</div></div>
+                <div class="metric"><div class="metric-label">Route Modes</div><div class="metric-value" id="timeline-route-summary">-</div></div>
+            </div>
+            <pre id="timeline-summary-response">{}</pre>
+        </section>
+
+        <section class="panel">
+            <h2>Timeline</h2>
+            <p class="empty" id="timeline-status">尚未加载 timeline。</p>
+            <div id="timeline-groups"></div>
+        </section>
+    </div>
+
+    <script>
+        const timelineSessionQueryInput = document.getElementById('timeline-session-query');
+        const timelineOperatorFilterInput = document.getElementById('timeline-operator-filter');
+        const timelineTagFilterInput = document.getElementById('timeline-tag-filter');
+        const timelineNoteFilterInput = document.getElementById('timeline-note-filter');
+        const timelineKindFilterInput = document.getElementById('timeline-kind-filter');
+        const timelineRouteModeFilterInput = document.getElementById('timeline-route-mode-filter');
+        const timelineCreatedAfterInput = document.getElementById('timeline-created-after');
+        const timelineCreatedBeforeInput = document.getElementById('timeline-created-before');
+        const timelineSortOrderInput = document.getElementById('timeline-sort-order');
+        const timelineGroupsNode = document.getElementById('timeline-groups');
+        const timelineStatusNode = document.getElementById('timeline-status');
+        const timelineSummaryNode = document.getElementById('timeline-summary-response');
+        const timelineTotalEntriesNode = document.getElementById('timeline-total-entries');
+        const timelineSessionCountNode = document.getElementById('timeline-session-count');
+        const timelineKindSummaryNode = document.getElementById('timeline-kind-summary');
+        const timelineRouteSummaryNode = document.getElementById('timeline-route-summary');
+
+        async function getJson(url) {
+            const response = await fetch(url);
+            const data = await response.json();
+            if (!response.ok) throw new Error(JSON.stringify(data));
+            return data;
+        }
+
+        function currentFilters() {
+            return {
+                session_query: timelineSessionQueryInput.value || '',
+                operator: timelineOperatorFilterInput.value || '',
+                tag: timelineTagFilterInput.value || '',
+                note: timelineNoteFilterInput.value || '',
+                kind: timelineKindFilterInput.value || '',
+                route_mode: timelineRouteModeFilterInput.value || '',
+                created_after: timelineCreatedAfterInput.value || '',
+                created_before: timelineCreatedBeforeInput.value || '',
+                sort_order: timelineSortOrderInput.value || 'desc',
+            };
+        }
+
+        function buildParams(filters) {
+            const params = new URLSearchParams();
+            if (filters.session_query) params.set('session_query', filters.session_query);
+            if (filters.operator) params.set('operator', filters.operator);
+            if (filters.tag) params.set('tag', filters.tag);
+            if (filters.note) params.set('note', filters.note);
+            if (filters.kind) params.set('kind', filters.kind);
+            if (filters.route_mode) params.set('route_mode', filters.route_mode);
+            if (filters.created_after) params.set('created_after', new Date(filters.created_after).toISOString());
+            if (filters.created_before) params.set('created_before', new Date(filters.created_before).toISOString());
+            params.set('sort_by', 'created_at');
+            params.set('sort_order', filters.sort_order);
+            return params;
+        }
+
+        function renderSummary(summary) {
+            timelineSummaryNode.textContent = JSON.stringify(summary || {}, null, 2);
+            timelineTotalEntriesNode.textContent = String(summary?.total_entries ?? '-');
+            timelineSessionCountNode.textContent = String(summary?.session_count ?? '-');
+            const kindCounts = summary?.kind_counts || {};
+            const routeModeCounts = summary?.route_mode_counts || {};
+            timelineKindSummaryNode.textContent = Object.keys(kindCounts).length
+                ? Object.entries(kindCounts).map(([key, value]) => `${key}:${value}`).join(' / ')
+                : '-';
+            timelineRouteSummaryNode.textContent = Object.keys(routeModeCounts).length
+                ? Object.entries(routeModeCounts).map(([key, value]) => `${key}:${value}`).join(' / ')
+                : '-';
+        }
+
+        function renderTimeline(entries) {
+            timelineGroupsNode.innerHTML = '';
+            if (!entries.length) {
+                timelineStatusNode.textContent = '没有匹配的 timeline 条目。';
+                return;
+            }
+            timelineStatusNode.textContent = `已加载 ${entries.length} 条 timeline 记录。`;
+            const grouped = new Map();
+            entries.forEach((entry) => {
+                const createdDate = String(entry.created_at || '').slice(0, 10) || 'unknown-date';
+                const key = `${createdDate}::${entry.session_id}`;
+                if (!grouped.has(key)) grouped.set(key, { createdDate, sessionId: entry.session_id, entries: [] });
+                grouped.get(key).entries.push(entry);
+            });
+            grouped.forEach((group) => {
+                const section = document.createElement('div');
+                section.className = 'timeline-group';
+                const title = document.createElement('div');
+                title.className = 'timeline-group-title';
+                title.textContent = `${group.createdDate} · ${group.sessionId} · ${group.entries.length} entries`;
+                section.appendChild(title);
+                const list = document.createElement('div');
+                list.className = 'timeline-list';
+                group.entries.forEach((entry) => {
+                    const item = document.createElement('div');
+                    item.className = 'timeline-item';
+                    const header = document.createElement('div');
+                    header.className = 'timeline-item-header';
+                    const titleNode = document.createElement('div');
+                    titleNode.className = 'timeline-item-title';
+                    titleNode.textContent = `${entry.kind} · ${entry.created_at}`;
+                    const metaNode = document.createElement('div');
+                    metaNode.className = 'timeline-item-meta';
+                    const metaParts = [entry.payload?.route_mode || entry.route_mode || '-'];
+                    if (entry.operator) metaParts.push(`operator:${entry.operator}`);
+                    if (entry.tag) metaParts.push(`tag:${entry.tag}`);
+                    if (entry.note) metaParts.push(`note:${entry.note}`);
+                    metaNode.textContent = metaParts.join(' · ');
+                    const body = document.createElement('pre');
+                    body.textContent = JSON.stringify(entry.payload || {}, null, 2);
+                    header.appendChild(titleNode);
+                    header.appendChild(metaNode);
+                    item.appendChild(header);
+                    item.appendChild(body);
+                    list.appendChild(item);
+                });
+                section.appendChild(list);
+                timelineGroupsNode.appendChild(section);
+            });
+        }
+
+        async function refreshTimeline() {
+            const filters = currentFilters();
+            const summaryParams = buildParams(filters);
+            const listingParams = buildParams(filters);
+            listingParams.set('limit', '200');
+            listingParams.set('offset', '0');
+            try {
+                const [summary, listing] = await Promise.all([
+                    getJson(`/api/godot/history/summary?${summaryParams.toString()}`),
+                    getJson(`/api/godot/history?${listingParams.toString()}`),
+                ]);
+                renderSummary(summary);
+                renderTimeline(listing.history || []);
+            } catch (error) {
+                timelineStatusNode.textContent = `timeline 读取失败: ${error.message}`;
+                timelineGroupsNode.innerHTML = '';
+            }
+        }
+
+        document.getElementById('timeline-apply-button').addEventListener('click', refreshTimeline);
+        document.getElementById('timeline-export-json-button').addEventListener('click', () => {
+            const params = buildParams(currentFilters());
+            window.open(`/api/godot/history/export?format=json&${params.toString()}`, '_blank');
+        });
+        document.getElementById('timeline-export-csv-button').addEventListener('click', () => {
+            const params = buildParams(currentFilters());
+            window.open(`/api/godot/history/export?format=csv&${params.toString()}`, '_blank');
+        });
+
+        refreshTimeline();
+    </script>
+</body>
+</html>
