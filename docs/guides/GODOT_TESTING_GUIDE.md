@@ -42,6 +42,10 @@ python tests/run_smoke_tests.py
 - modern backend 预检
 - Web Panel import 检查
 
+如果你要把 Godot instruction-set / ROS2 instruction-set / simulated circuit replay 作为一套完整演示链来跑，直接使用：
+
+- `docs/guides/INSTRUCTION_CONTROL_DEMO_RUNBOOK.md`
+
 ## 2. 真实 headless smoke 是 opt-in
 
 真实 Godot headless smoke 只会在显式开启时运行。

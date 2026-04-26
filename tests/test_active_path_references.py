@@ -15,6 +15,7 @@ GITIGNORE = Path(".gitignore")
 API_REFERENCE = Path("docs/API_REFERENCE.md")
 MCP_GUIDE = Path("docs/mcp.md")
 WEB_PANEL_GUIDE = Path("docs/guides/WEB_PANEL_GUIDE.md")
+GODOT_TESTING_GUIDE = Path("docs/guides/GODOT_TESTING_GUIDE.md")
 RELEASE_GUIDE = Path("docs/guides/RELEASE_GUIDE.md")
 DEPLOYMENT_MATRIX_GUIDE = Path("docs/guides/DEPLOYMENT_MATRIX.md")
 CUSTOMER_INSTALLATION_GUIDE = Path("docs/guides/CUSTOMER_INSTALLATION_GUIDE.md")
@@ -63,6 +64,9 @@ HEADLESS_SMOKE_TEST = Path("tests/test_godot_headless_smoke.py")
 RUN_SMOKE_TESTS = Path("tests/run_smoke_tests.py")
 CI_WORKFLOW = Path(".github/workflows/ci.yml")
 TESTING_GUIDE = Path("docs/guides/TESTING_GUIDE.md")
+INSTRUCTION_CONTROL_DEMO_RUNBOOK = Path(
+    "docs/guides/INSTRUCTION_CONTROL_DEMO_RUNBOOK.md"
+)
 
 
 def test_dockerfile_does_not_reference_removed_source_layout() -> None:
@@ -581,6 +585,20 @@ def test_testing_guide_references_instruction_control_validation_runner() -> Non
     assert "simulated circuit replay smoke" in content
     assert "python tools/run_instruction_control_validation.py" in content
     assert "instruction_control_validation_report.json" in content
+
+
+def test_instruction_control_demo_runbook_is_referenced_and_actionable() -> None:
+    readme = ROOT_RELEASE_NOTES.parent.joinpath("README.md").read_text(encoding="utf-8")
+    godot_guide = GODOT_TESTING_GUIDE.read_text(encoding="utf-8")
+    runbook = INSTRUCTION_CONTROL_DEMO_RUNBOOK.read_text(encoding="utf-8")
+
+    assert "docs/guides/INSTRUCTION_CONTROL_DEMO_RUNBOOK.md" in readme
+    assert "docs/guides/INSTRUCTION_CONTROL_DEMO_RUNBOOK.md" in godot_guide
+    assert "python tools/run_instruction_control_validation.py" in runbook
+    assert "instruction_control_validation_report.json" in runbook
+    assert "godot_instruction_smoke_report.json" in runbook
+    assert "ros2_instruction_smoke_report.json" in runbook
+    assert "simulated_circuit_replay_smoke_report.json" in runbook
 
 
 def test_customer_deployment_docs_and_compose_defaults_use_current_single_path() -> None:

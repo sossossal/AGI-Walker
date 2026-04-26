@@ -241,6 +241,10 @@ python tools/run_instruction_control_validation.py --output-root test_env/instru
 - `test_env/instruction_control_validation/smoke_report.json`
 - `test_env/instruction_control_validation/instruction_control_validation_report.json`
 
+若需要一页式演示步骤与验收判定，见：
+
+- `docs/guides/INSTRUCTION_CONTROL_DEMO_RUNBOOK.md`
+
 统一 release-ops control plane：
 
 ```bash
