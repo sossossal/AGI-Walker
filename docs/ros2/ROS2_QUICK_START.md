@@ -9,8 +9,11 @@ This guide is now referenced by `extension_execution_plan.profiles[ros2_bridge_e
 The ROS 2 workspace contains two packages:
 
 - `hardware/ros2_ws/src/agi_walker_msgs`
-  - Custom messages: `Part.msg`, `Connection.msg`, `RobotState.msg`
-  - Custom service: `LoadRobot.srv`
+  - Robot model/state messages: `Part.msg`, `Connection.msg`, `RobotState.msg`
+  - Instruction/circuit messages: `InstructionStep.msg`, `InstructionSet.msg`, `SimulatedCircuit.msg`
+  - Hardware recovery messages: `HardwareFault.msg`, `HardwareRecoveryAction.msg`, `HardwareRecoveryStatus.msg`
+  - Behavior/navigation/perception messages: `BehaviorCommand.msg`, `NavigationGoal.msg`, `PerceptionSnapshot.msg`
+  - Services: `LoadRobot.srv`, `ApplyInstructionSet.srv`, `ConfigureSimulatedCircuit.srv`, `HardwareRecovery.srv`
 - `hardware/ros2_ws/src/agi_walker_ros2`
   - Bridge implementation: `agi_walker_ros2/bridge_node.py`
   - Launch files: `launch/agi_walker.launch.py`, `launch/robot.launch.py`
@@ -39,6 +42,9 @@ The bridge node in `agi_walker_ros2/bridge_node.py` currently defines:
 - Publishers: `/joint_states`, `/robot_state` (optional), `/battery`, `/imu`
 - Subscriber: `/cmd_vel`
 - Services: `/start_simulation`, `/stop_simulation`, `/load_robot` (optional)
+- Custom typed IDL for instruction-set, simulated-circuit and hardware-recovery contracts under `agi_walker_msgs`
+- Typed compatibility topics/services: `/instruction_set`, `/simulated_circuit`, `/instruction_set/apply`, `/simulated_circuit/configure`, `/hardware/recovery`
+- Behavior/navigation/perception topics: `/behavior_command`, `/navigation_goal`, `/perception_snapshot`
 - Parameters: Godot host and port, publish rates, control gains, PID gains
 
 The minimal bridge entry is:
@@ -52,6 +58,19 @@ There is also a wrapper launch that starts the bridge and optionally adds `robot
 ```bash
 ros2 launch agi_walker_ros2 robot.launch.py
 ```
+
+Use `config_file` to switch profiles without editing the launch file:
+
+```bash
+ros2 launch agi_walker_ros2 agi_walker.launch.py \
+  config_file:=install/agi_walker_ros2/share/agi_walker_ros2/config/profiles/replay.yaml
+```
+
+Checked-in profiles:
+
+- `config/profiles/local.yaml`
+- `config/profiles/replay.yaml`
+- `config/profiles/live.yaml`
 
 ## Known Drift You Should Expect
 
@@ -83,6 +102,8 @@ python -m pytest tests/test_ros2_bridge_runtime.py tests/test_ros2_workspace.py 
 This path validates:
 
 - replay payload shape for bridge input data
+- bag-style replay manifest shape and ordered topic application
+- multi-node replay smoke report generation
 - JointState and RobotState publication mapping
 - `/cmd_vel` to Godot parameter translation
 - basic start/stop service flow under a fake ROS 2 runtime
@@ -113,3 +134,7 @@ If you need a production ROS 2 workflow, run both layers:
 
 - fake-runtime mapping tests for fast regression
 - live ROS 2 smoke in the target Humble environment for startup, topic, service, and TCP bridge validation
+
+For downstream migration from JSON topics/services to typed IDL, follow:
+
+- `docs/ros2/ROS2_TYPED_IDL_MIGRATION.md`

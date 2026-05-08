@@ -1,0 +1,11 @@
+# Replay-oriented profile for deterministic bridge checks.
+/agi_walker_bridge:
+  ros__parameters:
+    godot_host: "127.0.0.1"
+    godot_port: 9999
+    reconnect_timeout: 1.0
+    joint_state_rate: 20.0
+    robot_state_rate: 10.0
+    tf_rate: 20.0
+    debug: true
+    verbose: true

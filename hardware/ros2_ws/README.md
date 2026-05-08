@@ -6,8 +6,11 @@ It is a secondary integration surface around the main Python package, not the pr
 ## Workspace Layout
 
 - `src/agi_walker_msgs`
-  - Custom messages: `Part.msg`, `Connection.msg`, `RobotState.msg`
-  - Custom service: `LoadRobot.srv`
+  - Robot model/state messages: `Part.msg`, `Connection.msg`, `RobotState.msg`
+  - Instruction/circuit messages: `InstructionStep.msg`, `InstructionSet.msg`, `SimulatedCircuit.msg`
+  - Hardware recovery messages: `HardwareFault.msg`, `HardwareRecoveryAction.msg`, `HardwareRecoveryStatus.msg`
+  - Behavior/navigation/perception messages: `BehaviorCommand.msg`, `NavigationGoal.msg`, `PerceptionSnapshot.msg`
+  - Services: `LoadRobot.srv`, `ApplyInstructionSet.srv`, `ConfigureSimulatedCircuit.srv`, `HardwareRecovery.srv`
 - `src/agi_walker_ros2`
   - Bridge implementation: `agi_walker_ros2/bridge_node.py`
   - Launch files: `launch/agi_walker.launch.py`, `launch/robot.launch.py`
@@ -51,6 +54,18 @@ ros2 launch agi_walker_ros2 robot.launch.py
 ```
 
 The bridge reads defaults from `src/agi_walker_ros2/config/params.yaml`.
+You can select a layered profile with `config_file`, for example:
+
+```bash
+ros2 launch agi_walker_ros2 agi_walker.launch.py \
+  config_file:=install/agi_walker_ros2/share/agi_walker_ros2/config/profiles/replay.yaml
+```
+
+Available checked-in profiles:
+
+- `config/profiles/local.yaml`
+- `config/profiles/replay.yaml`
+- `config/profiles/live.yaml`
 
 ## Runtime Surface
 
@@ -60,6 +75,10 @@ The current bridge exposes:
 - Optional publisher path: `/robot_state`
 - Subscriber: `/cmd_vel`
 - Services: `/start_simulation`, `/stop_simulation`, `/load_robot`
+- Typed custom IDL is available for future non-JSON instruction, simulated circuit, and hardware recovery service surfaces under `agi_walker_msgs`.
+- Typed compatibility topics/services: `/instruction_set`, `/simulated_circuit`, `/instruction_set/apply`, `/simulated_circuit/configure`, `/hardware/recovery`
+- Behavior/navigation/perception topics: `/behavior_command`, `/navigation_goal`, `/perception_snapshot`
+- Launch profile selection via `config_file` for local, replay, and live candidate runs.
 
 ## Basic Validation
 
@@ -75,6 +94,12 @@ Non-ROS environments can still validate the bridge shape through the repository 
 ```bash
 python -m pytest tests/test_ros2_bridge_runtime.py tests/test_ros2_workspace.py -q
 ```
+
+The fake-runtime suite also covers a bag-style replay manifest:
+
+- `tests/fixtures/ros2_bridge_bag_replay.json`
+- ordered `/cmd_vel`, `/simulated_circuit/json`, and `/instruction_set/json` application
+- multi-node smoke reporting with expected node coverage and state coverage checks
 
 Real ROS 2 Humble environments can also run the opt-in live smoke:
 
@@ -101,3 +126,4 @@ It is still less battle-tested than the main CLI, Web Panel, and MCP paths, so v
 
 - `docs/ros2/ROS2_QUICK_START.md`
 - `docs/ros2/ROS2_INTEGRATION_DESIGN.md`
+- `docs/ros2/ROS2_TYPED_IDL_MIGRATION.md`

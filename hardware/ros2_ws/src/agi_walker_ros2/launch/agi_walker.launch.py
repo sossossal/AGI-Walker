@@ -33,7 +33,12 @@ def generate_launch_description():
     )
 
     # 配置文件路径
-    config_file = os.path.join(pkg_share, "config", "params.yaml")
+    default_config_file = os.path.join(pkg_share, "config", "params.yaml")
+    config_file_arg = DeclareLaunchArgument(
+        "config_file",
+        default_value=default_config_file,
+        description="Bridge parameter YAML file, e.g. config/profiles/replay.yaml",
+    )
 
     # AGI-Walker桥接节点
     bridge_node = Node(
@@ -42,7 +47,7 @@ def generate_launch_description():
         name="agi_walker_bridge",
         output="screen",
         parameters=[
-            config_file,
+            LaunchConfiguration("config_file"),
             {
                 "godot_host": LaunchConfiguration("godot_host"),
                 "godot_port": LaunchConfiguration("godot_port"),
@@ -67,6 +72,7 @@ def generate_launch_description():
             godot_host_arg,
             godot_port_arg,
             use_sim_time_arg,
+            config_file_arg,
             # 节点
             bridge_node,
             # 延迟启动其他节点（可选）

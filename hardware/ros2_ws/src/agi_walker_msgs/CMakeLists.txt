@@ -17,7 +17,19 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Part.msg"
   "msg/Connection.msg"
   "msg/RobotState.msg"
+  "msg/InstructionStep.msg"
+  "msg/InstructionSet.msg"
+  "msg/SimulatedCircuit.msg"
+  "msg/HardwareFault.msg"
+  "msg/HardwareRecoveryAction.msg"
+  "msg/HardwareRecoveryStatus.msg"
+  "msg/BehaviorCommand.msg"
+  "msg/NavigationGoal.msg"
+  "msg/PerceptionSnapshot.msg"
   "srv/LoadRobot.srv"
+  "srv/ApplyInstructionSet.srv"
+  "srv/ConfigureSimulatedCircuit.srv"
+  "srv/HardwareRecovery.srv"
   DEPENDENCIES std_msgs geometry_msgs sensor_msgs
 )
 

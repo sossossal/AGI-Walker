@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "cutover_id": "ros2_typed_idl_cutover_20260427",
+  "target_environment": "<ros2-humble-target-environment>",
+  "operator": "<ros2-cutover-operator>",
+  "rollback_owner": "<rollback-owner>",
+  "launch_profile": "hardware/ros2_ws/src/agi_walker_ros2/config/profiles/live.yaml",
+  "json_writers_disabled": false,
+  "typed_surfaces_verified": [
+    {
+      "name": "instruction_set",
+      "legacy_surface": "/instruction_set/json",
+      "typed_surface": "/instruction_set",
+      "status": "pending"
+    },
+    {
+      "name": "simulated_circuit",
+      "legacy_surface": "/simulated_circuit/json",
+      "typed_surface": "/simulated_circuit",
+      "status": "pending"
+    },
+    {
+      "name": "hardware_recovery",
+      "legacy_surface": "/hardware/recover_by_fault_class",
+      "typed_surface": "/hardware/recovery",
+      "status": "pending"
+    },
+    {
+      "name": "behavior_navigation_perception",
+      "legacy_surface": "none",
+      "typed_surface": "/behavior_command,/navigation_goal,/perception_snapshot",
+      "status": "pending"
+    }
+  ],
+  "evidence": {
+    "live_smoke_report": "test_env/ros2_bridge_smoke/ros2_bridge_smoke_report.json",
+    "typed_inventory": "test_env/ros2_typed_idl_cutover/typed_inventory.json",
+    "rollback_plan": "docs/ros2/ROS2_TYPED_IDL_MIGRATION.md"
+  }
+}

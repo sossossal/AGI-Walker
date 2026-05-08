@@ -24,14 +24,49 @@ from tf2_ros import TransformBroadcaster
 
 try:
     from agi_walker_msgs.msg import RobotState
-    from agi_walker_msgs.srv import LoadRobot
 except ImportError:
-    print("Warning: agi_walker_msgs not found, some features will be limited")
+    print("Warning: RobotState msg not found, robot state publisher disabled")
     RobotState = None
+
+try:
+    from agi_walker_msgs.msg import (
+        BehaviorCommand,
+        InstructionStep,
+        InstructionSet,
+        NavigationGoal,
+        PerceptionSnapshot,
+        SimulatedCircuit,
+    )
+except ImportError:
+    BehaviorCommand = None
+    InstructionStep = None
+    InstructionSet = None
+    NavigationGoal = None
+    PerceptionSnapshot = None
+    SimulatedCircuit = None
+
+try:
+    from agi_walker_msgs.srv import (
+        LoadRobot,
+        ApplyInstructionSet,
+        ConfigureSimulatedCircuit,
+        HardwareRecovery,
+    )
+except ImportError:
+    print("Warning: agi_walker_msgs services not found, typed services disabled")
     LoadRobot = None
+    ApplyInstructionSet = None
+    ConfigureSimulatedCircuit = None
+    HardwareRecovery = None
 
 ROS2_BRIDGE_REPLAY_SCHEMA_VERSION = "1.0"
+ROS2_BRIDGE_BAG_REPLAY_SCHEMA_VERSION = "1.0"
 DEFAULT_JOINT_NAMES = ["hip_left", "knee_left", "hip_right", "knee_right"]
+SUPPORTED_BAG_REPLAY_TOPICS = {
+    "/cmd_vel",
+    "/instruction_set/json",
+    "/simulated_circuit/json",
+}
 
 
 def _add_repo_root_to_path() -> None:
@@ -71,6 +106,162 @@ def robot_state_fields_from_latest_data(
         "cpu_usage": 0.0,
         "temperature": 25.0,
         "status": "RUNNING" if simulation_running else "IDLE",
+    }
+
+
+def _json_object_from_text(raw_text: str, *, field_name: str) -> Dict[str, Any]:
+    if not raw_text:
+        return {}
+    try:
+        payload = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{field_name} must be valid JSON object text: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"{field_name} must decode to a JSON object")
+    return payload
+
+
+def instruction_step_msg_to_payload(step_msg: Any) -> Dict[str, Any]:
+    """Convert one typed InstructionStep msg into the canonical dict step."""
+    payload = _json_object_from_text(
+        getattr(step_msg, "payload_json", ""), field_name="payload_json"
+    )
+    kind = str(getattr(step_msg, "kind", "") or payload.get("kind") or "")
+    if kind:
+        payload["kind"] = kind
+    if kind == "set_velocity":
+        payload.update(
+            {
+                "linear_x": float(getattr(step_msg, "linear_x", 0.0)),
+                "linear_y": float(getattr(step_msg, "linear_y", 0.0)),
+                "angular_z": float(getattr(step_msg, "angular_z", 0.0)),
+            }
+        )
+    elif kind == "set_joint_targets":
+        payload.setdefault("joint_targets", {})
+        if getattr(step_msg, "compliance", 0.0):
+            payload["compliance"] = float(getattr(step_msg, "compliance"))
+    return payload
+
+
+def instruction_set_msg_to_payload(msg: Any) -> Dict[str, Any]:
+    """Convert typed agi_walker_msgs/InstructionSet into the canonical payload."""
+    payload = _json_object_from_text(
+        getattr(msg, "metadata_json", ""), field_name="metadata_json"
+    )
+    payload.update(
+        {
+            "schema_version": str(getattr(msg, "schema_version", "") or "1.0"),
+            "sequence_name": str(getattr(msg, "sequence_name", "")),
+            "steps": [
+                instruction_step_msg_to_payload(step)
+                for step in list(getattr(msg, "steps", []) or [])
+            ],
+        }
+    )
+    return payload
+
+
+def simulated_circuit_msg_to_payload(msg: Any) -> Dict[str, Any]:
+    """Convert typed agi_walker_msgs/SimulatedCircuit into the canonical payload."""
+    payload = _json_object_from_text(
+        getattr(msg, "config_json", ""), field_name="config_json"
+    )
+    payload.update(
+        {
+            "schema_version": str(getattr(msg, "schema_version", "") or "1.0"),
+            "transport": str(getattr(msg, "transport", "")),
+            "channel": str(getattr(msg, "channel", "")),
+            "bustype": str(getattr(msg, "bustype", "")),
+            "bitrate": int(getattr(msg, "bitrate", 0)),
+            "control_freq_hz": int(getattr(msg, "control_freq_hz", 0)),
+            "status_rate_hz": int(getattr(msg, "status_rate_hz", 0)),
+        }
+    )
+    return payload
+
+
+def behavior_command_msg_to_instruction_payload(msg: Any) -> Dict[str, Any]:
+    """Convert typed BehaviorCommand into one canonical instruction_set payload."""
+    payload = _json_object_from_text(
+        getattr(msg, "command_json", ""), field_name="command_json"
+    )
+    behavior_name = str(getattr(msg, "behavior_name", "") or "behavior_command")
+    steps = list(payload.get("steps") or [])
+    gait = str(getattr(msg, "gait", "") or payload.get("gait", ""))
+    posture = str(getattr(msg, "target_posture", "") or payload.get("target_posture", ""))
+    if gait:
+        steps.append(
+            {
+                "kind": "set_gait",
+                "gait": gait,
+                "cadence_hz": float(getattr(msg, "cadence_hz", 0.0) or payload.get("cadence_hz", 1.0)),
+                "stride_scale": float(getattr(msg, "stride_scale", 0.0) or payload.get("stride_scale", 1.0)),
+            }
+        )
+    if posture:
+        steps.append(
+            {
+                "kind": "set_pose",
+                "posture": posture,
+                "balance_gain": float(getattr(msg, "balance_gain", 0.0) or payload.get("balance_gain", 1.0)),
+            }
+        )
+    return {
+        "schema_version": str(payload.get("schema_version", "1.0")),
+        "sequence_name": str(payload.get("sequence_name", behavior_name)),
+        "steps": steps,
+    }
+
+
+def navigation_goal_msg_to_godot_params(msg: Any) -> Dict[str, float]:
+    """Project one NavigationGoal into the bridge's velocity command plane."""
+    payload = _json_object_from_text(
+        getattr(msg, "goal_json", ""), field_name="goal_json"
+    )
+    target_x = float(getattr(msg, "target_x", 0.0) or payload.get("target_x", 0.0))
+    target_y = float(getattr(msg, "target_y", 0.0) or payload.get("target_y", 0.0))
+    target_yaw = float(
+        getattr(msg, "target_yaw", 0.0) or payload.get("target_yaw", 0.0)
+    )
+    max_linear = float(
+        getattr(msg, "max_linear_speed", 0.0) or payload.get("max_linear_speed", 0.3)
+    )
+    max_angular = float(
+        getattr(msg, "max_angular_speed", 0.0) or payload.get("max_angular_speed", 0.5)
+    )
+    linear_x = max(-max_linear, min(max_linear, target_x))
+    linear_y = max(-max_linear, min(max_linear, target_y))
+    angular_z = max(-max_angular, min(max_angular, target_yaw))
+    return {
+        "cmd_linear_x": linear_x,
+        "cmd_linear_y": linear_y,
+        "cmd_angular_z": angular_z,
+        "nav_goal_x": target_x,
+        "nav_goal_y": target_y,
+        "nav_goal_yaw": target_yaw,
+    }
+
+
+def perception_snapshot_msg_to_latest_data(msg: Any) -> Dict[str, Any]:
+    """Convert one PerceptionSnapshot into latest_data telemetry fields."""
+    summary = _json_object_from_text(
+        getattr(msg, "summary_json", ""), field_name="summary_json"
+    )
+    battery = float(getattr(msg, "battery_level", 0.0) or summary.get("battery", 100.0))
+    return {
+        "battery": battery,
+        "perception": {
+            "frame_id": str(getattr(msg, "frame_id", "") or summary.get("frame_id", "")),
+            "obstacle_count": int(
+                getattr(msg, "obstacle_count", 0) or summary.get("obstacle_count", 0)
+            ),
+            "nearest_obstacle_m": float(
+                getattr(msg, "nearest_obstacle_m", 0.0)
+                or summary.get("nearest_obstacle_m", 0.0)
+            ),
+            "summary": summary,
+        },
     }
 
 
@@ -123,6 +314,62 @@ def load_ros2_bridge_replay_payload(source: str | Path | Dict) -> Dict:
     else:
         payload = json.loads(Path(source).read_text(encoding="utf-8"))
     errors = validate_ros2_bridge_replay_payload(payload)
+    if errors:
+        raise ValueError("; ".join(errors))
+    return payload
+
+
+def validate_ros2_bridge_bag_replay_payload(payload: Dict) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(payload, dict):
+        return ["bag replay payload must be a dict"]
+    if payload.get("schema_version") != ROS2_BRIDGE_BAG_REPLAY_SCHEMA_VERSION:
+        errors.append(
+            f"schema_version must be {ROS2_BRIDGE_BAG_REPLAY_SCHEMA_VERSION!r}"
+        )
+    messages = payload.get("messages")
+    if not isinstance(messages, list) or not messages:
+        errors.append("messages must be a non-empty list")
+        return errors
+    for index, message in enumerate(messages):
+        if not isinstance(message, dict):
+            errors.append(f"messages[{index}] must be a dict")
+            continue
+        topic = message.get("topic")
+        if topic not in SUPPORTED_BAG_REPLAY_TOPICS:
+            errors.append(
+                f"messages[{index}].topic must be one of {sorted(SUPPORTED_BAG_REPLAY_TOPICS)!r}"
+            )
+        timestamp = message.get("timestamp_sec", 0.0)
+        if not isinstance(timestamp, (int, float)) or float(timestamp) < 0.0:
+            errors.append(f"messages[{index}].timestamp_sec must be non-negative")
+        message_payload = message.get("payload")
+        if not isinstance(message_payload, dict):
+            errors.append(f"messages[{index}].payload must be a dict")
+            continue
+        if topic == "/instruction_set/json":
+            errors.extend(
+                f"messages[{index}].payload.{error}"
+                for error in validate_instruction_set_payload(message_payload)
+            )
+        elif topic == "/simulated_circuit/json":
+            errors.extend(
+                f"messages[{index}].payload.{error}"
+                for error in validate_simulated_circuit_config(message_payload)
+            )
+        elif topic == "/cmd_vel":
+            for key in ["linear_x", "linear_y", "angular_z"]:
+                if not isinstance(message_payload.get(key), (int, float)):
+                    errors.append(f"messages[{index}].payload.{key} must be numeric")
+    return errors
+
+
+def load_ros2_bridge_bag_replay_payload(source: str | Path | Dict) -> Dict:
+    if isinstance(source, dict):
+        payload = source
+    else:
+        payload = json.loads(Path(source).read_text(encoding="utf-8"))
+    errors = validate_ros2_bridge_bag_replay_payload(payload)
     if errors:
         raise ValueError("; ".join(errors))
     return payload
@@ -333,12 +580,57 @@ class AGIWalkerROS2Bridge(Node):
         self.instruction_set_sub = self.create_subscription(
             String, "/instruction_set/json", self.instruction_set_callback, 10
         )
+        if InstructionSet is not None:
+            self.typed_instruction_set_sub = self.create_subscription(
+                InstructionSet,
+                "/instruction_set",
+                self.typed_instruction_set_callback,
+                10,
+            )
+        else:
+            self.typed_instruction_set_sub = None
         self.simulated_circuit_sub = self.create_subscription(
             String,
             "/simulated_circuit/json",
             self.simulated_circuit_callback,
             10,
         )
+        if SimulatedCircuit is not None:
+            self.typed_simulated_circuit_sub = self.create_subscription(
+                SimulatedCircuit,
+                "/simulated_circuit",
+                self.typed_simulated_circuit_callback,
+                10,
+            )
+        else:
+            self.typed_simulated_circuit_sub = None
+        if BehaviorCommand is not None:
+            self.behavior_command_sub = self.create_subscription(
+                BehaviorCommand,
+                "/behavior_command",
+                self.behavior_command_callback,
+                10,
+            )
+        else:
+            self.behavior_command_sub = None
+        if NavigationGoal is not None:
+            self.navigation_goal_sub = self.create_subscription(
+                NavigationGoal,
+                "/navigation_goal",
+                self.navigation_goal_callback,
+                10,
+            )
+        else:
+            self.navigation_goal_sub = None
+        if PerceptionSnapshot is not None:
+            self.perception_snapshot_sub = self.create_subscription(
+                PerceptionSnapshot,
+                "/perception_snapshot",
+                self.perception_snapshot_callback,
+                10,
+            )
+        else:
+            self.perception_snapshot_sub = None
 
         self.get_logger().info("Subscribers initialized")
 
@@ -387,6 +679,30 @@ class AGIWalkerROS2Bridge(Node):
             "/hardware/clear_faults",
             self.clear_faults_callback,
         )
+        if ApplyInstructionSet is not None:
+            self.apply_instruction_set_srv = self.create_service(
+                ApplyInstructionSet,
+                "/instruction_set/apply",
+                self.apply_instruction_set_callback,
+            )
+        else:
+            self.apply_instruction_set_srv = None
+        if ConfigureSimulatedCircuit is not None:
+            self.configure_simulated_circuit_srv = self.create_service(
+                ConfigureSimulatedCircuit,
+                "/simulated_circuit/configure",
+                self.configure_simulated_circuit_callback,
+            )
+        else:
+            self.configure_simulated_circuit_srv = None
+        if HardwareRecovery is not None:
+            self.hardware_recovery_srv = self.create_service(
+                HardwareRecovery,
+                "/hardware/recovery",
+                self.hardware_recovery_callback,
+            )
+        else:
+            self.hardware_recovery_srv = None
 
         self.get_logger().info("Services initialized")
 
@@ -475,6 +791,22 @@ class AGIWalkerROS2Bridge(Node):
         result = self.apply_instruction_set_payload(payload)
         self.publish_instruction_runtime("instruction_set_applied", result)
 
+    def typed_instruction_set_callback(self, msg: Any) -> None:
+        """Typed InstructionSet topic callback."""
+        try:
+            payload = instruction_set_msg_to_payload(msg)
+        except ValueError as exc:
+            self.get_logger().error(f"Invalid typed instruction_set payload: {exc}")
+            return
+        errors = validate_instruction_set_payload(payload)
+        if errors:
+            self.get_logger().error(
+                f"Invalid typed instruction_set payload: {'; '.join(errors)}"
+            )
+            return
+        result = self.apply_instruction_set_payload(payload)
+        self.publish_instruction_runtime("typed_instruction_set_applied", result)
+
     def simulated_circuit_callback(self, msg: String) -> None:
         """模拟电路配置 topic 回调。"""
         try:
@@ -501,6 +833,177 @@ class AGIWalkerROS2Bridge(Node):
             "sent_circuit_config": sent,
         }
         self.publish_instruction_runtime("simulated_circuit_configured", result)
+
+    def typed_simulated_circuit_callback(self, msg: Any) -> None:
+        """Typed SimulatedCircuit topic callback."""
+        try:
+            payload = simulated_circuit_msg_to_payload(msg)
+        except ValueError as exc:
+            self.get_logger().error(f"Invalid typed simulated_circuit payload: {exc}")
+            return
+        errors = validate_simulated_circuit_config(payload)
+        if errors:
+            self.get_logger().error(
+                f"Invalid typed simulated_circuit payload: {'; '.join(errors)}"
+            )
+            return
+        self._apply_simulated_circuit_payload(
+            payload, event="typed_simulated_circuit_configured"
+        )
+
+    def behavior_command_callback(self, msg: Any) -> None:
+        """Typed BehaviorCommand topic callback."""
+        try:
+            payload = behavior_command_msg_to_instruction_payload(msg)
+        except ValueError as exc:
+            self.get_logger().error(f"Invalid behavior command payload: {exc}")
+            return
+        errors = validate_instruction_set_payload(payload)
+        if errors:
+            self.get_logger().error(
+                f"Invalid behavior command payload: {'; '.join(errors)}"
+            )
+            return
+        result = self.apply_instruction_set_payload(payload)
+        self.publish_instruction_runtime("behavior_command_applied", result)
+
+    def navigation_goal_callback(self, msg: Any) -> None:
+        """Typed NavigationGoal topic callback."""
+        try:
+            params = navigation_goal_msg_to_godot_params(msg)
+        except ValueError as exc:
+            self.get_logger().error(f"Invalid navigation goal payload: {exc}")
+            return
+        sent = False
+        if self.godot_client and self.godot_client.is_connected():
+            sent = self.godot_client.update_parameters(params)
+        result = {"status": "applied", "navigation_params": params, "sent": sent}
+        self.latest_instruction_result = result
+        self.publish_instruction_runtime("navigation_goal_applied", result)
+
+    def perception_snapshot_callback(self, msg: Any) -> None:
+        """Typed PerceptionSnapshot topic callback."""
+        try:
+            latest_data = perception_snapshot_msg_to_latest_data(msg)
+        except ValueError as exc:
+            self.get_logger().error(f"Invalid perception snapshot payload: {exc}")
+            return
+        self.latest_data.update(latest_data)
+        result = {"status": "applied", "perception": latest_data["perception"]}
+        self.latest_instruction_result = result
+        self.publish_instruction_runtime("perception_snapshot_applied", result)
+
+    def _apply_simulated_circuit_payload(
+        self, payload: Dict[str, Any], *, event: str
+    ) -> Dict[str, Any]:
+        self.simulated_circuit_config = payload
+        sent = False
+        if self.godot_client and self.godot_client.is_connected():
+            if hasattr(self.godot_client, "configure_simulated_circuit"):
+                sent = self.godot_client.configure_simulated_circuit(payload)
+        result = {
+            "status": "applied",
+            "simulated_circuit": payload,
+            "sent_circuit_config": sent,
+        }
+        self.publish_instruction_runtime(event, result)
+        return result
+
+    def apply_bag_replay_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Apply one deterministic bag-style replay payload to bridge callbacks."""
+        errors = validate_ros2_bridge_bag_replay_payload(payload)
+        if errors:
+            raise ValueError("; ".join(errors))
+        applied_messages: list[Dict[str, Any]] = []
+        for message in sorted(
+            payload["messages"], key=lambda item: float(item.get("timestamp_sec", 0.0))
+        ):
+            topic = message["topic"]
+            message_payload = message["payload"]
+            if topic == "/cmd_vel":
+                msg = Twist()
+                msg.linear.x = float(message_payload["linear_x"])
+                msg.linear.y = float(message_payload["linear_y"])
+                msg.angular.z = float(message_payload["angular_z"])
+                self.cmd_vel_callback(msg)
+            elif topic == "/instruction_set/json":
+                msg = String()
+                msg.data = json.dumps(message_payload)
+                self.instruction_set_callback(msg)
+            elif topic == "/simulated_circuit/json":
+                msg = String()
+                msg.data = json.dumps(message_payload)
+                self.simulated_circuit_callback(msg)
+            applied_messages.append(
+                {
+                    "topic": topic,
+                    "timestamp_sec": float(message.get("timestamp_sec", 0.0)),
+                }
+            )
+        result = {
+            "status": "applied",
+            "message_count": len(applied_messages),
+            "applied_messages": applied_messages,
+            "latest_instruction_result": self.latest_instruction_result,
+            "simulated_circuit_config": self.simulated_circuit_config,
+        }
+        self.publish_instruction_runtime("bag_replay_applied", result)
+        return result
+
+    def build_multi_node_smoke_report(
+        self,
+        *,
+        expected_node_ids: Optional[list[int]] = None,
+        min_feedback_nodes: int = 1,
+    ) -> Dict[str, Any]:
+        """Build one non-live multi-node coordination smoke report."""
+        feedback = self.latest_simulated_feedback or {}
+        node_ids = sorted(int(node_id) for node_id in feedback.get("node_ids", []))
+        states = feedback.get("states", {})
+        runtime = self.latest_instruction_runtime or {}
+        instruction_set = runtime.get("instruction_set") or {}
+        expected = (
+            sorted(int(node_id) for node_id in expected_node_ids)
+            if expected_node_ids is not None
+            else node_ids
+        )
+        missing_nodes = [node_id for node_id in expected if node_id not in node_ids]
+        state_keys = {int(node_id) for node_id in states.keys()}
+        nodes_without_state = [node_id for node_id in node_ids if node_id not in state_keys]
+        checks = [
+            {
+                "id": "instruction_runtime",
+                "status": "passed" if instruction_set else "failed",
+            },
+            {
+                "id": "feedback_node_count",
+                "status": "passed" if len(node_ids) >= min_feedback_nodes else "failed",
+                "observed": len(node_ids),
+                "minimum": min_feedback_nodes,
+            },
+            {
+                "id": "expected_nodes",
+                "status": "passed" if not missing_nodes else "failed",
+                "missing_nodes": missing_nodes,
+            },
+            {
+                "id": "state_coverage",
+                "status": "passed" if not nodes_without_state else "failed",
+                "nodes_without_state": nodes_without_state,
+            },
+        ]
+        status = "passed" if all(check["status"] == "passed" for check in checks) else "failed"
+        report = {
+            "schema_version": "1.0",
+            "status": status,
+            "node_ids": node_ids,
+            "expected_node_ids": expected,
+            "checks": checks,
+            "sequence_name": instruction_set.get("sequence_name"),
+            "feedback_state_count": len(states),
+        }
+        self.publish_instruction_runtime("multi_node_smoke_reported", report)
+        return report
 
     def apply_instruction_set_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Apply a structured ROS2/Godot instruction-set payload in simulation mode."""
@@ -712,6 +1215,97 @@ class AGIWalkerROS2Bridge(Node):
         except RuntimeError as exc:
             response.success = False
             response.message = str(exc)
+        return response
+
+    def apply_instruction_set_callback(self, request, response):
+        """Typed ApplyInstructionSet service callback."""
+        try:
+            payload = instruction_set_msg_to_payload(request.instruction_set)
+            errors = validate_instruction_set_payload(payload)
+            if errors:
+                raise ValueError("; ".join(errors))
+            result = self.apply_instruction_set_payload(payload)
+            self.publish_instruction_runtime("typed_instruction_set_service_applied", result)
+            response.success = True
+            response.message = "Applied typed instruction set"
+            response.result_json = json.dumps(result)
+        except (AttributeError, ValueError) as exc:
+            response.success = False
+            response.message = str(exc)
+            response.result_json = "{}"
+        return response
+
+    def configure_simulated_circuit_callback(self, request, response):
+        """Typed ConfigureSimulatedCircuit service callback."""
+        try:
+            payload = simulated_circuit_msg_to_payload(request.simulated_circuit)
+            errors = validate_simulated_circuit_config(payload)
+            if errors:
+                raise ValueError("; ".join(errors))
+            result = self._apply_simulated_circuit_payload(
+                payload, event="typed_simulated_circuit_service_configured"
+            )
+            response.success = True
+            response.message = "Configured typed simulated circuit"
+            response.result_json = json.dumps(result)
+        except (AttributeError, ValueError) as exc:
+            response.success = False
+            response.message = str(exc)
+            response.result_json = "{}"
+        return response
+
+    def hardware_recovery_callback(self, request, response):
+        """Typed HardwareRecovery service callback."""
+        command = str(getattr(request, "command", "") or "plan")
+        try:
+            controller = self._build_recovery_controller()
+            if command == "plan":
+                plan = controller.build_recovery_plan()
+                result = {
+                    "status": "success",
+                    "recovery_plan": plan,
+                    "hardware_recovery_plan_summary": (
+                        build_imc22_recovery_plan_summary(plan)
+                    ),
+                    "hardware_fault_summary": plan["fault_summary"],
+                }
+                event = "typed_hardware_recovery_plan_built"
+            elif command == "recover_by_fault_class":
+                recovery_result = controller.recover_by_fault_class()
+                result = {
+                    "status": "success",
+                    "recovery_result": recovery_result,
+                    "hardware_recovery_result_summary": (
+                        build_imc22_recovery_result_summary(recovery_result)
+                    ),
+                    "hardware_fault_summary": recovery_result["safety_status"][
+                        "fault_summary"
+                    ],
+                }
+                event = "typed_hardware_faults_recovered"
+            elif command == "clear_faults":
+                safety_status = controller.clear_faults()
+                result = {
+                    "status": "success",
+                    "clear_result": safety_status,
+                    "hardware_fault_summary": safety_status["fault_summary"],
+                }
+                event = "typed_hardware_faults_cleared"
+            else:
+                raise ValueError(f"Unsupported command: {command}")
+
+            self.publish_instruction_runtime(event, result)
+            response.success = True
+            response.status = "success"
+            response.result_json = json.dumps(result)
+            if hasattr(response, "recovery_status"):
+                response.recovery_status.status = "success"
+        except (RuntimeError, ValueError) as exc:
+            response.success = False
+            response.status = "error"
+            response.result_json = json.dumps(
+                {"status": "error", "message": str(exc)}
+            )
         return response
 
     def start_simulation_callback(self, request, response):

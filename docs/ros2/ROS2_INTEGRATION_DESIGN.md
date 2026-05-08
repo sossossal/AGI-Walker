@@ -17,7 +17,19 @@ Custom interface package under `hardware/ros2_ws/src/agi_walker_msgs`:
 - `msg/Part.msg`
 - `msg/Connection.msg`
 - `msg/RobotState.msg`
+- `msg/InstructionStep.msg`
+- `msg/InstructionSet.msg`
+- `msg/SimulatedCircuit.msg`
+- `msg/HardwareFault.msg`
+- `msg/HardwareRecoveryAction.msg`
+- `msg/HardwareRecoveryStatus.msg`
+- `msg/BehaviorCommand.msg`
+- `msg/NavigationGoal.msg`
+- `msg/PerceptionSnapshot.msg`
 - `srv/LoadRobot.srv`
+- `srv/ApplyInstructionSet.srv`
+- `srv/ConfigureSimulatedCircuit.srv`
+- `srv/HardwareRecovery.srv`
 
 These files define the repository-specific contracts used by the bridge when custom messages are available.
 
@@ -51,6 +63,10 @@ To keep this bridge testable outside a ROS 2 runtime, the node now also exposes 
 - `robot_state_fields_from_latest_data()`
 - `validate_ros2_bridge_replay_payload()`
 - `load_ros2_bridge_replay_payload()`
+- `validate_ros2_bridge_bag_replay_payload()`
+- `load_ros2_bridge_bag_replay_payload()`
+- `AGIWalkerROS2Bridge.apply_bag_replay_payload()`
+- `AGIWalkerROS2Bridge.build_multi_node_smoke_report()`
 
 ### Published Interfaces
 
@@ -81,6 +97,39 @@ The current bridge code exposes:
 - `/stop_simulation` as `std_srvs/srv/Trigger`
 - `/load_robot` as `agi_walker_msgs/srv/LoadRobot` when custom interfaces are available
 
+The workspace also now defines typed custom IDL for the previously JSON-only control surfaces:
+
+- `agi_walker_msgs/msg/InstructionSet`
+- `agi_walker_msgs/msg/SimulatedCircuit`
+- `agi_walker_msgs/msg/HardwareRecoveryStatus`
+- `agi_walker_msgs/srv/ApplyInstructionSet`
+- `agi_walker_msgs/srv/ConfigureSimulatedCircuit`
+- `agi_walker_msgs/srv/HardwareRecovery`
+
+The current bridge continues to expose the JSON topic/service surface for backward compatibility. The typed IDL is the target contract for the next migration step.
+
+The bridge now also accepts typed compatibility surfaces:
+
+- `/instruction_set` as `agi_walker_msgs/msg/InstructionSet`
+- `/simulated_circuit` as `agi_walker_msgs/msg/SimulatedCircuit`
+- `/instruction_set/apply` as `agi_walker_msgs/srv/ApplyInstructionSet`
+- `/simulated_circuit/configure` as `agi_walker_msgs/srv/ConfigureSimulatedCircuit`
+- `/hardware/recovery` as `agi_walker_msgs/srv/HardwareRecovery`
+- `/behavior_command` as `agi_walker_msgs/msg/BehaviorCommand`
+- `/navigation_goal` as `agi_walker_msgs/msg/NavigationGoal`
+- `/perception_snapshot` as `agi_walker_msgs/msg/PerceptionSnapshot`
+
+The existing JSON topics and Trigger services remain available during migration.
+
+For bag-style regression without ROS 2 installed, the bridge supports a deterministic replay manifest:
+
+- fixture: `tests/fixtures/ros2_bridge_bag_replay.json`
+- topics: `/cmd_vel`, `/simulated_circuit/json`, `/instruction_set/json`
+- execution helper: `AGIWalkerROS2Bridge.apply_bag_replay_payload()`
+- multi-node report helper: `AGIWalkerROS2Bridge.build_multi_node_smoke_report()`
+
+The report checks instruction runtime presence, minimum feedback node count, expected node coverage, and state coverage.
+
 ### Parameters
 
 `bridge_node.py` declares these parameter groups:
@@ -100,6 +149,7 @@ The current bridge code exposes:
 
 - Declares `godot_host`, `godot_port`, and `use_sim_time`
 - Loads `config/params.yaml`
+- Accepts `config_file` so local, replay, or live candidate profiles can be selected without editing launch code
 - Starts a node named `agi_walker_bridge`
 
 ### Wrapper Launch Entry
@@ -109,6 +159,13 @@ The current bridge code exposes:
 - reuses the bridge launch instead of duplicating bridge node setup
 - optionally starts `robot_state_publisher` with the packaged URDF
 - optionally starts RViz without depending on a missing custom config
+- passes `config_file` through to the bridge launch
+
+Checked-in launch profiles:
+
+- `config/profiles/local.yaml`
+- `config/profiles/replay.yaml`
+- `config/profiles/live.yaml`
 
 ## Known Drift
 
@@ -148,3 +205,7 @@ If this integration is revived, the cleanup order should be:
 ## Status
 
 The ROS 2 workspace is now internally more consistent, with both fake-runtime and opt-in live smoke coverage. It is still a secondary integration path, but the remaining gap is now environment execution and artifact collection rather than missing test structure.
+
+Downstream migration from JSON topics/services to typed IDL is tracked in:
+
+- `docs/ros2/ROS2_TYPED_IDL_MIGRATION.md`

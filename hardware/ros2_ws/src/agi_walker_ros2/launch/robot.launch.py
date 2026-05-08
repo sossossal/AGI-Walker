@@ -27,6 +27,7 @@ def generate_launch_description():
     godot_host = LaunchConfiguration("godot_host")
     godot_port = LaunchConfiguration("godot_port")
     use_sim_time = LaunchConfiguration("use_sim_time")
+    config_file = LaunchConfiguration("config_file")
     publish_robot_description = LaunchConfiguration("publish_robot_description")
     start_rviz = LaunchConfiguration("start_rviz")
 
@@ -36,6 +37,7 @@ def generate_launch_description():
             "godot_host": godot_host,
             "godot_port": godot_port,
             "use_sim_time": use_sim_time,
+            "config_file": config_file,
         }.items(),
     )
 
@@ -78,6 +80,11 @@ def generate_launch_description():
                 "use_sim_time",
                 default_value="false",
                 description="Use simulation time",
+            ),
+            DeclareLaunchArgument(
+                "config_file",
+                default_value=os.path.join(pkg_share, "config", "params.yaml"),
+                description="Bridge parameter YAML file",
             ),
             DeclareLaunchArgument(
                 "publish_robot_description",

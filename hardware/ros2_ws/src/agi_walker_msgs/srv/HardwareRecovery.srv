@@ -1,0 +1,9 @@
+# Execute or query hardware recovery through a typed service surface.
+# Supported command values: plan, recover_by_fault_class, clear_faults.
+string command
+agi_walker_msgs/HardwareRecoveryAction[] requested_actions
+---
+bool success
+string status
+agi_walker_msgs/HardwareRecoveryStatus recovery_status
+string result_json

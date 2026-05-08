@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "messages": [
+    {
+      "timestamp_sec": 0.0,
+      "topic": "/cmd_vel",
+      "payload": {
+        "linear_x": 0.15,
+        "linear_y": 0.0,
+        "angular_z": 0.05
+      }
+    },
+    {
+      "timestamp_sec": 0.1,
+      "topic": "/simulated_circuit/json",
+      "payload": {
+        "schema_version": "1.0",
+        "transport": "imc22_can_fd",
+        "channel": "simulated-can0",
+        "bustype": "virtual",
+        "bitrate": 1000000,
+        "control_freq_hz": 100,
+        "status_rate_hz": 200,
+        "command_base_id": 512,
+        "status_base_id": 256,
+        "config_base_id": 768,
+        "default_compliance": 0.5,
+        "joint_order": [
+          "hip_left",
+          "knee_left",
+          "hip_right",
+          "knee_right"
+        ]
+      }
+    },
+    {
+      "timestamp_sec": 0.2,
+      "topic": "/instruction_set/json",
+      "payload": {
+        "schema_version": "1.0",
+        "sequence_name": "bag-replay-demo",
+        "steps": [
+          {
+            "kind": "set_velocity",
+            "linear_x": 0.15,
+            "linear_y": 0.0,
+            "angular_z": 0.05
+          },
+          {
+            "kind": "set_joint_targets",
+            "joint_targets": {
+              "hip_left": 0.25,
+              "knee_right": -0.15
+            },
+            "compliance": 0.5
+          }
+        ]
+      }
+    }
+  ]
+}

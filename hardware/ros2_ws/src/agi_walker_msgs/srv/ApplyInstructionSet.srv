@@ -1,0 +1,6 @@
+# Apply one typed instruction set.
+agi_walker_msgs/InstructionSet instruction_set
+---
+bool success
+string message
+string result_json

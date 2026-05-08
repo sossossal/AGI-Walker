@@ -1,0 +1,11 @@
+# Local development bridge profile.
+/agi_walker_bridge:
+  ros__parameters:
+    godot_host: "127.0.0.1"
+    godot_port: 9999
+    reconnect_timeout: 5.0
+    joint_state_rate: 50.0
+    robot_state_rate: 20.0
+    tf_rate: 50.0
+    debug: true
+    verbose: false

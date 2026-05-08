@@ -1,0 +1,6 @@
+# Configure one typed simulated circuit profile.
+agi_walker_msgs/SimulatedCircuit simulated_circuit
+---
+bool success
+string message
+string result_json

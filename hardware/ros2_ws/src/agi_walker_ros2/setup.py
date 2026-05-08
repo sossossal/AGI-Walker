@@ -14,6 +14,7 @@ setup(
         (package_share, ["package.xml"]),
         (os.path.join(package_share, "launch"), glob("launch/*.py")),
         (os.path.join(package_share, "config"), glob("config/*.yaml")),
+        (os.path.join(package_share, "config", "profiles"), glob("config/profiles/*.yaml")),
         (os.path.join(package_share, "urdf"), glob("urdf/*.urdf")),
         (os.path.join(package_share, "rviz"), glob("rviz/*.rviz")),
     ],
