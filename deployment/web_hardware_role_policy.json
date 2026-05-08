@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "roles": {
+    "hardware_recovery_operator": {
+      "description": "May execute recover_by_fault_class and clear_faults for hardware recovery.",
+      "allowed_operations": [
+        "recover_by_fault_class",
+        "clear_faults"
+      ]
+    },
+    "viewer": {
+      "description": "May inspect plans and non-mutating hardware summaries.",
+      "allowed_operations": [
+        "recovery_plan"
+      ]
+    }
+  },
+  "users": {
+    "field-operator": [
+      "hardware_recovery_operator"
+    ]
+  },
+  "admin_roles": [
+    "hardware_recovery_operator"
+  ]
+}

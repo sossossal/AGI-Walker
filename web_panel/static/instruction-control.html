@@ -111,6 +111,61 @@
             color: #93c5fd;
             font-size: 0.92rem;
         }
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #020617;
+        }
+        th, td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #1e293b;
+            text-align: left;
+            vertical-align: top;
+            font-size: 0.9rem;
+        }
+        th {
+            color: #93c5fd;
+            background: #0f172a;
+        }
+        .timeline {
+            display: grid;
+            gap: 8px;
+        }
+        .timeline-item {
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #1e293b;
+            color: #bfdbfe;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+        .mode-live {
+            color: #fbbf24;
+        }
+        .mode-replay {
+            color: #86efac;
+        }
+        .mode-unknown {
+            color: #cbd5e1;
+        }
     </style>
 </head>
 <body>
@@ -154,6 +209,12 @@
                     <textarea id="history-note">本地调试发送</textarea>
                 </div>
                 <div class="field">
+                    <label for="audit-token">Audit Bearer Token（recover / clear 必填）</label>
+                    <input id="audit-token" type="password" placeholder="recover / clear-faults 需要 hardware_recovery_operator Bearer token" />
+                    <p class="hint" id="audit-identity-hint">未提供 token 时，仅可发送 instruction / circuit 和读取 recovery plan。</p>
+                    <p class="hint" id="hardware-role-policy-hint">正在加载硬件角色策略...</p>
+                </div>
+                <div class="field">
                     <label for="instruction-payload">Instruction Set JSON</label>
                     <textarea id="instruction-payload">{
   "instruction_set": {
@@ -164,9 +225,25 @@
         "linear_x": 0.2,
         "linear_y": 0.0,
         "angular_z": 0.05
+      },
+      {
+        "kind": "set_joint_targets",
+        "joint_targets": {
+          "hip_left": 0.3
+        },
+        "compliance": 0.4
       }
     ]
-  }
+  },
+  "simulated_circuit_command_batch": [
+    {
+      "node_id": 1,
+      "joint_name": "hip_left",
+      "target_angle": 0.3,
+      "compliance": 0.4,
+      "command_id": 513
+    }
+  ]
 }</textarea>
                 </div>
                 <div class="field">
@@ -252,6 +329,41 @@
                     <label for="hardware-recovery-response">Hardware Recovery</label>
                     <pre id="hardware-recovery-response">{}</pre>
                 </div>
+                <div class="details-grid">
+                    <div class="field">
+                        <label for="hardware-mode-indicator">Hardware Mode</label>
+                        <div class="metric-value" id="hardware-mode-indicator">unknown</div>
+                    </div>
+                    <div class="field">
+                        <label for="hardware-node-status-table">Node Fault / Recovery Status</label>
+                        <div class="table-wrap">
+                            <table id="hardware-node-status-table">
+                                <thead>
+                                    <tr>
+                                        <th>Node</th>
+                                        <th>Fault Class</th>
+                                        <th>Error</th>
+                                        <th>Action</th>
+                                        <th>Recovery Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hardware-node-status-body">
+                                    <tr><td colspan="5">暂无节点级硬件状态</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="hardware-recovery-timeline">Recovery Timeline</label>
+                        <div class="timeline" id="hardware-recovery-timeline">
+                            <div class="timeline-item">暂无恢复动作事件</div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="hardware-recovery-failure-reasons">Failure Drill-down</label>
+                        <pre id="hardware-recovery-failure-reasons">{}</pre>
+                    </div>
+                </div>
             </section>
         </div>
 
@@ -263,6 +375,25 @@
                 <a class="button secondary" href="/static/operator-history-timeline.html">打开 Operator Timeline</a>
             </div>
         </section>
+
+        <section class="panel">
+            <h2>硬件角色策略</h2>
+            <p class="hint">角色策略来自 `/api/godot/hardware/role-policy`，由 `deployment/web_hardware_role_policy.json` 管理。</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Role</th>
+                            <th>Allowed Operations</th>
+                            <th>Assigned Users</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hardware-role-policy-table">
+                        <tr><td colspan="3">尚未加载</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
 
     <script>
@@ -271,6 +402,10 @@
         const historyOperatorInput = document.getElementById('history-operator');
         const historyTagInput = document.getElementById('history-tag');
         const historyNoteInput = document.getElementById('history-note');
+        const auditTokenInput = document.getElementById('audit-token');
+        const auditIdentityHintNode = document.getElementById('audit-identity-hint');
+        const hardwareRolePolicyHintNode = document.getElementById('hardware-role-policy-hint');
+        const hardwareRolePolicyTableNode = document.getElementById('hardware-role-policy-table');
         const instructionPayloadInput = document.getElementById('instruction-payload');
         const circuitPayloadInput = document.getElementById('circuit-payload');
         const statusNode = document.getElementById('instruction-console-status');
@@ -288,7 +423,12 @@
         const runtimeFaultNodesNode = document.getElementById('runtime-fault-nodes');
         const runtimeRecoveryActionsNode = document.getElementById('runtime-recovery-actions');
         const runtimeRecoveryStatusNode = document.getElementById('runtime-recovery-status');
+        const hardwareModeIndicatorNode = document.getElementById('hardware-mode-indicator');
+        const hardwareNodeStatusBodyNode = document.getElementById('hardware-node-status-body');
+        const hardwareRecoveryTimelineNode = document.getElementById('hardware-recovery-timeline');
+        const hardwareRecoveryFailureReasonsNode = document.getElementById('hardware-recovery-failure-reasons');
         let telemetrySocket = null;
+        const recoveryEvents = [];
 
         function currentMode() {
             return routeModeInput.value;
@@ -330,10 +470,61 @@
             return `/api/godot/${encodeURIComponent(currentSessionId())}/hardware/clear-faults`;
         }
 
+        function authHeaders() {
+            const token = (auditTokenInput.value || '').trim();
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        }
+
+        function requireAuditTokenForHardwareOperation(operationLabel) {
+            if ((auditTokenInput.value || '').trim()) {
+                return true;
+            }
+            setStatus(`${operationLabel} 需要 hardware_recovery_operator Audit Bearer Token`, true);
+            return false;
+        }
+
+        function updateAuditIdentityHint(payload = {}) {
+            const identity = payload.audit_identity || {};
+            const username = identity.audit_username;
+            const source = identity.audit_source;
+            const roles = Array.isArray(identity.audit_roles) ? identity.audit_roles.join(', ') : '';
+            auditIdentityHintNode.textContent = username
+                ? `审计身份: ${username} (${source || 'unknown'}); roles: ${roles || 'none'}`
+                : '未解析服务端审计身份；将使用 operator / tag / note 作为操作留痕。';
+        }
+
+        function renderHardwareRolePolicy(policy = {}) {
+            const roles = policy.roles || {};
+            const users = policy.users || {};
+            const rows = Object.entries(roles).map(([roleName, role]) => {
+                const assignedUsers = Object.entries(users)
+                    .filter(([, roleList]) => Array.isArray(roleList) && roleList.includes(roleName))
+                    .map(([username]) => username);
+                const allowedOperations = Array.isArray(role.allowed_operations)
+                    ? role.allowed_operations.join(', ')
+                    : '';
+                return `<tr><td>${roleName}</td><td>${allowedOperations || '-'}</td><td>${assignedUsers.join(', ') || '-'}</td></tr>`;
+            });
+            hardwareRolePolicyTableNode.innerHTML = rows.length
+                ? rows.join('')
+                : '<tr><td colspan="3">未配置角色</td></tr>';
+            hardwareRolePolicyHintNode.textContent = `角色策略: ${policy.policy_path || 'unknown'}`;
+        }
+
+        async function loadHardwareRolePolicy() {
+            try {
+                const policy = await getJson('/api/godot/hardware/role-policy');
+                renderHardwareRolePolicy(policy);
+            } catch (error) {
+                hardwareRolePolicyHintNode.textContent = `角色策略加载失败: ${error.message}`;
+                hardwareRolePolicyTableNode.innerHTML = '<tr><td colspan="3">加载失败</td></tr>';
+            }
+        }
+
         async function postJson(url, payload) {
             const response = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...authHeaders() },
                 body: JSON.stringify(payload),
             });
             const data = await response.json();
@@ -344,7 +535,7 @@
         }
 
         async function getJson(url) {
-            const response = await fetch(url);
+            const response = await fetch(url, { headers: authHeaders() });
             const data = await response.json();
             if (!response.ok) {
                 throw new Error(JSON.stringify(data));
@@ -364,6 +555,114 @@
         function updateWebSocketStatus(text, isError = false) {
             wsStatusNode.textContent = text;
             wsStatusNode.style.color = isError ? '#fca5a5' : '#93c5fd';
+        }
+
+        function detectHardwareMode(runtime, simulatedCircuit) {
+            const transport = simulatedCircuit?.transport || runtime?.simulated_circuit?.transport || '';
+            if (!transport) {
+                return 'unknown';
+            }
+            return String(transport).includes('replay') || String(transport).includes('simulated') ? 'replay / simulated' : 'live candidate';
+        }
+
+        function latestRecoveryPlan(runtime, payload = {}) {
+            return payload.recovery_plan || runtime?.hardware_recovery_plan || payload?.session?.last_instruction_runtime?.hardware_recovery_plan || {};
+        }
+
+        function latestRecoveryResult(runtime, payload = {}) {
+            return payload.recovery_result || runtime?.hardware_recovery_result || payload.clear_result || runtime?.hardware_clear_result || {};
+        }
+
+        function appendRecoveryEvent(kind, payload) {
+            recoveryEvents.unshift({
+                at: new Date().toISOString(),
+                kind,
+                status: payload?.hardware_recovery_result_summary?.status
+                    || payload?.hardware_clear_result_summary?.status
+                    || payload?.hardware_recovery_plan_summary?.status
+                    || payload?.status
+                    || 'unknown',
+                actions: payload?.hardware_recovery_plan_summary?.action_count
+                    || payload?.recovery_plan?.actions?.length
+                    || payload?.recovery_result?.recovery_plan?.actions?.length
+                    || 0,
+            });
+            recoveryEvents.splice(12);
+        }
+
+        function renderRecoveryTimeline(plan = {}) {
+            const actionEvents = Array.isArray(plan.actions) ? plan.actions.map((action, index) => ({
+                at: `plan#${index + 1}`,
+                kind: action.action || 'unknown_action',
+                status: action.fault_class || 'unknown_fault',
+                actions: action.node_id ? `node ${action.node_id}` : '-',
+            })) : [];
+            const events = [...recoveryEvents, ...actionEvents];
+            if (!events.length) {
+                hardwareRecoveryTimelineNode.innerHTML = '<div class="timeline-item">暂无恢复动作事件</div>';
+                return;
+            }
+            hardwareRecoveryTimelineNode.innerHTML = events.map((event) => (
+                `<div class="timeline-item"><span class="badge">${event.kind}</span> ${event.at} · status=${event.status} · actions=${event.actions}</div>`
+            )).join('');
+        }
+
+        function renderNodeStatusTable(faultSummary = {}, plan = {}, result = {}) {
+            const perNode = faultSummary?.per_node || plan?.fault_summary?.per_node || result?.safety_status?.fault_summary?.per_node || {};
+            const actionsByNode = new Map();
+            for (const action of plan.actions || result?.recovery_plan?.actions || []) {
+                actionsByNode.set(String(action.node_id), action);
+            }
+            const rows = Object.entries(perNode).map(([nodeId, node]) => {
+                const action = actionsByNode.get(String(nodeId)) || {};
+                return `<tr>
+                    <td>${nodeId}</td>
+                    <td>${node.fault_class || '-'}</td>
+                    <td>${node.error ?? '-'}</td>
+                    <td>${action.action || '-'}</td>
+                    <td>${result.status || plan.status || '-'}</td>
+                </tr>`;
+            });
+            hardwareNodeStatusBodyNode.innerHTML = rows.length
+                ? rows.join('')
+                : '<tr><td colspan="5">暂无节点级硬件状态</td></tr>';
+        }
+
+        function renderFailureDrilldown(payload = {}, result = {}) {
+            const failure = {
+                status: payload.status || result.status || 'unknown',
+                error: payload.error || payload.detail || null,
+                post_recovery_fault_counts: payload?.hardware_recovery_result_summary?.post_recovery_fault_counts
+                    || payload?.hardware_clear_result_summary?.post_clear_fault_counts
+                    || result?.safety_status?.fault_summary?.fault_counts
+                    || {},
+                post_recovery_state: payload?.hardware_recovery_result_summary?.post_recovery_state
+                    || result?.safety_status?.state
+                    || null,
+            };
+            renderJson(hardwareRecoveryFailureReasonsNode, failure);
+        }
+
+        function renderHardwareRecoveryDetails(statusPayload = {}, recoveryPayload = {}) {
+            const runtime = statusPayload?.last_instruction_runtime || recoveryPayload?.session?.last_instruction_runtime || {};
+            const simulatedCircuit = statusPayload?.simulated_circuit_config || runtime?.simulated_circuit || {};
+            const plan = latestRecoveryPlan(runtime, recoveryPayload);
+            const result = latestRecoveryResult(runtime, recoveryPayload);
+            const faultSummary = recoveryPayload.hardware_fault_summary
+                || runtime.hardware_fault_summary
+                || plan.fault_summary
+                || result?.safety_status?.fault_summary
+                || {};
+            const hardwareMode = detectHardwareMode(runtime, simulatedCircuit);
+            hardwareModeIndicatorNode.textContent = hardwareMode;
+            hardwareModeIndicatorNode.className = `metric-value ${
+                hardwareMode.includes('live') ? 'mode-live'
+                    : hardwareMode.includes('replay') ? 'mode-replay'
+                    : 'mode-unknown'
+            }`;
+            renderNodeStatusTable(faultSummary, plan, result);
+            renderRecoveryTimeline(plan);
+            renderFailureDrilldown(recoveryPayload, result);
         }
 
         function renderRuntimeStatus(statusPayload) {
@@ -394,6 +693,7 @@
 
             renderJson(runtimeNode, runtime);
             renderJson(circuitConfigNode, simulatedCircuit);
+            renderHardwareRecoveryDetails(statusPayload);
         }
 
         function connectTelemetry() {
@@ -460,6 +760,7 @@
                 const result = await postJson(buildInstructionUrl(), payload);
                 renderJson(responseNode, result);
                 renderJson(runtimeNode, result);
+                updateAuditIdentityHint(result);
                 if (result.session) {
                     renderJson(sessionStatusNode, result.session);
                     renderRuntimeStatus(result.session);
@@ -478,6 +779,7 @@
                 const result = await postJson(buildCircuitUrl(), payload);
                 renderJson(responseNode, result);
                 renderJson(circuitConfigNode, result.simulated_circuit || result);
+                updateAuditIdentityHint(result);
                 if (result.session) {
                     renderJson(sessionStatusNode, result.session);
                     renderRuntimeStatus(result.session);
@@ -504,7 +806,10 @@
             try {
                 setStatus(`读取 recovery plan ${buildRecoveryPlanUrl()}`);
                 const result = await getJson(buildRecoveryPlanUrl());
+                appendRecoveryEvent('plan', result);
                 renderJson(hardwareRecoveryNode, result);
+                updateAuditIdentityHint(result);
+                renderHardwareRecoveryDetails(result.session || {}, result);
                 if (result.session) {
                     renderJson(sessionStatusNode, result.session);
                     renderRuntimeStatus(result.session);
@@ -517,9 +822,20 @@
 
         async function recoverFaults() {
             try {
+                const metadata = currentHistoryMetadata();
+                if (!requireAuditTokenForHardwareOperation('fault recovery')) {
+                    return;
+                }
+                if (!window.confirm(`确认执行硬件 fault recovery？operator=${metadata.operator || '-'}，tag=${metadata.tag || '-'}。该操作会向当前 session 的硬件恢复通道下发恢复动作。`)) {
+                    setStatus('fault recovery 已取消');
+                    return;
+                }
                 setStatus(`执行 fault recovery ${buildRecoverUrl()}`);
-                const result = await postJson(buildRecoverUrl(), {});
+                const result = await postJson(buildRecoverUrl(), metadata);
+                appendRecoveryEvent('recover_by_fault_class', result);
                 renderJson(hardwareRecoveryNode, result);
+                updateAuditIdentityHint(result);
+                renderHardwareRecoveryDetails(result.session || {}, result);
                 if (result.session) {
                     renderJson(sessionStatusNode, result.session);
                     renderRuntimeStatus(result.session);
@@ -532,9 +848,20 @@
 
         async function clearFaults() {
             try {
+                const metadata = currentHistoryMetadata();
+                if (!requireAuditTokenForHardwareOperation('clear faults')) {
+                    return;
+                }
+                if (!window.confirm(`确认清除当前硬件 fault 状态？operator=${metadata.operator || '-'}，tag=${metadata.tag || '-'}。该操作会更新 session 的 fault 状态。`)) {
+                    setStatus('clear fault 已取消');
+                    return;
+                }
                 setStatus(`清除 fault 状态 ${buildClearFaultsUrl()}`);
-                const result = await postJson(buildClearFaultsUrl(), {});
+                const result = await postJson(buildClearFaultsUrl(), metadata);
+                appendRecoveryEvent('clear_faults', result);
                 renderJson(hardwareRecoveryNode, result);
+                updateAuditIdentityHint(result);
+                renderHardwareRecoveryDetails(result.session || {}, result);
                 if (result.session) {
                     renderJson(sessionStatusNode, result.session);
                     renderRuntimeStatus(result.session);
@@ -552,6 +879,7 @@
         document.getElementById('build-recovery-plan-button').addEventListener('click', buildRecoveryPlan);
         document.getElementById('recover-faults-button').addEventListener('click', recoverFaults);
         document.getElementById('clear-faults-button').addEventListener('click', clearFaults);
+        loadHardwareRolePolicy();
     </script>
 </body>
 </html>

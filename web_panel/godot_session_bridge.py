@@ -83,6 +83,81 @@ GODOT_SESSION_STATES = (
     "running",
     "failed",
 )
+WEB_HARDWARE_ROLE_POLICY_PATH = Path(
+    os.getenv(
+        "AGI_WALKER_WEB_HARDWARE_ROLE_POLICY",
+        str(REPO_ROOT / "deployment" / "web_hardware_role_policy.json"),
+    )
+)
+WEB_HARDWARE_ROLE_POLICY_SCHEMA_VERSION = "1.0"
+
+
+def _load_web_hardware_role_policy() -> Dict[str, Any]:
+    if not WEB_HARDWARE_ROLE_POLICY_PATH.exists():
+        return {
+            "schema_version": WEB_HARDWARE_ROLE_POLICY_SCHEMA_VERSION,
+            "roles": {},
+            "users": {},
+            "admin_roles": ["hardware_recovery_operator"],
+        }
+    try:
+        payload = json.loads(WEB_HARDWARE_ROLE_POLICY_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        logger.warning(
+            "Invalid web hardware role policy JSON: %s",
+            WEB_HARDWARE_ROLE_POLICY_PATH,
+        )
+        return {
+            "schema_version": WEB_HARDWARE_ROLE_POLICY_SCHEMA_VERSION,
+            "roles": {},
+            "users": {},
+            "admin_roles": ["hardware_recovery_operator"],
+        }
+    return payload if isinstance(payload, dict) else {}
+
+
+def _roles_from_policy_for_user(username: str, *, is_admin: bool) -> List[str]:
+    policy = _load_web_hardware_role_policy()
+    raw_roles: List[Any] = []
+    users = policy.get("users")
+    if isinstance(users, dict):
+        user_roles = users.get(username)
+        if isinstance(user_roles, list):
+            raw_roles.extend(user_roles)
+        elif isinstance(user_roles, str):
+            raw_roles.extend(
+                role.strip() for role in user_roles.split(",") if role.strip()
+            )
+    if is_admin:
+        admin_roles = policy.get("admin_roles")
+        if isinstance(admin_roles, list):
+            raw_roles.extend(admin_roles)
+        elif isinstance(admin_roles, str):
+            raw_roles.extend(
+                role.strip() for role in admin_roles.split(",") if role.strip()
+            )
+    return sorted(
+        {
+            str(role).strip()
+            for role in raw_roles
+            if isinstance(role, (str, int)) and str(role).strip()
+        }
+    )
+
+
+def _web_hardware_role_policy_payload() -> Dict[str, Any]:
+    policy = _load_web_hardware_role_policy()
+    roles = policy.get("roles")
+    users = policy.get("users")
+    admin_roles = policy.get("admin_roles")
+    return {
+        "schema_version": WEB_HARDWARE_ROLE_POLICY_SCHEMA_VERSION,
+        "status": "ready",
+        "policy_path": str(WEB_HARDWARE_ROLE_POLICY_PATH),
+        "roles": roles if isinstance(roles, dict) else {},
+        "users": users if isinstance(users, dict) else {},
+        "admin_roles": admin_roles if isinstance(admin_roles, list) else [],
+    }
 
 
 async def _ensure_operator_history_table() -> None:
@@ -169,6 +244,31 @@ def _parse_note_exact(raw_value: Optional[bool]) -> bool:
     return bool(raw_value)
 
 
+def _audit_roles_from_token_payload(
+    payload: Dict[str, Any],
+    *,
+    is_admin: bool,
+) -> List[str]:
+    """Resolve hardware operation roles from token claims and admin fallback."""
+    raw_roles: List[Any] = []
+    for claim_name in ("hardware_roles", "roles"):
+        claim_value = payload.get(claim_name)
+        if isinstance(claim_value, list):
+            raw_roles.extend(claim_value)
+        elif isinstance(claim_value, str):
+            raw_roles.extend(
+                role.strip() for role in claim_value.split(",") if role.strip()
+            )
+    roles = {
+        str(role).strip()
+        for role in raw_roles
+        if isinstance(role, (str, int)) and str(role).strip()
+    }
+    if is_admin:
+        roles.add("hardware_recovery_operator")
+    return sorted(roles)
+
+
 async def _resolve_optional_audit_identity(
     authorization: Optional[str],
 ) -> Dict[str, Optional[Any]]:
@@ -179,6 +279,8 @@ async def _resolve_optional_audit_identity(
             "audit_user_id": None,
             "audit_username": None,
             "audit_source": None,
+            "audit_is_admin": False,
+            "audit_roles": [],
         }
 
     scheme, _, token = raw_header.partition(" ")
@@ -202,7 +304,75 @@ async def _resolve_optional_audit_identity(
         "audit_user_id": user.id,
         "audit_username": user.username,
         "audit_source": "bearer",
+        "audit_is_admin": user.is_admin,
+        "audit_roles": sorted(
+            set(
+                _audit_roles_from_token_payload(
+                    payload,
+                    is_admin=user.is_admin,
+                )
+            )
+            | set(_roles_from_policy_for_user(user.username, is_admin=user.is_admin))
+        ),
     }
+
+
+HARDWARE_OPERATION_ROLE_MATRIX: Dict[str, Dict[str, Any]] = {
+    "recovery_plan": {
+        "required_role": "viewer",
+        "requires_auth": False,
+        "requires_admin": False,
+    },
+    "recover_by_fault_class": {
+        "required_role": "hardware_recovery_operator",
+        "requires_auth": True,
+        "required_role_claim": "hardware_recovery_operator",
+    },
+    "clear_faults": {
+        "required_role": "hardware_recovery_operator",
+        "requires_auth": True,
+        "required_role_claim": "hardware_recovery_operator",
+    },
+}
+
+
+def _enforce_hardware_operation_permission(
+    audit_identity: Dict[str, Optional[Any]],
+    operation: str,
+) -> Dict[str, Any]:
+    """Apply the Web hardware operation permission matrix."""
+    policy = HARDWARE_OPERATION_ROLE_MATRIX.get(operation)
+    if policy is None:
+        raise HTTPException(status_code=403, detail="Unknown hardware operation")
+    if policy["requires_auth"] and not audit_identity.get("audit_user_id"):
+        raise HTTPException(
+            status_code=403,
+            detail=f"{operation} requires an authenticated hardware operator",
+        )
+    audit_roles = audit_identity.get("audit_roles") or []
+    required_role_claim = policy.get("required_role_claim")
+    if required_role_claim and required_role_claim not in audit_roles:
+        raise HTTPException(
+            status_code=403,
+            detail=f"{operation} requires hardware_recovery_operator privileges",
+        )
+    return {
+        "operation": operation,
+        "allowed": True,
+        "required_role": policy["required_role"],
+        "requires_auth": policy["requires_auth"],
+        "required_role_claim": required_role_claim,
+        "matched_roles": audit_roles,
+    }
+
+
+async def _read_optional_json_payload(request: Request) -> Dict[str, Any]:
+    """Read an optional JSON body from operation endpoints."""
+    try:
+        payload = await request.json()
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
 
 
 def _apply_history_filters(
@@ -1382,6 +1552,10 @@ def build_router(
     async def get_sim_status():
         return {"status": "ok", "active_sessions": len(manager.sessions)}
 
+    @router.get("/api/godot/hardware/role-policy")
+    async def get_hardware_role_policy():
+        return _web_hardware_role_policy_payload()
+
     @router.get("/api/godot/history")
     async def get_operator_history(
         session_id: Optional[str] = None,
@@ -1734,7 +1908,10 @@ def build_router(
         }
 
     @router.get("/api/godot/{session_id}/hardware/recovery-plan")
-    async def get_session_hardware_recovery_plan(session_id: str):
+    async def get_session_hardware_recovery_plan(session_id: str, request: Request):
+        audit_identity = await _resolve_optional_audit_identity(
+            request.headers.get("Authorization")
+        )
         bridge = manager.get_session(session_id)
         if bridge is None:
             return {
@@ -1748,10 +1925,19 @@ def build_router(
             **result,
             "session": bridge.get_status_payload(),
             "session_state": bridge.session_state,
+            "audit_identity": audit_identity,
         }
 
     @router.post("/api/godot/{session_id}/hardware/recover")
-    async def recover_session_hardware_faults(session_id: str):
+    async def recover_session_hardware_faults(session_id: str, request: Request):
+        payload = await _read_optional_json_payload(request)
+        audit_identity = await _resolve_optional_audit_identity(
+            request.headers.get("Authorization")
+        )
+        permission = _enforce_hardware_operation_permission(
+            audit_identity,
+            "recover_by_fault_class",
+        )
         bridge = manager.get_session(session_id)
         if bridge is None:
             return {
@@ -1761,14 +1947,38 @@ def build_router(
                 "session_state": "disconnected",
             }
         result = bridge.recover_hardware_faults()
+        await bridge._record_command_history(
+            "hardware_recover",
+            {
+                **result,
+                "route_mode": "session_bridge",
+                "operator": _normalize_optional_text(str(payload.get("operator") or "")),
+                "tag": _normalize_optional_text(str(payload.get("tag") or "")),
+                "note": _normalize_optional_text(str(payload.get("note") or "")),
+                "audit_user_id": audit_identity["audit_user_id"],
+                "audit_username": audit_identity["audit_username"],
+                "audit_source": audit_identity["audit_source"],
+                "permission": permission,
+            },
+        )
         return {
             **result,
             "session": bridge.get_status_payload(),
             "session_state": bridge.session_state,
+            "audit_identity": audit_identity,
+            "permission": permission,
         }
 
     @router.post("/api/godot/{session_id}/hardware/clear-faults")
-    async def clear_session_hardware_faults(session_id: str):
+    async def clear_session_hardware_faults(session_id: str, request: Request):
+        payload = await _read_optional_json_payload(request)
+        audit_identity = await _resolve_optional_audit_identity(
+            request.headers.get("Authorization")
+        )
+        permission = _enforce_hardware_operation_permission(
+            audit_identity,
+            "clear_faults",
+        )
         bridge = manager.get_session(session_id)
         if bridge is None:
             return {
@@ -1778,10 +1988,26 @@ def build_router(
                 "session_state": "disconnected",
             }
         result = bridge.clear_hardware_faults()
+        await bridge._record_command_history(
+            "hardware_clear_faults",
+            {
+                **result,
+                "route_mode": "session_bridge",
+                "operator": _normalize_optional_text(str(payload.get("operator") or "")),
+                "tag": _normalize_optional_text(str(payload.get("tag") or "")),
+                "note": _normalize_optional_text(str(payload.get("note") or "")),
+                "audit_user_id": audit_identity["audit_user_id"],
+                "audit_username": audit_identity["audit_username"],
+                "audit_source": audit_identity["audit_source"],
+                "permission": permission,
+            },
+        )
         return {
             **result,
             "session": bridge.get_status_payload(),
             "session_state": bridge.session_state,
+            "audit_identity": audit_identity,
+            "permission": permission,
         }
 
     @router.post("/api/godot/{session_id}/history/replay")

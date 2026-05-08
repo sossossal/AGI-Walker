@@ -290,6 +290,8 @@ def test_core_panel_routes_smoke():
     assert 'id="history-operator"' in response.text
     assert 'id="history-tag"' in response.text
     assert 'id="history-note"' in response.text
+    assert 'id="audit-token"' in response.text
+    assert 'id="audit-identity-hint"' in response.text
     assert 'id="instruction-response"' in response.text
     assert 'id="instruction-runtime-response"' in response.text
     assert 'id="circuit-config-response"' in response.text
@@ -304,6 +306,14 @@ def test_core_panel_routes_smoke():
     assert 'id="runtime-recovery-actions"' in response.text
     assert 'id="runtime-recovery-status"' in response.text
     assert 'id="hardware-recovery-response"' in response.text
+    assert 'id="hardware-mode-indicator"' in response.text
+    assert 'id="hardware-node-status-table"' in response.text
+    assert 'id="hardware-node-status-body"' in response.text
+    assert 'id="hardware-recovery-timeline"' in response.text
+    assert 'id="hardware-recovery-failure-reasons"' in response.text
+    assert "window.confirm" in response.text
+    assert "Authorization" in response.text
+    assert "mode-live" in response.text
     assert "/static/operator-history.html" in response.text
     assert "/hardware/recovery-plan" in response.text
     assert "/hardware/recover" in response.text

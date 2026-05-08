@@ -548,6 +548,11 @@ def test_session_bridge_instruction_and_circuit_routes(
                 "hardware_fault_summary": {"fault_counts": {}},
             }
 
+        async def _record_command_history(self, kind: str, payload: dict[str, object]) -> None:
+            observed.setdefault("hardware_history", []).append(
+                {"kind": kind, "payload": payload}
+            )
+
     fake_bridge = FakeBridge()
     monkeypatch.setattr(web_panel.server._session_manager, "get_session", lambda _: fake_bridge)
     monkeypatch.setattr(
@@ -558,6 +563,8 @@ def test_session_bridge_instruction_and_circuit_routes(
             "audit_user_id": 7,
             "audit_username": "audit-user",
             "audit_source": "bearer",
+            "audit_is_admin": True,
+            "audit_roles": ["hardware_recovery_operator"],
         }
     monkeypatch.setattr(
         web_panel.godot_session_bridge,
@@ -607,9 +614,13 @@ def test_session_bridge_instruction_and_circuit_routes(
     )
     recover_response = client.post(
         f"/api/godot/{session_id}/hardware/recover",
+        json={"operator": "hardware-operator", "tag": "recover"},
+        headers={"Authorization": "Bearer test-token"},
     )
     clear_faults_response = client.post(
         f"/api/godot/{session_id}/hardware/clear-faults",
+        json={"operator": "hardware-operator", "tag": "clear"},
+        headers={"Authorization": "Bearer test-token"},
     )
 
     assert instruction_response.status_code == 200
@@ -653,9 +664,11 @@ def test_session_bridge_instruction_and_circuit_routes(
     assert recover_response.status_code == 200
     assert recover_response.json()["status"] == "success"
     assert recover_response.json()["hardware_recovery_result_summary"]["status"] == "applied"
+    assert recover_response.json()["permission"]["required_role"] == "hardware_recovery_operator"
     assert clear_faults_response.status_code == 200
     assert clear_faults_response.json()["status"] == "success"
     assert clear_faults_response.json()["hardware_clear_result_summary"]["status"] == "success"
+    assert clear_faults_response.json()["permission"]["required_role"] == "hardware_recovery_operator"
     assert observed["instruction_set"]["sequence_name"] == "route-demo"
     assert observed["compatibility_params"]["velocity_scale"] == 0.1
     assert observed["command_batch"][0]["frame_id"] == 0x200
@@ -676,6 +689,13 @@ def test_session_bridge_instruction_and_circuit_routes(
     assert observed["recovery_plan_called"] is True
     assert observed["recover_faults_called"] is True
     assert observed["clear_faults_called"] is True
+    assert observed["hardware_history"][0]["kind"] == "hardware_recover"
+    assert observed["hardware_history"][0]["payload"]["operator"] == "hardware-operator"
+    assert observed["hardware_history"][0]["payload"]["audit_username"] == "audit-user"
+    assert observed["hardware_history"][0]["payload"]["permission"]["allowed"] is True
+    assert observed["hardware_history"][1]["kind"] == "hardware_clear_faults"
+    assert observed["hardware_history"][1]["payload"]["tag"] == "clear"
+    assert observed["hardware_history"][1]["payload"]["permission"]["allowed"] is True
 
 
 def test_session_bridge_history_rejects_invalid_datetime(

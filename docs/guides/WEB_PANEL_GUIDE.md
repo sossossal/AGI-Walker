@@ -210,7 +210,21 @@ session bridge：
 - 生成 `recovery plan`
 - 执行 `recover_by_fault_class`
 - 执行 `clear_faults`
+- `instruction-set / simulated-circuit / recovery-plan` 可不带 token 使用；`recover_by_fault_class / clear_faults` 强制要求 Bearer token 解析后具备 `hardware_recovery_operator` 角色
+- 角色来源优先合并 token claim 与受管策略文件：`deployment/web_hardware_role_policy.json`
+- 可通过 `/api/godot/hardware/role-policy` 查看当前 Web 硬件角色策略；instruction console 也会展示 role、allowed operations 和 assigned users
 - 如果带 `Authorization: Bearer <token>`，session bridge 会把当前用户写入审计字段
+
+硬件恢复操作面还会展示：
+
+- live / replay 候选模式提示
+- 节点级 `fault_class / error / recovery action / recovery status` 表
+- recovery plan / recover / clear-faults 的本地操作时间线
+- 失败原因 drill-down，包括后置 fault counts 和 safety state
+- `recover_by_fault_class` 与 `clear_faults` 的浏览器确认弹窗，避免误触发高风险操作
+- `Audit Bearer Token` 输入；instruction / circuit 可选，recover / clear-faults 必填且需要 `hardware_recovery_operator` 角色；管理员 token 和受管 role policy 都会自动兼容映射到该角色
+- `recover_by_fault_class / clear_faults` 会返回 `permission.required_role=hardware_recovery_operator` 并把权限判定写入操作历史
+- replay / simulated 与 live candidate 会用不同模式提示，避免把非 live 结果误读成真实设备结果
 
 `/static/operator-history.html` 当前支持：
 
@@ -227,6 +241,10 @@ session bridge：
 - 查看聚合摘要
 - 选择两条记录做 compare，查看 metadata / payload 差异摘要
 - JSON / CSV 导出
+
+真实浏览器验收请按 `docs/guides/WEB_BROWSER_MANUAL_VALIDATION_CHECKLIST_20260426.md` 执行。该清单覆盖 instruction set、simulated circuit、recovery plan、recover、clear faults、history 筛选/导出/replay、timeline compare 和响应式基础检查。可选先运行 `tools/run_web_browser_playwright_smoke.py` 做三页关键控件冒烟；完成后复制 `deployment/web_browser_manual_validation.template.json` 填写证据，用 `tools/build_web_browser_manual_validation_report.py` 生成可归档报告，并用 `tools/build_web_browser_validation_closeout.py` 生成最终 closeout 判定。
+
+现场硬件恢复排障请按 `docs/guides/OPERATOR_HARDWARE_RECOVERY_RUNBOOK_20260427.md` 执行。该 runbook 给出 `viewer / operator / hardware_recovery_operator / delivery_lead / rollback_owner` 的操作边界，并把 Web recovery、ROS2 service、diagnostics、vendor review 和 evidence 归档串成故障树。
 
 ## 关键环境变量
 
