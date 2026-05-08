@@ -1,6 +1,8 @@
 {
   "schema_version": "1.0",
   "vendor": "imc22_reflex",
+  "data_version": "2026.04.26-r1",
+  "source": "reference IMC-22 replay and non-live diagnostics samples",
   "exact_codes": {
     "0": "ok",
     "11": "overload",
@@ -34,5 +36,12 @@
       "fault_class": "overload"
     }
   ],
-  "fallback_fault_class": "unknown_fault"
+  "fallback_fault_class": "unknown_fault",
+  "change_log": [
+    {
+      "version": "2026.04.26-r1",
+      "date": "2026-04-26",
+      "summary": "Reference vendor fault classes for archival review; pending live hardware expansion."
+    }
+  ]
 }

@@ -1,6 +1,8 @@
 {
   "schema_version": "1.0",
   "vendor": "imc22_reflex",
+  "data_version": "2026.04.26-r1",
+  "source": "reference IMC-22 recovery policy for diagnostics and operator recovery",
   "watchdog_action": {
     "action": "recover_hold_position",
     "target_angle_mode": "watchdog_hold_angle",
@@ -27,5 +29,12 @@
     "unknown_fault": {
       "action": "clear_only"
     }
-  }
+  },
+  "change_log": [
+    {
+      "version": "2026.04.26-r1",
+      "date": "2026-04-26",
+      "summary": "Initial file-backed recovery policy baseline; pending live hardware expansion."
+    }
+  ]
 }

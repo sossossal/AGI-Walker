@@ -237,6 +237,38 @@ replay_env.close()
 - 节点错误值会按 vendor-specific fault table 收敛成 machine-readable fault class
 - 不同 fault class 会走不同恢复动作，而不是统一 recover
 
+现场导出 `hardware_fault_telemetry_report.json` 后，用 vendor 数据沉淀 runner 校验 raw error、fault class 和 recovery policy 是否一致：
+
+```bash
+python tools/build_vendor_fault_data_review.py --telemetry-report test_env/hardware_live/hardware_fault_telemetry_report.json --output test_env/hardware_live/vendor_fault_data_review.json
+```
+
+如果本次要把新 raw error code 晋升为 vendor 数据基线，先复制样本归档模板并填真实现场留痕：
+
+```bash
+cp deployment/hardware/imc22_vendor_fault_samples.template.json test_env/hardware_live/imc22_vendor_fault_samples.json
+python tools/build_vendor_fault_data_review.py --telemetry-report test_env/hardware_live/hardware_fault_telemetry_report.json --sample-archive-file test_env/hardware_live/imc22_vendor_fault_samples.json --output test_env/hardware_live/vendor_fault_data_review.json
+```
+
+默认输入包括：
+
+- `deployment/hardware/imc22_reflex_fault_table.json`
+- `deployment/hardware/imc22_reflex_recovery_policy.json`
+- `deployment/hardware/imc22_fault_telemetry_fields.json`
+- 可选 `deployment/hardware/imc22_vendor_fault_samples.template.json` 复制出的现场样本归档文件
+
+该报告不会修改 vendor table；它只输出 mismatch、缺失恢复策略、缺失 telemetry 必填字段、样本归档一致性和可归档性结论。只有报告 `status=passed` 且绑定了已审查的 `sample_archive_file` 时，才应把对应样本纳入 vendor 数据基线。
+
+晋升 vendor 数据前，再生成 promotion checklist，确认 review、样本归档、`data_version` 和 `change_log` 已闭合：
+
+```bash
+python tools/build_vendor_data_promotion_checklist.py --sample-archive-file test_env/hardware_live/imc22_vendor_fault_samples.json --vendor-review-file test_env/hardware_live/vendor_fault_data_review.json --output test_env/hardware_live/vendor_data_promotion_checklist.json
+```
+
+只有 `vendor_data_promotion_checklist.json` 的 `status=ready` 时，才应把现场 raw error 样本对应的 fault table / recovery policy / telemetry fields 更新纳入受管基线。
+
+现场 operator 排障流程请使用 `docs/guides/OPERATOR_HARDWARE_RECOVERY_RUNBOOK_20260427.md`；该文档把权限、故障树、diagnostics、vendor review 和证据归档串成同一条恢复流程。
+
 ROS2 一期指令集模拟控制面现已提供：
 
 - topic `/instruction_set/json`
@@ -288,6 +320,14 @@ python -m pytest tests/test_hardware_controller.py -q
 python tools/run_hardware_transport_diagnostics.py --transport replay --replay-source tests/fixtures/imc22_status_replay.json --attempt-connect
 ```
 
+进入真实设备 live diagnostics 前，先生成 readiness checklist：
+
+```bash
+python tools/build_hardware_live_diagnostics_checklist.py --transport serial_bridge --profile-file deployment/hardware/imc22_live_transport.template.json --output test_env/hardware_live/live_diagnostics_checklist.json
+```
+
+先把 `deployment/hardware/imc22_live_transport.template.json` 里的 `serial_port / baudrate` 或 CAN `channel` 改成现场真实值。这份 checklist 会给出实际 diagnostics 命令、预期证据路径和放行条件。没有真实串口参数或 CAN `channel` 时，报告会保持 `blocked`，避免误把 replay 结果当作 live 结果。
+
 对于串口桥 replay：
 
 ```bash
@@ -313,6 +353,45 @@ python tools/run_hardware_transport_diagnostics.py --transport replay --replay-s
 - `recovery_policy_source`：从 JSON 文件加载 vendor-specific recovery policy
 - `fault_telemetry_report.entries[].raw_error_value`：保留原始错误值
 - `fault_telemetry_report.entries[].fault_class`：保留映射后的标准 fault class
+
+真实 raw error 样本进入 vendor review / promotion 前，先做样本 closeout：
+
+```bash
+python tools/build_vendor_fault_sample_closeout.py \
+  --sample-archive-file deployment/hardware/imc22_vendor_fault_samples.template.json \
+  --output test_env/hardware_live/vendor_fault_sample_closeout.json
+```
+
+该报告会检查：
+
+- sample archive 不能保留模板占位符
+- `change_request / review_owner / data_version / change_log` 必须齐备
+- 每条样本必须有 `node_id / raw_error_value / fault_class / source_evidence / captured_at / captured_by`
+- 样本 `fault_class` 必须同时存在于 fault table 和 recovery policy
+- `raw_error_value` 必须可解析为数值
+
+真实设备 live diagnostics、fault telemetry 和 customer-site smoke 都完成后，用 closeout report 收口：
+
+```bash
+python tools/build_hardware_live_closeout_report.py \
+  --vendor-review test_env/hardware_live/vendor_fault_data_review.json \
+  --vendor-promotion test_env/hardware_live/vendor_data_promotion_checklist.json
+```
+
+默认输出：
+
+```bash
+test_env/hardware_live/hardware_live_closeout_report.json
+```
+
+该报告要求：
+
+- `live_diagnostics_checklist.status` 为 `ready_to_run / ready / passed`
+- `hardware_transport_diagnostics_report.status` 为 `ready`
+- `hardware_fault_telemetry_report.entries` 非空
+- `customer_site_live_smoke_report.status` 为 `passed`
+
+缺任一必需证据时，报告保持 `blocked`，避免把准备态或 replay 证据误声明为真实硬件 closeout。
 
 ## 7. `HardwareEnvironment`
 

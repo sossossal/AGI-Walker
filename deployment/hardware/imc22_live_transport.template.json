@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.0",
+  "transport": "serial_bridge",
+  "serial_port": "COM5",
+  "baudrate": 921600,
+  "bitrate": 1000000,
+  "fault_table_file": "deployment/hardware/imc22_reflex_fault_table.json",
+  "recovery_policy_file": "deployment/hardware/imc22_reflex_recovery_policy.json"
+}

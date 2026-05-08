@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "vendor": "imc22_reflex",
+  "data_version": "2026.04.26-r1",
+  "source": "live hardware diagnostics fault telemetry export",
+  "fields": {
+    "node_id": {
+      "required": true,
+      "source": "driver node address",
+      "type": "integer",
+      "description": "Physical controller node identifier used to correlate faults with recovery actions."
+    },
+    "raw_error_value": {
+      "required": true,
+      "source": "vendor driver raw fault register",
+      "type": "number",
+      "description": "Unmodified vendor error code used for fault table lookup."
+    },
+    "fault_class": {
+      "required": true,
+      "source": "diagnostics fault table classification",
+      "type": "string",
+      "description": "Normalized AGI-Walker fault class produced from raw_error_value."
+    },
+    "status_text": {
+      "required": false,
+      "source": "driver status payload",
+      "type": "string",
+      "description": "Human-readable driver status captured for field triage."
+    },
+    "observed_at": {
+      "required": false,
+      "source": "diagnostics runner clock",
+      "type": "string",
+      "description": "Timestamp from the diagnostics node or evidence archive."
+    }
+  },
+  "change_log": [
+    {
+      "version": "2026.04.26-r1",
+      "date": "2026-04-26",
+      "summary": "Initial telemetry field map for vendor data archival review."
+    }
+  ]
+}

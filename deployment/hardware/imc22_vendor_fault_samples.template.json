@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "vendor": "imc22_reflex",
+  "data_version": "2026.04.26-r1",
+  "change_request": "FIELD-FAULT-DATA-YYYYMMDD-001",
+  "review_owner": "hardware-integration-owner",
+  "capture_window": {
+    "environment": "customer-lab-or-site",
+    "started_at": "2026-04-26T00:00:00Z",
+    "ended_at": "2026-04-26T00:30:00Z"
+  },
+  "samples": [
+    {
+      "node_id": 1,
+      "raw_error_value": 45.0,
+      "fault_class": "overcurrent",
+      "source_evidence": "test_env/hardware_live/hardware_fault_telemetry_report.json",
+      "captured_at": "2026-04-26T00:10:00Z",
+      "captured_by": "field-operator",
+      "notes": "Replace with real live hardware evidence before promotion."
+    }
+  ],
+  "change_log": [
+    {
+      "version": "2026.04.26-r1",
+      "date": "2026-04-26",
+      "summary": "Initial sample archive template for live vendor fault data promotion."
+    }
+  ]
+}
