@@ -723,6 +723,36 @@ print("external_mainline_execution_plan_status=ready")
 """.strip()
 
 
+def _write_canonical_industrial_security_evidence_script(security_root: Path) -> str:
+    source_root = str(security_root).replace("\\", "\\\\")
+    return f"""
+from pathlib import Path
+import shutil
+
+source_root = Path(r"{source_root}")
+target_root = Path("test_env/release_evidence/security")
+files = [
+    "security_posture_report.json",
+    "vulnerability_remediation_report.json",
+    "sbom.json",
+    "python_vuln_scan_report.json",
+    "container_vuln_scan_report.json",
+    "backup_restore_rehearsal_report.json",
+]
+target_root.mkdir(parents=True, exist_ok=True)
+copied = 0
+for name in files:
+    source = source_root / name
+    if not source.is_file():
+        raise FileNotFoundError(f"missing smoke security artifact: {{source}}")
+    shutil.copyfile(source, target_root / name)
+    copied += 1
+
+print(f"canonical_industrial_security_evidence_copied={{copied}}")
+print(f"canonical_industrial_security_evidence_root={{target_root}}")
+""".strip()
+
+
 def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
     mock_root = output_root / "robot_creation_mock"
     real_root = output_root / "robot_creation_real"
@@ -1080,6 +1110,18 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
                 "security_release_preflight_status=passed",
             ],
             artifact_dir=security_root,
+        ),
+        SmokeCheck(
+            name="canonical industrial security evidence seed",
+            command=[
+                sys.executable,
+                "-c",
+                _write_canonical_industrial_security_evidence_script(security_root),
+            ],
+            expected_tokens=[
+                "canonical_industrial_security_evidence_copied=6",
+                "canonical_industrial_security_evidence_root=",
+            ],
         ),
         SmokeCheck(
             name="stable release artifact",
