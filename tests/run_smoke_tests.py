@@ -332,6 +332,28 @@ print("release_evidence_status=passed")
 """.strip()
 
 
+def _write_release_contracts_evidence_script() -> str:
+    return """
+from agi_walker.core.api.release_contracts import build_release_evidence_report, write_release_evidence_report
+
+payload = build_release_evidence_report(
+    evidence_name="release_contracts_and_capability_matrix",
+    status="passed",
+    summary="release contracts and capability matrix targeted checks passed: smoke preflight placeholder.",
+    command="python -m pytest tests/test_release_contracts.py tests/test_release_artifact_builder.py tests/test_capability_matrix.py tests/test_mcp_tools.py tests/test_mcp_server.py tests/test_web_panel_aux_apis.py -q",
+    metrics={"passed": 1, "failed": 0, "skipped": 0, "deselected": 0},
+    source_commit_sha="smoke-preflight",
+)
+path = write_release_evidence_report(
+    payload,
+    "test_env/release_evidence/release_contracts_and_capability_matrix_report.json",
+)
+print(f"release_evidence_report_written={path}")
+print("release_evidence_name=release_contracts_and_capability_matrix")
+print("release_evidence_status=passed")
+""".strip()
+
+
 def _write_release_ops_execution_evidence_script() -> str:
     return """
 from agi_walker.core.api.release_contracts import build_release_evidence_report, write_release_evidence_report
@@ -873,6 +895,14 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
             command=[sys.executable, "-c", _write_non_live_gate_evidence_script()],
             expected_tokens=[
                 "release_evidence_name=non_live_gate",
+                "release_evidence_status=passed",
+            ],
+        ),
+        SmokeCheck(
+            name="release contracts evidence seed",
+            command=[sys.executable, "-c", _write_release_contracts_evidence_script()],
+            expected_tokens=[
+                "release_evidence_name=release_contracts_and_capability_matrix",
                 "release_evidence_status=passed",
             ],
         ),
