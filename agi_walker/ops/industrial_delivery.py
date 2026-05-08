@@ -18,7 +18,9 @@ from agi_walker.core.api.release_ops_contracts import (
 def _find_repo_root() -> Path:
     current = Path(__file__).resolve()
     for candidate in current.parents:
-        if (candidate / "pyproject.toml").exists() and (candidate / "agi_walker").exists():
+        if (candidate / "pyproject.toml").exists() and (
+            candidate / "agi_walker"
+        ).exists():
             return candidate
     return current.parent
 

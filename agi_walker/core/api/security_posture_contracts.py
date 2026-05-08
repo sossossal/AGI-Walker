@@ -92,9 +92,7 @@ def _days_until_datetime(
     )
     if normalized_target is None or normalized_reference is None:
         return None
-    return (
-        normalized_target - normalized_reference
-    ).total_seconds() / 86400.0
+    return (normalized_target - normalized_reference).total_seconds() / 86400.0
 
 
 def _build_vulnerability_exception_review_metrics(
@@ -365,9 +363,10 @@ def validate_sbom_artifact(payload: Any) -> list[str]:
                 if not _is_non_empty_string(item.get(field)):
                     errors.append(f"{prefix}.{field} must be a non-empty string")
 
-    if not isinstance(payload.get("component_count"), int) or payload.get(
-        "component_count"
-    ) < 0:
+    if (
+        not isinstance(payload.get("component_count"), int)
+        or payload.get("component_count") < 0
+    ):
         errors.append("component_count must be a non-negative integer")
 
     return errors
@@ -435,7 +434,9 @@ def _normalize_pip_audit_json_report(payload: Mapping[str, Any]) -> dict[str, An
     for dependency in dependencies:
         if not isinstance(dependency, Mapping):
             continue
-        vulnerabilities = dependency.get("vulns") or dependency.get("vulnerabilities") or []
+        vulnerabilities = (
+            dependency.get("vulns") or dependency.get("vulnerabilities") or []
+        )
         if not isinstance(vulnerabilities, list):
             continue
         if vulnerabilities:
@@ -473,7 +474,9 @@ def _normalize_trivy_json_report(payload: Mapping[str, Any]) -> dict[str, Any]:
         target = result.get("Target") or result.get("target")
         if _is_non_empty_string(target):
             targets.add(str(target))
-        vulnerabilities = result.get("Vulnerabilities") or result.get("vulnerabilities") or []
+        vulnerabilities = (
+            result.get("Vulnerabilities") or result.get("vulnerabilities") or []
+        )
         if not isinstance(vulnerabilities, list):
             continue
         finding_count += len(vulnerabilities)
@@ -559,15 +562,20 @@ def validate_vulnerability_scan_report(payload: Any) -> list[str]:
             errors.append(f"missing required field: {field}")
 
     if payload.get("schema_version") != VULNERABILITY_SCAN_REPORT_VERSION:
-        errors.append(
-            f"schema_version must be {VULNERABILITY_SCAN_REPORT_VERSION!r}"
-        )
+        errors.append(f"schema_version must be {VULNERABILITY_SCAN_REPORT_VERSION!r}")
     if payload.get("artifact_type") != VULNERABILITY_SCAN_REPORT_ARTIFACT_TYPE:
         errors.append(
             f"artifact_type must be {VULNERABILITY_SCAN_REPORT_ARTIFACT_TYPE!r}"
         )
 
-    for field in ["generated_at", "scan_name", "target", "summary", "command", "scanner"]:
+    for field in [
+        "generated_at",
+        "scan_name",
+        "target",
+        "summary",
+        "command",
+        "scanner",
+    ]:
         if field in payload and not _is_non_empty_string(payload.get(field)):
             errors.append(f"{field} must be a non-empty string")
 
@@ -575,7 +583,10 @@ def validate_vulnerability_scan_report(payload: Any) -> list[str]:
         errors.append(f"status must be one of {sorted(VULNERABILITY_SCAN_STATUSES)}")
 
     report_format = payload.get("report_format")
-    if report_format is not None and report_format not in VULNERABILITY_SCAN_RAW_FORMATS:
+    if (
+        report_format is not None
+        and report_format not in VULNERABILITY_SCAN_RAW_FORMATS
+    ):
         errors.append(
             f"report_format must be null or one of {sorted(VULNERABILITY_SCAN_RAW_FORMATS)}"
         )
@@ -593,7 +604,9 @@ def validate_vulnerability_scan_report(payload: Any) -> list[str]:
     return errors
 
 
-def write_vulnerability_scan_report(payload: Mapping[str, Any], path: str | Path) -> Path:
+def write_vulnerability_scan_report(
+    payload: Mapping[str, Any], path: str | Path
+) -> Path:
     errors = validate_vulnerability_scan_report(payload)
     if errors:
         raise ValueError(f"invalid vulnerability scan report: {'; '.join(errors)}")
@@ -734,8 +747,7 @@ def validate_vulnerability_exception_report(payload: Any) -> list[str]:
         )
     if payload.get("artifact_type") != VULNERABILITY_EXCEPTION_REPORT_ARTIFACT_TYPE:
         errors.append(
-            "artifact_type must be "
-            f"{VULNERABILITY_EXCEPTION_REPORT_ARTIFACT_TYPE!r}"
+            "artifact_type must be " f"{VULNERABILITY_EXCEPTION_REPORT_ARTIFACT_TYPE!r}"
         )
     for field in ["generated_at", "project_root", "summary"]:
         if field in payload and not _is_non_empty_string(payload.get(field)):
@@ -764,7 +776,9 @@ def validate_vulnerability_exception_report(payload: Any) -> list[str]:
         and next_exception_expiry != ""
         and _parse_iso_datetime(str(next_exception_expiry)) is None
     ):
-        errors.append("next_exception_expiry must be null or a valid ISO 8601 datetime string")
+        errors.append(
+            "next_exception_expiry must be null or a valid ISO 8601 datetime string"
+        )
     review_status = payload.get("review_status")
     if (
         review_status is not None
@@ -827,10 +841,14 @@ def validate_vulnerability_exception_report(payload: Any) -> list[str]:
         elif item.get("status") == "expired":
             counted_expired += 1
         if _parse_iso_datetime(item.get("approved_at")) is None:
-            errors.append(f"{prefix}.approved_at must be a valid ISO 8601 datetime string")
+            errors.append(
+                f"{prefix}.approved_at must be a valid ISO 8601 datetime string"
+            )
         expires_datetime = _parse_iso_datetime(item.get("expires_at"))
         if expires_datetime is None:
-            errors.append(f"{prefix}.expires_at must be a valid ISO 8601 datetime string")
+            errors.append(
+                f"{prefix}.expires_at must be a valid ISO 8601 datetime string"
+            )
 
         image_refs = item.get("image_refs", [])
         if not isinstance(image_refs, list):
@@ -843,7 +861,9 @@ def validate_vulnerability_exception_report(payload: Any) -> list[str]:
                     )
         current_version = item.get("current_version")
         if current_version is not None and not _is_non_empty_string(current_version):
-            errors.append(f"{prefix}.current_version must be null or a non-empty string")
+            errors.append(
+                f"{prefix}.current_version must be null or a non-empty string"
+            )
         for list_name in ["vulnerability_ids", "severities"]:
             values = item.get(list_name, [])
             if not isinstance(values, list):
@@ -864,7 +884,9 @@ def validate_vulnerability_exception_report(payload: Any) -> list[str]:
         isinstance(payload.get("active_exception_count"), int)
         and payload["active_exception_count"] != counted_active
     ):
-        errors.append("active_exception_count must equal the number of active exceptions")
+        errors.append(
+            "active_exception_count must equal the number of active exceptions"
+        )
     if (
         isinstance(payload.get("expired_exception_count"), int)
         and payload["expired_exception_count"] != counted_expired
@@ -887,7 +909,10 @@ def validate_vulnerability_exception_report(payload: Any) -> list[str]:
                 "review_due_exception_count must equal the number of active exceptions "
                 "inside the review window"
             )
-        if payload.get("next_exception_expiry") != review_metrics["next_exception_expiry"]:
+        if (
+            payload.get("next_exception_expiry")
+            != review_metrics["next_exception_expiry"]
+        ):
             errors.append(
                 "next_exception_expiry must equal the earliest active exception expiry"
             )
@@ -1004,14 +1029,18 @@ def _resolve_container_image_ref(
     )
     if source_report_name:
         for image_ref in structured_scanned_images or []:
-            if image_ref == source_report_name or _slugify_image_ref(image_ref) == source_report_name:
+            if (
+                image_ref == source_report_name
+                or _slugify_image_ref(image_ref) == source_report_name
+            ):
                 return str(image_ref)
         return source_report_name
 
     labels = raw_payload.get("Metadata", {}).get("ImageConfig", {}).get("Labels", {})
     compose_service = (
         str(labels.get("com.docker.compose.service")).strip()
-        if isinstance(labels, Mapping) and _is_non_empty_string(labels.get("com.docker.compose.service"))
+        if isinstance(labels, Mapping)
+        and _is_non_empty_string(labels.get("com.docker.compose.service"))
         else None
     )
     if compose_service:
@@ -1043,7 +1072,9 @@ def _classify_blocked_vulnerability_report(
     return "execution"
 
 
-def _build_python_remediation_findings(raw_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _build_python_remediation_findings(
+    raw_payload: Mapping[str, Any],
+) -> list[dict[str, Any]]:
     dependencies = raw_payload.get("dependencies")
     if not isinstance(dependencies, list):
         return []
@@ -1052,7 +1083,9 @@ def _build_python_remediation_findings(raw_payload: Mapping[str, Any]) -> list[d
     for dependency in dependencies:
         if not isinstance(dependency, Mapping):
             continue
-        vulnerabilities = dependency.get("vulns") or dependency.get("vulnerabilities") or []
+        vulnerabilities = (
+            dependency.get("vulns") or dependency.get("vulnerabilities") or []
+        )
         if not isinstance(vulnerabilities, list) or not vulnerabilities:
             continue
 
@@ -1111,19 +1144,25 @@ def _build_container_remediation_findings(
         for result in results:
             if not isinstance(result, Mapping):
                 continue
-            vulnerabilities = result.get("Vulnerabilities") or result.get("vulnerabilities") or []
+            vulnerabilities = (
+                result.get("Vulnerabilities") or result.get("vulnerabilities") or []
+            )
             if not isinstance(vulnerabilities, list):
                 continue
 
             for vulnerability in vulnerabilities:
                 if not isinstance(vulnerability, Mapping):
                     continue
-                package_name = vulnerability.get("PkgName") or vulnerability.get("pkgName")
+                package_name = vulnerability.get("PkgName") or vulnerability.get(
+                    "pkgName"
+                )
                 if not _is_non_empty_string(package_name):
                     continue
                 installed_version = vulnerability.get("InstalledVersion")
                 fixed_version = vulnerability.get("FixedVersion")
-                vulnerability_id = vulnerability.get("VulnerabilityID") or vulnerability.get("vulnerabilityID")
+                vulnerability_id = vulnerability.get(
+                    "VulnerabilityID"
+                ) or vulnerability.get("vulnerabilityID")
                 findings.append(
                     {
                         "scope": "container_images",
@@ -1135,7 +1174,9 @@ def _build_container_remediation_findings(
                         ),
                         "image_ref": resolved_image_ref,
                         "vulnerability_id": vulnerability_id,
-                        "severity": str(vulnerability.get("Severity") or "UNKNOWN").upper(),
+                        "severity": str(
+                            vulnerability.get("Severity") or "UNKNOWN"
+                        ).upper(),
                         "recommended_fix_versions": (
                             [str(fixed_version)]
                             if _is_non_empty_string(fixed_version)
@@ -1197,9 +1238,7 @@ def _finding_matches_vulnerability_exception(
     if (
         enforce_no_fix_version
         and bool(exception.get("only_without_fix_version", False))
-        and finding.get(
-        "recommended_fix_versions"
-        )
+        and finding.get("recommended_fix_versions")
     ):
         return False
     return True
@@ -1349,9 +1388,12 @@ def _build_remediation_components_from_findings(
 
         key = (
             str(finding.get("component") or ""),
-            str(finding.get("image_ref"))
-            if scope == "container_images" and _is_non_empty_string(finding.get("image_ref"))
-            else None,
+            (
+                str(finding.get("image_ref"))
+                if scope == "container_images"
+                and _is_non_empty_string(finding.get("image_ref"))
+                else None
+            ),
         )
         if not _is_non_empty_string(key[0]):
             continue
@@ -1419,7 +1461,9 @@ def _build_prioritized_remediation_actions(
             for item in component.get("recommended_fix_versions", [])
             if _is_non_empty_string(item)
         ]
-        recommended_fix_version = recommended_fix_versions[0] if recommended_fix_versions else None
+        recommended_fix_version = (
+            recommended_fix_versions[0] if recommended_fix_versions else None
+        )
         highest_severity = (
             str(component.get("highest_severity"))
             if _is_non_empty_string(component.get("highest_severity"))
@@ -1482,7 +1526,8 @@ def build_vulnerability_remediation_report(
         root,
     )
     resolved_container_report_path = _resolve_path(
-        container_vuln_report_path or "test_env/security/container_vuln_scan_report.json",
+        container_vuln_report_path
+        or "test_env/security/container_vuln_scan_report.json",
         root,
     )
     resolved_exception_report_path = _resolve_path(
@@ -1492,7 +1537,9 @@ def build_vulnerability_remediation_report(
     )
 
     python_report = _load_valid_vulnerability_scan_report(resolved_python_report_path)
-    container_report = _load_valid_vulnerability_scan_report(resolved_container_report_path)
+    container_report = _load_valid_vulnerability_scan_report(
+        resolved_container_report_path
+    )
     exception_report = _load_valid_vulnerability_exception_report(
         resolved_exception_report_path
     )
@@ -1504,13 +1551,20 @@ def build_vulnerability_remediation_report(
     )
     container_raw_path = (
         _resolve_path(str(container_report.get("raw_report_path")), root)
-        if container_report and _is_non_empty_string(container_report.get("raw_report_path"))
+        if container_report
+        and _is_non_empty_string(container_report.get("raw_report_path"))
         else None
     )
 
-    python_raw_payload = _load_json(python_raw_path) if python_raw_path and python_raw_path.is_file() else None
+    python_raw_payload = (
+        _load_json(python_raw_path)
+        if python_raw_path and python_raw_path.is_file()
+        else None
+    )
     container_raw_payloads = (
-        _load_trivy_raw_payloads(container_raw_path) if container_raw_path is not None else []
+        _load_trivy_raw_payloads(container_raw_path)
+        if container_raw_path is not None
+        else []
     )
 
     python_findings_raw = (
@@ -1521,9 +1575,11 @@ def build_vulnerability_remediation_report(
     container_findings_raw, container_scanned_images = (
         _build_container_remediation_findings(
             container_raw_payloads,
-            structured_scanned_images=container_report.get("scanned_images", [])
-            if isinstance(container_report, Mapping)
-            else [],
+            structured_scanned_images=(
+                container_report.get("scanned_images", [])
+                if isinstance(container_report, Mapping)
+                else []
+            ),
         )
         if container_raw_payloads
         else ([], [])
@@ -1571,8 +1627,12 @@ def build_vulnerability_remediation_report(
         missing_inputs.append("container_vuln_scan_raw_report")
 
     python_findings = int(python_report.get("finding_count", 0)) if python_report else 0
-    container_findings = int(container_report.get("finding_count", 0)) if container_report else 0
-    accepted_finding_count = len(accepted_python_findings) + len(accepted_container_findings)
+    container_findings = (
+        int(container_report.get("finding_count", 0)) if container_report else 0
+    )
+    accepted_finding_count = len(accepted_python_findings) + len(
+        accepted_container_findings
+    )
     unresolved_finding_count = len(unresolved_python_findings) + len(
         unresolved_container_findings
     )
@@ -1580,19 +1640,13 @@ def build_vulnerability_remediation_report(
     actionable_components_available = bool(python_components or container_components)
     if python_report is None or container_report is None:
         remediation_status = "blocked"
-        summary = (
-            "Vulnerability remediation report is blocked until both structured vulnerability scan reports are available."
-        )
+        summary = "Vulnerability remediation report is blocked until both structured vulnerability scan reports are available."
     elif unresolved_finding_count == 0 and not missing_inputs:
         remediation_status = "ready"
         if accepted_finding_count:
-            summary = (
-                "No remediation actions are pending because the remaining findings are covered by active vulnerability exceptions."
-            )
+            summary = "No remediation actions are pending because the remaining findings are covered by active vulnerability exceptions."
         else:
-            summary = (
-                "No remediation actions are pending because both vulnerability scans passed."
-            )
+            summary = "No remediation actions are pending because both vulnerability scans passed."
         if stale_exception_count:
             summary += (
                 f" {stale_exception_count} active no-fix exception(s) are stale because "
@@ -1612,9 +1666,7 @@ def build_vulnerability_remediation_report(
                 "and container images."
             )
             if accepted_finding_count:
-                summary += (
-                    f" {accepted_finding_count} finding(s) are already covered by active vulnerability exceptions."
-                )
+                summary += f" {accepted_finding_count} finding(s) are already covered by active vulnerability exceptions."
         if stale_exception_count:
             summary += (
                 f" {stale_exception_count} active no-fix exception(s) are stale because "
@@ -1622,9 +1674,7 @@ def build_vulnerability_remediation_report(
             )
     else:
         remediation_status = "blocked"
-        summary = (
-            "Vulnerability remediation report is blocked until raw scanner payloads are available for the blocked scans."
-        )
+        summary = "Vulnerability remediation report is blocked until raw scanner payloads are available for the blocked scans."
         if stale_exception_count:
             summary += (
                 f" {stale_exception_count} active no-fix exception(s) are already stale "
@@ -1653,11 +1703,7 @@ def build_vulnerability_remediation_report(
             next_actions.append(
                 "remove or replace stale no-fix vulnerability exceptions in the approved exception input source "
                 f"before relying on them again ({stale_exception_count} impacted"
-                + (
-                    f": {stale_preview}"
-                    if stale_preview
-                    else ""
-                )
+                + (f": {stale_preview}" if stale_preview else "")
                 + ")"
             )
         next_actions.append(
@@ -1673,11 +1719,7 @@ def build_vulnerability_remediation_report(
         next_actions.append(
             "remove or replace stale no-fix vulnerability exceptions in the approved exception input source "
             f"({stale_exception_count} impacted"
-            + (
-                f": {stale_preview}"
-                if stale_preview
-                else ""
-            )
+            + (f": {stale_preview}" if stale_preview else "")
             + ")"
         )
     if accepted_finding_count:
@@ -1698,25 +1740,33 @@ def build_vulnerability_remediation_report(
         "summary": summary,
         "python_dependencies": {
             "report_path": str(resolved_python_report_path),
-            "raw_report_path": str(python_raw_path) if python_raw_path is not None else None,
+            "raw_report_path": (
+                str(python_raw_path) if python_raw_path is not None else None
+            ),
             "status": python_report.get("status") if python_report else "not_run",
             "finding_count": python_findings,
             "accepted_finding_count": len(accepted_python_findings),
             "unresolved_finding_count": len(unresolved_python_findings),
             "affected_component_count": (
-                int(python_report.get("affected_component_count", 0)) if python_report else 0
+                int(python_report.get("affected_component_count", 0))
+                if python_report
+                else 0
             ),
             "top_components": to_jsonable(python_components[:10]),
         },
         "container_images": {
             "report_path": str(resolved_container_report_path),
-            "raw_report_path": str(container_raw_path) if container_raw_path is not None else None,
+            "raw_report_path": (
+                str(container_raw_path) if container_raw_path is not None else None
+            ),
             "status": container_report.get("status") if container_report else "not_run",
             "finding_count": container_findings,
             "accepted_finding_count": len(accepted_container_findings),
             "unresolved_finding_count": len(unresolved_container_findings),
             "affected_component_count": (
-                int(container_report.get("affected_component_count", 0)) if container_report else 0
+                int(container_report.get("affected_component_count", 0))
+                if container_report
+                else 0
             ),
             "severity_counts": to_jsonable(container_severity_counts),
             "scanned_images": to_jsonable(container_scanned_images),
@@ -1789,10 +1839,18 @@ def validate_vulnerability_remediation_report(payload: Any) -> list[str]:
         if not isinstance(section, Mapping):
             errors.append(f"{field} must be an object")
             continue
-        for key in ["report_path", "status", "finding_count", "affected_component_count", "top_components"]:
+        for key in [
+            "report_path",
+            "status",
+            "finding_count",
+            "affected_component_count",
+            "top_components",
+        ]:
             if key not in section:
                 errors.append(f"{field}.{key} is required")
-        if "report_path" in section and not _is_non_empty_string(section.get("report_path")):
+        if "report_path" in section and not _is_non_empty_string(
+            section.get("report_path")
+        ):
             errors.append(f"{field}.report_path must be a non-empty string")
         raw_report_path = section.get("raw_report_path")
         if raw_report_path is not None and not _is_non_empty_string(raw_report_path):
@@ -1819,7 +1877,13 @@ def validate_vulnerability_remediation_report(payload: Any) -> list[str]:
                 if not isinstance(item, Mapping):
                     errors.append(f"{prefix} must be an object")
                     continue
-                for key in ["name", "scope", "finding_count", "recommended_fix_versions", "vulnerability_ids"]:
+                for key in [
+                    "name",
+                    "scope",
+                    "finding_count",
+                    "recommended_fix_versions",
+                    "vulnerability_ids",
+                ]:
                     if key not in item:
                         errors.append(f"{prefix}.{key} is required")
                 if not _is_non_empty_string(item.get("name")):
@@ -1828,8 +1892,13 @@ def validate_vulnerability_remediation_report(payload: Any) -> list[str]:
                     errors.append(
                         f"{prefix}.scope must be 'python_dependencies' or 'container_images'"
                     )
-                if not isinstance(item.get("finding_count"), int) or item.get("finding_count") < 0:
-                    errors.append(f"{prefix}.finding_count must be a non-negative integer")
+                if (
+                    not isinstance(item.get("finding_count"), int)
+                    or item.get("finding_count") < 0
+                ):
+                    errors.append(
+                        f"{prefix}.finding_count must be a non-negative integer"
+                    )
                 for key in ["recommended_fix_versions", "vulnerability_ids"]:
                     values = item.get(key)
                     if not isinstance(values, list):
@@ -1853,7 +1922,9 @@ def validate_vulnerability_remediation_report(payload: Any) -> list[str]:
         errors.append("vulnerability_exception_report must be an object")
     else:
         if not _is_non_empty_string(exception_report.get("path")):
-            errors.append("vulnerability_exception_report.path must be a non-empty string")
+            errors.append(
+                "vulnerability_exception_report.path must be a non-empty string"
+            )
         if not isinstance(exception_report.get("exists"), bool):
             errors.append("vulnerability_exception_report.exists must be a boolean")
         for key in [
@@ -1904,7 +1975,9 @@ def validate_vulnerability_remediation_report(payload: Any) -> list[str]:
                     if not _is_non_empty_string(item.get(key)):
                         errors.append(f"{prefix}.{key} must be a non-empty string")
                 current_version = item.get("current_version")
-                if current_version is not None and not _is_non_empty_string(current_version):
+                if current_version is not None and not _is_non_empty_string(
+                    current_version
+                ):
                     errors.append(
                         f"{prefix}.current_version must be null or a non-empty string"
                     )
@@ -1920,8 +1993,14 @@ def validate_vulnerability_remediation_report(payload: Any) -> list[str]:
                     not isinstance(item.get("finding_count"), int)
                     or item.get("finding_count") < 0
                 ):
-                    errors.append(f"{prefix}.finding_count must be a non-negative integer")
-                for key in ["image_refs", "recommended_fix_versions", "vulnerability_ids"]:
+                    errors.append(
+                        f"{prefix}.finding_count must be a non-negative integer"
+                    )
+                for key in [
+                    "image_refs",
+                    "recommended_fix_versions",
+                    "vulnerability_ids",
+                ]:
                     values = item.get(key)
                     if not isinstance(values, list):
                         errors.append(f"{prefix}.{key} must be a list")
@@ -1955,7 +2034,10 @@ def validate_vulnerability_remediation_report(payload: Any) -> list[str]:
                 errors.append(f"{prefix}.scope must be a non-empty string")
             if not _is_non_empty_string(item.get("component")):
                 errors.append(f"{prefix}.component must be a non-empty string")
-            if not isinstance(item.get("finding_count"), int) or item.get("finding_count") < 0:
+            if (
+                not isinstance(item.get("finding_count"), int)
+                or item.get("finding_count") < 0
+            ):
                 errors.append(f"{prefix}.finding_count must be a non-negative integer")
             if not _is_non_empty_string(item.get("rationale")):
                 errors.append(f"{prefix}.rationale must be a non-empty string")
@@ -2042,7 +2124,9 @@ def _collect_relative_file_fingerprints(path: Path) -> dict[str, int] | None:
 
     fingerprints: dict[str, int] = {}
     for file_path in sorted(item for item in path.rglob("*") if item.is_file()):
-        fingerprints[str(file_path.relative_to(path)).replace("\\", "/")] = file_path.stat().st_size
+        fingerprints[str(file_path.relative_to(path)).replace("\\", "/")] = (
+            file_path.stat().st_size
+        )
     return fingerprints
 
 
@@ -2081,11 +2165,23 @@ def build_backup_restore_rehearsal_report(
 
     backup_specs = [
         ("db", source_runtime / "db", backup_snapshot / "db"),
-        ("workflow_runs", source_runtime / "workflow_runs", backup_snapshot / "workflow_runs"),
-        ("workflow_archive", source_runtime / "workflow_archive", backup_snapshot / "workflow_archive"),
+        (
+            "workflow_runs",
+            source_runtime / "workflow_runs",
+            backup_snapshot / "workflow_runs",
+        ),
+        (
+            "workflow_archive",
+            source_runtime / "workflow_archive",
+            backup_snapshot / "workflow_archive",
+        ),
         ("backups", source_runtime / "backups", backup_snapshot / "backups"),
         ("compose_env", source_config / "compose.env", backup_snapshot / "compose.env"),
-        ("web_panel_env", source_config / "web_panel.env", backup_snapshot / "web_panel.env"),
+        (
+            "web_panel_env",
+            source_config / "web_panel.env",
+            backup_snapshot / "web_panel.env",
+        ),
     ]
 
     backup_items: list[dict[str, Any]] = []
@@ -2170,7 +2266,9 @@ def build_backup_restore_rehearsal_report(
         "actor": actor,
         "status": status,
         "summary": summary,
-        "release_manifest_path": str(release_manifest) if release_manifest is not None else None,
+        "release_manifest_path": (
+            str(release_manifest) if release_manifest is not None else None
+        ),
         "source_runtime_root": str(source_runtime),
         "source_config_root": str(source_config),
         "backup_snapshot_root": str(backup_snapshot),
@@ -2182,7 +2280,9 @@ def build_backup_restore_rehearsal_report(
         "failed_restore_checks": failed_restore_checks,
         "rpo_target": "24 hours",
         "rto_target": "4 hours",
-        "rehearsal_duration_seconds": round(float(rehearsal_duration_seconds or 0.0), 6),
+        "rehearsal_duration_seconds": round(
+            float(rehearsal_duration_seconds or 0.0), 6
+        ),
         "next_actions": next_actions,
     }
 
@@ -2245,7 +2345,9 @@ def validate_backup_restore_rehearsal_report(payload: Any) -> list[str]:
             f"status must be one of {sorted(BACKUP_RESTORE_REHEARSAL_STATUSES)}"
         )
     release_manifest_path = payload.get("release_manifest_path")
-    if release_manifest_path is not None and not _is_non_empty_string(release_manifest_path):
+    if release_manifest_path is not None and not _is_non_empty_string(
+        release_manifest_path
+    ):
         errors.append("release_manifest_path must be null or a non-empty string")
 
     backup_items = payload.get("backup_items")
@@ -2288,7 +2390,10 @@ def validate_backup_restore_rehearsal_report(payload: Any) -> list[str]:
             errors.append(f"{field} must be a non-negative integer")
 
     rehearsal_duration_seconds = payload.get("rehearsal_duration_seconds")
-    if not isinstance(rehearsal_duration_seconds, (int, float)) or rehearsal_duration_seconds < 0:
+    if (
+        not isinstance(rehearsal_duration_seconds, (int, float))
+        or rehearsal_duration_seconds < 0
+    ):
         errors.append("rehearsal_duration_seconds must be a non-negative number")
 
     next_actions = payload.get("next_actions")
@@ -2338,7 +2443,8 @@ def build_security_posture_report(
         root,
     )
     resolved_container_vuln_path = _resolve_path(
-        container_vuln_report_path or "test_env/security/container_vuln_scan_report.json",
+        container_vuln_report_path
+        or "test_env/security/container_vuln_scan_report.json",
         root,
     )
     resolved_backup_restore_rehearsal_path = _resolve_path(
@@ -2370,8 +2476,8 @@ def build_security_posture_report(
         ("container_images", resolved_container_vuln_path),
     ]:
         payload = _load_json(report_path)
-        valid_payload = (
-            payload is not None and not validate_vulnerability_scan_report(payload)
+        valid_payload = payload is not None and not validate_vulnerability_scan_report(
+            payload
         )
         status = payload.get("status") if valid_payload else "not_run"
         exists = valid_payload
@@ -2412,17 +2518,21 @@ def build_security_posture_report(
         )
 
     rehearsal_payload = _load_json(resolved_backup_restore_rehearsal_path)
-    rehearsal_exists = rehearsal_payload is not None and not validate_backup_restore_rehearsal_report(
-        rehearsal_payload
+    rehearsal_exists = (
+        rehearsal_payload is not None
+        and not validate_backup_restore_rehearsal_report(rehearsal_payload)
     )
-    rehearsal_status = rehearsal_payload.get("status") if rehearsal_exists else "blocked"
+    rehearsal_status = (
+        rehearsal_payload.get("status") if rehearsal_exists else "blocked"
+    )
     missing_backup_restore_rehearsal_reports = 0 if rehearsal_exists else 1
     blocked_backup_restore_rehearsal_reports = (
         0 if not rehearsal_exists else 0 if rehearsal_status == "passed" else 1
     )
     remediation_payload = _load_json(resolved_vulnerability_remediation_path)
-    remediation_exists = remediation_payload is not None and not validate_vulnerability_remediation_report(
-        remediation_payload
+    remediation_exists = (
+        remediation_payload is not None
+        and not validate_vulnerability_remediation_report(remediation_payload)
     )
     remediation_status = (
         str(remediation_payload.get("remediation_status"))
@@ -2502,7 +2612,9 @@ def build_security_posture_report(
     effective_blocked_vuln_finding_reports = blocked_vuln_finding_reports
     if blocked_vuln_finding_reports and remediation_exists:
         effective_blocked_vuln_finding_reports = (
-            0 if unresolved_vulnerability_findings == 0 else blocked_vuln_finding_reports
+            0
+            if unresolved_vulnerability_findings == 0
+            else blocked_vuln_finding_reports
         )
     effective_blocked_vuln_reports += effective_blocked_vuln_finding_reports
 
@@ -2557,9 +2669,7 @@ def build_security_posture_report(
             "complete the required security baseline documents under docs/guides/"
         )
     if missing_backup_restore_rehearsal_reports:
-        next_actions.append(
-            "attach a structured backup and restore rehearsal report"
-        )
+        next_actions.append("attach a structured backup and restore rehearsal report")
     if blocked_backup_restore_rehearsal_reports:
         next_actions.append(
             "resolve blocked backup and restore rehearsal checks before marking the security posture ready"
@@ -2575,7 +2685,11 @@ def build_security_posture_report(
         and blocked_backup_restore_rehearsal_reports == 0
         else "blocked"
     )
-    if posture_status == "ready" and accepted_vulnerability_findings and review_status == "review_due":
+    if (
+        posture_status == "ready"
+        and accepted_vulnerability_findings
+        and review_status == "review_due"
+    ):
         summary = (
             "Security posture is ready with approved vulnerability exceptions covering the remaining reported findings, "
             f"but {review_due_exception_count} active exception(s) enter the "
@@ -2594,22 +2708,16 @@ def build_security_posture_report(
             "and the remaining reported findings are remediated."
         )
     elif blocked_vuln_execution_reports:
-        summary = (
-            "Security posture remains blocked until the required vulnerability scans execute successfully."
-        )
+        summary = "Security posture remains blocked until the required vulnerability scans execute successfully."
     elif effective_blocked_vuln_finding_reports and stale_exception_count:
         summary = (
             "Security posture remains blocked because some active no-fix vulnerability exceptions are stale "
             "and the matching findings now advertise fix versions."
         )
     elif effective_blocked_vuln_finding_reports:
-        summary = (
-            "Security posture remains blocked until the reported vulnerability findings are remediated."
-        )
+        summary = "Security posture remains blocked until the reported vulnerability findings are remediated."
     elif accepted_vulnerability_findings:
-        summary = (
-            "Security posture is ready with approved vulnerability exceptions covering the remaining reported findings."
-        )
+        summary = "Security posture is ready with approved vulnerability exceptions covering the remaining reported findings."
     else:
         summary = (
             "Security posture remains blocked until SBOM, vulnerability scans, backup and restore rehearsal, "
@@ -2626,9 +2734,9 @@ def build_security_posture_report(
         "sbom": {
             "path": str(resolved_sbom_path),
             "exists": sbom_exists,
-            "component_count": sbom_payload.get("component_count", 0)
-            if sbom_exists
-            else 0,
+            "component_count": (
+                sbom_payload.get("component_count", 0) if sbom_exists else 0
+            ),
         },
         "vulnerability_reports": to_jsonable(vuln_reports),
         "baseline_documents": to_jsonable(baseline_documents),
@@ -2727,12 +2835,16 @@ def validate_security_posture_report(payload: Any) -> list[str]:
     if payload.get("schema_version") != SECURITY_POSTURE_REPORT_VERSION:
         errors.append(f"schema_version must be {SECURITY_POSTURE_REPORT_VERSION!r}")
     if payload.get("artifact_type") != SECURITY_POSTURE_REPORT_ARTIFACT_TYPE:
-        errors.append(f"artifact_type must be {SECURITY_POSTURE_REPORT_ARTIFACT_TYPE!r}")
+        errors.append(
+            f"artifact_type must be {SECURITY_POSTURE_REPORT_ARTIFACT_TYPE!r}"
+        )
     for field in ["generated_at", "project_root", "summary"]:
         if field in payload and not _is_non_empty_string(payload.get(field)):
             errors.append(f"{field} must be a non-empty string")
     if payload.get("posture_status") not in SECURITY_POSTURE_STATUSES:
-        errors.append(f"posture_status must be one of {sorted(SECURITY_POSTURE_STATUSES)}")
+        errors.append(
+            f"posture_status must be one of {sorted(SECURITY_POSTURE_STATUSES)}"
+        )
 
     sbom = payload.get("sbom")
     if not isinstance(sbom, Mapping):
@@ -2742,9 +2854,10 @@ def validate_security_posture_report(payload: Any) -> list[str]:
             errors.append("sbom.path must be a non-empty string")
         if not isinstance(sbom.get("exists"), bool):
             errors.append("sbom.exists must be a boolean")
-        if not isinstance(sbom.get("component_count"), int) or sbom.get(
-            "component_count"
-        ) < 0:
+        if (
+            not isinstance(sbom.get("component_count"), int)
+            or sbom.get("component_count") < 0
+        ):
             errors.append("sbom.component_count must be a non-negative integer")
 
     for list_name in ["vulnerability_reports", "baseline_documents"]:
@@ -2795,7 +2908,9 @@ def validate_security_posture_report(payload: Any) -> list[str]:
             errors.append("vulnerability_remediation must be an object")
         else:
             if not _is_non_empty_string(remediation.get("path")):
-                errors.append("vulnerability_remediation.path must be a non-empty string")
+                errors.append(
+                    "vulnerability_remediation.path must be a non-empty string"
+                )
             if not isinstance(remediation.get("exists"), bool):
                 errors.append("vulnerability_remediation.exists must be a boolean")
             if remediation.get("status") not in {
@@ -2813,12 +2928,8 @@ def validate_security_posture_report(payload: Any) -> list[str]:
                         f"vulnerability_remediation.{field} must be a non-negative integer"
                     )
             stale_exception_count = remediation.get("stale_exception_count")
-            if (
-                stale_exception_count is not None
-                and (
-                    not isinstance(stale_exception_count, int)
-                    or stale_exception_count < 0
-                )
+            if stale_exception_count is not None and (
+                not isinstance(stale_exception_count, int) or stale_exception_count < 0
             ):
                 errors.append(
                     "vulnerability_remediation.stale_exception_count must be a non-negative integer"
@@ -2843,8 +2954,7 @@ def validate_security_posture_report(payload: Any) -> list[str]:
                     )
             stale_exception_count = exception_report.get("stale_exception_count")
             if stale_exception_count is not None and (
-                not isinstance(stale_exception_count, int)
-                or stale_exception_count < 0
+                not isinstance(stale_exception_count, int) or stale_exception_count < 0
             ):
                 errors.append(
                     "vulnerability_exception_report.stale_exception_count must be a non-negative integer"
@@ -2869,7 +2979,9 @@ def validate_security_posture_report(payload: Any) -> list[str]:
                 errors.append(
                     "vulnerability_exception_report.review_window_days must be a non-negative integer"
                 )
-            review_due_exception_count = exception_report.get("review_due_exception_count")
+            review_due_exception_count = exception_report.get(
+                "review_due_exception_count"
+            )
             if review_due_exception_count is not None and (
                 not isinstance(review_due_exception_count, int)
                 or review_due_exception_count < 0

@@ -16,9 +16,12 @@ from uuid import uuid4
 def _find_repo_root() -> Path:
     current = Path(__file__).resolve()
     for candidate in current.parents:
-        if (candidate / "pyproject.toml").exists() and (candidate / "agi_walker").exists():
+        if (candidate / "pyproject.toml").exists() and (
+            candidate / "agi_walker"
+        ).exists():
             return candidate
     return current.parent
+
 
 PROJECT_ROOT = _find_repo_root()
 if str(PROJECT_ROOT) not in sys.path:
@@ -65,6 +68,8 @@ from agi_walker.core.api.release_ops_contracts import (  # noqa: E402
     ReleaseRehearsalRequest,
     ReleaseRehearsalResult,
 )
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -145,9 +150,7 @@ def _summarize_vulnerability_exception_review(
 ) -> dict[str, Any]:
     metrics = payload.get("metrics", {})
     review_candidate_count = (
-        metrics.get("review_candidate_count")
-        if isinstance(metrics, dict)
-        else None
+        metrics.get("review_candidate_count") if isinstance(metrics, dict) else None
     )
     return {
         "status": payload.get("status"),
@@ -164,8 +167,12 @@ def _summarize_industrial_manifest(
 ) -> dict[str, Any]:
     return {
         "status": payload.get("release_gate_status"),
-        "customer_delivery_status": payload.get("customer_delivery_surface", {}).get("status"),
-        "industrial_delivery_status": payload.get("industrial_delivery_gate", {}).get("status"),
+        "customer_delivery_status": payload.get("customer_delivery_surface", {}).get(
+            "status"
+        ),
+        "industrial_delivery_status": payload.get("industrial_delivery_gate", {}).get(
+            "status"
+        ),
         "manifest_path": str(manifest_path),
     }
 
@@ -324,7 +331,9 @@ def _summarize_customer_acceptance_bundle(
 ) -> dict[str, Any]:
     acceptance_reports = payload.get("acceptance_reports", [])
     present_reports = [
-        item for item in acceptance_reports if isinstance(item, dict) and item.get("exists") is True
+        item
+        for item in acceptance_reports
+        if isinstance(item, dict) and item.get("exists") is True
     ]
     summary: dict[str, Any] = {
         "status": payload.get("bundle_status"),
@@ -350,9 +359,7 @@ def _summarize_customer_acceptance_bundle(
         bundle_path=bundle_path,
     )
     if external_mainline_input_checklist.get("status"):
-        summary["external_mainline_input_checklist"] = (
-            external_mainline_input_checklist
-        )
+        summary["external_mainline_input_checklist"] = external_mainline_input_checklist
     release_ops_execution = _summarize_bundle_release_ops_execution(
         payload,
         bundle_path=bundle_path,
@@ -546,9 +553,13 @@ def _init_git_repo(source_root: Path, *, version: str, tag: str) -> dict[str, An
     for command in commands:
         result = _run_command(command, cwd=source_root)
         if result.returncode != 0:
-            raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "git command failed")
+            raise RuntimeError(
+                result.stderr.strip() or result.stdout.strip() or "git command failed"
+            )
 
-    commit_sha = _run_command(["git", "rev-parse", "HEAD"], cwd=source_root).stdout.strip()
+    commit_sha = _run_command(
+        ["git", "rev-parse", "HEAD"], cwd=source_root
+    ).stdout.strip()
     short_commit_sha = _run_command(
         ["git", "rev-parse", "--short=12", "HEAD"],
         cwd=source_root,
@@ -563,7 +574,10 @@ def _init_git_repo(source_root: Path, *, version: str, tag: str) -> dict[str, An
 
 def _seed_live_evidence(project_root: Path) -> list[dict[str, str]]:
     reports = {
-        project_root / "test_env" / "distributed_smoke" / "distributed_smoke_report.json": {
+        project_root
+        / "test_env"
+        / "distributed_smoke"
+        / "distributed_smoke_report.json": {
             "schema_version": "1.0",
             "status": "passed",
             "actor_id": "release-rehearsal-actor",
@@ -573,11 +587,17 @@ def _seed_live_evidence(project_root: Path) -> list[dict[str, str]]:
                 {"name": "web_panel_status", "status": "pass"},
             ],
         },
-        project_root / "test_env" / "godot_headless_smoke" / "headless_smoke_report.json": {
+        project_root
+        / "test_env"
+        / "godot_headless_smoke"
+        / "headless_smoke_report.json": {
             "status": "passed",
             "message": "Seeded Godot headless live smoke evidence for release rehearsal.",
         },
-        project_root / "test_env" / "ros2_bridge_smoke" / "ros2_bridge_smoke_report.json": {
+        project_root
+        / "test_env"
+        / "ros2_bridge_smoke"
+        / "ros2_bridge_smoke_report.json": {
             "status": "passed",
             "message": "Seeded ROS2 bridge live smoke evidence for release rehearsal.",
         },
@@ -598,23 +618,44 @@ def _seed_customer_delivery_docs(project_root: Path) -> list[dict[str, str]]:
         project_root / "README.md": "# Release Rehearsal Acceptance Bundle\n",
         project_root / "docs" / "CURRENT_STATUS.md": "# Current Status\n",
         project_root / "docs" / "guides" / "RELEASE_GUIDE.md": "# Release Guide\n",
-        project_root / "docs" / "guides" / "DEPLOYMENT_MATRIX.md": "# Deployment Matrix\n",
+        project_root
+        / "docs"
+        / "guides"
+        / "DEPLOYMENT_MATRIX.md": "# Deployment Matrix\n",
         project_root
         / "docs"
         / "guides"
         / "CUSTOMER_INSTALLATION_GUIDE.md": "# Customer Installation Guide\n",
         project_root / "docs" / "guides" / "SUPPORT_MATRIX.md": "# Support Matrix\n",
-        project_root / "docs" / "guides" / "CAPACITY_AND_SCALE.md": "# Capacity And Scale\n",
+        project_root
+        / "docs"
+        / "guides"
+        / "CAPACITY_AND_SCALE.md": "# Capacity And Scale\n",
         project_root
         / "docs"
         / "guides"
         / "CUSTOMER_ACCEPTANCE_CHECKLIST.md": "# Customer Acceptance Checklist\n",
-        project_root / "docs" / "guides" / "KNOWN_LIMITATIONS.md": "# Known Limitations\n",
+        project_root
+        / "docs"
+        / "guides"
+        / "KNOWN_LIMITATIONS.md": "# Known Limitations\n",
         project_root / "PRODUCTION_DEPLOYMENT_RUNBOOK.md": "# Production Runbook\n",
-        project_root / "docs" / "guides" / "SECURITY_BASELINE.md": "# Security Baseline\n",
-        project_root / "docs" / "guides" / "AUDIT_TRAIL_POLICY.md": "# Audit Trail Policy\n",
-        project_root / "docs" / "guides" / "BACKUP_RESTORE_RUNBOOK.md": "# Backup Restore Runbook\n",
-        project_root / "docs" / "guides" / "INCIDENT_RESPONSE_MATRIX.md": "# Incident Response Matrix\n",
+        project_root
+        / "docs"
+        / "guides"
+        / "SECURITY_BASELINE.md": "# Security Baseline\n",
+        project_root
+        / "docs"
+        / "guides"
+        / "AUDIT_TRAIL_POLICY.md": "# Audit Trail Policy\n",
+        project_root
+        / "docs"
+        / "guides"
+        / "BACKUP_RESTORE_RUNBOOK.md": "# Backup Restore Runbook\n",
+        project_root
+        / "docs"
+        / "guides"
+        / "INCIDENT_RESPONSE_MATRIX.md": "# Incident Response Matrix\n",
     }
     seeded_paths: list[dict[str, str]] = []
     for path, content in docs.items():
@@ -628,7 +669,8 @@ def _seed_required_release_evidence(project_root: Path) -> list[dict[str, str]]:
     report_root = project_root / "test_env" / "release_evidence"
     report_root.mkdir(parents=True, exist_ok=True)
     reports = {
-        report_root / "non_live_gate_report.json": build_release_evidence_report(
+        report_root
+        / "non_live_gate_report.json": build_release_evidence_report(
             evidence_name="non_live_gate",
             status="passed",
             summary="non_live_gate pytest evidence passed: 856 passed, 4 skipped, 3 deselected.",
@@ -667,7 +709,9 @@ def _seed_backup_restore_rehearsal(project_root: Path) -> dict[str, str]:
     runtime_files = {
         source_runtime_root / "db" / "state.json": '{"status":"ok"}\n',
         source_runtime_root / "workflow_runs" / "run.json": '{"id":"rehearsal"}\n',
-        source_runtime_root / "workflow_archive" / "archive.json": '{"archived":true}\n',
+        source_runtime_root
+        / "workflow_archive"
+        / "archive.json": '{"archived":true}\n',
         source_runtime_root / "backups" / "manifest.json": '{"backup":"ok"}\n',
     }
     config_files = {
@@ -679,18 +723,46 @@ def _seed_backup_restore_rehearsal(project_root: Path) -> dict[str, str]:
         path.write_text(content, encoding="utf-8")
 
     runtime_copy_targets = {
-        backup_snapshot_root / "db" / "state.json": runtime_files[source_runtime_root / "db" / "state.json"],
-        backup_snapshot_root / "workflow_runs" / "run.json": runtime_files[source_runtime_root / "workflow_runs" / "run.json"],
-        backup_snapshot_root / "workflow_archive" / "archive.json": runtime_files[source_runtime_root / "workflow_archive" / "archive.json"],
-        backup_snapshot_root / "backups" / "manifest.json": runtime_files[source_runtime_root / "backups" / "manifest.json"],
-        restored_runtime_root / "db" / "state.json": runtime_files[source_runtime_root / "db" / "state.json"],
-        restored_runtime_root / "workflow_runs" / "run.json": runtime_files[source_runtime_root / "workflow_runs" / "run.json"],
-        restored_runtime_root / "workflow_archive" / "archive.json": runtime_files[source_runtime_root / "workflow_archive" / "archive.json"],
-        restored_runtime_root / "backups" / "manifest.json": runtime_files[source_runtime_root / "backups" / "manifest.json"],
-        backup_snapshot_root / "compose.env": config_files[source_config_root / "compose.env"],
-        backup_snapshot_root / "web_panel.env": config_files[source_config_root / "web_panel.env"],
-        restored_config_root / "compose.env": config_files[source_config_root / "compose.env"],
-        restored_config_root / "web_panel.env": config_files[source_config_root / "web_panel.env"],
+        backup_snapshot_root
+        / "db"
+        / "state.json": runtime_files[source_runtime_root / "db" / "state.json"],
+        backup_snapshot_root
+        / "workflow_runs"
+        / "run.json": runtime_files[source_runtime_root / "workflow_runs" / "run.json"],
+        backup_snapshot_root
+        / "workflow_archive"
+        / "archive.json": runtime_files[
+            source_runtime_root / "workflow_archive" / "archive.json"
+        ],
+        backup_snapshot_root
+        / "backups"
+        / "manifest.json": runtime_files[
+            source_runtime_root / "backups" / "manifest.json"
+        ],
+        restored_runtime_root
+        / "db"
+        / "state.json": runtime_files[source_runtime_root / "db" / "state.json"],
+        restored_runtime_root
+        / "workflow_runs"
+        / "run.json": runtime_files[source_runtime_root / "workflow_runs" / "run.json"],
+        restored_runtime_root
+        / "workflow_archive"
+        / "archive.json": runtime_files[
+            source_runtime_root / "workflow_archive" / "archive.json"
+        ],
+        restored_runtime_root
+        / "backups"
+        / "manifest.json": runtime_files[
+            source_runtime_root / "backups" / "manifest.json"
+        ],
+        backup_snapshot_root
+        / "compose.env": config_files[source_config_root / "compose.env"],
+        backup_snapshot_root
+        / "web_panel.env": config_files[source_config_root / "web_panel.env"],
+        restored_config_root
+        / "compose.env": config_files[source_config_root / "compose.env"],
+        restored_config_root
+        / "web_panel.env": config_files[source_config_root / "web_panel.env"],
     }
     for path, content in runtime_copy_targets.items():
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -888,7 +960,12 @@ def _seed_security_evidence(project_root: Path) -> list[dict[str, str]]:
         posture_path,
     )
 
-    preflight_path = project_root / "test_env" / "release_evidence" / "security_release_preflight_report.json"
+    preflight_path = (
+        project_root
+        / "test_env"
+        / "release_evidence"
+        / "security_release_preflight_report.json"
+    )
     _run_checked_command(
         [
             sys.executable,
@@ -950,10 +1027,7 @@ def _seed_extension_execution_evidence(project_root: Path) -> list[dict[str, str
         output_root=output_root,
         payloads=payloads,
     )
-    return [
-        {"name": path.name, "path": str(path)}
-        for path in written.values()
-    ]
+    return [{"name": path.name, "path": str(path)} for path in written.values()]
 
 
 def _seed_customer_external_bindings_closure_report(
@@ -996,9 +1070,15 @@ def _seed_customer_external_bindings_closure_report(
     )
     command = build_run_customer_external_bindings_closure_command(
         config_path=resolved_config_path,
-        instance_artifact_path=_path_for_contract(instance_path, project_root=project_root),
-        schedule_artifact_path=_path_for_contract(schedule_path, project_root=project_root),
-        actuals_artifact_path=_path_for_contract(actuals_path, project_root=project_root),
+        instance_artifact_path=_path_for_contract(
+            instance_path, project_root=project_root
+        ),
+        schedule_artifact_path=_path_for_contract(
+            schedule_path, project_root=project_root
+        ),
+        actuals_artifact_path=_path_for_contract(
+            actuals_path, project_root=project_root
+        ),
         confirmation_report_output_path=_path_for_contract(
             confirmation_report_path,
             project_root=project_root,
@@ -1020,11 +1100,17 @@ def _seed_customer_external_bindings_closure_report(
             "project_root": str(project_root),
             "config_path": resolved_config_path,
             "config_exists": (project_root / resolved_config_path).is_file(),
-            "instance_artifact_path": _path_for_contract(instance_path, project_root=project_root),
+            "instance_artifact_path": _path_for_contract(
+                instance_path, project_root=project_root
+            ),
             "instance_exists": instance_path.is_file(),
-            "schedule_artifact_path": _path_for_contract(schedule_path, project_root=project_root),
+            "schedule_artifact_path": _path_for_contract(
+                schedule_path, project_root=project_root
+            ),
             "schedule_exists": schedule_path.is_file(),
-            "actuals_output_path": _path_for_contract(actuals_path, project_root=project_root),
+            "actuals_output_path": _path_for_contract(
+                actuals_path, project_root=project_root
+            ),
             "actuals_exists": actuals_path.is_file(),
             "confirmation_report_output_path": _path_for_contract(
                 confirmation_report_path,
@@ -1053,9 +1139,7 @@ def _seed_external_mainline_execution_plan(
     project_root: Path, *, version: str, build_id: str
 ) -> dict[str, str]:
     project_root = project_root.resolve()
-    output_path = (
-        project_root / default_external_mainline_execution_plan_path()
-    )
+    output_path = project_root / default_external_mainline_execution_plan_path()
     payload = build_external_mainline_execution_plan_artifact(
         project_root=project_root,
         control_plane_session={
@@ -1080,9 +1164,7 @@ def _seed_external_mainline_input_checklist_report(
     build_id: str,
 ) -> dict[str, str]:
     project_root = project_root.resolve()
-    output_path = (
-        project_root / default_external_mainline_input_checklist_report_path()
-    )
+    output_path = project_root / default_external_mainline_input_checklist_report_path()
     payload = build_external_mainline_input_checklist_report(
         project_root=project_root,
         output_path=default_external_mainline_input_checklist_report_path(),
@@ -1266,13 +1348,18 @@ def _seed_extension_execution_actuals(
             result.stderr.strip()
             or result.stdout.strip()
             or "extension execution actuals build failed"
-    )
+        )
     return {"name": output_path.name, "path": str(output_path)}
 
 
-def _seed_clean_checkout_evidence(project_root: Path, *, version: str, tag: str) -> dict[str, str]:
+def _seed_clean_checkout_evidence(
+    project_root: Path, *, version: str, tag: str
+) -> dict[str, str]:
     report_path = (
-        project_root / "test_env" / "release_evidence" / "clean_checkout_smoke_report.json"
+        project_root
+        / "test_env"
+        / "release_evidence"
+        / "clean_checkout_smoke_report.json"
     )
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(
@@ -1283,7 +1370,9 @@ def _seed_clean_checkout_evidence(project_root: Path, *, version: str, tag: str)
                 "status": "passed",
                 "generated_at": _now_iso(),
                 "source_root": str(project_root),
-                "checkout_root": str(project_root / "test_env" / "release_rehearsal_checkout"),
+                "checkout_root": str(
+                    project_root / "test_env" / "release_rehearsal_checkout"
+                ),
                 "output_root": str(project_root / "test_env" / "release_rehearsal"),
                 "version": version,
                 "tag": tag,
@@ -1429,7 +1518,9 @@ def execute_release_rehearsal(
 
         evidence_paths = _seed_live_evidence(output_root)
         evidence_paths = [
-            _seed_clean_checkout_evidence(output_root, version=request.version, tag=tag),
+            _seed_clean_checkout_evidence(
+                output_root, version=request.version, tag=tag
+            ),
             *_seed_required_release_evidence(output_root),
             *evidence_paths,
             *_seed_security_evidence(output_root),
@@ -1508,7 +1599,9 @@ def execute_release_rehearsal(
         builder_stdout = builder.stdout.strip()
         builder_stderr = builder.stderr.strip()
         if builder.returncode != 0:
-            raise RuntimeError(builder_stderr or builder_stdout or "release builder failed")
+            raise RuntimeError(
+                builder_stderr or builder_stdout or "release builder failed"
+            )
         checks.append(
             {
                 "name": "release_manifest_built",
@@ -1673,7 +1766,10 @@ def execute_release_rehearsal(
         )
 
         security_preflight_report_path = (
-            output_root / "test_env" / "release_evidence" / "security_release_preflight_report.json"
+            output_root
+            / "test_env"
+            / "release_evidence"
+            / "security_release_preflight_report.json"
         )
         security_preflight_payload = _load_json_payload(security_preflight_report_path)
         security_release_preflight = _summarize_security_release_preflight(
@@ -1769,7 +1865,10 @@ def execute_release_rehearsal(
                 f"{industrial_manifest.get('status')!r}"
             )
         industrial_delivery_artifact_paths.append(
-            {"name": industrial_manifest_path.name, "path": str(industrial_manifest_path)}
+            {
+                "name": industrial_manifest_path.name,
+                "path": str(industrial_manifest_path),
+            }
         )
         checks.append(
             {
@@ -1831,7 +1930,9 @@ def execute_release_rehearsal(
             }
         )
 
-        industrial_promotion_root = output_root / "test_env" / "industrial_promotion_ready"
+        industrial_promotion_root = (
+            output_root / "test_env" / "industrial_promotion_ready"
+        )
         industrial_promotion_report_path = (
             industrial_promotion_root / "industrial_promotion_checklist.json"
         )
@@ -1958,9 +2059,11 @@ def execute_release_rehearsal(
             industrial_bundle_payload,
             bundle_path=industrial_bundle_path,
         )
-        customer_external_bindings_closure = _summarize_customer_external_bindings_closure(
-            industrial_bundle_payload,
-            bundle_path=industrial_bundle_path,
+        customer_external_bindings_closure = (
+            _summarize_customer_external_bindings_closure(
+                industrial_bundle_payload,
+                bundle_path=industrial_bundle_path,
+            )
         )
         external_mainline_execution_plan = _summarize_external_mainline_execution_plan(
             industrial_bundle_payload,
@@ -1987,19 +2090,31 @@ def execute_release_rehearsal(
         )
 
         clean_checkout_report_path = (
-            output_root / "test_env" / "release_evidence" / "clean_checkout_smoke_report.json"
+            output_root
+            / "test_env"
+            / "release_evidence"
+            / "clean_checkout_smoke_report.json"
         )
         clean_checkout_payload = _load_json_payload(clean_checkout_report_path)
         distributed_smoke_report_path = (
-            output_root / "test_env" / "distributed_smoke" / "distributed_smoke_report.json"
+            output_root
+            / "test_env"
+            / "distributed_smoke"
+            / "distributed_smoke_report.json"
         )
         distributed_smoke_payload = _load_json_payload(distributed_smoke_report_path)
         godot_headless_report_path = (
-            output_root / "test_env" / "godot_headless_smoke" / "headless_smoke_report.json"
+            output_root
+            / "test_env"
+            / "godot_headless_smoke"
+            / "headless_smoke_report.json"
         )
         godot_headless_payload = _load_json_payload(godot_headless_report_path)
         ros2_bridge_report_path = (
-            output_root / "test_env" / "ros2_bridge_smoke" / "ros2_bridge_smoke_report.json"
+            output_root
+            / "test_env"
+            / "ros2_bridge_smoke"
+            / "ros2_bridge_smoke_report.json"
         )
         ros2_bridge_payload = _load_json_payload(ros2_bridge_report_path)
         backup_restore_report_path = (
@@ -2032,7 +2147,12 @@ def execute_release_rehearsal(
                 ),
                 "artifact_paths": [
                     str(industrial_bundle_path),
-                    str(output_root / "docs" / "guides" / "CUSTOMER_INSTALLATION_GUIDE.md"),
+                    str(
+                        output_root
+                        / "docs"
+                        / "guides"
+                        / "CUSTOMER_INSTALLATION_GUIDE.md"
+                    ),
                     str(output_root / "docs" / "guides" / "DEPLOYMENT_MATRIX.md"),
                     str(output_root / "docs" / "guides" / "SUPPORT_MATRIX.md"),
                 ],
@@ -2120,7 +2240,9 @@ def execute_release_rehearsal(
             {
                 "id": "backup_restore",
                 "status": (
-                    "pass" if backup_restore_payload.get("status") == "passed" else "fail"
+                    "pass"
+                    if backup_restore_payload.get("status") == "passed"
+                    else "fail"
                 ),
                 "summary": "Backup and restore rehearsal passed and remains attached to the industrial acceptance surface.",
                 "artifact_paths": [
@@ -2260,17 +2382,21 @@ def execute_release_rehearsal(
             industrial_bundle_payload,
             bundle_path=industrial_bundle_path,
         )
-        customer_external_bindings_closure = _summarize_customer_external_bindings_closure(
-            industrial_bundle_payload,
-            bundle_path=industrial_bundle_path,
+        customer_external_bindings_closure = (
+            _summarize_customer_external_bindings_closure(
+                industrial_bundle_payload,
+                bundle_path=industrial_bundle_path,
+            )
         )
         external_mainline_execution_plan = _summarize_external_mainline_execution_plan(
             industrial_bundle_payload,
             bundle_path=industrial_bundle_path,
         )
-        external_mainline_input_checklist = _summarize_external_mainline_input_checklist(
-            industrial_bundle_payload,
-            bundle_path=industrial_bundle_path,
+        external_mainline_input_checklist = (
+            _summarize_external_mainline_input_checklist(
+                industrial_bundle_payload,
+                bundle_path=industrial_bundle_path,
+            )
         )
         release_ops_execution = _summarize_bundle_release_ops_execution(
             industrial_bundle_payload,
@@ -2294,10 +2420,12 @@ def execute_release_rehearsal(
         )
         status = "failed"
 
-    control_plane_session, control_plane_event_stream = _aggregate_control_plane_surface(
-        release_ops_execution,
-        external_mainline_execution_plan,
-        external_mainline_input_checklist,
+    control_plane_session, control_plane_event_stream = (
+        _aggregate_control_plane_surface(
+            release_ops_execution,
+            external_mainline_execution_plan,
+            external_mainline_input_checklist,
+        )
     )
     report = {
         "schema_version": "1.0",
@@ -2347,9 +2475,11 @@ def execute_release_rehearsal(
             release_rehearsal_report_path=written_report,
         )
     )
-    written_industrial_delivery_report = write_industrial_delivery_rehearsal_report_artifact(
-        industrial_delivery_rehearsal_report,
-        industrial_delivery_rehearsal_report_path,
+    written_industrial_delivery_report = (
+        write_industrial_delivery_rehearsal_report_artifact(
+            industrial_delivery_rehearsal_report,
+            industrial_delivery_rehearsal_report_path,
+        )
     )
     return ReleaseRehearsalResult(
         payload=report,

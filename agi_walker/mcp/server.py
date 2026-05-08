@@ -268,9 +268,7 @@ def get_tool_definitions(
                 vulnerability_exception_review_report_path=args.get(
                     "vulnerability_exception_review_report_path"
                 ),
-                release_readiness_report_path=args.get(
-                    "release_readiness_report_path"
-                ),
+                release_readiness_report_path=args.get("release_readiness_report_path"),
                 worktree_release_blocker_report_path=args.get(
                     "worktree_release_blocker_report_path"
                 ),
@@ -325,9 +323,7 @@ def get_tool_definitions(
                 vulnerability_exception_review_report_path=args.get(
                     "vulnerability_exception_review_report_path"
                 ),
-                release_readiness_report_path=args.get(
-                    "release_readiness_report_path"
-                ),
+                release_readiness_report_path=args.get("release_readiness_report_path"),
                 worktree_release_blocker_report_path=args.get(
                     "worktree_release_blocker_report_path"
                 ),
@@ -376,9 +372,7 @@ def get_tool_definitions(
                 vulnerability_exception_review_report_path=args.get(
                     "vulnerability_exception_review_report_path"
                 ),
-                release_readiness_report_path=args.get(
-                    "release_readiness_report_path"
-                ),
+                release_readiness_report_path=args.get("release_readiness_report_path"),
                 worktree_release_blocker_report_path=args.get(
                     "worktree_release_blocker_report_path"
                 ),
@@ -429,9 +423,7 @@ def get_tool_definitions(
                 external_mainline_execution_plan_path=args.get(
                     "external_mainline_execution_plan_path"
                 ),
-                external_mainline_inputs_path=args.get(
-                    "external_mainline_inputs_path"
-                ),
+                external_mainline_inputs_path=args.get("external_mainline_inputs_path"),
                 external_mainline_input_checklist_report_path=args.get(
                     "external_mainline_input_checklist_report_path"
                 ),
@@ -441,9 +433,7 @@ def get_tool_definitions(
                 vulnerability_exception_review_report_path=args.get(
                     "vulnerability_exception_review_report_path"
                 ),
-                release_readiness_report_path=args.get(
-                    "release_readiness_report_path"
-                ),
+                release_readiness_report_path=args.get("release_readiness_report_path"),
                 worktree_release_blocker_report_path=args.get(
                     "worktree_release_blocker_report_path"
                 ),
@@ -510,9 +500,7 @@ def get_tool_definitions(
                 vulnerability_exception_review_report_path=args.get(
                     "vulnerability_exception_review_report_path"
                 ),
-                release_readiness_report_path=args.get(
-                    "release_readiness_report_path"
-                ),
+                release_readiness_report_path=args.get("release_readiness_report_path"),
                 worktree_release_blocker_report_path=args.get(
                     "worktree_release_blocker_report_path"
                 ),
@@ -573,9 +561,7 @@ def get_tool_definitions(
                 vulnerability_exception_review_report_path=args.get(
                     "vulnerability_exception_review_report_path"
                 ),
-                release_readiness_report_path=args.get(
-                    "release_readiness_report_path"
-                ),
+                release_readiness_report_path=args.get("release_readiness_report_path"),
                 worktree_release_blocker_report_path=args.get(
                     "worktree_release_blocker_report_path"
                 ),
@@ -748,9 +734,7 @@ def get_tool_definitions(
                 vulnerability_exception_review_report_path=args.get(
                     "vulnerability_exception_review_report_path"
                 ),
-                release_readiness_report_path=args.get(
-                    "release_readiness_report_path"
-                ),
+                release_readiness_report_path=args.get("release_readiness_report_path"),
                 worktree_release_blocker_report_path=args.get(
                     "worktree_release_blocker_report_path"
                 ),
@@ -811,9 +795,7 @@ def get_tool_definitions(
                 vulnerability_exception_review_report_path=args.get(
                     "vulnerability_exception_review_report_path"
                 ),
-                release_readiness_report_path=args.get(
-                    "release_readiness_report_path"
-                ),
+                release_readiness_report_path=args.get("release_readiness_report_path"),
                 worktree_release_blocker_report_path=args.get(
                     "worktree_release_blocker_report_path"
                 ),
@@ -874,9 +856,7 @@ def get_tool_definitions(
                 vulnerability_exception_review_report_path=args.get(
                     "vulnerability_exception_review_report_path"
                 ),
-                release_readiness_report_path=args.get(
-                    "release_readiness_report_path"
-                ),
+                release_readiness_report_path=args.get("release_readiness_report_path"),
                 worktree_release_blocker_report_path=args.get(
                     "worktree_release_blocker_report_path"
                 ),
@@ -937,9 +917,7 @@ def get_tool_definitions(
                 vulnerability_exception_review_report_path=args.get(
                     "vulnerability_exception_review_report_path"
                 ),
-                release_readiness_report_path=args.get(
-                    "release_readiness_report_path"
-                ),
+                release_readiness_report_path=args.get("release_readiness_report_path"),
                 worktree_release_blocker_report_path=args.get(
                     "worktree_release_blocker_report_path"
                 ),

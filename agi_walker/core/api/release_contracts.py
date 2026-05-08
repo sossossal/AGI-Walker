@@ -86,12 +86,8 @@ INDUSTRIAL_DELIVERY_REHEARSAL_STAGE_IDS = (
     "backup_restore",
 )
 
-DISTRIBUTED_RELEASE_LIMITATION = (
-    "Distributed runtime remains diagnostic_ready until a passing distributed smoke report is attached to release evidence."
-)
-DISTRIBUTED_DOMAIN_LIMITATION = (
-    "A passing distributed smoke report is still required to confirm actor discovery and learner action loop in the target Docker environment."
-)
+DISTRIBUTED_RELEASE_LIMITATION = "Distributed runtime remains diagnostic_ready until a passing distributed smoke report is attached to release evidence."
+DISTRIBUTED_DOMAIN_LIMITATION = "A passing distributed smoke report is still required to confirm actor discovery and learner action loop in the target Docker environment."
 
 RELEASE_MANIFEST_REQUIRED_FIELDS = {
     "schema_version",
@@ -1597,7 +1593,9 @@ def _build_extension_execution_template(
                     "order": int(item.get("order") or 0),
                     "title": str(item.get("title") or "").strip(),
                     "owner_role": str(item.get("owner_role") or "").strip(),
-                    "required_artifact": str(item.get("required_artifact") or "").strip(),
+                    "required_artifact": str(
+                        item.get("required_artifact") or ""
+                    ).strip(),
                 }
             )
         return built_items
@@ -1754,18 +1752,14 @@ def _validate_extension_execution_template(payload: Any, *, prefix: str) -> list
         )
     on_call_handoff_owner_role = payload.get("on_call_handoff_owner_role")
     if not _is_non_empty_string(on_call_handoff_owner_role):
-        errors.append(
-            f"{prefix}.on_call_handoff_owner_role must be a non-empty string"
-        )
+        errors.append(f"{prefix}.on_call_handoff_owner_role must be a non-empty string")
     elif role_ids and str(on_call_handoff_owner_role) not in role_ids:
         errors.append(
             f"{prefix}.on_call_handoff_owner_role must match one of operator_roles[*].id"
         )
     residual_risk_owner_role = payload.get("residual_risk_owner_role")
     if not _is_non_empty_string(residual_risk_owner_role):
-        errors.append(
-            f"{prefix}.residual_risk_owner_role must be a non-empty string"
-        )
+        errors.append(f"{prefix}.residual_risk_owner_role must be a non-empty string")
     elif role_ids and str(residual_risk_owner_role) not in role_ids:
         errors.append(
             f"{prefix}.residual_risk_owner_role must match one of operator_roles[*].id"
@@ -2012,7 +2006,11 @@ def default_customer_acceptance_documents() -> list[dict[str, Any]]:
     return [
         {"name": "readme", "path": "README.md", "required": True},
         {"name": "current_status", "path": "docs/CURRENT_STATUS.md", "required": True},
-        {"name": "release_guide", "path": "docs/guides/RELEASE_GUIDE.md", "required": True},
+        {
+            "name": "release_guide",
+            "path": "docs/guides/RELEASE_GUIDE.md",
+            "required": True,
+        },
         {
             "name": "deployment_matrix",
             "path": "docs/guides/DEPLOYMENT_MATRIX.md",
@@ -2236,13 +2234,14 @@ def default_customer_external_bindings_closure_report_path() -> str:
 
 
 def default_vulnerability_exception_review_report_path() -> str:
-    return "test_env/release_evidence/security/vulnerability_exception_review_report.json"
+    return (
+        "test_env/release_evidence/security/vulnerability_exception_review_report.json"
+    )
 
 
 def default_external_mainline_execution_plan_path() -> str:
     return (
-        "test_env/release_evidence/operations/"
-        "external_mainline_execution_plan.json"
+        "test_env/release_evidence/operations/" "external_mainline_execution_plan.json"
     )
 
 
@@ -2254,10 +2253,7 @@ def default_external_mainline_input_checklist_report_path() -> str:
 
 
 def default_release_ops_execution_report_path() -> str:
-    return (
-        "test_env/release_evidence/operations/"
-        "release_ops_execution_report.json"
-    )
+    return "test_env/release_evidence/operations/" "release_ops_execution_report.json"
 
 
 def default_release_manifest_artifact_path() -> str:
@@ -2374,9 +2370,11 @@ def build_extension_support_surface(
         for name in EXTENSION_SUPPORT_DECLARATION_DOCUMENT_NAMES
     ]
     missing_documents = [
-        str(item.get("path"))
-        if _is_non_empty_string(item.get("path"))
-        else str(item.get("name"))
+        (
+            str(item.get("path"))
+            if _is_non_empty_string(item.get("path"))
+            else str(item.get("name"))
+        )
         for item in declaration_documents
         if item.get("exists") is not True
     ]
@@ -2389,12 +2387,12 @@ def build_extension_support_surface(
         reference_paths: list[str] = []
         declared = True
         for document_name in spec["reference_documents"]:
-            document = dict(documents_by_name.get(document_name, {"name": document_name}))
+            document = dict(
+                documents_by_name.get(document_name, {"name": document_name})
+            )
             path = document.get("path")
             reference_paths.append(
-                str(path)
-                if _is_non_empty_string(path)
-                else str(document.get("name"))
+                str(path) if _is_non_empty_string(path) else str(document.get("name"))
             )
             if document.get("exists") is not True:
                 declared = False
@@ -2475,7 +2473,9 @@ def validate_extension_support_surface(payload: Any) -> list[str]:
         "not_supported_profiles",
     ]:
         if field in payload and not _is_non_negative_int(payload.get(field)):
-            errors.append(f"extension_support_surface.{field} must be a non-negative integer")
+            errors.append(
+                f"extension_support_surface.{field} must be a non-negative integer"
+            )
     if (
         _is_non_negative_int(payload.get("required_profiles"))
         and _is_non_negative_int(payload.get("declared_profiles"))
@@ -2507,7 +2507,9 @@ def validate_extension_support_surface(payload: Any) -> list[str]:
             continue
         missing_fields = sorted(EXTENSION_SUPPORT_PROFILE_REQUIRED_FIELDS - set(item))
         if missing_fields:
-            errors.append(f"{prefix} missing required fields: {', '.join(missing_fields)}")
+            errors.append(
+                f"{prefix} missing required fields: {', '.join(missing_fields)}"
+            )
         if not _is_non_empty_string(item.get("id")):
             errors.append(f"{prefix}.id must be a non-empty string")
         if not _is_non_empty_string(item.get("label")):
@@ -2561,7 +2563,8 @@ def build_extension_execution_plan(
     profiles_payload = surface.get("profiles")
     profile_items = (
         list(profiles_payload)
-        if isinstance(profiles_payload, Sequence) and not isinstance(profiles_payload, (str, bytes))
+        if isinstance(profiles_payload, Sequence)
+        and not isinstance(profiles_payload, (str, bytes))
         else []
     )
     plan_profiles: list[dict[str, Any]] = []
@@ -2621,7 +2624,8 @@ def build_extension_execution_plan(
     status = (
         "ready"
         if surface.get("status") == "ready"
-        and declared_profiles == _coerce_non_negative_int(surface.get("declared_profiles"))
+        and declared_profiles
+        == _coerce_non_negative_int(surface.get("declared_profiles"))
         else "blocked"
     )
     summary = (
@@ -2664,7 +2668,9 @@ def validate_extension_execution_plan(payload: Any) -> list[str]:
         "special_acceptance_profiles",
     ]:
         if field in payload and not _is_non_negative_int(payload.get(field)):
-            errors.append(f"extension_execution_plan.{field} must be a non-negative integer")
+            errors.append(
+                f"extension_execution_plan.{field} must be a non-negative integer"
+            )
     if (
         _is_non_negative_int(payload.get("declared_profiles"))
         and _is_non_negative_int(payload.get("actionable_profiles"))
@@ -2676,7 +2682,8 @@ def validate_extension_execution_plan(payload: Any) -> list[str]:
     if (
         _is_non_negative_int(payload.get("declared_profiles"))
         and _is_non_negative_int(payload.get("special_acceptance_profiles"))
-        and payload.get("special_acceptance_profiles") > payload.get("declared_profiles")
+        and payload.get("special_acceptance_profiles")
+        > payload.get("declared_profiles")
     ):
         errors.append(
             "extension_execution_plan.special_acceptance_profiles must be <= declared_profiles"
@@ -2694,7 +2701,9 @@ def validate_extension_execution_plan(payload: Any) -> list[str]:
             continue
         missing_fields = sorted(EXTENSION_EXECUTION_PROFILE_REQUIRED_FIELDS - set(item))
         if missing_fields:
-            errors.append(f"{prefix} missing required fields: {', '.join(missing_fields)}")
+            errors.append(
+                f"{prefix} missing required fields: {', '.join(missing_fields)}"
+            )
         for field in ["id", "label"]:
             if field in item and not _is_non_empty_string(item.get(field)):
                 errors.append(f"{prefix}.{field} must be a non-empty string")
@@ -2745,9 +2754,11 @@ def _build_extension_execution_evidence_payload(
         else {}
     )
     plan = build_extension_execution_plan(surface)
-    hydrated_reports = [
-        dict(item) for item in reports if isinstance(item, Mapping)
-    ] if reports is not None else []
+    hydrated_reports = (
+        [dict(item) for item in reports if isinstance(item, Mapping)]
+        if reports is not None
+        else []
+    )
     reports_by_name = {
         str(item.get("name")): item
         for item in hydrated_reports
@@ -2758,10 +2769,7 @@ def _build_extension_execution_evidence_payload(
 
     def _is_ready(name: str) -> bool:
         current = reports_by_name.get(name, {})
-        return (
-            current.get("exists") is True
-            and current.get("status") == "passed"
-        )
+        return current.get("exists") is True and current.get("status") == "passed"
 
     on_call_rehearsal_attested = _is_ready("extension_on_call_rehearsal")
     exception_review_scheduled = _is_ready("extension_exception_review_schedule")
@@ -2808,7 +2816,9 @@ def _build_extension_execution_evidence_payload(
         "required_reports": len(required_report_names),
         "ready_reports": ready_reports,
         "declared_profiles": _coerce_non_negative_int(plan.get("declared_profiles")),
-        "actionable_profiles": _coerce_non_negative_int(plan.get("actionable_profiles")),
+        "actionable_profiles": _coerce_non_negative_int(
+            plan.get("actionable_profiles")
+        ),
         "on_call_rehearsal_attested": on_call_rehearsal_attested,
         "exception_review_scheduled": exception_review_scheduled,
         "escalation_closure_attested": escalation_closure_attested,
@@ -2857,7 +2867,8 @@ def validate_extension_execution_evidence(payload: Any) -> list[str]:
     missing = sorted(EXTENSION_EXECUTION_EVIDENCE_REQUIRED_FIELDS - set(payload))
     if missing:
         errors.append(
-            "extension_execution_evidence missing required fields: " + ", ".join(missing)
+            "extension_execution_evidence missing required fields: "
+            + ", ".join(missing)
         )
     if payload.get("status") not in EXTENSION_EXECUTION_EVIDENCE_STATUSES:
         errors.append(
@@ -2947,9 +2958,10 @@ def build_customer_external_bindings_config_command(
     instance_artifact_path: Any = None,
 ) -> str:
     resolved_output = resolve_customer_external_bindings_config_path(output_path)
-    resolved_instance = _artifact_optional_string(
-        instance_artifact_path
-    ) or default_extension_execution_instance_artifact_path()
+    resolved_instance = (
+        _artifact_optional_string(instance_artifact_path)
+        or default_extension_execution_instance_artifact_path()
+    )
     return (
         "python tools/build_customer_external_bindings_config.py "
         f"--output {resolved_output} "
@@ -2962,14 +2974,17 @@ def build_extension_execution_actuals_command(
     output_path: Any = None,
     external_bindings_config_path: Any = None,
 ) -> str:
-    resolved_output = _artifact_optional_string(
-        output_path
-    ) or default_extension_execution_actuals_artifact_path()
+    resolved_output = (
+        _artifact_optional_string(output_path)
+        or default_extension_execution_actuals_artifact_path()
+    )
     command = (
         "python tools/build_extension_execution_actuals.py "
         f"--output {resolved_output}"
     )
-    resolved_external_bindings = _artifact_optional_string(external_bindings_config_path)
+    resolved_external_bindings = _artifact_optional_string(
+        external_bindings_config_path
+    )
     if resolved_external_bindings:
         command += f" --external-bindings-config {resolved_external_bindings}"
     return command
@@ -3006,7 +3021,9 @@ def build_confirm_customer_external_bindings_command(
     )
     for section in normalized_sections:
         command += f" --section {section}"
-    command += " --confirmed-by <confirmed-by> --confirmation-ticket <confirmation-ticket>"
+    command += (
+        " --confirmed-by <confirmed-by> --confirmation-ticket <confirmation-ticket>"
+    )
     return command
 
 
@@ -3061,7 +3078,9 @@ def build_external_mainline_execution_plan_command(
         customer_external_bindings_closure_report_path
     )
     if resolved_closure_report is None:
-        resolved_closure_report = default_customer_external_bindings_closure_report_path()
+        resolved_closure_report = (
+            default_customer_external_bindings_closure_report_path()
+        )
     resolved_review_report = _artifact_optional_string(
         vulnerability_exception_review_report_path
     )
@@ -3086,21 +3105,18 @@ def build_external_mainline_execution_plan_command(
         != default_customer_external_bindings_closure_report_path()
     ):
         command += (
-            " --customer-external-bindings-closure-report "
-            f"{resolved_closure_report}"
+            " --customer-external-bindings-closure-report " f"{resolved_closure_report}"
         )
     if resolved_review_report != default_vulnerability_exception_review_report_path():
         command += (
-            " --vulnerability-exception-review-report "
-            f"{resolved_review_report}"
+            " --vulnerability-exception-review-report " f"{resolved_review_report}"
         )
     if (
         resolved_industrial_report
         != default_canonical_industrial_delivery_rehearsal_report_path()
     ):
         command += (
-            " --industrial-delivery-rehearsal-report "
-            f"{resolved_industrial_report}"
+            " --industrial-delivery-rehearsal-report " f"{resolved_industrial_report}"
         )
     if resolved_customer_config != default_customer_external_bindings_config_path():
         command += f" --customer-config {resolved_customer_config}"
@@ -3120,9 +3136,10 @@ def build_external_mainline_inputs_command(
     resolved_customer_config = resolve_customer_external_bindings_config_path(
         customer_config_path
     )
-    resolved_customer_overrides = _artifact_optional_string(
-        customer_overrides_file_path
-    ) or "deployment/customer_delivery.external_bindings.customer.overrides.json"
+    resolved_customer_overrides = (
+        _artifact_optional_string(customer_overrides_file_path)
+        or "deployment/customer_delivery.external_bindings.customer.overrides.json"
+    )
     resolved_industrial_report = _artifact_optional_string(
         industrial_delivery_rehearsal_report_path
     )
@@ -3131,8 +3148,7 @@ def build_external_mainline_inputs_command(
             default_canonical_industrial_delivery_rehearsal_report_path()
         )
     command = (
-        "python tools/build_external_mainline_inputs.py "
-        f"--output {resolved_output}"
+        "python tools/build_external_mainline_inputs.py " f"--output {resolved_output}"
     )
     if resolved_customer_config != default_customer_external_bindings_config_path():
         command += f" --customer-config {resolved_customer_config}"
@@ -3146,8 +3162,7 @@ def build_external_mainline_inputs_command(
         != default_canonical_industrial_delivery_rehearsal_report_path()
     ):
         command += (
-            " --industrial-delivery-rehearsal-report "
-            f"{resolved_industrial_report}"
+            " --industrial-delivery-rehearsal-report " f"{resolved_industrial_report}"
         )
     return command
 
@@ -3164,7 +3179,9 @@ def build_external_mainline_input_checklist_command(
     resolved_inputs_file = _artifact_optional_string(inputs_file)
     if resolved_inputs_file is None:
         resolved_inputs_file = default_external_mainline_inputs_path()
-    resolved_plan_path = _artifact_optional_string(external_mainline_execution_plan_path)
+    resolved_plan_path = _artifact_optional_string(
+        external_mainline_execution_plan_path
+    )
     if resolved_plan_path is None:
         resolved_plan_path = default_external_mainline_execution_plan_path()
     command = (
@@ -3200,7 +3217,9 @@ def build_run_external_mainline_execution_plan_command(
         customer_external_bindings_closure_report_path
     )
     if resolved_closure_report is None:
-        resolved_closure_report = default_customer_external_bindings_closure_report_path()
+        resolved_closure_report = (
+            default_customer_external_bindings_closure_report_path()
+        )
     resolved_review_report = _artifact_optional_string(
         vulnerability_exception_review_report_path
     )
@@ -3224,21 +3243,18 @@ def build_run_external_mainline_execution_plan_command(
         != default_customer_external_bindings_closure_report_path()
     ):
         command += (
-            " --customer-external-bindings-closure-report "
-            f"{resolved_closure_report}"
+            " --customer-external-bindings-closure-report " f"{resolved_closure_report}"
         )
     if resolved_review_report != default_vulnerability_exception_review_report_path():
         command += (
-            " --vulnerability-exception-review-report "
-            f"{resolved_review_report}"
+            " --vulnerability-exception-review-report " f"{resolved_review_report}"
         )
     if (
         resolved_industrial_report
         != default_canonical_industrial_delivery_rehearsal_report_path()
     ):
         command += (
-            " --industrial-delivery-rehearsal-report "
-            f"{resolved_industrial_report}"
+            " --industrial-delivery-rehearsal-report " f"{resolved_industrial_report}"
         )
     return command
 
@@ -3256,21 +3272,26 @@ def build_run_customer_external_bindings_closure_command(
     skip_collect_release_evidence: bool = False,
 ) -> str:
     resolved_config = resolve_customer_external_bindings_config_path(config_path)
-    resolved_instance = _artifact_optional_string(
-        instance_artifact_path
-    ) or default_extension_execution_instance_artifact_path()
-    resolved_schedule = _artifact_optional_string(
-        schedule_artifact_path
-    ) or default_extension_execution_schedule_artifact_path()
-    resolved_actuals = _artifact_optional_string(
-        actuals_artifact_path
-    ) or default_extension_execution_actuals_artifact_path()
-    resolved_confirmation_report = _artifact_optional_string(
-        confirmation_report_output_path
-    ) or default_customer_external_bindings_confirmation_report_path()
-    resolved_closure_report = _artifact_optional_string(
-        closure_report_output_path
-    ) or default_customer_external_bindings_closure_report_path()
+    resolved_instance = (
+        _artifact_optional_string(instance_artifact_path)
+        or default_extension_execution_instance_artifact_path()
+    )
+    resolved_schedule = (
+        _artifact_optional_string(schedule_artifact_path)
+        or default_extension_execution_schedule_artifact_path()
+    )
+    resolved_actuals = (
+        _artifact_optional_string(actuals_artifact_path)
+        or default_extension_execution_actuals_artifact_path()
+    )
+    resolved_confirmation_report = (
+        _artifact_optional_string(confirmation_report_output_path)
+        or default_customer_external_bindings_confirmation_report_path()
+    )
+    resolved_closure_report = (
+        _artifact_optional_string(closure_report_output_path)
+        or default_customer_external_bindings_closure_report_path()
+    )
     resolved_collect_output_root = _artifact_optional_string(collect_output_root)
 
     normalized_sections = [
@@ -3292,25 +3313,21 @@ def build_run_customer_external_bindings_closure_command(
         resolved_confirmation_report
         != default_customer_external_bindings_confirmation_report_path()
     ):
-        command += (
-            " --confirmation-report-output "
-            f"{resolved_confirmation_report}"
-        )
+        command += " --confirmation-report-output " f"{resolved_confirmation_report}"
     if (
         resolved_closure_report
         != default_customer_external_bindings_closure_report_path()
     ):
-        command += (
-            " --closure-report-output "
-            f"{resolved_closure_report}"
-        )
+        command += " --closure-report-output " f"{resolved_closure_report}"
     if resolved_collect_output_root:
         command += f" --collect-output-root {resolved_collect_output_root}"
     if skip_collect_release_evidence:
         command += " --skip-collect-release-evidence"
     for section in normalized_sections:
         command += f" --section {section}"
-    command += " --confirmed-by <confirmed-by> --confirmation-ticket <confirmation-ticket>"
+    command += (
+        " --confirmed-by <confirmed-by> --confirmation-ticket <confirmation-ticket>"
+    )
     return command
 
 
@@ -3380,12 +3397,15 @@ def _external_binding_section_has_ready_fields(
 ) -> bool:
     if section_id == "approval_identity":
         return any(
-            _is_non_empty_string(payload.get(field)) for field in ("source_path", "reference")
+            _is_non_empty_string(payload.get(field))
+            for field in ("source_path", "reference")
         )
     return _is_non_empty_string(payload.get("binding_reference_base"))
 
 
-def _external_binding_section_ready(section_id: str, payload: Mapping[str, Any]) -> bool:
+def _external_binding_section_ready(
+    section_id: str, payload: Mapping[str, Any]
+) -> bool:
     binding_state = _external_binding_section_state(payload)
     if binding_state != "confirmed":
         return False
@@ -3432,7 +3452,9 @@ def _build_extension_external_bindings_details(
         elif binding_state == "confirmed":
             if _external_binding_confirmation_complete(section_payload):
                 confirmed_sections.append(section_id)
-                confirmed_by_value = _artifact_optional_string(section_payload.get("confirmed_by"))
+                confirmed_by_value = _artifact_optional_string(
+                    section_payload.get("confirmed_by")
+                )
                 if confirmed_by_value and confirmed_by_value not in confirmed_by:
                     confirmed_by.append(confirmed_by_value)
                 confirmation_ticket_value = _artifact_optional_string(
@@ -3443,7 +3465,9 @@ def _build_extension_external_bindings_details(
                     and confirmation_ticket_value not in confirmation_tickets
                 ):
                     confirmation_tickets.append(confirmation_ticket_value)
-                confirmed_at_value = _artifact_optional_string(section_payload.get("confirmed_at"))
+                confirmed_at_value = _artifact_optional_string(
+                    section_payload.get("confirmed_at")
+                )
                 if confirmed_at_value:
                     confirmed_at_values.append(confirmed_at_value)
             else:
@@ -3458,7 +3482,9 @@ def _build_extension_external_bindings_details(
     last_confirmed_at = _latest_confirmed_at(confirmed_at_values)
     confirmation_summary = ""
     if confirmed_sections:
-        confirmation_summary += " Confirmed sections: " + ", ".join(confirmed_sections) + "."
+        confirmation_summary += (
+            " Confirmed sections: " + ", ".join(confirmed_sections) + "."
+        )
     if confirmation_missing_sections:
         confirmation_summary += (
             " Confirmation metadata missing: "
@@ -3489,9 +3515,7 @@ def _build_extension_external_bindings_details(
 
     follow_up_required = status in {"placeholder", "partial"}
     config_summary = (
-        f" Config: {config_path}."
-        if _is_non_empty_string(config_path)
-        else ""
+        f" Config: {config_path}." if _is_non_empty_string(config_path) else ""
     )
     if status == "ready":
         summary = (
@@ -3524,9 +3548,7 @@ def _build_extension_external_bindings_details(
             "External bindings partial: "
             f"{len(ready_sections)}/{len(EXTENSION_EXTERNAL_BINDING_SECTION_IDS)} sections mapped to customer-owned systems."
             + (
-                " Placeholder sections: "
-                + ", ".join(placeholder_sections)
-                + "."
+                " Placeholder sections: " + ", ".join(placeholder_sections) + "."
                 if placeholder_sections
                 else ""
             )
@@ -3544,7 +3566,9 @@ def _build_extension_external_bindings_details(
             + confirmation_summary
         )
     else:
-        summary = "External bindings missing: no managed customer binding config attached."
+        summary = (
+            "External bindings missing: no managed customer binding config attached."
+        )
 
     return {
         "external_bindings_status": status,
@@ -3583,7 +3607,8 @@ def _build_extension_execution_instance_payload(
     profile_items = instance_payload.get("profiles")
     instance_profiles = (
         [dict(item) for item in profile_items if isinstance(item, Mapping)]
-        if isinstance(profile_items, Sequence) and not isinstance(profile_items, (str, bytes))
+        if isinstance(profile_items, Sequence)
+        and not isinstance(profile_items, (str, bytes))
         else []
     )
     profiles_by_id = {
@@ -3645,14 +3670,26 @@ def _build_extension_execution_instance_payload(
         hydrated_profiles.append(profile_payload)
 
     metadata_fields = {
-        "engagement_id": _artifact_optional_string(instance_payload.get("engagement_id")),
-        "customer_name": _artifact_optional_string(instance_payload.get("customer_name")),
+        "engagement_id": _artifact_optional_string(
+            instance_payload.get("engagement_id")
+        ),
+        "customer_name": _artifact_optional_string(
+            instance_payload.get("customer_name")
+        ),
         "site_name": _artifact_optional_string(instance_payload.get("site_name")),
-        "change_ticket": _artifact_optional_string(instance_payload.get("change_ticket")),
+        "change_ticket": _artifact_optional_string(
+            instance_payload.get("change_ticket")
+        ),
         "window_id": _artifact_optional_string(instance_payload.get("window_id")),
-        "window_start_at": _artifact_optional_string(instance_payload.get("window_start_at")),
-        "window_end_at": _artifact_optional_string(instance_payload.get("window_end_at")),
-        "delivery_root": _artifact_optional_string(instance_payload.get("delivery_root")),
+        "window_start_at": _artifact_optional_string(
+            instance_payload.get("window_start_at")
+        ),
+        "window_end_at": _artifact_optional_string(
+            instance_payload.get("window_end_at")
+        ),
+        "delivery_root": _artifact_optional_string(
+            instance_payload.get("delivery_root")
+        ),
         "closure_archive_root": _artifact_optional_string(
             instance_payload.get("closure_archive_root")
         ),
@@ -3661,7 +3698,9 @@ def _build_extension_execution_instance_payload(
         ),
     }
     missing_metadata = [
-        name for name, value in metadata_fields.items() if not _is_non_empty_string(value)
+        name
+        for name, value in metadata_fields.items()
+        if not _is_non_empty_string(value)
     ]
     missing_profiles = list(dict.fromkeys(missing_profiles))
     declared_profiles = _coerce_non_negative_int(plan.get("declared_profiles")) or 0
@@ -3683,7 +3722,9 @@ def _build_extension_execution_instance_payload(
     if missing_metadata:
         summary += " Missing metadata: " + ", ".join(missing_metadata) + "."
     if missing_profiles:
-        summary += " Profiles missing concrete paths: " + ", ".join(missing_profiles) + "."
+        summary += (
+            " Profiles missing concrete paths: " + ", ".join(missing_profiles) + "."
+        )
 
     return {
         "schema_version": EXTENSION_EXECUTION_INSTANCE_VERSION,
@@ -3808,7 +3849,9 @@ def build_extension_execution_instance(
         if artifact_path is not None
         else default_extension_execution_instance_artifact_path()
     )
-    payload = dict(instance_artifact) if isinstance(instance_artifact, Mapping) else None
+    payload = (
+        dict(instance_artifact) if isinstance(instance_artifact, Mapping) else None
+    )
     exists = False
     if payload is not None:
         exists = payload.get("exists") is True
@@ -3842,7 +3885,8 @@ def validate_extension_execution_instance(payload: Any) -> list[str]:
     missing = sorted(EXTENSION_EXECUTION_INSTANCE_REQUIRED_FIELDS - set(payload))
     if missing:
         errors.append(
-            "extension_execution_instance missing required fields: " + ", ".join(missing)
+            "extension_execution_instance missing required fields: "
+            + ", ".join(missing)
         )
     if payload.get("schema_version") != EXTENSION_EXECUTION_INSTANCE_VERSION:
         errors.append(
@@ -3876,8 +3920,10 @@ def validate_extension_execution_instance(payload: Any) -> list[str]:
         "closure_archive_root",
         "exception_review_due_at",
     ]:
-        if field in payload and payload.get(field) is not None and not _is_non_empty_string(
-            payload.get(field)
+        if (
+            field in payload
+            and payload.get(field) is not None
+            and not _is_non_empty_string(payload.get(field))
         ):
             errors.append(
                 f"extension_execution_instance.{field} must be null or a non-empty string"
@@ -3918,7 +3964,9 @@ def validate_extension_execution_instance(payload: Any) -> list[str]:
             EXTENSION_EXECUTION_INSTANCE_PROFILE_REQUIRED_FIELDS - set(item)
         )
         if missing_fields:
-            errors.append(f"{prefix} missing required fields: {', '.join(missing_fields)}")
+            errors.append(
+                f"{prefix} missing required fields: {', '.join(missing_fields)}"
+            )
         for field in ["id", "label"]:
             if field in item and not _is_non_empty_string(item.get(field)):
                 errors.append(f"{prefix}.{field} must be a non-empty string")
@@ -3933,8 +3981,10 @@ def validate_extension_execution_instance(payload: Any) -> list[str]:
             "closure_archive_root",
             "closure_index_path",
         ]:
-            if field in item and item.get(field) is not None and not _is_non_empty_string(
-                item.get(field)
+            if (
+                field in item
+                and item.get(field) is not None
+                and not _is_non_empty_string(item.get(field))
             ):
                 errors.append(f"{prefix}.{field} must be null or a non-empty string")
     if payload.get("status") == "ready":
@@ -3955,7 +4005,9 @@ def validate_extension_execution_instance(payload: Any) -> list[str]:
                     f"extension_execution_instance.{field} is required when status is 'ready'"
                 )
         if payload.get("exists") is not True:
-            errors.append("extension_execution_instance.exists must be true when status is 'ready'")
+            errors.append(
+                "extension_execution_instance.exists must be true when status is 'ready'"
+            )
         if payload.get("missing_profiles") != []:
             errors.append(
                 "extension_execution_instance.missing_profiles must be empty when status is 'ready'"
@@ -3997,7 +4049,8 @@ def _build_extension_execution_schedule_payload(
     profile_items = schedule_payload.get("profiles")
     schedule_profiles = (
         [dict(item) for item in profile_items if isinstance(item, Mapping)]
-        if isinstance(profile_items, Sequence) and not isinstance(profile_items, (str, bytes))
+        if isinstance(profile_items, Sequence)
+        and not isinstance(profile_items, (str, bytes))
         else []
     )
     profiles_by_id = {
@@ -4091,15 +4144,23 @@ def _build_extension_execution_schedule_payload(
         hydrated_profiles.append(profile_payload)
 
     metadata_fields = {
-        "engagement_id": _artifact_optional_string(schedule_payload.get("engagement_id")),
-        "customer_name": _artifact_optional_string(schedule_payload.get("customer_name")),
+        "engagement_id": _artifact_optional_string(
+            schedule_payload.get("engagement_id")
+        ),
+        "customer_name": _artifact_optional_string(
+            schedule_payload.get("customer_name")
+        ),
         "site_name": _artifact_optional_string(schedule_payload.get("site_name")),
-        "change_ticket": _artifact_optional_string(schedule_payload.get("change_ticket")),
+        "change_ticket": _artifact_optional_string(
+            schedule_payload.get("change_ticket")
+        ),
         "window_id": _artifact_optional_string(schedule_payload.get("window_id")),
         "window_start_at": _artifact_optional_string(
             schedule_payload.get("window_start_at")
         ),
-        "window_end_at": _artifact_optional_string(schedule_payload.get("window_end_at")),
+        "window_end_at": _artifact_optional_string(
+            schedule_payload.get("window_end_at")
+        ),
         "window_trigger_at": _artifact_optional_string(
             schedule_payload.get("window_trigger_at")
         ),
@@ -4112,13 +4173,17 @@ def _build_extension_execution_schedule_payload(
         "closure_archive_due_at": _artifact_optional_string(
             schedule_payload.get("closure_archive_due_at")
         ),
-        "delivery_root": _artifact_optional_string(schedule_payload.get("delivery_root")),
+        "delivery_root": _artifact_optional_string(
+            schedule_payload.get("delivery_root")
+        ),
         "closure_archive_root": _artifact_optional_string(
             schedule_payload.get("closure_archive_root")
         ),
     }
     missing_metadata = [
-        name for name, value in metadata_fields.items() if not _is_non_empty_string(value)
+        name
+        for name, value in metadata_fields.items()
+        if not _is_non_empty_string(value)
     ]
     missing_profiles = list(dict.fromkeys(missing_profiles))
     declared_profiles = _coerce_non_negative_int(plan.get("declared_profiles")) or 0
@@ -4140,7 +4205,11 @@ def _build_extension_execution_schedule_payload(
     if missing_metadata:
         summary += " Missing metadata: " + ", ".join(missing_metadata) + "."
     if missing_profiles:
-        summary += " Profiles missing scheduled checkpoints: " + ", ".join(missing_profiles) + "."
+        summary += (
+            " Profiles missing scheduled checkpoints: "
+            + ", ".join(missing_profiles)
+            + "."
+        )
 
     return {
         "schema_version": EXTENSION_EXECUTION_SCHEDULE_VERSION,
@@ -4195,11 +4264,12 @@ def build_extension_execution_schedule_artifact(
         or _artifact_optional_string(instance.get("window_start_at"))
         or _artifact_optional_string(instance.get("window_trigger_at"))
     )
-    default_signoff_due_at = (
-        signoff_due_at or _artifact_optional_string(instance.get("window_end_at"))
+    default_signoff_due_at = signoff_due_at or _artifact_optional_string(
+        instance.get("window_end_at")
     )
     default_closure_archive_due_at = (
-        closure_archive_due_at or _artifact_optional_string(instance.get("window_end_at"))
+        closure_archive_due_at
+        or _artifact_optional_string(instance.get("window_end_at"))
     )
     for item in instance_profiles:
         if not isinstance(item, Mapping):
@@ -4213,7 +4283,9 @@ def build_extension_execution_schedule_artifact(
         escalation_closure_record_path = _artifact_optional_string(
             item.get("escalation_closure_record_path")
         )
-        closure_archive_root = _artifact_optional_string(item.get("closure_archive_root"))
+        closure_archive_root = _artifact_optional_string(
+            item.get("closure_archive_root")
+        )
         closure_index_path = _artifact_optional_string(item.get("closure_index_path"))
         profile_root = (
             Path(handoff_record_path).parent.as_posix()
@@ -4314,7 +4386,9 @@ def build_extension_execution_schedule(
         if artifact_path is not None
         else default_extension_execution_schedule_artifact_path()
     )
-    payload = dict(schedule_artifact) if isinstance(schedule_artifact, Mapping) else None
+    payload = (
+        dict(schedule_artifact) if isinstance(schedule_artifact, Mapping) else None
+    )
     exists = False
     if payload is not None:
         exists = payload.get("exists") is True
@@ -4348,7 +4422,8 @@ def validate_extension_execution_schedule(payload: Any) -> list[str]:
     missing = sorted(EXTENSION_EXECUTION_SCHEDULE_REQUIRED_FIELDS - set(payload))
     if missing:
         errors.append(
-            "extension_execution_schedule missing required fields: " + ", ".join(missing)
+            "extension_execution_schedule missing required fields: "
+            + ", ".join(missing)
         )
     if payload.get("schema_version") != EXTENSION_EXECUTION_SCHEDULE_VERSION:
         errors.append(
@@ -4385,8 +4460,10 @@ def validate_extension_execution_schedule(payload: Any) -> list[str]:
         "delivery_root",
         "closure_archive_root",
     ]:
-        if field in payload and payload.get(field) is not None and not _is_non_empty_string(
-            payload.get(field)
+        if (
+            field in payload
+            and payload.get(field) is not None
+            and not _is_non_empty_string(payload.get(field))
         ):
             errors.append(
                 f"extension_execution_schedule.{field} must be null or a non-empty string"
@@ -4427,7 +4504,9 @@ def validate_extension_execution_schedule(payload: Any) -> list[str]:
             EXTENSION_EXECUTION_SCHEDULE_PROFILE_REQUIRED_FIELDS - set(item)
         )
         if missing_fields:
-            errors.append(f"{prefix} missing required fields: {', '.join(missing_fields)}")
+            errors.append(
+                f"{prefix} missing required fields: {', '.join(missing_fields)}"
+            )
         for field in ["id", "label"]:
             if field in item and not _is_non_empty_string(item.get(field)):
                 errors.append(f"{prefix}.{field} must be a non-empty string")
@@ -4450,8 +4529,10 @@ def validate_extension_execution_schedule(payload: Any) -> list[str]:
             "closure_index_path",
             "closure_manifest_path",
         ]:
-            if field in item and item.get(field) is not None and not _is_non_empty_string(
-                item.get(field)
+            if (
+                field in item
+                and item.get(field) is not None
+                and not _is_non_empty_string(item.get(field))
             ):
                 errors.append(f"{prefix}.{field} must be null or a non-empty string")
     if payload.get("status") == "ready":
@@ -4475,7 +4556,9 @@ def validate_extension_execution_schedule(payload: Any) -> list[str]:
                     f"extension_execution_schedule.{field} is required when status is 'ready'"
                 )
         if payload.get("exists") is not True:
-            errors.append("extension_execution_schedule.exists must be true when status is 'ready'")
+            errors.append(
+                "extension_execution_schedule.exists must be true when status is 'ready'"
+            )
         if payload.get("missing_profiles") != []:
             errors.append(
                 "extension_execution_schedule.missing_profiles must be empty when status is 'ready'"
@@ -4522,7 +4605,8 @@ def _build_extension_execution_actuals_payload(
     profile_items = actuals_payload.get("profiles")
     actual_profiles = (
         [dict(item) for item in profile_items if isinstance(item, Mapping)]
-        if isinstance(profile_items, Sequence) and not isinstance(profile_items, (str, bytes))
+        if isinstance(profile_items, Sequence)
+        and not isinstance(profile_items, (str, bytes))
         else []
     )
     schedule_profile_items = schedule_payload.get("profiles")
@@ -4586,7 +4670,9 @@ def _build_extension_execution_actuals_payload(
         for item in plan.get("profiles", [])
         if isinstance(item, Mapping) and item.get("actionable") is True
     ]
-    first_actionable_profile = actionable_plan_profiles[0] if actionable_plan_profiles else {}
+    first_actionable_profile = (
+        actionable_plan_profiles[0] if actionable_plan_profiles else {}
+    )
     first_actionable_template = (
         _build_template(first_actionable_profile)
         if isinstance(first_actionable_profile, Mapping)
@@ -4595,50 +4681,60 @@ def _build_extension_execution_actuals_payload(
     default_window_trigger_recorded_by = (
         _artifact_optional_string(actuals_payload.get("window_trigger_recorded_by"))
         or _first_owner(first_actionable_template.get("upgrade_window_steps"))
-        or _artifact_optional_string(first_actionable_template.get("handoff_owner_role"))
+        or _artifact_optional_string(
+            first_actionable_template.get("handoff_owner_role")
+        )
     )
     default_signoff_recorded_by = (
         _artifact_optional_string(actuals_payload.get("signoff_recorded_by"))
         or _last_owner(first_actionable_template.get("signoff_checkpoints"))
-        or _artifact_optional_string(first_actionable_template.get("handoff_owner_role"))
+        or _artifact_optional_string(
+            first_actionable_template.get("handoff_owner_role")
+        )
     )
     default_residual_risk_reviewed_by = (
         _artifact_optional_string(actuals_payload.get("residual_risk_reviewed_by"))
-        or _artifact_optional_string(first_actionable_template.get("residual_risk_owner_role"))
-        or _artifact_optional_string(first_actionable_template.get("exception_review_owner_role"))
+        or _artifact_optional_string(
+            first_actionable_template.get("residual_risk_owner_role")
+        )
+        or _artifact_optional_string(
+            first_actionable_template.get("exception_review_owner_role")
+        )
     )
     default_closure_archived_by = (
         _artifact_optional_string(actuals_payload.get("closure_archived_by"))
-        or _artifact_optional_string(first_actionable_template.get("rollback_evidence_owner_role"))
-        or _artifact_optional_string(first_actionable_template.get("escalation_closure_owner_role"))
+        or _artifact_optional_string(
+            first_actionable_template.get("rollback_evidence_owner_role")
+        )
+        or _artifact_optional_string(
+            first_actionable_template.get("escalation_closure_owner_role")
+        )
     )
-    default_delivery_root = _artifact_optional_string(actuals_payload.get("delivery_root")) or _artifact_optional_string(
-        schedule_payload.get("delivery_root")
-    )
-    default_approval_identity_source_path = (
-        _artifact_optional_string(actuals_payload.get("approval_identity_source_path"))
-        or _default_contract_file(default_delivery_root, "approval_identity_source.json")
-    )
+    default_delivery_root = _artifact_optional_string(
+        actuals_payload.get("delivery_root")
+    ) or _artifact_optional_string(schedule_payload.get("delivery_root"))
+    default_approval_identity_source_path = _artifact_optional_string(
+        actuals_payload.get("approval_identity_source_path")
+    ) or _default_contract_file(default_delivery_root, "approval_identity_source.json")
     default_approval_identity_source_type = (
         _artifact_optional_string(actuals_payload.get("approval_identity_source_type"))
         or "customer_signoff_registry"
     )
-    default_approval_identity_reference = (
-        _artifact_optional_string(actuals_payload.get("approval_identity_reference"))
-        or (
-            ":".join(
-                value
-                for value in [
-                    _artifact_optional_string(actuals_payload.get("engagement_id"))
-                    or _artifact_optional_string(schedule_payload.get("engagement_id")),
-                    _artifact_optional_string(actuals_payload.get("window_id"))
-                    or _artifact_optional_string(schedule_payload.get("window_id")),
-                    default_signoff_recorded_by,
-                ]
-                if _is_non_empty_string(value)
-            )
-            or None
+    default_approval_identity_reference = _artifact_optional_string(
+        actuals_payload.get("approval_identity_reference")
+    ) or (
+        ":".join(
+            value
+            for value in [
+                _artifact_optional_string(actuals_payload.get("engagement_id"))
+                or _artifact_optional_string(schedule_payload.get("engagement_id")),
+                _artifact_optional_string(actuals_payload.get("window_id"))
+                or _artifact_optional_string(schedule_payload.get("window_id")),
+                default_signoff_recorded_by,
+            ]
+            if _is_non_empty_string(value)
         )
+        or None
     )
     default_due_trigger_checked_at = (
         _artifact_optional_string(actuals_payload.get("due_trigger_checked_at"))
@@ -4650,47 +4746,41 @@ def _build_extension_execution_actuals_payload(
         _artifact_optional_string(actuals_payload.get("archive_target_binding_type"))
         or "customer_archive_destination"
     )
-    default_archive_target_binding_reference_base = (
-        _artifact_optional_string(
-            actuals_payload.get("archive_target_binding_reference_base")
+    default_archive_target_binding_reference_base = _artifact_optional_string(
+        actuals_payload.get("archive_target_binding_reference_base")
+    ) or (
+        "archive://"
+        + "/".join(
+            value
+            for value in [
+                _artifact_optional_string(actuals_payload.get("engagement_id"))
+                or _artifact_optional_string(schedule_payload.get("engagement_id")),
+                _artifact_optional_string(actuals_payload.get("window_id"))
+                or _artifact_optional_string(schedule_payload.get("window_id")),
+            ]
+            if _is_non_empty_string(value)
         )
-        or (
-            "archive://"
-            + "/".join(
-                value
-                for value in [
-                    _artifact_optional_string(actuals_payload.get("engagement_id"))
-                    or _artifact_optional_string(schedule_payload.get("engagement_id")),
-                    _artifact_optional_string(actuals_payload.get("window_id"))
-                    or _artifact_optional_string(schedule_payload.get("window_id")),
-                ]
-                if _is_non_empty_string(value)
-            )
-            or None
-        )
+        or None
     )
     default_due_trigger_binding_type = (
         _artifact_optional_string(actuals_payload.get("due_trigger_binding_type"))
         or "customer_due_trigger_schedule"
     )
-    default_due_trigger_binding_reference_base = (
-        _artifact_optional_string(
-            actuals_payload.get("due_trigger_binding_reference_base")
+    default_due_trigger_binding_reference_base = _artifact_optional_string(
+        actuals_payload.get("due_trigger_binding_reference_base")
+    ) or (
+        "schedule://"
+        + "/".join(
+            value
+            for value in [
+                _artifact_optional_string(actuals_payload.get("engagement_id"))
+                or _artifact_optional_string(schedule_payload.get("engagement_id")),
+                _artifact_optional_string(actuals_payload.get("window_id"))
+                or _artifact_optional_string(schedule_payload.get("window_id")),
+            ]
+            if _is_non_empty_string(value)
         )
-        or (
-            "schedule://"
-            + "/".join(
-                value
-                for value in [
-                    _artifact_optional_string(actuals_payload.get("engagement_id"))
-                    or _artifact_optional_string(schedule_payload.get("engagement_id")),
-                    _artifact_optional_string(actuals_payload.get("window_id"))
-                    or _artifact_optional_string(schedule_payload.get("window_id")),
-                ]
-                if _is_non_empty_string(value)
-            )
-            or None
-        )
+        or None
     )
     hydrated_profiles: list[dict[str, Any]] = []
     actionable_profiles = 0
@@ -4721,18 +4811,30 @@ def _build_extension_execution_actuals_payload(
             or _artifact_optional_string(profile_template.get("handoff_owner_role"))
         )
         exception_review_owner_role = (
-            _artifact_optional_string(profile_actuals.get("exception_review_owner_role"))
-            or _artifact_optional_string(profile_template.get("exception_review_owner_role"))
-            or _artifact_optional_string(profile_template.get("residual_risk_owner_role"))
+            _artifact_optional_string(
+                profile_actuals.get("exception_review_owner_role")
+            )
+            or _artifact_optional_string(
+                profile_template.get("exception_review_owner_role")
+            )
+            or _artifact_optional_string(
+                profile_template.get("residual_risk_owner_role")
+            )
         )
         closure_archive_owner_role = (
             _artifact_optional_string(profile_actuals.get("closure_archive_owner_role"))
-            or _artifact_optional_string(profile_template.get("rollback_evidence_owner_role"))
-            or _artifact_optional_string(profile_template.get("escalation_closure_owner_role"))
+            or _artifact_optional_string(
+                profile_template.get("rollback_evidence_owner_role")
+            )
+            or _artifact_optional_string(
+                profile_template.get("escalation_closure_owner_role")
+            )
         )
         profile_window_trigger_record_path = _artifact_optional_string(
             profile_actuals.get("window_trigger_record_path")
-        ) or _artifact_optional_string(profile_schedule.get("window_trigger_record_path"))
+        ) or _artifact_optional_string(
+            profile_schedule.get("window_trigger_record_path")
+        )
         profile_root = (
             Path(profile_window_trigger_record_path).parent.as_posix()
             if _is_non_empty_string(profile_window_trigger_record_path)
@@ -4741,13 +4843,15 @@ def _build_extension_execution_actuals_payload(
         profile_closure_archive_root = _artifact_optional_string(
             profile_actuals.get("closure_archive_root")
         ) or _artifact_optional_string(profile_schedule.get("closure_archive_root"))
-        archive_target_binding_reference = (
-            _artifact_optional_string(profile_actuals.get("archive_target_binding_reference"))
-            or _join_binding_reference(default_archive_target_binding_reference_base, profile_id)
+        archive_target_binding_reference = _artifact_optional_string(
+            profile_actuals.get("archive_target_binding_reference")
+        ) or _join_binding_reference(
+            default_archive_target_binding_reference_base, profile_id
         )
-        due_trigger_binding_reference = (
-            _artifact_optional_string(profile_actuals.get("due_trigger_binding_reference"))
-            or _join_binding_reference(default_due_trigger_binding_reference_base, profile_id)
+        due_trigger_binding_reference = _artifact_optional_string(
+            profile_actuals.get("due_trigger_binding_reference")
+        ) or _join_binding_reference(
+            default_due_trigger_binding_reference_base, profile_id
         )
         profile_payload = {
             "id": profile_id,
@@ -4762,12 +4866,16 @@ def _build_extension_execution_actuals_payload(
                 profile_actuals.get("exception_review_due_at")
             )
             or _artifact_optional_string(actuals_payload.get("exception_review_due_at"))
-            or _artifact_optional_string(profile_schedule.get("exception_review_due_at")),
+            or _artifact_optional_string(
+                profile_schedule.get("exception_review_due_at")
+            ),
             "closure_archive_due_at": _artifact_optional_string(
                 profile_actuals.get("closure_archive_due_at")
             )
             or _artifact_optional_string(actuals_payload.get("closure_archive_due_at"))
-            or _artifact_optional_string(profile_schedule.get("closure_archive_due_at")),
+            or _artifact_optional_string(
+                profile_schedule.get("closure_archive_due_at")
+            ),
             "approval_identity_source_path": _artifact_optional_string(
                 profile_actuals.get("approval_identity_source_path")
             )
@@ -4780,7 +4888,9 @@ def _build_extension_execution_actuals_payload(
             "exception_review_record_path": _artifact_optional_string(
                 profile_actuals.get("exception_review_record_path")
             )
-            or _artifact_optional_string(profile_schedule.get("exception_review_record_path")),
+            or _artifact_optional_string(
+                profile_schedule.get("exception_review_record_path")
+            ),
             "residual_risk_review_record_path": _artifact_optional_string(
                 profile_actuals.get("residual_risk_review_record_path")
             )
@@ -4790,7 +4900,9 @@ def _build_extension_execution_actuals_payload(
             "archive_target_path": _artifact_optional_string(
                 profile_actuals.get("archive_target_path")
             )
-            or _default_contract_file(profile_closure_archive_root, "archive_target.json"),
+            or _default_contract_file(
+                profile_closure_archive_root, "archive_target.json"
+            ),
             "archive_target_binding_reference": archive_target_binding_reference,
             "due_trigger_check_path": _artifact_optional_string(
                 profile_actuals.get("due_trigger_check_path")
@@ -4818,11 +4930,15 @@ def _build_extension_execution_actuals_payload(
                 signoffs_recorded += 1
             if _is_non_empty_string(profile_payload["exception_review_record_path"]):
                 exception_reviews_scheduled += 1
-            if _is_non_empty_string(profile_payload["residual_risk_review_record_path"]):
+            if _is_non_empty_string(
+                profile_payload["residual_risk_review_record_path"]
+            ):
                 residual_risk_reviews_recorded += 1
             if _is_non_empty_string(profile_payload["archive_target_path"]):
                 archive_targets_ready += 1
-            if _is_non_empty_string(profile_payload["archive_target_binding_reference"]):
+            if _is_non_empty_string(
+                profile_payload["archive_target_binding_reference"]
+            ):
                 archive_target_bindings_ready += 1
             if _is_non_empty_string(profile_payload["due_trigger_check_path"]):
                 due_trigger_checks_ready += 1
@@ -4861,10 +4977,16 @@ def _build_extension_execution_actuals_payload(
         hydrated_profiles.append(profile_payload)
 
     metadata_fields = {
-        "engagement_id": _artifact_optional_string(actuals_payload.get("engagement_id")),
-        "customer_name": _artifact_optional_string(actuals_payload.get("customer_name")),
+        "engagement_id": _artifact_optional_string(
+            actuals_payload.get("engagement_id")
+        ),
+        "customer_name": _artifact_optional_string(
+            actuals_payload.get("customer_name")
+        ),
         "site_name": _artifact_optional_string(actuals_payload.get("site_name")),
-        "change_ticket": _artifact_optional_string(actuals_payload.get("change_ticket")),
+        "change_ticket": _artifact_optional_string(
+            actuals_payload.get("change_ticket")
+        ),
         "window_id": _artifact_optional_string(actuals_payload.get("window_id")),
         "approval_identity_source_path": default_approval_identity_source_path,
         "approval_identity_source_type": default_approval_identity_source_type,
@@ -4898,13 +5020,17 @@ def _build_extension_execution_actuals_payload(
             actuals_payload.get("closure_archived_at")
         ),
         "closure_archived_by": default_closure_archived_by,
-        "delivery_root": _artifact_optional_string(actuals_payload.get("delivery_root")),
+        "delivery_root": _artifact_optional_string(
+            actuals_payload.get("delivery_root")
+        ),
         "closure_archive_root": _artifact_optional_string(
             actuals_payload.get("closure_archive_root")
         ),
     }
     missing_metadata = [
-        name for name, value in metadata_fields.items() if not _is_non_empty_string(value)
+        name
+        for name, value in metadata_fields.items()
+        if not _is_non_empty_string(value)
     ]
     missing_profiles = list(dict.fromkeys(missing_profiles))
     declared_profiles = _coerce_non_negative_int(plan.get("declared_profiles")) or 0
@@ -4936,7 +5062,9 @@ def _build_extension_execution_actuals_payload(
     if missing_metadata:
         summary += " Missing metadata: " + ", ".join(missing_metadata) + "."
     if missing_profiles:
-        summary += " Profiles missing executed records: " + ", ".join(missing_profiles) + "."
+        summary += (
+            " Profiles missing executed records: " + ", ".join(missing_profiles) + "."
+        )
     summary += " " + external_bindings_details["external_bindings_summary"]
 
     payload = {
@@ -5021,43 +5149,36 @@ def build_extension_execution_actuals_artifact(
         window_trigger_recorded_at
         or _artifact_optional_string(schedule.get("window_trigger_at"))
     )
-    default_signoff_recorded_at = (
-        signoff_recorded_at or _artifact_optional_string(schedule.get("signoff_due_at"))
+    default_signoff_recorded_at = signoff_recorded_at or _artifact_optional_string(
+        schedule.get("signoff_due_at")
     )
     default_residual_risk_reviewed_at = (
         residual_risk_reviewed_at
         or _artifact_optional_string(schedule.get("signoff_due_at"))
     )
-    default_closure_archived_at = (
-        closure_archived_at
-        or _artifact_optional_string(schedule.get("closure_archive_due_at"))
+    default_closure_archived_at = closure_archived_at or _artifact_optional_string(
+        schedule.get("closure_archive_due_at")
     )
     default_delivery_root = _artifact_optional_string(schedule.get("delivery_root"))
-    default_approval_identity_source_path = (
-        approval_identity_source_path
-        or (
-            _contract_path(default_delivery_root, "approval_identity_source.json")
-            if _is_non_empty_string(default_delivery_root)
-            else None
-        )
+    default_approval_identity_source_path = approval_identity_source_path or (
+        _contract_path(default_delivery_root, "approval_identity_source.json")
+        if _is_non_empty_string(default_delivery_root)
+        else None
     )
     default_approval_identity_source_type = (
         approval_identity_source_type or "customer_signoff_registry"
     )
-    default_approval_identity_reference = (
-        approval_identity_reference
-        or (
-            ":".join(
-                value
-                for value in [
-                    _artifact_optional_string(schedule.get("engagement_id")),
-                    _artifact_optional_string(schedule.get("window_id")),
-                    signoff_recorded_by,
-                ]
-                if _is_non_empty_string(value)
-            )
-            or None
+    default_approval_identity_reference = approval_identity_reference or (
+        ":".join(
+            value
+            for value in [
+                _artifact_optional_string(schedule.get("engagement_id")),
+                _artifact_optional_string(schedule.get("window_id")),
+                signoff_recorded_by,
+            ]
+            if _is_non_empty_string(value)
         )
+        or None
     )
     default_archive_target_binding_type = (
         archive_target_binding_type or "customer_archive_destination"
@@ -5080,20 +5201,17 @@ def build_extension_execution_actuals_artifact(
     default_due_trigger_binding_type = (
         due_trigger_binding_type or "customer_due_trigger_schedule"
     )
-    default_due_trigger_binding_reference_base = (
-        due_trigger_binding_reference_base
-        or (
-            "schedule://"
-            + "/".join(
-                value
-                for value in [
-                    _artifact_optional_string(schedule.get("engagement_id")),
-                    _artifact_optional_string(schedule.get("window_id")),
-                ]
-                if _is_non_empty_string(value)
-            )
-            or None
+    default_due_trigger_binding_reference_base = due_trigger_binding_reference_base or (
+        "schedule://"
+        + "/".join(
+            value
+            for value in [
+                _artifact_optional_string(schedule.get("engagement_id")),
+                _artifact_optional_string(schedule.get("window_id")),
+            ]
+            if _is_non_empty_string(value)
         )
+        or None
     )
     default_due_trigger_checked_at = (
         due_trigger_checked_at
@@ -5128,7 +5246,9 @@ def build_extension_execution_actuals_artifact(
                 "approval_identity_source_path": default_approval_identity_source_path,
                 "window_trigger_record_path": window_trigger_record_path,
                 "signoff_record_path": item.get("signoff_record_path"),
-                "exception_review_record_path": item.get("exception_review_record_path"),
+                "exception_review_record_path": item.get(
+                    "exception_review_record_path"
+                ),
                 "residual_risk_review_record_path": item.get(
                     "residual_risk_review_record_path"
                 ),
@@ -5138,8 +5258,12 @@ def build_extension_execution_actuals_artifact(
                     else None
                 ),
                 "archive_target_binding_reference": (
-                    default_archive_target_binding_reference_base.rstrip("/") + "/" + profile_id
-                    if _is_non_empty_string(default_archive_target_binding_reference_base)
+                    default_archive_target_binding_reference_base.rstrip("/")
+                    + "/"
+                    + profile_id
+                    if _is_non_empty_string(
+                        default_archive_target_binding_reference_base
+                    )
                     else None
                 ),
                 "due_trigger_check_path": (
@@ -5148,7 +5272,9 @@ def build_extension_execution_actuals_artifact(
                     else None
                 ),
                 "due_trigger_binding_reference": (
-                    default_due_trigger_binding_reference_base.rstrip("/") + "/" + profile_id
+                    default_due_trigger_binding_reference_base.rstrip("/")
+                    + "/"
+                    + profile_id
                     if _is_non_empty_string(default_due_trigger_binding_reference_base)
                     else None
                 ),
@@ -5321,8 +5447,10 @@ def validate_extension_execution_actuals(payload: Any) -> list[str]:
         "delivery_root",
         "closure_archive_root",
     ]:
-        if field in payload and payload.get(field) is not None and not _is_non_empty_string(
-            payload.get(field)
+        if (
+            field in payload
+            and payload.get(field) is not None
+            and not _is_non_empty_string(payload.get(field))
         ):
             errors.append(
                 f"extension_execution_actuals.{field} must be null or a non-empty string"
@@ -5367,7 +5495,9 @@ def validate_extension_execution_actuals(payload: Any) -> list[str]:
     external_bindings = payload.get("external_bindings")
     if external_bindings is not None:
         if not isinstance(external_bindings, Mapping):
-            errors.append("extension_execution_actuals.external_bindings must be an object")
+            errors.append(
+                "extension_execution_actuals.external_bindings must be an object"
+            )
         else:
             if "config_path" in external_bindings and not _is_non_empty_string(
                 external_bindings.get("config_path")
@@ -5409,16 +5539,25 @@ def validate_extension_execution_actuals(payload: Any) -> list[str]:
                                     f"{field}.{confirmation_field} must be a non-empty "
                                     "string when binding_state is 'confirmed'"
                                 )
-                    for optional_field in ("confirmation_notes", "confirmation_evidence"):
-                        if optional_field in section_payload and not _is_non_empty_string(
-                            section_payload.get(optional_field)
+                    for optional_field in (
+                        "confirmation_notes",
+                        "confirmation_evidence",
+                    ):
+                        if (
+                            optional_field in section_payload
+                            and not _is_non_empty_string(
+                                section_payload.get(optional_field)
+                            )
                         ):
                             errors.append(
                                 "extension_execution_actuals.external_bindings."
                                 f"{field}.{optional_field} must be a non-empty string"
                             )
     external_bindings_status = payload.get("external_bindings_status")
-    if external_bindings_status is not None and external_bindings_status not in EXTENSION_EXTERNAL_BINDING_STATUSES:
+    if (
+        external_bindings_status is not None
+        and external_bindings_status not in EXTENSION_EXTERNAL_BINDING_STATUSES
+    ):
         errors.append(
             "extension_execution_actuals.external_bindings_status must be one of "
             f"{sorted(EXTENSION_EXTERNAL_BINDING_STATUSES)}"
@@ -5465,9 +5604,11 @@ def validate_extension_execution_actuals(payload: Any) -> list[str]:
                         errors.append(
                             f"extension_execution_actuals.{field}[{index}] must be a non-empty string"
                         )
-    if "external_bindings_last_confirmed_at" in payload and payload.get(
-        "external_bindings_last_confirmed_at"
-    ) is not None and not _is_non_empty_string(payload.get("external_bindings_last_confirmed_at")):
+    if (
+        "external_bindings_last_confirmed_at" in payload
+        and payload.get("external_bindings_last_confirmed_at") is not None
+        and not _is_non_empty_string(payload.get("external_bindings_last_confirmed_at"))
+    ):
         errors.append(
             "extension_execution_actuals.external_bindings_last_confirmed_at must be a non-empty string"
         )
@@ -5478,16 +5619,14 @@ def validate_extension_execution_actuals(payload: Any) -> list[str]:
         errors.append(
             "extension_execution_actuals.external_bindings_follow_up_required must be false when external_bindings_status is 'ready'"
         )
-    if (
-        external_bindings_status == "ready"
-        and payload.get("external_bindings_confirmation_missing_sections")
+    if external_bindings_status == "ready" and payload.get(
+        "external_bindings_confirmation_missing_sections"
     ):
         errors.append(
             "extension_execution_actuals.external_bindings_confirmation_missing_sections must be empty when external_bindings_status is 'ready'"
         )
-    if (
-        external_bindings_status == "ready"
-        and payload.get("external_bindings_unconfirmed_sections")
+    if external_bindings_status == "ready" and payload.get(
+        "external_bindings_unconfirmed_sections"
     ):
         errors.append(
             "extension_execution_actuals.external_bindings_unconfirmed_sections must be empty when external_bindings_status is 'ready'"
@@ -5505,7 +5644,9 @@ def validate_extension_execution_actuals(payload: Any) -> list[str]:
             EXTENSION_EXECUTION_ACTUALS_PROFILE_REQUIRED_FIELDS - set(item)
         )
         if missing_fields:
-            errors.append(f"{prefix} missing required fields: {', '.join(missing_fields)}")
+            errors.append(
+                f"{prefix} missing required fields: {', '.join(missing_fields)}"
+            )
         for field in ["id", "label"]:
             if field in item and not _is_non_empty_string(item.get(field)):
                 errors.append(f"{prefix}.{field} must be a non-empty string")
@@ -5532,8 +5673,10 @@ def validate_extension_execution_actuals(payload: Any) -> list[str]:
             "exception_review_owner_role",
             "closure_archive_owner_role",
         ]:
-            if field in item and item.get(field) is not None and not _is_non_empty_string(
-                item.get(field)
+            if (
+                field in item
+                and item.get(field) is not None
+                and not _is_non_empty_string(item.get(field))
             ):
                 errors.append(f"{prefix}.{field} must be null or a non-empty string")
     if payload.get("status") == "ready":
@@ -5569,7 +5712,9 @@ def validate_extension_execution_actuals(payload: Any) -> list[str]:
                     f"extension_execution_actuals.{field} is required when status is 'ready'"
                 )
         if payload.get("exists") is not True:
-            errors.append("extension_execution_actuals.exists must be true when status is 'ready'")
+            errors.append(
+                "extension_execution_actuals.exists must be true when status is 'ready'"
+            )
         if payload.get("missing_profiles") != []:
             errors.append(
                 "extension_execution_actuals.missing_profiles must be empty when status is 'ready'"
@@ -5633,7 +5778,9 @@ def build_customer_external_bindings_confirmation_report(
     resolved_root = Path(project_root) if project_root is not None else Path.cwd()
     resolved_actuals_contract_path = _artifact_optional_string(actuals_artifact_path)
     if resolved_actuals_contract_path is None:
-        resolved_actuals_contract_path = default_extension_execution_actuals_artifact_path()
+        resolved_actuals_contract_path = (
+            default_extension_execution_actuals_artifact_path()
+        )
     resolved_output_contract_path = _artifact_optional_string(output_path)
     if resolved_output_contract_path is None:
         resolved_output_contract_path = (
@@ -5685,8 +5832,7 @@ def build_customer_external_bindings_confirmation_report(
             status="blocked",
             summary=(
                 "customer_external_bindings_confirmation evidence blocked: "
-                "extension execution actuals artifact is invalid. "
-                + "; ".join(errors)
+                "extension execution actuals artifact is invalid. " + "; ".join(errors)
             ),
             command=command,
             generated_at=generated_at,
@@ -5806,9 +5952,7 @@ def build_customer_external_bindings_confirmation_report(
         ("missing sections", missing_sections),
     ]
     pending_details = [
-        f"{label}={','.join(values)}"
-        for label, values in pending_sets
-        if values
+        f"{label}={','.join(values)}" for label, values in pending_sets if values
     ]
     detail_suffix = ""
     if pending_details:
@@ -5932,7 +6076,9 @@ def build_vulnerability_exception_review_report(
         )
     resolved_output_contract_path = _artifact_optional_string(output_path)
     if resolved_output_contract_path is None:
-        resolved_output_contract_path = default_vulnerability_exception_review_report_path()
+        resolved_output_contract_path = (
+            default_vulnerability_exception_review_report_path()
+        )
     resolved_exception_path = _resolve_release_artifact_path(
         resolved_exception_contract_path,
         resolved_root,
@@ -5979,8 +6125,7 @@ def build_vulnerability_exception_review_report(
             status="blocked",
             summary=(
                 "vulnerability_exception_review evidence blocked: "
-                "vulnerability exception report is invalid. "
-                + "; ".join(errors)
+                "vulnerability exception report is invalid. " + "; ".join(errors)
             ),
             command=command,
             generated_at=generated_at,
@@ -6027,7 +6172,9 @@ def build_vulnerability_exception_review_report(
     expired_exception_count = int(payload.get("expired_exception_count") or 0)
     review_due_exception_count = int(payload.get("review_due_exception_count") or 0)
     review_status = _artifact_optional_string(payload.get("review_status"))
-    next_exception_expiry = _artifact_optional_string(payload.get("next_exception_expiry"))
+    next_exception_expiry = _artifact_optional_string(
+        payload.get("next_exception_expiry")
+    )
     review_window_days = (
         int(payload.get("review_window_days"))
         if isinstance(payload.get("review_window_days"), int)
@@ -6064,9 +6211,7 @@ def build_vulnerability_exception_review_report(
             summary=(
                 "vulnerability_exception_review evidence blocked: "
                 f"{expired_exception_count} vulnerability exception(s) are expired"
-                + (
-                    f" ({expired_preview})." if expired_preview else "."
-                )
+                + (f" ({expired_preview})." if expired_preview else ".")
             ),
             command=command,
             generated_at=generated_at,
@@ -6119,11 +6264,7 @@ def build_vulnerability_exception_review_report(
 def _external_mainline_string_list(value: Any) -> list[str]:
     if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
         return []
-    return [
-        str(item).strip()
-        for item in value
-        if _is_non_empty_string(item)
-    ]
+    return [str(item).strip() for item in value if _is_non_empty_string(item)]
 
 
 def _load_external_mainline_release_evidence_preview(
@@ -6132,11 +6273,12 @@ def _load_external_mainline_release_evidence_preview(
     report_path: str | Path,
     evidence_name: str,
 ) -> dict[str, Any]:
-    resolved_report_path = _resolve_release_artifact_path(str(report_path), project_root)
-    display_report_path = (
-        _project_relative_artifact_path(resolved_report_path, project_root=project_root)
-        or str(resolved_report_path)
+    resolved_report_path = _resolve_release_artifact_path(
+        str(report_path), project_root
     )
+    display_report_path = _project_relative_artifact_path(
+        resolved_report_path, project_root=project_root
+    ) or str(resolved_report_path)
     preview: dict[str, Any] = {
         "path": str(resolved_report_path),
         "status": "missing",
@@ -6150,9 +6292,7 @@ def _load_external_mainline_release_evidence_preview(
         payload = json.loads(resolved_report_path.read_text(encoding="utf-8"))
     except Exception as exc:
         preview["status"] = "blocked"
-        preview["summary"] = (
-            f"{evidence_name} report is unreadable: {exc}"
-        )
+        preview["summary"] = f"{evidence_name} report is unreadable: {exc}"
         return preview
     errors = validate_release_evidence_report(payload)
     if payload.get("evidence_name") != evidence_name:
@@ -6161,14 +6301,11 @@ def _load_external_mainline_release_evidence_preview(
         )
     if errors:
         preview["status"] = "blocked"
-        preview["summary"] = (
-            f"{evidence_name} report is invalid: {'; '.join(errors)}"
-        )
+        preview["summary"] = f"{evidence_name} report is invalid: {'; '.join(errors)}"
         return preview
     preview["status"] = payload.get("status") or "blocked"
     preview["summary"] = (
-        payload.get("summary")
-        or f"{evidence_name} report has no summary."
+        payload.get("summary") or f"{evidence_name} report has no summary."
     )
     preview["command"] = _artifact_optional_string(payload.get("command")) or ""
     preview["metrics"] = (
@@ -6184,7 +6321,9 @@ def _load_external_mainline_customer_config_preview(
     project_root: Path,
     config_path: str | Path,
 ) -> dict[str, Any]:
-    resolved_config_path = _resolve_release_artifact_path(str(config_path), project_root)
+    resolved_config_path = _resolve_release_artifact_path(
+        str(config_path), project_root
+    )
     preview: dict[str, Any] = {
         "path": str(resolved_config_path),
         "exists": resolved_config_path.is_file(),
@@ -6200,9 +6339,7 @@ def _load_external_mainline_customer_config_preview(
     try:
         payload = json.loads(resolved_config_path.read_text(encoding="utf-8"))
     except Exception as exc:
-        preview["summary"] = (
-            f"customer external bindings config is unreadable: {exc}"
-        )
+        preview["summary"] = f"customer external bindings config is unreadable: {exc}"
         return preview
     if not isinstance(payload, Mapping):
         preview["summary"] = "customer external bindings config must be a JSON object."
@@ -6258,7 +6395,9 @@ def _load_external_mainline_industrial_rehearsal_preview(
     project_root: Path,
     report_path: str | Path,
 ) -> dict[str, Any]:
-    resolved_report_path = _resolve_release_artifact_path(str(report_path), project_root)
+    resolved_report_path = _resolve_release_artifact_path(
+        str(report_path), project_root
+    )
     preview: dict[str, Any] = {
         "path": str(resolved_report_path),
         "status": "missing",
@@ -6284,14 +6423,12 @@ def _load_external_mainline_industrial_rehearsal_preview(
     if errors:
         preview["status"] = "blocked"
         preview["summary"] = (
-            "industrial delivery rehearsal report is invalid: "
-            + "; ".join(errors)
+            "industrial delivery rehearsal report is invalid: " + "; ".join(errors)
         )
         return preview
     preview["status"] = payload.get("status") or "blocked"
     preview["summary"] = (
-        payload.get("summary")
-        or "industrial delivery rehearsal report has no summary."
+        payload.get("summary") or "industrial delivery rehearsal report has no summary."
     )
     preview["stage_summary"] = (
         dict(payload.get("stage_summary"))
@@ -6359,7 +6496,9 @@ def _load_external_mainline_inputs_payload(
     project_root: Path,
     inputs_path: str | Path,
 ) -> dict[str, Any]:
-    resolved_inputs_path = _resolve_release_artifact_path(str(inputs_path), project_root)
+    resolved_inputs_path = _resolve_release_artifact_path(
+        str(inputs_path), project_root
+    )
     if not resolved_inputs_path.is_file():
         return {}
     try:
@@ -6416,11 +6555,11 @@ def _append_external_mainline_control_plane_summary(
         ]
         if session_fields:
             fragments.append("control_plane_session=" + ",".join(session_fields))
-    event_stream = _normalize_release_op_event_stream_summary(control_plane_event_stream)
+    event_stream = _normalize_release_op_event_stream_summary(
+        control_plane_event_stream
+    )
     if _is_non_negative_int(event_stream.get("event_count")):
-        fragments.append(
-            f"control_plane_events={int(event_stream['event_count'])}"
-        )
+        fragments.append(f"control_plane_events={int(event_stream['event_count'])}")
     if not fragments:
         return base
     if base.endswith("."):
@@ -6501,7 +6640,9 @@ def _build_control_plane_surface_payload(
         release_ops_execution_payload.get("event_count")
     )
     if event_count is None:
-        event_count = _coerce_non_negative_int(normalized_event_stream.get("event_count"))
+        event_count = _coerce_non_negative_int(
+            normalized_event_stream.get("event_count")
+        )
     if event_count is not None:
         payload["event_count"] = event_count
     if normalized_session:
@@ -6525,12 +6666,16 @@ def _validate_control_plane_surface(
         errors.append(f"{prefix} missing required fields: {', '.join(missing)}")
     status = payload.get("status")
     if status not in RELEASE_EVIDENCE_STATUSES:
-        errors.append(f"{prefix}.status must be one of {sorted(RELEASE_EVIDENCE_STATUSES)}")
+        errors.append(
+            f"{prefix}.status must be one of {sorted(RELEASE_EVIDENCE_STATUSES)}"
+        )
     if "summary" in payload and not _is_non_empty_string(payload.get("summary")):
         errors.append(f"{prefix}.summary must be a non-empty string")
     event_count = payload.get("event_count")
     if event_count is not None and not _is_non_negative_int(event_count):
-        errors.append(f"{prefix}.event_count must be a non-negative integer when present")
+        errors.append(
+            f"{prefix}.event_count must be a non-negative integer when present"
+        )
 
     release_ops_execution = payload.get("release_ops_execution")
     if not isinstance(release_ops_execution, Mapping):
@@ -6574,8 +6719,11 @@ def _validate_control_plane_surface(
                 errors.append(
                     f"{prefix}.control_plane_event_stream.path must be a non-empty string"
                 )
-            if "event_count" in control_plane_event_stream and not _is_non_negative_int(
-                control_plane_event_stream.get("event_count")
+            if (
+                "event_count" in control_plane_event_stream
+                and not _is_non_negative_int(
+                    control_plane_event_stream.get("event_count")
+                )
             ):
                 errors.append(
                     f"{prefix}.control_plane_event_stream.event_count must be a non-negative integer when present"
@@ -6656,15 +6804,21 @@ def read_release_control_plane_surface(
                 "control_plane_surface": to_jsonable(dict(embedded_surface)),
             }
         surface = _build_control_plane_surface_payload(
-            release_ops_execution=payload.get("release_ops_execution")
-            if isinstance(payload.get("release_ops_execution"), Mapping)
-            else None,
-            control_plane_session=payload.get("control_plane_session")
-            if isinstance(payload.get("control_plane_session"), Mapping)
-            else None,
-            control_plane_event_stream=payload.get("control_plane_event_stream")
-            if isinstance(payload.get("control_plane_event_stream"), Mapping)
-            else None,
+            release_ops_execution=(
+                payload.get("release_ops_execution")
+                if isinstance(payload.get("release_ops_execution"), Mapping)
+                else None
+            ),
+            control_plane_session=(
+                payload.get("control_plane_session")
+                if isinstance(payload.get("control_plane_session"), Mapping)
+                else None
+            ),
+            control_plane_event_stream=(
+                payload.get("control_plane_event_stream")
+                if isinstance(payload.get("control_plane_event_stream"), Mapping)
+                else None
+            ),
         )
         return {
             "source": "release_manifest",
@@ -6757,14 +6911,16 @@ def build_external_mainline_execution_plan_artifact(
         project_root=resolved_root,
         report_path=resolved_industrial_report,
     )
-    industrial_live_inputs = _normalize_external_mainline_industrial_live_evidence_inputs(
-        industrial_live_evidence_inputs
+    industrial_live_inputs = (
+        _normalize_external_mainline_industrial_live_evidence_inputs(
+            industrial_live_evidence_inputs
+        )
     )
 
     customer_blocking_inputs: list[str] = []
-    customer_follow_up_summary = closure_preview.get("summary") or customer_config_preview.get(
+    customer_follow_up_summary = closure_preview.get(
         "summary"
-    )
+    ) or customer_config_preview.get("summary")
     customer_report_metrics = (
         closure_preview.get("metrics")
         if isinstance(closure_preview.get("metrics"), Mapping)
@@ -6779,7 +6935,9 @@ def build_external_mainline_execution_plan_artifact(
             closure_preview.get("summary")
             or "customer external bindings closure already passed."
         )
-    elif customer_config_preview.get("valid") is not True and customer_config_preview.get("exists"):
+    elif customer_config_preview.get(
+        "valid"
+    ) is not True and customer_config_preview.get("exists"):
         customer_status = "blocked"
         customer_summary = str(customer_config_preview.get("summary") or "")
         customer_blocking_inputs.append(
@@ -6800,7 +6958,9 @@ def build_external_mainline_execution_plan_artifact(
             or "customer external bindings 仍缺真实客户系统元数据。"
         )
         if not customer_config_preview.get("exists"):
-            customer_blocking_inputs.append("生成 customer-specific external bindings config")
+            customer_blocking_inputs.append(
+                "生成 customer-specific external bindings config"
+            )
         if customer_failed_steps:
             customer_blocking_inputs.extend(customer_failed_steps)
         if customer_config_preview.get("draft_sections"):
@@ -6998,9 +7158,11 @@ def build_external_mainline_execution_plan_artifact(
             project_root=resolved_root,
         ),
         "source_report_status": industrial_preview.get("status"),
-        "blocking_inputs": industrial_missing_inputs
-        if industrial_status == "waiting_external_input"
-        else [],
+        "blocking_inputs": (
+            industrial_missing_inputs
+            if industrial_status == "waiting_external_input"
+            else []
+        ),
         "managed_inputs_ready": industrial_inputs_ready,
         "managed_inputs": industrial_live_inputs,
         "artifact_paths": [
@@ -7118,9 +7280,13 @@ def validate_external_mainline_execution_plan_artifact(payload: Any) -> list[str
         if not isinstance(item, Mapping):
             errors.append(f"{prefix} must be an object")
             continue
-        missing_fields = sorted(EXTERNAL_MAINLINE_EXECUTION_STEP_REQUIRED_FIELDS - set(item))
+        missing_fields = sorted(
+            EXTERNAL_MAINLINE_EXECUTION_STEP_REQUIRED_FIELDS - set(item)
+        )
         if missing_fields:
-            errors.append(f"{prefix} missing required fields: {', '.join(missing_fields)}")
+            errors.append(
+                f"{prefix} missing required fields: {', '.join(missing_fields)}"
+            )
         for field in [
             "id",
             "label",
@@ -7176,8 +7342,11 @@ def validate_external_mainline_execution_plan_artifact(payload: Any) -> list[str
                     "external_mainline_execution_plan.control_plane_event_stream.path "
                     "must be a non-empty string"
                 )
-            if "event_count" in control_plane_event_stream and not _is_non_negative_int(
-                control_plane_event_stream.get("event_count")
+            if (
+                "event_count" in control_plane_event_stream
+                and not _is_non_negative_int(
+                    control_plane_event_stream.get("event_count")
+                )
             ):
                 errors.append(
                     "external_mainline_execution_plan.control_plane_event_stream."
@@ -7185,16 +7354,31 @@ def validate_external_mainline_execution_plan_artifact(payload: Any) -> list[str
                 )
     if isinstance(steps, list):
         expected_counts = {
-            "completed_steps": sum(1 for item in steps if isinstance(item, Mapping) and item.get("status") == "completed"),
-            "ready_to_run_steps": sum(1 for item in steps if isinstance(item, Mapping) and item.get("status") == "ready_to_run"),
+            "completed_steps": sum(
+                1
+                for item in steps
+                if isinstance(item, Mapping) and item.get("status") == "completed"
+            ),
+            "ready_to_run_steps": sum(
+                1
+                for item in steps
+                if isinstance(item, Mapping) and item.get("status") == "ready_to_run"
+            ),
             "waiting_external_input_steps": sum(
                 1
                 for item in steps
-                if isinstance(item, Mapping) and item.get("status") == "waiting_external_input"
+                if isinstance(item, Mapping)
+                and item.get("status") == "waiting_external_input"
             ),
-            "blocked_steps": sum(1 for item in steps if isinstance(item, Mapping) and item.get("status") == "blocked"),
+            "blocked_steps": sum(
+                1
+                for item in steps
+                if isinstance(item, Mapping) and item.get("status") == "blocked"
+            ),
             "auto_executable_steps": sum(
-                1 for item in steps if isinstance(item, Mapping) and item.get("auto_executable") is True
+                1
+                for item in steps
+                if isinstance(item, Mapping) and item.get("auto_executable") is True
             ),
         }
         for field, expected in expected_counts.items():
@@ -7296,7 +7480,9 @@ def build_external_mainline_input_checklist_report(
         customer_inputs.get("confirmation_ticket")
     ):
         customer_missing_inputs.append("confirmation_ticket")
-    customer_overrides = _artifact_optional_string(customer_inputs.get("overrides_file"))
+    customer_overrides = _artifact_optional_string(
+        customer_inputs.get("overrides_file")
+    )
     if not customer_overrides:
         customer_missing_inputs.append("overrides_file")
 
@@ -7368,13 +7554,17 @@ def build_external_mainline_input_checklist_report(
             "vulnerability_missing_inputs": sorted(
                 dict.fromkeys(vulnerability_missing_inputs)
             ),
-            "industrial_missing_inputs": sorted(dict.fromkeys(industrial_missing_inputs)),
+            "industrial_missing_inputs": sorted(
+                dict.fromkeys(industrial_missing_inputs)
+            ),
             "waiting_external_input_steps": waiting_steps,
             "ready_to_run_steps": ready_steps,
             "completed_steps": completed_steps,
             "missing_input_count": missing_total,
             "customer_overrides_file": customer_overrides,
-            "industrial_target_environment": industrial_inputs.get("target_environment"),
+            "industrial_target_environment": industrial_inputs.get(
+                "target_environment"
+            ),
         },
         control_plane_session=control_plane_session,
         control_plane_event_stream=control_plane_event_stream,
@@ -7389,13 +7579,17 @@ def build_customer_delivery_surface(
 ) -> dict[str, Any]:
     resolved_root = Path(project_root) if project_root is not None else Path.cwd()
     required_docs = acceptance_documents or default_customer_acceptance_documents()
-    hydrated_documents = _hydrate_customer_acceptance_items(required_docs, resolved_root)
+    hydrated_documents = _hydrate_customer_acceptance_items(
+        required_docs, resolved_root
+    )
     documents_by_name = {
         str(item.get("name")): dict(item)
         for item in hydrated_documents
         if _is_non_empty_string(item.get("name"))
     }
-    required_documents = sum(1 for item in hydrated_documents if item["required"] is True)
+    required_documents = sum(
+        1 for item in hydrated_documents if item["required"] is True
+    )
     required_documents_ready = sum(
         1
         for item in hydrated_documents
@@ -7472,7 +7666,9 @@ def build_customer_delivery_surface(
             f"{_format_release_ops_execution_component_status(release_ops_execution)}."
         )
     if missing_required_documents:
-        summary += " Missing required docs: " + ", ".join(missing_required_documents) + "."
+        summary += (
+            " Missing required docs: " + ", ".join(missing_required_documents) + "."
+        )
     summary = _append_external_mainline_control_plane_summary(
         summary,
         control_plane_session=control_plane_session,
@@ -7528,7 +7724,9 @@ def validate_customer_delivery_surface(payload: Any) -> list[str]:
         "phase_e_documents_ready",
     ]:
         if field in payload and not _is_non_negative_int(payload.get(field)):
-            errors.append(f"customer_delivery_surface.{field} must be a non-negative integer")
+            errors.append(
+                f"customer_delivery_surface.{field} must be a non-negative integer"
+            )
     if (
         _is_non_negative_int(payload.get("required_documents"))
         and _is_non_negative_int(payload.get("required_documents_ready"))
@@ -7584,7 +7782,9 @@ def validate_customer_delivery_surface(payload: Any) -> list[str]:
     release_ops_execution = payload.get("release_ops_execution")
     if release_ops_execution is not None:
         if not isinstance(release_ops_execution, Mapping):
-            errors.append("customer_delivery_surface.release_ops_execution must be an object")
+            errors.append(
+                "customer_delivery_surface.release_ops_execution must be an object"
+            )
         else:
             status = release_ops_execution.get("status")
             if status not in RELEASE_EVIDENCE_STATUSES:
@@ -7607,7 +7807,9 @@ def validate_customer_delivery_surface(payload: Any) -> list[str]:
     control_plane_session = payload.get("control_plane_session")
     if control_plane_session is not None:
         if not isinstance(control_plane_session, Mapping):
-            errors.append("customer_delivery_surface.control_plane_session must be an object")
+            errors.append(
+                "customer_delivery_surface.control_plane_session must be an object"
+            )
         else:
             for field in ["engagement_id", "window_id", "change_ticket", "channel"]:
                 if field in control_plane_session and not _is_non_empty_string(
@@ -7628,8 +7830,11 @@ def validate_customer_delivery_surface(payload: Any) -> list[str]:
                 errors.append(
                     "customer_delivery_surface.control_plane_event_stream.path must be a non-empty string"
                 )
-            if "event_count" in control_plane_event_stream and not _is_non_negative_int(
-                control_plane_event_stream.get("event_count")
+            if (
+                "event_count" in control_plane_event_stream
+                and not _is_non_negative_int(
+                    control_plane_event_stream.get("event_count")
+                )
             ):
                 errors.append(
                     "customer_delivery_surface.control_plane_event_stream.event_count must be a non-negative integer when present"
@@ -7699,7 +7904,10 @@ def validate_industrial_delivery_gate(payload: Any) -> list[str]:
             "industrial_delivery_gate.status must be one of "
             f"{sorted(INDUSTRIAL_DELIVERY_GATE_STATUSES)}"
         )
-    if payload.get("deployment_package_status") not in INDUSTRIAL_DELIVERY_COMPONENT_STATUSES:
+    if (
+        payload.get("deployment_package_status")
+        not in INDUSTRIAL_DELIVERY_COMPONENT_STATUSES
+    ):
         errors.append(
             "industrial_delivery_gate.deployment_package_status must be one of "
             f"{sorted(INDUSTRIAL_DELIVERY_COMPONENT_STATUSES)}"
@@ -7714,7 +7922,9 @@ def validate_industrial_delivery_gate(payload: Any) -> list[str]:
         "ready_deployment_documents",
     ]:
         if field in payload and not _is_non_negative_int(payload.get(field)):
-            errors.append(f"industrial_delivery_gate.{field} must be a non-negative integer")
+            errors.append(
+                f"industrial_delivery_gate.{field} must be a non-negative integer"
+            )
     if (
         _is_non_negative_int(payload.get("required_evidence"))
         and _is_non_negative_int(payload.get("attested_required_evidence"))
@@ -7750,19 +7960,27 @@ def validate_industrial_delivery_gate(payload: Any) -> list[str]:
             "industrial_delivery_gate.vuln_scan_status must be one of "
             f"{sorted(VULNERABILITY_SCAN_STATUSES)}"
         )
-    if payload.get("customer_delivery_surface_status") not in CUSTOMER_DELIVERY_SURFACE_STATUSES:
+    if (
+        payload.get("customer_delivery_surface_status")
+        not in CUSTOMER_DELIVERY_SURFACE_STATUSES
+    ):
         errors.append(
             "industrial_delivery_gate.customer_delivery_surface_status must be one of "
             f"{sorted(CUSTOMER_DELIVERY_SURFACE_STATUSES)}"
         )
-    if payload.get("extension_support_surface_status") not in EXTENSION_SUPPORT_SURFACE_STATUSES:
+    if (
+        payload.get("extension_support_surface_status")
+        not in EXTENSION_SUPPORT_SURFACE_STATUSES
+    ):
         errors.append(
             "industrial_delivery_gate.extension_support_surface_status must be one of "
             f"{sorted(EXTENSION_SUPPORT_SURFACE_STATUSES)}"
         )
     for field in ["required_extension_profiles", "declared_extension_profiles"]:
         if field in payload and not _is_non_negative_int(payload.get(field)):
-            errors.append(f"industrial_delivery_gate.{field} must be a non-negative integer")
+            errors.append(
+                f"industrial_delivery_gate.{field} must be a non-negative integer"
+            )
     if (
         _is_non_negative_int(payload.get("required_extension_profiles"))
         and _is_non_negative_int(payload.get("declared_extension_profiles"))
@@ -7797,7 +8015,9 @@ def validate_industrial_delivery_gate(payload: Any) -> list[str]:
     )
     release_ops_execution = payload.get("release_ops_execution")
     if not isinstance(release_ops_execution, Mapping):
-        errors.append("industrial_delivery_gate.release_ops_execution must be an object")
+        errors.append(
+            "industrial_delivery_gate.release_ops_execution must be an object"
+        )
     else:
         status = release_ops_execution.get("status")
         if status not in RELEASE_EVIDENCE_STATUSES:
@@ -7820,7 +8040,9 @@ def validate_industrial_delivery_gate(payload: Any) -> list[str]:
     control_plane_session = payload.get("control_plane_session")
     if control_plane_session is not None:
         if not isinstance(control_plane_session, Mapping):
-            errors.append("industrial_delivery_gate.control_plane_session must be an object")
+            errors.append(
+                "industrial_delivery_gate.control_plane_session must be an object"
+            )
         else:
             for field in ["engagement_id", "window_id", "change_ticket", "channel"]:
                 if field in control_plane_session and not _is_non_empty_string(
@@ -7841,8 +8063,11 @@ def validate_industrial_delivery_gate(payload: Any) -> list[str]:
                 errors.append(
                     "industrial_delivery_gate.control_plane_event_stream.path must be a non-empty string"
                 )
-            if "event_count" in control_plane_event_stream and not _is_non_negative_int(
-                control_plane_event_stream.get("event_count")
+            if (
+                "event_count" in control_plane_event_stream
+                and not _is_non_negative_int(
+                    control_plane_event_stream.get("event_count")
+                )
             ):
                 errors.append(
                     "industrial_delivery_gate.control_plane_event_stream.event_count must be a non-negative integer when present"
@@ -7856,7 +8081,9 @@ def hydrate_release_test_evidence(
     project_root: str | Path | None = None,
 ) -> list[dict[str, Any]]:
     """Load known artifact reports and reflect their current evidence status."""
-    base_evidence = [dict(item) for item in (test_evidence or default_release_test_evidence())]
+    base_evidence = [
+        dict(item) for item in (test_evidence or default_release_test_evidence())
+    ]
     resolved_root = Path(project_root) if project_root is not None else Path.cwd()
     hydrated: list[dict[str, Any]] = []
 
@@ -8000,9 +8227,9 @@ def build_release_manifest_artifact(
             component_source=component_source,
             bundle_path=None,
         )
-        if _is_non_empty_string(release_ops_execution_payload.get("status")) and _is_non_empty_string(
-            release_ops_execution_payload.get("summary")
-        ):
+        if _is_non_empty_string(
+            release_ops_execution_payload.get("status")
+        ) and _is_non_empty_string(release_ops_execution_payload.get("summary")):
             break
     if not _is_non_empty_string(release_ops_execution_payload.get("status")):
         release_ops_execution_payload = {
@@ -8023,41 +8250,49 @@ def build_release_manifest_artifact(
     )
     extension_execution_evidence_payload = build_extension_execution_evidence(
         project_root=project_root,
-        extension_support_surface=customer_delivery_payload.get(
-            "extension_support_surface",
-            {},
-        )
-        if isinstance(customer_delivery_payload, Mapping)
-        else {},
+        extension_support_surface=(
+            customer_delivery_payload.get(
+                "extension_support_surface",
+                {},
+            )
+            if isinstance(customer_delivery_payload, Mapping)
+            else {}
+        ),
     )
     extension_execution_instance_payload = build_extension_execution_instance(
         project_root=project_root,
-        extension_support_surface=customer_delivery_payload.get(
-            "extension_support_surface",
-            {},
-        )
-        if isinstance(customer_delivery_payload, Mapping)
-        else {},
+        extension_support_surface=(
+            customer_delivery_payload.get(
+                "extension_support_surface",
+                {},
+            )
+            if isinstance(customer_delivery_payload, Mapping)
+            else {}
+        ),
         instance_artifact=extension_execution_instance,
     )
     extension_execution_schedule_payload = build_extension_execution_schedule(
         project_root=project_root,
-        extension_support_surface=customer_delivery_payload.get(
-            "extension_support_surface",
-            {},
-        )
-        if isinstance(customer_delivery_payload, Mapping)
-        else {},
+        extension_support_surface=(
+            customer_delivery_payload.get(
+                "extension_support_surface",
+                {},
+            )
+            if isinstance(customer_delivery_payload, Mapping)
+            else {}
+        ),
         schedule_artifact=extension_execution_schedule,
     )
     extension_execution_actuals_payload = build_extension_execution_actuals(
         project_root=project_root,
-        extension_support_surface=customer_delivery_payload.get(
-            "extension_support_surface",
-            {},
-        )
-        if isinstance(customer_delivery_payload, Mapping)
-        else {},
+        extension_support_surface=(
+            customer_delivery_payload.get(
+                "extension_support_surface",
+                {},
+            )
+            if isinstance(customer_delivery_payload, Mapping)
+            else {}
+        ),
         actuals_artifact=extension_execution_actuals,
         schedule_artifact=extension_execution_schedule_payload,
     )
@@ -8109,9 +8344,7 @@ def build_release_manifest_artifact(
         "extension_execution_schedule": to_jsonable(
             extension_execution_schedule_payload
         ),
-        "extension_execution_actuals": to_jsonable(
-            extension_execution_actuals_payload
-        ),
+        "extension_execution_actuals": to_jsonable(extension_execution_actuals_payload),
     }
     if control_plane_session:
         payload["control_plane_session"] = to_jsonable(control_plane_session)
@@ -8161,7 +8394,9 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
                 f"release_policy.channel must match channel {payload.get('channel')!r}"
             )
         for field in ["allows_opt_in_evidence", "allows_diagnostic_ready_domains"]:
-            if field in release_policy and not isinstance(release_policy.get(field), bool):
+            if field in release_policy and not isinstance(
+                release_policy.get(field), bool
+            ):
                 errors.append(f"release_policy.{field} must be a boolean")
         if "requires_release_approval" in release_policy and not isinstance(
             release_policy.get("requires_release_approval"), bool
@@ -8170,7 +8405,9 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
         if "requires_git_source_binding" in release_policy and not isinstance(
             release_policy.get("requires_git_source_binding"), bool
         ):
-            errors.append("release_policy.requires_git_source_binding must be a boolean")
+            errors.append(
+                "release_policy.requires_git_source_binding must be a boolean"
+            )
         if "requires_clean_worktree" in release_policy and not isinstance(
             release_policy.get("requires_clean_worktree"), bool
         ):
@@ -8200,7 +8437,9 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
     if not isinstance(release_approval, Mapping):
         errors.append("release_approval must be an object")
     else:
-        missing_approval = sorted(RELEASE_APPROVAL_REQUIRED_FIELDS - set(release_approval))
+        missing_approval = sorted(
+            RELEASE_APPROVAL_REQUIRED_FIELDS - set(release_approval)
+        )
         if missing_approval:
             errors.append(
                 f"release_approval missing required fields: {', '.join(missing_approval)}"
@@ -8239,7 +8478,12 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
             release_source.get("resolved_from_git"), bool
         ):
             errors.append("release_source.resolved_from_git must be a boolean")
-        for field in ["commit_sha", "short_commit_sha", "git_tag", "matched_version_tag"]:
+        for field in [
+            "commit_sha",
+            "short_commit_sha",
+            "git_tag",
+            "matched_version_tag",
+        ]:
             if field in release_source and release_source.get(field) is not None:
                 if not _is_non_empty_string(release_source.get(field)):
                     errors.append(
@@ -8303,7 +8547,9 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
             if not isinstance(item, Mapping):
                 errors.append(f"{prefix} must be an object")
                 continue
-            missing_fields = sorted(RELEASE_CONTRACT_VERSION_REQUIRED_FIELDS - set(item))
+            missing_fields = sorted(
+                RELEASE_CONTRACT_VERSION_REQUIRED_FIELDS - set(item)
+            )
             if missing_fields:
                 errors.append(
                     f"{prefix} missing required fields: {', '.join(missing_fields)}"
@@ -8344,7 +8590,9 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
                 )
             if "artifact_path" in item and item.get("artifact_path") is not None:
                 if not _is_non_empty_string(item.get("artifact_path")):
-                    errors.append(f"{prefix}.artifact_path must be null or a non-empty string")
+                    errors.append(
+                        f"{prefix}.artifact_path must be null or a non-empty string"
+                    )
 
     limitations = payload.get("known_limitations")
     if not isinstance(limitations, list):
@@ -8353,9 +8601,7 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
     else:
         for index, item in enumerate(limitations, start=1):
             if not _is_non_empty_string(item):
-                errors.append(
-                    f"known_limitations[{index}] must be a non-empty string"
-                )
+                errors.append(f"known_limitations[{index}] must be a non-empty string")
 
     customer_delivery_surface = payload.get("customer_delivery_surface")
     errors.extend(validate_customer_delivery_surface(customer_delivery_surface))
@@ -8400,8 +8646,11 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
                 errors.append(
                     "control_plane_event_stream.path must be a non-empty string"
                 )
-            if "event_count" in control_plane_event_stream and not _is_non_negative_int(
-                control_plane_event_stream.get("event_count")
+            if (
+                "event_count" in control_plane_event_stream
+                and not _is_non_negative_int(
+                    control_plane_event_stream.get("event_count")
+                )
             ):
                 errors.append(
                     "control_plane_event_stream.event_count must be a non-negative integer when present"
@@ -8414,21 +8663,13 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
         )
     )
     extension_execution_evidence = payload.get("extension_execution_evidence")
-    errors.extend(
-        validate_extension_execution_evidence(extension_execution_evidence)
-    )
+    errors.extend(validate_extension_execution_evidence(extension_execution_evidence))
     extension_execution_instance = payload.get("extension_execution_instance")
-    errors.extend(
-        validate_extension_execution_instance(extension_execution_instance)
-    )
+    errors.extend(validate_extension_execution_instance(extension_execution_instance))
     extension_execution_schedule = payload.get("extension_execution_schedule")
-    errors.extend(
-        validate_extension_execution_schedule(extension_execution_schedule)
-    )
+    errors.extend(validate_extension_execution_schedule(extension_execution_schedule))
     extension_execution_actuals = payload.get("extension_execution_actuals")
-    errors.extend(
-        validate_extension_execution_actuals(extension_execution_actuals)
-    )
+    errors.extend(validate_extension_execution_actuals(extension_execution_actuals))
 
     if (
         not errors
@@ -8477,7 +8718,9 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
         expected_industrial_delivery_gate = _build_industrial_delivery_gate_payload(
             test_evidence=evidence,
             customer_delivery_surface=customer_delivery_surface,
-            deployment_documents=industrial_delivery_gate.get("deployment_documents", []),
+            deployment_documents=industrial_delivery_gate.get(
+                "deployment_documents", []
+            ),
             security_reports=industrial_delivery_gate.get("security_reports", []),
         )
         for key, value in expected_industrial_delivery_gate.items():
@@ -8488,12 +8731,16 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
                 )
         expected_control_plane_surface = _build_control_plane_surface_payload(
             release_ops_execution=release_ops_execution,
-            control_plane_session=payload.get("control_plane_session")
-            if isinstance(payload.get("control_plane_session"), Mapping)
-            else None,
-            control_plane_event_stream=payload.get("control_plane_event_stream")
-            if isinstance(payload.get("control_plane_event_stream"), Mapping)
-            else None,
+            control_plane_session=(
+                payload.get("control_plane_session")
+                if isinstance(payload.get("control_plane_session"), Mapping)
+                else None
+            ),
+            control_plane_event_stream=(
+                payload.get("control_plane_event_stream")
+                if isinstance(payload.get("control_plane_event_stream"), Mapping)
+                else None
+            ),
         )
         if isinstance(control_plane_surface, Mapping):
             for key, value in expected_control_plane_surface.items():
@@ -8502,16 +8749,25 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
                         "control_plane_surface."
                         f"{key} must be {value!r}, got {control_plane_surface.get(key)!r}"
                     )
-        expected_extension_execution_evidence = _build_extension_execution_evidence_payload(
-            extension_support_surface=customer_delivery_surface.get(
-                "extension_support_surface",
-                {},
+        expected_extension_execution_evidence = (
+            _build_extension_execution_evidence_payload(
+                extension_support_surface=(
+                    customer_delivery_surface.get(
+                        "extension_support_surface",
+                        {},
+                    )
+                    if isinstance(
+                        customer_delivery_surface.get("extension_support_surface"),
+                        Mapping,
+                    )
+                    else {}
+                ),
+                reports=(
+                    extension_execution_evidence.get("reports", [])
+                    if isinstance(extension_execution_evidence, Mapping)
+                    else []
+                ),
             )
-            if isinstance(customer_delivery_surface.get("extension_support_surface"), Mapping)
-            else {},
-            reports=extension_execution_evidence.get("reports", [])
-            if isinstance(extension_execution_evidence, Mapping)
-            else [],
         )
         if isinstance(extension_execution_evidence, Mapping):
             for key, value in expected_extension_execution_evidence.items():
@@ -8520,19 +8776,26 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
                         "extension_execution_evidence."
                         f"{key} must be {value!r}, got {extension_execution_evidence.get(key)!r}"
                     )
-        expected_extension_execution_instance = _build_extension_execution_instance_payload(
-            extension_support_surface=customer_delivery_surface.get(
-                "extension_support_surface",
-                {},
+        expected_extension_execution_instance = (
+            _build_extension_execution_instance_payload(
+                extension_support_surface=(
+                    customer_delivery_surface.get(
+                        "extension_support_surface",
+                        {},
+                    )
+                    if isinstance(
+                        customer_delivery_surface.get("extension_support_surface"),
+                        Mapping,
+                    )
+                    else {}
+                ),
+                artifact_path=str(
+                    extension_execution_instance.get("artifact_path")
+                    or default_extension_execution_instance_artifact_path()
+                ),
+                exists=extension_execution_instance.get("exists") is True,
+                instance=extension_execution_instance,
             )
-            if isinstance(customer_delivery_surface.get("extension_support_surface"), Mapping)
-            else {},
-            artifact_path=str(
-                extension_execution_instance.get("artifact_path")
-                or default_extension_execution_instance_artifact_path()
-            ),
-            exists=extension_execution_instance.get("exists") is True,
-            instance=extension_execution_instance,
         )
         for key, value in expected_extension_execution_instance.items():
             if extension_execution_instance.get(key) != value:
@@ -8540,19 +8803,26 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
                     "extension_execution_instance."
                     f"{key} must be {value!r}, got {extension_execution_instance.get(key)!r}"
                 )
-        expected_extension_execution_schedule = _build_extension_execution_schedule_payload(
-            extension_support_surface=customer_delivery_surface.get(
-                "extension_support_surface",
-                {},
+        expected_extension_execution_schedule = (
+            _build_extension_execution_schedule_payload(
+                extension_support_surface=(
+                    customer_delivery_surface.get(
+                        "extension_support_surface",
+                        {},
+                    )
+                    if isinstance(
+                        customer_delivery_surface.get("extension_support_surface"),
+                        Mapping,
+                    )
+                    else {}
+                ),
+                artifact_path=str(
+                    extension_execution_schedule.get("artifact_path")
+                    or default_extension_execution_schedule_artifact_path()
+                ),
+                exists=extension_execution_schedule.get("exists") is True,
+                schedule=extension_execution_schedule,
             )
-            if isinstance(customer_delivery_surface.get("extension_support_surface"), Mapping)
-            else {},
-            artifact_path=str(
-                extension_execution_schedule.get("artifact_path")
-                or default_extension_execution_schedule_artifact_path()
-            ),
-            exists=extension_execution_schedule.get("exists") is True,
-            schedule=extension_execution_schedule,
         )
         for key, value in expected_extension_execution_schedule.items():
             if extension_execution_schedule.get(key) != value:
@@ -8560,20 +8830,27 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
                     "extension_execution_schedule."
                     f"{key} must be {value!r}, got {extension_execution_schedule.get(key)!r}"
                 )
-        expected_extension_execution_actuals = _build_extension_execution_actuals_payload(
-            extension_support_surface=customer_delivery_surface.get(
-                "extension_support_surface",
-                {},
+        expected_extension_execution_actuals = (
+            _build_extension_execution_actuals_payload(
+                extension_support_surface=(
+                    customer_delivery_surface.get(
+                        "extension_support_surface",
+                        {},
+                    )
+                    if isinstance(
+                        customer_delivery_surface.get("extension_support_surface"),
+                        Mapping,
+                    )
+                    else {}
+                ),
+                artifact_path=str(
+                    extension_execution_actuals.get("artifact_path")
+                    or default_extension_execution_actuals_artifact_path()
+                ),
+                exists=extension_execution_actuals.get("exists") is True,
+                actuals=extension_execution_actuals,
+                schedule=extension_execution_schedule,
             )
-            if isinstance(customer_delivery_surface.get("extension_support_surface"), Mapping)
-            else {},
-            artifact_path=str(
-                extension_execution_actuals.get("artifact_path")
-                or default_extension_execution_actuals_artifact_path()
-            ),
-            exists=extension_execution_actuals.get("exists") is True,
-            actuals=extension_execution_actuals,
-            schedule=extension_execution_schedule,
         )
         for key, value in expected_extension_execution_actuals.items():
             if extension_execution_actuals.get(key) != value:
@@ -8585,7 +8862,9 @@ def validate_release_manifest_artifact(payload: Any) -> list[str]:
     return errors
 
 
-def write_release_manifest_artifact(payload: Mapping[str, Any], path: str | Path) -> Path:
+def write_release_manifest_artifact(
+    payload: Mapping[str, Any], path: str | Path
+) -> Path:
     errors = validate_release_manifest_artifact(payload)
     if errors:
         raise ValueError("; ".join(errors))
@@ -8697,7 +8976,9 @@ def _build_industrial_delivery_gate_payload(
         and backup_restore_report.get("status") == "passed"
     )
 
-    support_matrix_attached = customer_delivery_surface.get("support_matrix_attached") is True
+    support_matrix_attached = (
+        customer_delivery_surface.get("support_matrix_attached") is True
+    )
     capacity_declaration_attached = (
         customer_delivery_surface.get("capacity_declaration_attached") is True
     )
@@ -8712,7 +8993,9 @@ def _build_industrial_delivery_gate_payload(
     )
     extension_support_surface = dict(
         customer_delivery_surface.get("extension_support_surface", {})
-        if isinstance(customer_delivery_surface.get("extension_support_surface"), Mapping)
+        if isinstance(
+            customer_delivery_surface.get("extension_support_surface"), Mapping
+        )
         else {}
     )
     extension_support_surface_status = str(
@@ -8839,9 +9122,13 @@ def _build_industrial_delivery_gate_payload(
         for item in vuln_reports
     ):
         if remediation_ready:
-            summary += " Vulnerability findings are closed by a ready remediation report."
+            summary += (
+                " Vulnerability findings are closed by a ready remediation report."
+            )
         elif posture_ready:
-            summary += " Vulnerability findings are closed by a ready security posture report."
+            summary += (
+                " Vulnerability findings are closed by a ready security posture report."
+            )
     if missing_requirements:
         summary += " Missing requirements: " + ", ".join(missing_requirements) + "."
     summary = _append_external_mainline_control_plane_summary(
@@ -8909,11 +9196,17 @@ def build_customer_acceptance_bundle_artifact(
         raise ValueError(f"invalid release manifest: {'; '.join(manifest_errors)}")
 
     resolved_root = Path(project_root) if project_root is not None else Path.cwd()
-    resolved_manifest_path = _resolve_release_artifact_path(str(manifest_path), resolved_root)
+    resolved_manifest_path = _resolve_release_artifact_path(
+        str(manifest_path), resolved_root
+    )
     required_docs = acceptance_documents or default_customer_acceptance_documents()
-    hydrated_documents = _hydrate_customer_acceptance_items(required_docs, resolved_root)
+    hydrated_documents = _hydrate_customer_acceptance_items(
+        required_docs, resolved_root
+    )
 
-    report_entries = default_customer_acceptance_reports(str(release_manifest.get("channel")))
+    report_entries = default_customer_acceptance_reports(
+        str(release_manifest.get("channel"))
+    )
     report_overrides = {
         "release_readiness": readiness_report_path,
         "industrial_release_readiness": readiness_report_path,
@@ -8938,7 +9231,9 @@ def build_customer_acceptance_bundle_artifact(
         override = report_overrides.get(str(current.get("name")))
         if override:
             current["path"] = str(override)
-        hydrated_reports.extend(_hydrate_customer_acceptance_items([current], resolved_root))
+        hydrated_reports.extend(
+            _hydrate_customer_acceptance_items([current], resolved_root)
+        )
     reports_by_name = {
         str(item.get("name")): dict(item)
         for item in hydrated_reports
@@ -8955,7 +9250,9 @@ def build_customer_acceptance_bundle_artifact(
         for item in release_manifest.get("test_evidence", [])
         if isinstance(item, Mapping) and item.get("required") is not True
     ]
-    required_docs_total = sum(1 for item in hydrated_documents if item["required"] is True)
+    required_docs_total = sum(
+        1 for item in hydrated_documents if item["required"] is True
+    )
     required_docs_ready = sum(
         1
         for item in hydrated_documents
@@ -8988,7 +9285,9 @@ def build_customer_acceptance_bundle_artifact(
         f"{required_evidence_ready}/{required_evidence_total} required evidence items passed, "
         f"release gate={release_manifest.get('release_gate_status')}."
     )
-    review_status = _artifact_optional_string(vulnerability_exception_review.get("status"))
+    review_status = _artifact_optional_string(
+        vulnerability_exception_review.get("status")
+    )
     review_metrics = (
         vulnerability_exception_review.get("metrics")
         if isinstance(vulnerability_exception_review.get("metrics"), Mapping)
@@ -9044,15 +9343,21 @@ def build_customer_acceptance_bundle_artifact(
     )
     checklist_counts = [
         _coerce_non_negative_int(checklist_metrics.get("missing_input_count")),
-        len(checklist_metrics.get("waiting_external_input_steps", []))
-        if isinstance(checklist_metrics.get("waiting_external_input_steps"), list)
-        else None,
-        len(checklist_metrics.get("ready_to_run_steps", []))
-        if isinstance(checklist_metrics.get("ready_to_run_steps"), list)
-        else None,
-        len(checklist_metrics.get("completed_steps", []))
-        if isinstance(checklist_metrics.get("completed_steps"), list)
-        else None,
+        (
+            len(checklist_metrics.get("waiting_external_input_steps", []))
+            if isinstance(checklist_metrics.get("waiting_external_input_steps"), list)
+            else None
+        ),
+        (
+            len(checklist_metrics.get("ready_to_run_steps", []))
+            if isinstance(checklist_metrics.get("ready_to_run_steps"), list)
+            else None
+        ),
+        (
+            len(checklist_metrics.get("completed_steps", []))
+            if isinstance(checklist_metrics.get("completed_steps"), list)
+            else None
+        ),
     ]
     if external_mainline_input_checklist_status:
         if all(value is not None for value in checklist_counts):
@@ -9085,7 +9390,9 @@ def build_customer_acceptance_bundle_artifact(
     if release_ops_execution_event_count is None:
         release_ops_execution_event_stream = (
             release_ops_execution.get("control_plane_event_stream")
-            if isinstance(release_ops_execution.get("control_plane_event_stream"), Mapping)
+            if isinstance(
+                release_ops_execution.get("control_plane_event_stream"), Mapping
+            )
             else {}
         )
         release_ops_execution_event_count = _coerce_non_negative_int(
@@ -9147,7 +9454,9 @@ def build_customer_acceptance_bundle_artifact(
     ).strip()
     draft_external_binding_sections = [
         str(item).strip()
-        for item in extension_execution_actuals.get("external_bindings_draft_sections", [])
+        for item in extension_execution_actuals.get(
+            "external_bindings_draft_sections", []
+        )
         if _is_non_empty_string(item)
     ]
     unconfirmed_external_binding_sections = [
@@ -9175,17 +9484,17 @@ def build_customer_acceptance_bundle_artifact(
     confirm_external_bindings_path = None
     confirm_external_binding_sections: list[str] = []
     if external_bindings_status in {"missing", "placeholder", "partial"}:
-        resolved_external_bindings_path = resolve_customer_external_bindings_config_path(
-            external_bindings_config_path
+        resolved_external_bindings_path = (
+            resolve_customer_external_bindings_config_path(
+                external_bindings_config_path
+            )
         )
-        if (
-            _is_non_empty_string(external_bindings_config_path)
-            and external_bindings_config_path
-            not in {
-                default_placeholder_external_bindings_config_path(),
-                default_rehearsal_external_bindings_config_path(),
-            }
-        ):
+        if _is_non_empty_string(
+            external_bindings_config_path
+        ) and external_bindings_config_path not in {
+            default_placeholder_external_bindings_config_path(),
+            default_rehearsal_external_bindings_config_path(),
+        }:
             confirm_external_bindings_path = resolved_external_bindings_path
             confirm_external_binding_sections = (
                 draft_external_binding_sections
@@ -9227,7 +9536,10 @@ def build_customer_acceptance_bundle_artifact(
         "python tools/build_release_artifact.py --version ... --channel ... --build-id ...",
         "python tools/build_customer_acceptance_bundle.py --manifest ...",
     ]
-    if generated_external_bindings_path is not None or confirm_external_bindings_path is not None:
+    if (
+        generated_external_bindings_path is not None
+        or confirm_external_bindings_path is not None
+    ):
         recommended_commands.append(
             build_run_customer_external_bindings_closure_command(
                 config_path=(
@@ -9235,7 +9547,9 @@ def build_customer_acceptance_bundle_artifact(
                     or generated_external_bindings_path
                     or external_bindings_config_path
                 ),
-                instance_artifact_path=extension_execution_instance.get("artifact_path"),
+                instance_artifact_path=extension_execution_instance.get(
+                    "artifact_path"
+                ),
                 actuals_artifact_path=extension_execution_actuals.get("artifact_path"),
                 sections=confirm_external_binding_sections,
             )
@@ -9244,7 +9558,9 @@ def build_customer_acceptance_bundle_artifact(
         recommended_commands.append(
             build_customer_external_bindings_config_command(
                 output_path=generated_external_bindings_path,
-                instance_artifact_path=extension_execution_instance.get("artifact_path"),
+                instance_artifact_path=extension_execution_instance.get(
+                    "artifact_path"
+                ),
             )
         )
     if confirm_external_bindings_path is not None:
@@ -9368,17 +9684,23 @@ def validate_customer_acceptance_bundle_artifact(payload: Any) -> list[str]:
     if not isinstance(manifest, Mapping):
         errors.append("release_manifest must be an object")
     else:
-        missing_manifest = sorted(CUSTOMER_ACCEPTANCE_RELEASE_MANIFEST_FIELDS - set(manifest))
+        missing_manifest = sorted(
+            CUSTOMER_ACCEPTANCE_RELEASE_MANIFEST_FIELDS - set(manifest)
+        )
         if missing_manifest:
             errors.append(
                 "release_manifest missing required fields: "
                 + ", ".join(missing_manifest)
             )
         for field in CUSTOMER_ACCEPTANCE_RELEASE_MANIFEST_FIELDS:
-            if field in manifest and manifest.get(field) is not None and not _is_non_empty_string(
-                manifest.get(field)
+            if (
+                field in manifest
+                and manifest.get(field) is not None
+                and not _is_non_empty_string(manifest.get(field))
             ):
-                errors.append(f"release_manifest.{field} must be null or a non-empty string")
+                errors.append(
+                    f"release_manifest.{field} must be null or a non-empty string"
+                )
         if manifest.get("release_gate_status") not in RELEASE_GATE_STATUSES:
             errors.append(
                 f"release_manifest.release_gate_status must be one of {sorted(RELEASE_GATE_STATUSES)}"
@@ -9406,9 +9728,7 @@ def validate_customer_acceptance_bundle_artifact(payload: Any) -> list[str]:
     else:
         for index, item in enumerate(known_limitations, start=1):
             if not _is_non_empty_string(item):
-                errors.append(
-                    f"known_limitations[{index}] must be a non-empty string"
-                )
+                errors.append(f"known_limitations[{index}] must be a non-empty string")
 
     errors.extend(
         validate_extension_support_surface(payload.get("extension_support_surface"))
@@ -9417,13 +9737,19 @@ def validate_customer_acceptance_bundle_artifact(payload: Any) -> list[str]:
         validate_extension_execution_plan(payload.get("extension_execution_plan"))
     )
     errors.extend(
-        validate_extension_execution_evidence(payload.get("extension_execution_evidence"))
+        validate_extension_execution_evidence(
+            payload.get("extension_execution_evidence")
+        )
     )
     errors.extend(
-        validate_extension_execution_instance(payload.get("extension_execution_instance"))
+        validate_extension_execution_instance(
+            payload.get("extension_execution_instance")
+        )
     )
     errors.extend(
-        validate_extension_execution_schedule(payload.get("extension_execution_schedule"))
+        validate_extension_execution_schedule(
+            payload.get("extension_execution_schedule")
+        )
     )
     errors.extend(
         validate_extension_execution_actuals(payload.get("extension_execution_actuals"))
@@ -9439,8 +9765,11 @@ def validate_customer_acceptance_bundle_artifact(payload: Any) -> list[str]:
                     "vulnerability_exception_review.status must be one of "
                     f"{sorted(RELEASE_EVIDENCE_STATUSES)}"
                 )
-            if "summary" in vulnerability_exception_review and not _is_non_empty_string(
-                vulnerability_exception_review.get("summary")
+            if (
+                "summary" in vulnerability_exception_review
+                and not _is_non_empty_string(
+                    vulnerability_exception_review.get("summary")
+                )
             ):
                 errors.append(
                     "vulnerability_exception_review.summary must be a non-empty string"
@@ -9460,8 +9789,11 @@ def validate_customer_acceptance_bundle_artifact(payload: Any) -> list[str]:
                     "external_mainline_execution_plan.status must be one of "
                     f"{sorted(EXTERNAL_MAINLINE_EXECUTION_PLAN_STATUSES)}"
                 )
-            if "summary" in external_mainline_execution_plan and not _is_non_empty_string(
-                external_mainline_execution_plan.get("summary")
+            if (
+                "summary" in external_mainline_execution_plan
+                and not _is_non_empty_string(
+                    external_mainline_execution_plan.get("summary")
+                )
             ):
                 errors.append(
                     "external_mainline_execution_plan.summary must be a non-empty string"
@@ -9472,8 +9804,11 @@ def validate_customer_acceptance_bundle_artifact(payload: Any) -> list[str]:
                 "waiting_external_input_steps",
                 "blocked_steps",
             ]:
-                if field in external_mainline_execution_plan and not _is_non_negative_int(
-                    external_mainline_execution_plan.get(field)
+                if (
+                    field in external_mainline_execution_plan
+                    and not _is_non_negative_int(
+                        external_mainline_execution_plan.get(field)
+                    )
                 ):
                     errors.append(
                         f"external_mainline_execution_plan.{field} must be a non-negative integer"
@@ -9489,8 +9824,11 @@ def validate_customer_acceptance_bundle_artifact(payload: Any) -> list[str]:
                     "external_mainline_input_checklist.status must be one of "
                     f"{sorted(RELEASE_EVIDENCE_STATUSES)}"
                 )
-            if "summary" in external_mainline_input_checklist and not _is_non_empty_string(
-                external_mainline_input_checklist.get("summary")
+            if (
+                "summary" in external_mainline_input_checklist
+                and not _is_non_empty_string(
+                    external_mainline_input_checklist.get("summary")
+                )
             ):
                 errors.append(
                     "external_mainline_input_checklist.summary must be a non-empty string"
@@ -9509,7 +9847,9 @@ def validate_customer_acceptance_bundle_artifact(payload: Any) -> list[str]:
             if "summary" in release_ops_execution and not _is_non_empty_string(
                 release_ops_execution.get("summary")
             ):
-                errors.append("release_ops_execution.summary must be a non-empty string")
+                errors.append(
+                    "release_ops_execution.summary must be a non-empty string"
+                )
             if "metrics" in release_ops_execution and not isinstance(
                 release_ops_execution.get("metrics"), Mapping
             ):
@@ -9535,15 +9875,20 @@ def validate_customer_acceptance_bundle_artifact(payload: Any) -> list[str]:
                 errors.append(
                     "control_plane_event_stream.path must be a non-empty string"
                 )
-            if "event_count" in control_plane_event_stream and not _is_non_negative_int(
-                control_plane_event_stream.get("event_count")
+            if (
+                "event_count" in control_plane_event_stream
+                and not _is_non_negative_int(
+                    control_plane_event_stream.get("event_count")
+                )
             ):
                 errors.append(
                     "control_plane_event_stream.event_count must be a non-negative integer when present"
                 )
 
     for list_name in ["acceptance_documents", "acceptance_reports"]:
-        errors.extend(_validate_customer_acceptance_items_list(list_name, payload.get(list_name)))
+        errors.extend(
+            _validate_customer_acceptance_items_list(list_name, payload.get(list_name))
+        )
 
     commands = payload.get("recommended_commands")
     if not isinstance(commands, list) or not commands:
@@ -9551,7 +9896,9 @@ def validate_customer_acceptance_bundle_artifact(payload: Any) -> list[str]:
     else:
         for index, item in enumerate(commands, start=1):
             if not _is_non_empty_string(item):
-                errors.append(f"recommended_commands[{index}] must be a non-empty string")
+                errors.append(
+                    f"recommended_commands[{index}] must be a non-empty string"
+                )
 
     return errors
 
@@ -9706,15 +10053,19 @@ def _normalize_customer_external_bindings_closure_rehearsal_component(
             report_path = item.get("resolved_report_path") or item.get("path")
             payload.setdefault(
                 "status",
-                str(item.get("status")).strip()
-                if _is_non_empty_string(item.get("status"))
-                else "blocked",
+                (
+                    str(item.get("status")).strip()
+                    if _is_non_empty_string(item.get("status"))
+                    else "blocked"
+                ),
             )
             payload.setdefault(
                 "summary",
-                str(item.get("summary")).strip()
-                if _is_non_empty_string(item.get("summary"))
-                else "customer external bindings closure status is unavailable.",
+                (
+                    str(item.get("summary")).strip()
+                    if _is_non_empty_string(item.get("summary"))
+                    else "customer external bindings closure status is unavailable."
+                ),
             )
             payload.setdefault("bundle_path", str(resolved_bundle_path))
             if _is_non_empty_string(report_path):
@@ -9750,15 +10101,19 @@ def _hydrate_external_mainline_execution_plan_component(
 ) -> None:
     payload.setdefault(
         "status",
-        str(component_source.get("status")).strip()
-        if _is_non_empty_string(component_source.get("status"))
-        else "blocked",
+        (
+            str(component_source.get("status")).strip()
+            if _is_non_empty_string(component_source.get("status"))
+            else "blocked"
+        ),
     )
     payload.setdefault(
         "summary",
-        str(component_source.get("summary")).strip()
-        if _is_non_empty_string(component_source.get("summary"))
-        else "external mainline execution plan status is unavailable.",
+        (
+            str(component_source.get("summary")).strip()
+            if _is_non_empty_string(component_source.get("summary"))
+            else "external mainline execution plan status is unavailable."
+        ),
     )
     payload.setdefault("bundle_path", bundle_path)
     report_path = (
@@ -9913,15 +10268,19 @@ def _hydrate_external_mainline_input_checklist_component(
 ) -> None:
     payload.setdefault(
         "status",
-        str(component_source.get("status")).strip()
-        if _is_non_empty_string(component_source.get("status"))
-        else "blocked",
+        (
+            str(component_source.get("status")).strip()
+            if _is_non_empty_string(component_source.get("status"))
+            else "blocked"
+        ),
     )
     payload.setdefault(
         "summary",
-        str(component_source.get("summary")).strip()
-        if _is_non_empty_string(component_source.get("summary"))
-        else "external mainline input checklist status is unavailable.",
+        (
+            str(component_source.get("summary")).strip()
+            if _is_non_empty_string(component_source.get("summary"))
+            else "external mainline input checklist status is unavailable."
+        ),
     )
     payload.setdefault("bundle_path", bundle_path)
     report_path = (
@@ -9952,11 +10311,7 @@ def _hydrate_external_mainline_input_checklist_component(
         if isinstance(values, list):
             payload.setdefault(
                 field,
-                [
-                    str(item).strip()
-                    for item in values
-                    if _is_non_empty_string(item)
-                ],
+                [str(item).strip() for item in values if _is_non_empty_string(item)],
             )
     control_plane_session = _normalize_release_op_session_context_summary(
         component_source.get("control_plane_session")
@@ -10098,15 +10453,19 @@ def _hydrate_release_ops_execution_component(
 ) -> None:
     payload.setdefault(
         "status",
-        str(component_source.get("status")).strip()
-        if _is_non_empty_string(component_source.get("status"))
-        else "blocked",
+        (
+            str(component_source.get("status")).strip()
+            if _is_non_empty_string(component_source.get("status"))
+            else "blocked"
+        ),
     )
     payload.setdefault(
         "summary",
-        str(component_source.get("summary")).strip()
-        if _is_non_empty_string(component_source.get("summary"))
-        else "release ops execution status is unavailable.",
+        (
+            str(component_source.get("summary")).strip()
+            if _is_non_empty_string(component_source.get("summary"))
+            else "release ops execution status is unavailable."
+        ),
     )
     if _is_non_empty_string(bundle_path):
         payload.setdefault("bundle_path", str(bundle_path).strip())
@@ -10174,7 +10533,9 @@ def _normalize_release_ops_execution_rehearsal_component(
         )
 
     resolved_bundle_path = Path(str(bundle_path_value).strip())
-    embedded_component = industrial_customer_acceptance_bundle.get("release_ops_execution")
+    embedded_component = industrial_customer_acceptance_bundle.get(
+        "release_ops_execution"
+    )
     if isinstance(embedded_component, Mapping):
         _hydrate_release_ops_execution_component(
             payload,
@@ -10256,7 +10617,7 @@ def _normalize_release_ops_execution_rehearsal_component(
 
 
 def _format_external_mainline_execution_plan_component_status(
-    component: Mapping[str, Any]
+    component: Mapping[str, Any],
 ) -> str:
     status = str(component.get("status") or "unknown").strip() or "unknown"
     counts: list[str] = []
@@ -10274,7 +10635,7 @@ def _format_external_mainline_execution_plan_component_status(
 
 
 def _format_external_mainline_input_checklist_component_status(
-    component: Mapping[str, Any]
+    component: Mapping[str, Any],
 ) -> str:
     status = str(component.get("status") or "unknown").strip() or "unknown"
     missing_input_count = _coerce_non_negative_int(component.get("missing_input_count"))
@@ -10289,15 +10650,7 @@ def _format_external_mainline_input_checklist_component_status(
         value = component.get(field)
         if isinstance(value, list):
             counts.append(
-                str(
-                    len(
-                        [
-                            item
-                            for item in value
-                            if _is_non_empty_string(item)
-                        ]
-                    )
-                )
+                str(len([item for item in value if _is_non_empty_string(item)]))
             )
             continue
         coerced = _coerce_non_negative_int(value)
@@ -10363,13 +10716,11 @@ def build_industrial_delivery_rehearsal_report_artifact(
         default_summary="industrial promotion checklist is missing from the rehearsal report.",
         component_label="industrial promotion checklist",
     )
-    industrial_customer_acceptance_bundle = (
-        _normalize_industrial_delivery_rehearsal_component(
-            release_rehearsal_report.get("industrial_customer_acceptance_bundle"),
-            default_status="blocked",
-            default_summary="industrial customer acceptance bundle is missing from the rehearsal report.",
-            component_label="industrial customer acceptance bundle",
-        )
+    industrial_customer_acceptance_bundle = _normalize_industrial_delivery_rehearsal_component(
+        release_rehearsal_report.get("industrial_customer_acceptance_bundle"),
+        default_status="blocked",
+        default_summary="industrial customer acceptance bundle is missing from the rehearsal report.",
+        component_label="industrial customer acceptance bundle",
     )
     customer_external_bindings_closure = (
         _normalize_customer_external_bindings_closure_rehearsal_component(
@@ -10551,7 +10902,9 @@ def validate_industrial_delivery_rehearsal_report_artifact(payload: Any) -> list
         return ["industrial delivery rehearsal report must be an object"]
 
     errors: list[str] = []
-    missing = sorted(INDUSTRIAL_DELIVERY_REHEARSAL_REPORT_REQUIRED_FIELDS - set(payload))
+    missing = sorted(
+        INDUSTRIAL_DELIVERY_REHEARSAL_REPORT_REQUIRED_FIELDS - set(payload)
+    )
     if missing:
         errors.append(f"missing required fields: {', '.join(missing)}")
 
@@ -10560,7 +10913,10 @@ def validate_industrial_delivery_rehearsal_report_artifact(payload: Any) -> list
             "schema_version must be "
             f"{INDUSTRIAL_DELIVERY_REHEARSAL_REPORT_VERSION!r}, got {payload.get('schema_version')!r}"
         )
-    if payload.get("artifact_type") != INDUSTRIAL_DELIVERY_REHEARSAL_REPORT_ARTIFACT_TYPE:
+    if (
+        payload.get("artifact_type")
+        != INDUSTRIAL_DELIVERY_REHEARSAL_REPORT_ARTIFACT_TYPE
+    ):
         errors.append(
             "artifact_type must be "
             f"{INDUSTRIAL_DELIVERY_REHEARSAL_REPORT_ARTIFACT_TYPE!r}"
@@ -10574,12 +10930,18 @@ def validate_industrial_delivery_rehearsal_report_artifact(payload: Any) -> list
         errors.append(
             f"release_gate_status must be one of {sorted(RELEASE_GATE_STATUSES)}"
         )
-    if payload.get("customer_delivery_status") not in CUSTOMER_DELIVERY_SURFACE_STATUSES:
+    if (
+        payload.get("customer_delivery_status")
+        not in CUSTOMER_DELIVERY_SURFACE_STATUSES
+    ):
         errors.append(
             "customer_delivery_status must be one of "
             f"{sorted(CUSTOMER_DELIVERY_SURFACE_STATUSES)}"
         )
-    if payload.get("industrial_delivery_status") not in INDUSTRIAL_DELIVERY_GATE_STATUSES:
+    if (
+        payload.get("industrial_delivery_status")
+        not in INDUSTRIAL_DELIVERY_GATE_STATUSES
+    ):
         errors.append(
             "industrial_delivery_status must be one of "
             f"{sorted(INDUSTRIAL_DELIVERY_GATE_STATUSES)}"
@@ -10617,8 +10979,11 @@ def validate_industrial_delivery_rehearsal_report_artifact(payload: Any) -> list
                 errors.append(
                     "control_plane_event_stream.path must be a non-empty string"
                 )
-            if "event_count" in control_plane_event_stream and not _is_non_negative_int(
-                control_plane_event_stream.get("event_count")
+            if (
+                "event_count" in control_plane_event_stream
+                and not _is_non_negative_int(
+                    control_plane_event_stream.get("event_count")
+                )
             ):
                 errors.append(
                     "control_plane_event_stream.event_count must be a non-negative integer when present"
@@ -10709,7 +11074,9 @@ def validate_industrial_delivery_rehearsal_report_artifact(payload: Any) -> list
                 + ", ".join(missing_stage_summary)
             )
         for field in INDUSTRIAL_DELIVERY_REHEARSAL_STAGE_SUMMARY_FIELDS:
-            if field in stage_summary and not _is_non_negative_int(stage_summary.get(field)):
+            if field in stage_summary and not _is_non_negative_int(
+                stage_summary.get(field)
+            ):
                 errors.append(f"stage_summary.{field} must be a non-negative integer")
         if (
             _is_non_negative_int(stage_summary.get("total"))
@@ -10718,7 +11085,9 @@ def validate_industrial_delivery_rehearsal_report_artifact(payload: Any) -> list
             and stage_summary.get("passed") + stage_summary.get("failed")
             != stage_summary.get("total")
         ):
-            errors.append("stage_summary.passed + stage_summary.failed must equal stage_summary.total")
+            errors.append(
+                "stage_summary.passed + stage_summary.failed must equal stage_summary.total"
+            )
 
     artifact_paths = payload.get("industrial_delivery_artifact_paths")
     errors.extend(
@@ -10809,9 +11178,7 @@ def validate_release_evidence_report(payload: Any) -> list[str]:
             f"artifact_type must be {RELEASE_EVIDENCE_REPORT_ARTIFACT_TYPE!r}"
         )
     if payload.get("status") not in RELEASE_EVIDENCE_STATUSES:
-        errors.append(
-            f"status must be one of {sorted(RELEASE_EVIDENCE_STATUSES)}"
-        )
+        errors.append(f"status must be one of {sorted(RELEASE_EVIDENCE_STATUSES)}")
     for field in ["evidence_name", "summary", "command", "generated_at"]:
         if field in payload and not _is_non_empty_string(payload.get(field)):
             errors.append(f"{field} must be a non-empty string")
@@ -10855,8 +11222,11 @@ def validate_release_evidence_report(payload: Any) -> list[str]:
                 errors.append(
                     "control_plane_event_stream.path must be a non-empty string"
                 )
-            if "event_count" in control_plane_event_stream and not _is_non_negative_int(
-                control_plane_event_stream.get("event_count")
+            if (
+                "event_count" in control_plane_event_stream
+                and not _is_non_negative_int(
+                    control_plane_event_stream.get("event_count")
+                )
             ):
                 errors.append(
                     "control_plane_event_stream.event_count must be a non-negative integer when present"
@@ -10921,14 +11291,19 @@ def _normalize_industrial_delivery_rehearsal_component(
     return to_jsonable(payload)
 
 
-def _normalize_industrial_delivery_rehearsal_stages(stages: Any) -> list[dict[str, Any]]:
+def _normalize_industrial_delivery_rehearsal_stages(
+    stages: Any,
+) -> list[dict[str, Any]]:
     stages_by_id: dict[str, Mapping[str, Any]] = {}
     if isinstance(stages, list):
         for item in stages:
             if not isinstance(item, Mapping):
                 continue
             stage_id = item.get("id")
-            if stage_id in INDUSTRIAL_DELIVERY_REHEARSAL_STAGE_IDS and stage_id not in stages_by_id:
+            if (
+                stage_id in INDUSTRIAL_DELIVERY_REHEARSAL_STAGE_IDS
+                and stage_id not in stages_by_id
+            ):
                 stages_by_id[str(stage_id)] = item
 
     normalized: list[dict[str, Any]] = []
@@ -10940,7 +11315,8 @@ def _normalize_industrial_delivery_rehearsal_stages(stages: Any) -> list[dict[st
                 "id": stage_id,
                 "status": (
                     item.get("status")
-                    if item.get("status") in INDUSTRIAL_DELIVERY_REHEARSAL_STAGE_STATUSES
+                    if item.get("status")
+                    in INDUSTRIAL_DELIVERY_REHEARSAL_STAGE_STATUSES
                     else "fail"
                 ),
                 "summary": (
@@ -10948,13 +11324,15 @@ def _normalize_industrial_delivery_rehearsal_stages(stages: Any) -> list[dict[st
                     if _is_non_empty_string(item.get("summary"))
                     else f"{stage_id} stage is missing from the release rehearsal report."
                 ),
-                "artifact_paths": [
-                    str(path).strip()
-                    for path in artifact_paths
-                    if _is_non_empty_string(path)
-                ]
-                if isinstance(artifact_paths, list)
-                else [],
+                "artifact_paths": (
+                    [
+                        str(path).strip()
+                        for path in artifact_paths
+                        if _is_non_empty_string(path)
+                    ]
+                    if isinstance(artifact_paths, list)
+                    else []
+                ),
             }
         )
     return normalized
@@ -10995,9 +11373,7 @@ def _validate_industrial_delivery_rehearsal_component(
     if missing:
         errors.append(f"{field_name} missing required fields: {', '.join(missing)}")
     if component.get("status") not in allowed_statuses:
-        errors.append(
-            f"{field_name}.status must be one of {sorted(allowed_statuses)}"
-        )
+        errors.append(f"{field_name}.status must be one of {sorted(allowed_statuses)}")
     if "summary" in component and not _is_non_empty_string(component.get("summary")):
         errors.append(f"{field_name}.summary must be a non-empty string")
     return errors
@@ -11051,7 +11427,9 @@ def _hydrate_customer_acceptance_items(
     return hydrated
 
 
-def _summarize_customer_acceptance_report(name: Any, report_path: Path) -> dict[str, Any]:
+def _summarize_customer_acceptance_report(
+    name: Any, report_path: Path
+) -> dict[str, Any]:
     if not report_path.is_file():
         return {}
 
@@ -11096,7 +11474,9 @@ def _summarize_customer_acceptance_report(name: Any, report_path: Path) -> dict[
             "artifact_type": artifact_type,
             "status": payload.get("posture_status"),
             "summary": payload.get("summary"),
-            "blocked_vulnerability_reports": payload.get("blocked_vulnerability_reports"),
+            "blocked_vulnerability_reports": payload.get(
+                "blocked_vulnerability_reports"
+            ),
             "blocked_vulnerability_execution_reports": payload.get(
                 "blocked_vulnerability_execution_reports"
             ),
@@ -11245,7 +11625,8 @@ def _summarize_customer_acceptance_report(name: Any, report_path: Path) -> dict[
 
     if _is_non_empty_string(str(name)) and str(name) == "release_readiness":
         return {
-            "status": payload.get("stable_release_gate") or payload.get("rc_release_gate"),
+            "status": payload.get("stable_release_gate")
+            or payload.get("rc_release_gate"),
             "summary": payload.get("summary")
             or (
                 f"rc={payload.get('rc_release_gate')}, stable={payload.get('stable_release_gate')}"
@@ -11258,8 +11639,7 @@ def _summarize_customer_acceptance_report(name: Any, report_path: Path) -> dict[
             "status": payload.get("industrial_release_gate"),
             "summary": payload.get("summary")
             or (
-                "industrial="
-                + str(payload.get("industrial_release_gate"))
+                "industrial=" + str(payload.get("industrial_release_gate"))
                 if payload.get("industrial_release_gate") is not None
                 else None
             ),
@@ -11274,7 +11654,10 @@ def _summarize_customer_acceptance_report(name: Any, report_path: Path) -> dict[
                 else None
             ),
         }
-    if _is_non_empty_string(str(name)) and str(name) == "industrial_promotion_checklist":
+    if (
+        _is_non_empty_string(str(name))
+        and str(name) == "industrial_promotion_checklist"
+    ):
         return {
             "status": "ready" if payload.get("ready_to_promote") else "blocked",
             "summary": payload.get("summary")
@@ -11303,7 +11686,9 @@ def _load_release_evidence_from_report(name: str, report_path: Path) -> dict[str
             report_path=report_path,
         )
     if name == "clean_checkout_smoke":
-        return _summarize_clean_checkout_smoke_evidence(payload, report_path=report_path)
+        return _summarize_clean_checkout_smoke_evidence(
+            payload, report_path=report_path
+        )
     if name == "distributed_runtime_live":
         return _summarize_distributed_release_evidence(payload)
     if name == "godot_headless_live":
@@ -11442,7 +11827,9 @@ def _summarize_clean_checkout_smoke_evidence(
     }
 
 
-def _summarize_distributed_release_evidence(payload: Mapping[str, Any]) -> dict[str, Any]:
+def _summarize_distributed_release_evidence(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
     status = str(payload.get("status", "")).strip().lower()
     failed_check = payload.get("failed_check")
     checks = payload.get("checks", [])
@@ -11487,7 +11874,8 @@ def _summarize_live_smoke_evidence(
     if status == "skipped":
         return {
             "status": "opt_in",
-            "summary": message or "Live smoke was skipped because its environment gate was not enabled.",
+            "summary": message
+            or "Live smoke was skipped because its environment gate was not enabled.",
         }
     if status == "failed":
         suffix = f" at {failure_stage}" if _is_non_empty_string(failure_stage) else ""
@@ -11728,7 +12116,9 @@ def _resolve_git_release_source(
 ) -> dict[str, Any]:
     root = Path(source_root) if source_root is not None else Path.cwd()
     commit_sha = _run_git_capture(["git", "rev-parse", "HEAD"], cwd=root)
-    short_commit_sha = _run_git_capture(["git", "rev-parse", "--short=12", "HEAD"], cwd=root)
+    short_commit_sha = _run_git_capture(
+        ["git", "rev-parse", "--short=12", "HEAD"], cwd=root
+    )
     tags_output = _run_git_capture(["git", "tag", "--points-at", "HEAD"], cwd=root)
     tags = [line.strip() for line in (tags_output or "").splitlines() if line.strip()]
     worktree_output = _run_git_capture(["git", "status", "--short"], cwd=root)
@@ -11741,7 +12131,9 @@ def _resolve_git_release_source(
         git_tag = matched_version_tag
     elif tags:
         git_tag = tags[0]
-    if not (_is_non_empty_string(commit_sha) and _is_non_empty_string(short_commit_sha)):
+    if not (
+        _is_non_empty_string(commit_sha) and _is_non_empty_string(short_commit_sha)
+    ):
         return {}
     return {
         "resolved_from_git": True,

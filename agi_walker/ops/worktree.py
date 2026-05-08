@@ -18,7 +18,9 @@ from agi_walker.core.api.release_ops_contracts import (
 def _find_repo_root() -> Path:
     current = Path(__file__).resolve()
     for candidate in current.parents:
-        if (candidate / "pyproject.toml").exists() and (candidate / "agi_walker").exists():
+        if (candidate / "pyproject.toml").exists() and (
+            candidate / "agi_walker"
+        ).exists():
             return candidate
     return current.parent
 
@@ -94,7 +96,9 @@ def _validate_cleanup_report(payload: Any) -> list[str]:
     ]:
         if field not in payload:
             errors.append(f"cleanup report missing required field: {field}")
-    if "clean_worktree" in payload and not isinstance(payload.get("clean_worktree"), bool):
+    if "clean_worktree" in payload and not isinstance(
+        payload.get("clean_worktree"), bool
+    ):
         errors.append("cleanup report clean_worktree must be a boolean")
     for field in [
         "total_paths",
@@ -108,7 +112,9 @@ def _validate_cleanup_report(payload: Any) -> list[str]:
         value = payload.get(field)
         if field in payload and (not isinstance(value, int) or value < 0):
             errors.append(f"cleanup report {field} must be a non-negative integer")
-    if "next_step_plan" in payload and not isinstance(payload.get("next_step_plan"), list):
+    if "next_step_plan" in payload and not isinstance(
+        payload.get("next_step_plan"), list
+    ):
         errors.append("cleanup report next_step_plan must be a list")
     return errors
 
@@ -128,10 +134,14 @@ def _validate_tracked_review_report(payload: Any) -> list[str]:
     if candidate_count is not None and (
         not isinstance(candidate_count, int) or candidate_count < 0
     ):
-        errors.append("tracked review report tracked_candidate_count must be a non-negative integer")
+        errors.append(
+            "tracked review report tracked_candidate_count must be a non-negative integer"
+        )
     if "entries" in payload and not isinstance(payload.get("entries"), list):
         errors.append("tracked review report entries must be a list")
-    if "next_step_plan" in payload and not isinstance(payload.get("next_step_plan"), list):
+    if "next_step_plan" in payload and not isinstance(
+        payload.get("next_step_plan"), list
+    ):
         errors.append("tracked review report next_step_plan must be a list")
     return errors
 
@@ -139,7 +149,9 @@ def _validate_tracked_review_report(payload: Any) -> list[str]:
 def _coerce_string_list(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
-    return [str(item).strip() for item in value if isinstance(item, str) and item.strip()]
+    return [
+        str(item).strip() for item in value if isinstance(item, str) and item.strip()
+    ]
 
 
 def _build_summary(
@@ -281,9 +293,7 @@ def execute_worktree_release_blocker(
             "tracked_paths": cleanup_payload.get("tracked_paths", 0),
             "untracked_paths": cleanup_payload.get("untracked_paths", 0),
             "staged_paths": cleanup_payload.get("staged_paths", 0),
-            "unstaged_tracked_paths": cleanup_payload.get(
-                "unstaged_tracked_paths", 0
-            ),
+            "unstaged_tracked_paths": cleanup_payload.get("unstaged_tracked_paths", 0),
             "staged_and_unstaged_paths": cleanup_payload.get(
                 "staged_and_unstaged_paths", 0
             ),
@@ -302,7 +312,9 @@ def execute_worktree_release_blocker(
             "failed_steps": failed_steps,
             "category_summary": cleanup_payload.get("category_summary", []),
             "status_summary": cleanup_payload.get("status_summary", []),
-            "next_step_plan": _coerce_string_list(cleanup_payload.get("next_step_plan")),
+            "next_step_plan": _coerce_string_list(
+                cleanup_payload.get("next_step_plan")
+            ),
         }
         written_report = _write_report(report_path, payload)
         return WorktreeReleaseBlockerResult(
@@ -320,9 +332,7 @@ def execute_worktree_release_blocker(
     untracked_paths = int(cleanup_payload.get("untracked_paths", 0))
     staged_paths = int(cleanup_payload.get("staged_paths", 0))
     unstaged_tracked_paths = int(cleanup_payload.get("unstaged_tracked_paths", 0))
-    staged_and_unstaged_paths = int(
-        cleanup_payload.get("staged_and_unstaged_paths", 0)
-    )
+    staged_and_unstaged_paths = int(cleanup_payload.get("staged_and_unstaged_paths", 0))
     tracked_review_candidate_count = int(
         cleanup_payload.get("tracked_review_candidate_count", 0)
     )
@@ -332,7 +342,9 @@ def execute_worktree_release_blocker(
     if tracked_review_required:
         next_step_plan.extend(
             item
-            for item in _coerce_string_list(tracked_review_payload.get("next_step_plan"))
+            for item in _coerce_string_list(
+                tracked_review_payload.get("next_step_plan")
+            )
             if item not in next_step_plan
         )
     payload = {

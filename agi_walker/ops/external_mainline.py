@@ -61,7 +61,9 @@ def _coerce_string_list(value: object) -> list[str]:
     return [str(item).strip() for item in value if _is_non_empty_string(item)]
 
 
-def _load_inputs_file(path: str | Path, *, project_root: str | Path) -> dict[str, object]:
+def _load_inputs_file(
+    path: str | Path, *, project_root: str | Path
+) -> dict[str, object]:
     resolved_path = _resolve_project_path(path, project_root)
     try:
         payload = json.loads(resolved_path.read_text(encoding="utf-8"))
@@ -92,10 +94,16 @@ def _synchronize_inputs_file(
     python_executable: str,
 ) -> tuple[Path, str | None]:
     if not request.inputs_file:
-        raise ValueError("--inputs-file must be set unless --skip-managed-inputs is used")
-    resolved_inputs_path = _resolve_project_path(request.inputs_file, request.project_root)
+        raise ValueError(
+            "--inputs-file must be set unless --skip-managed-inputs is used"
+        )
+    resolved_inputs_path = _resolve_project_path(
+        request.inputs_file, request.project_root
+    )
     had_existing_file = resolved_inputs_path.is_file()
-    if had_existing_file and not _is_default_managed_inputs_path(request, resolved_inputs_path):
+    if had_existing_file and not _is_default_managed_inputs_path(
+        request, resolved_inputs_path
+    ):
         return resolved_inputs_path, None
 
     synchronize_command = [
@@ -120,8 +128,7 @@ def _synchronize_inputs_file(
         )
     if run_command(synchronize_command) != 0 or not resolved_inputs_path.is_file():
         raise ValueError(
-            "--inputs-file automatic synchronization failed: "
-            f"{resolved_inputs_path}"
+            "--inputs-file automatic synchronization failed: " f"{resolved_inputs_path}"
         )
     return resolved_inputs_path, "refreshed" if had_existing_file else "bootstrapped"
 
@@ -203,7 +210,9 @@ def _apply_inputs_file(
         if request.customer_overrides_file is None and _is_non_empty_string(
             customer.get("overrides_file")
         ):
-            request.customer_overrides_file = str(customer.get("overrides_file")).strip()
+            request.customer_overrides_file = str(
+                customer.get("overrides_file")
+            ).strip()
         if request.customer_set is None:
             customer_set = _coerce_string_list(customer.get("set"))
             if customer_set:
@@ -237,16 +246,23 @@ def _apply_inputs_file(
             request.industrial_delivery_rehearsal_report = str(
                 industrial.get("report_path")
             ).strip()
-        if request.refresh_industrial_rehearsal is False and industrial.get("refresh") is True:
+        if (
+            request.refresh_industrial_rehearsal is False
+            and industrial.get("refresh") is True
+        ):
             request.refresh_industrial_rehearsal = True
         if request.industrial_rehearsal_version is None and _is_non_empty_string(
             industrial.get("version")
         ):
-            request.industrial_rehearsal_version = str(industrial.get("version")).strip()
+            request.industrial_rehearsal_version = str(
+                industrial.get("version")
+            ).strip()
         if request.industrial_rehearsal_build_id is None and _is_non_empty_string(
             industrial.get("build_id")
         ):
-            request.industrial_rehearsal_build_id = str(industrial.get("build_id")).strip()
+            request.industrial_rehearsal_build_id = str(
+                industrial.get("build_id")
+            ).strip()
         if (
             request.industrial_rehearsal_output_root
             == "test_env/release_rehearsal_industrial"
@@ -301,7 +317,10 @@ def execute_external_mainline_execution(
         skipped_steps.append("vulnerability_exception_review_refresh")
 
     if request.refresh_industrial_rehearsal:
-        if not request.industrial_rehearsal_version or not request.industrial_rehearsal_build_id:
+        if (
+            not request.industrial_rehearsal_version
+            or not request.industrial_rehearsal_build_id
+        ):
             raise ValueError(
                 "--refresh-industrial-rehearsal requires both "
                 "--industrial-rehearsal-version and --industrial-rehearsal-build-id"
@@ -377,7 +396,9 @@ def execute_external_mainline_execution(
         industrial_delivery_rehearsal_report_path=request.industrial_delivery_rehearsal_report,
         industrial_live_evidence_inputs=request.industrial_live_evidence_inputs,
     )
-    output_path = write_external_mainline_execution_plan_artifact(payload, request.output)
+    output_path = write_external_mainline_execution_plan_artifact(
+        payload, request.output
+    )
     checklist_payload = build_external_mainline_input_checklist_report(
         project_root=request.project_root,
         inputs_file_path=resolved_inputs_path or request.inputs_file,
@@ -401,9 +422,9 @@ def execute_external_mainline_execution(
     )
     industrial_live_evidence_inputs_ready = None
     if isinstance(industrial_step, Mapping):
-        industrial_live_evidence_inputs_ready = industrial_step.get(
-            "managed_inputs_ready"
-        ) is True
+        industrial_live_evidence_inputs_ready = (
+            industrial_step.get("managed_inputs_ready") is True
+        )
 
     return ExternalMainlineExecutionResult(
         payload=payload,

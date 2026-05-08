@@ -90,21 +90,37 @@ def validate_imc22_safety_profile(profile: Dict[str, Any]) -> List[str]:
         errors.append(
             f"safety_profile.schema_version must be {IMC22_SAFETY_PROFILE_SCHEMA_VERSION!r}"
         )
-    for key in ["max_abs_target_angle", "min_compliance", "max_compliance", "watchdog_timeout_s", "watchdog_hold_angle"]:
+    for key in [
+        "max_abs_target_angle",
+        "min_compliance",
+        "max_compliance",
+        "watchdog_timeout_s",
+        "watchdog_hold_angle",
+    ]:
         if not isinstance(profile.get(key), (int, float)):
             errors.append(f"safety_profile.{key} must be numeric")
     min_compliance = profile.get("min_compliance")
     max_compliance = profile.get("max_compliance")
-    if isinstance(min_compliance, (int, float)) and isinstance(max_compliance, (int, float)):
+    if isinstance(min_compliance, (int, float)) and isinstance(
+        max_compliance, (int, float)
+    ):
         if float(min_compliance) < 0.0 or float(max_compliance) > 1.0:
-            errors.append("safety_profile compliance bounds must stay within [0.0, 1.0]")
+            errors.append(
+                "safety_profile compliance bounds must stay within [0.0, 1.0]"
+            )
         if float(min_compliance) > float(max_compliance):
             errors.append("safety_profile.min_compliance must be <= max_compliance")
     watchdog_timeout_s = profile.get("watchdog_timeout_s")
-    if isinstance(watchdog_timeout_s, (int, float)) and float(watchdog_timeout_s) <= 0.0:
+    if (
+        isinstance(watchdog_timeout_s, (int, float))
+        and float(watchdog_timeout_s) <= 0.0
+    ):
         errors.append("safety_profile.watchdog_timeout_s must be positive")
     max_abs_target_angle = profile.get("max_abs_target_angle")
-    if isinstance(max_abs_target_angle, (int, float)) and float(max_abs_target_angle) <= 0.0:
+    if (
+        isinstance(max_abs_target_angle, (int, float))
+        and float(max_abs_target_angle) <= 0.0
+    ):
         errors.append("safety_profile.max_abs_target_angle must be positive")
     return errors
 
@@ -116,7 +132,9 @@ def load_imc22_fault_table(source: str | Path | Dict[str, Any]) -> Dict[str, Any
         payload = json.loads(Path(source).read_text(encoding="utf-8"))
     exact_codes = payload.get("exact_codes")
     if isinstance(exact_codes, dict):
-        payload["exact_codes"] = {int(code): value for code, value in exact_codes.items()}
+        payload["exact_codes"] = {
+            int(code): value for code, value in exact_codes.items()
+        }
     errors = validate_imc22_fault_table(payload)
     if errors:
         raise ValueError("; ".join(errors))
@@ -307,14 +325,18 @@ def validate_imc22_fault_table(fault_table: Dict[str, Any]) -> List[str]:
             min_value = entry.get("min")
             max_value = entry.get("max")
             if min_value is not None and not isinstance(min_value, (int, float)):
-                errors.append(f"fault_table.ranges[{index}].min must be numeric or null")
+                errors.append(
+                    f"fault_table.ranges[{index}].min must be numeric or null"
+                )
             if max_value is not None and not isinstance(max_value, (int, float)):
-                errors.append(f"fault_table.ranges[{index}].max must be numeric or null")
-            if isinstance(min_value, (int, float)) and isinstance(max_value, (int, float)):
+                errors.append(
+                    f"fault_table.ranges[{index}].max must be numeric or null"
+                )
+            if isinstance(min_value, (int, float)) and isinstance(
+                max_value, (int, float)
+            ):
                 if float(min_value) > float(max_value):
-                    errors.append(
-                        f"fault_table.ranges[{index}].min must be <= max"
-                    )
+                    errors.append(f"fault_table.ranges[{index}].min must be <= max")
     fallback_fault_class = fault_table.get("fallback_fault_class")
     if fallback_fault_class not in IMC22_FAULT_CLASSES:
         errors.append("fault_table.fallback_fault_class must be a valid fault class")
@@ -492,14 +514,14 @@ def validate_imc22_transport_profile(profile: Dict[str, Any]) -> List[str]:
         errors.append("transport_profile.channel must be a non-empty string")
     if not isinstance(profile.get("fault_vendor"), str) or not profile["fault_vendor"]:
         errors.append("transport_profile.fault_vendor must be a non-empty string")
-    if (
-        profile.get("fault_table_source") is not None
-        and not isinstance(profile.get("fault_table_source"), (str, Path))
+    if profile.get("fault_table_source") is not None and not isinstance(
+        profile.get("fault_table_source"), (str, Path)
     ):
-        errors.append("transport_profile.fault_table_source must be a string path when set")
-    if (
-        profile.get("recovery_policy_source") is not None
-        and not isinstance(profile.get("recovery_policy_source"), (str, Path))
+        errors.append(
+            "transport_profile.fault_table_source must be a string path when set"
+        )
+    if profile.get("recovery_policy_source") is not None and not isinstance(
+        profile.get("recovery_policy_source"), (str, Path)
     ):
         errors.append(
             "transport_profile.recovery_policy_source must be a string path when set"
@@ -1012,9 +1034,7 @@ def run_imc22_transport_diagnostics(
                 )
 
     status = (
-        "blocked"
-        if any(check["status"] == "blocked" for check in checks)
-        else "ready"
+        "blocked" if any(check["status"] == "blocked" for check in checks) else "ready"
     )
     report = {
         "schema_version": IMC22_TRANSPORT_DIAGNOSTICS_SCHEMA_VERSION,
@@ -1345,7 +1365,9 @@ class IMC22Controller:
         """
         bounded_angle = max(
             -float(self.safety_profile["max_abs_target_angle"]),
-            min(float(self.safety_profile["max_abs_target_angle"]), float(target_angle)),
+            min(
+                float(self.safety_profile["max_abs_target_angle"]), float(target_angle)
+            ),
         )
         bounded_compliance = max(
             float(self.safety_profile["min_compliance"]),
@@ -1525,9 +1547,9 @@ class IMC22Controller:
             }
             fault_counts[fault_class] = fault_counts.get(fault_class, 0) + 1
         if self.watchdog_tripped_at is not None:
-            fault_counts["watchdog_timeout"] = fault_counts.get("watchdog_timeout", 0) + len(
-                self._known_node_ids
-            )
+            fault_counts["watchdog_timeout"] = fault_counts.get(
+                "watchdog_timeout", 0
+            ) + len(self._known_node_ids)
         return {
             "schema_version": IMC22_FAULT_SUMMARY_SCHEMA_VERSION,
             "fault_table_schema_version": self.fault_table["schema_version"],

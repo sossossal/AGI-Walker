@@ -17,7 +17,9 @@ from agi_walker.core.api.release_ops_contracts import (
 def _find_repo_root() -> Path:
     current = Path(__file__).resolve()
     for candidate in current.parents:
-        if (candidate / "pyproject.toml").exists() and (candidate / "agi_walker").exists():
+        if (candidate / "pyproject.toml").exists() and (
+            candidate / "agi_walker"
+        ).exists():
             return candidate
     return current.parent
 
@@ -63,21 +65,23 @@ def execute_stable_promotion_checklist(
         "--commit-sha": request.commit_sha,
         "--approval-notes": request.approval_notes,
     }
-    readiness_payload, readiness_stdout, readiness_stderr = stable_tool._load_readiness_report(
-        readiness_report_path=readiness_report_path,
-        refresh_readiness=(
-            request.refresh_readiness
-            or not bool(request.readiness_report)
-            or bool(request.security_preflight_report)
-        ),
-        current_version=request.current_version,
-        stable_version=request.stable_version,
-        project_root=request.project_root,
-        source_root=request.source_root,
-        changelog=request.changelog,
-        security_preflight_report=request.security_preflight_report,
-        approval_args=approval_args,
-        approval_manifest=request.approval_manifest,
+    readiness_payload, readiness_stdout, readiness_stderr = (
+        stable_tool._load_readiness_report(
+            readiness_report_path=readiness_report_path,
+            refresh_readiness=(
+                request.refresh_readiness
+                or not bool(request.readiness_report)
+                or bool(request.security_preflight_report)
+            ),
+            current_version=request.current_version,
+            stable_version=request.stable_version,
+            project_root=request.project_root,
+            source_root=request.source_root,
+            changelog=request.changelog,
+            security_preflight_report=request.security_preflight_report,
+            approval_args=approval_args,
+            approval_manifest=request.approval_manifest,
+        )
     )
     stable_preview = stable_tool._stable_preview(readiness_payload)
     manifest = stable_tool._load_manifest(stable_preview["manifest_path"])
@@ -89,8 +93,8 @@ def execute_stable_promotion_checklist(
 
     evidence_steps = stable_tool._build_evidence_steps(manifest)
     security_preflight_step = stable_tool._build_security_preflight_step(stable_preview)
-    vulnerability_exception_review_step = stable_tool._build_vulnerability_exception_review_step(
-        stable_preview
+    vulnerability_exception_review_step = (
+        stable_tool._build_vulnerability_exception_review_step(stable_preview)
     )
     (
         external_mainline_execution_plan,
@@ -105,13 +109,17 @@ def execute_stable_promotion_checklist(
         output_root=report_path.parent,
     )
     customer_delivery_step = stable_tool._build_customer_delivery_step(stable_preview)
-    industrial_delivery_step = stable_tool._build_industrial_delivery_step(stable_preview)
+    industrial_delivery_step = stable_tool._build_industrial_delivery_step(
+        stable_preview
+    )
     extension_execution_actuals, extension_execution_actuals_step = (
         stable_tool._build_extension_execution_actuals_step(stable_preview)
     )
-    extension_external_bindings_step = stable_tool._build_extension_external_bindings_step(
-        project_root=request.project_root,
-        actuals=extension_execution_actuals,
+    extension_external_bindings_step = (
+        stable_tool._build_extension_external_bindings_step(
+            project_root=request.project_root,
+            actuals=extension_execution_actuals,
+        )
     )
     domain_steps = stable_tool._build_domain_steps(manifest)
     prerequisite_steps = stable_tool._build_prerequisite_steps(
@@ -178,7 +186,9 @@ def execute_stable_promotion_checklist(
         "completed_steps": completed_steps,
         "pending_steps": pending_steps,
         "ready_to_promote": blocking_steps == 0,
-        "customer_delivery_surface": stable_preview.get("customer_delivery_surface", {}),
+        "customer_delivery_surface": stable_preview.get(
+            "customer_delivery_surface", {}
+        ),
         "industrial_delivery_gate": stable_preview.get("industrial_delivery_gate", {}),
         "worktree_release_blocker": worktree_release_blocker,
         "external_mainline_execution_plan": external_mainline_execution_plan,
@@ -264,21 +274,23 @@ def execute_industrial_promotion_checklist(
         "--commit-sha": request.commit_sha,
         "--approval-notes": request.approval_notes,
     }
-    readiness_payload, readiness_stdout, readiness_stderr = industrial_tool._load_readiness_report(
-        readiness_report_path=readiness_report_path,
-        refresh_readiness=(
-            request.refresh_readiness
-            or not bool(request.readiness_report)
-            or bool(request.security_preflight_report)
-        ),
-        current_version=request.current_version,
-        industrial_version=request.industrial_version,
-        project_root=request.project_root,
-        source_root=request.source_root,
-        changelog=request.changelog,
-        security_preflight_report=request.security_preflight_report,
-        approval_args=approval_args,
-        approval_manifest=request.approval_manifest,
+    readiness_payload, readiness_stdout, readiness_stderr = (
+        industrial_tool._load_readiness_report(
+            readiness_report_path=readiness_report_path,
+            refresh_readiness=(
+                request.refresh_readiness
+                or not bool(request.readiness_report)
+                or bool(request.security_preflight_report)
+            ),
+            current_version=request.current_version,
+            industrial_version=request.industrial_version,
+            project_root=request.project_root,
+            source_root=request.source_root,
+            changelog=request.changelog,
+            security_preflight_report=request.security_preflight_report,
+            approval_args=approval_args,
+            approval_manifest=request.approval_manifest,
+        )
     )
     industrial_preview = industrial_tool._industrial_preview(readiness_payload)
     manifest = industrial_tool._load_manifest(industrial_preview["manifest_path"])
@@ -292,8 +304,8 @@ def execute_industrial_promotion_checklist(
     security_preflight_step = industrial_tool._build_security_preflight_step(
         industrial_preview
     )
-    vulnerability_exception_review_step = industrial_tool._build_vulnerability_exception_review_step(
-        industrial_preview
+    vulnerability_exception_review_step = (
+        industrial_tool._build_vulnerability_exception_review_step(industrial_preview)
     )
     (
         external_mainline_execution_plan,
@@ -302,7 +314,9 @@ def execute_industrial_promotion_checklist(
     (
         external_mainline_input_checklist,
         external_mainline_input_checklist_step,
-    ) = industrial_tool._build_external_mainline_input_checklist_step(industrial_preview)
+    ) = industrial_tool._build_external_mainline_input_checklist_step(
+        industrial_preview
+    )
     worktree_release_blocker = industrial_tool._build_worktree_release_blocker_preview(
         industrial_preview,
         output_root=report_path.parent,
@@ -344,9 +358,11 @@ def execute_industrial_promotion_checklist(
         project_root=request.project_root,
         industrial_preview=industrial_preview,
     )
-    extension_external_bindings_step = industrial_tool._build_extension_external_bindings_step(
-        project_root=request.project_root,
-        actuals=extension_execution_actuals,
+    extension_external_bindings_step = (
+        industrial_tool._build_extension_external_bindings_step(
+            project_root=request.project_root,
+            actuals=extension_execution_actuals,
+        )
     )
     domain_steps = industrial_tool._build_domain_steps(manifest)
     prerequisite_steps = industrial_tool._build_prerequisite_steps(

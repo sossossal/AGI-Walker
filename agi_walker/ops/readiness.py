@@ -202,7 +202,9 @@ def _resolve_release_approval(
     )
     approval = dict(manifest_payload["release_approval"])
     if explicit is not None:
-        approval.update({key: value for key, value in explicit.items() if value is not None})
+        approval.update(
+            {key: value for key, value in explicit.items() if value is not None}
+        )
     return approval, str(manifest_path)
 
 
@@ -238,7 +240,9 @@ def _load_security_preflight_preview(report_path: Path) -> dict[str, Any]:
         return preview
 
     preview["status"] = payload.get("status") or "blocked"
-    preview["summary"] = payload.get("summary") or "security release preflight has no summary."
+    preview["summary"] = (
+        payload.get("summary") or "security release preflight has no summary."
+    )
     preview["command"] = payload.get("command") or _default_security_preflight_command()
     preview["generated_at"] = payload.get("generated_at")
     preview["metrics"] = payload.get("metrics", {})
@@ -293,13 +297,13 @@ def _build_vulnerability_exception_review_action(
     metrics = security_preflight.get("metrics")
     if not isinstance(metrics, Mapping):
         return None
-    review_status = str(metrics.get("vulnerability_exception_review_status") or "").strip()
+    review_status = str(
+        metrics.get("vulnerability_exception_review_status") or ""
+    ).strip()
     review_due = _coerce_non_negative_int(
         metrics.get("vulnerability_exception_review_due")
     )
-    expired = _coerce_non_negative_int(
-        metrics.get("expired_vulnerability_exceptions")
-    )
+    expired = _coerce_non_negative_int(metrics.get("expired_vulnerability_exceptions"))
     review_report_status = str(
         metrics.get("vulnerability_exception_review_report_status") or ""
     ).strip()
@@ -320,10 +324,10 @@ def _build_vulnerability_exception_review_action(
     )
     next_expiry = str(metrics.get("vulnerability_exception_next_expiry") or "").strip()
     review_command = _default_vulnerability_exception_review_command()
-    review_path_suffix = f"（report={review_report_path}）" if review_report_path else ""
-    review_status_suffix = (
-        f"status={review_report_status or 'unknown'}，candidates={review_candidate_count}"
+    review_path_suffix = (
+        f"（report={review_report_path}）" if review_report_path else ""
     )
+    review_status_suffix = f"status={review_report_status or 'unknown'}，candidates={review_candidate_count}"
     review_due_preview = ", ".join(review_due_ids[:3])
     if len(review_due_ids) > 3:
         review_due_preview += ", ..."
@@ -411,9 +415,14 @@ def _build_external_bindings_follow_up_action(
     extension_execution_actuals: Mapping[str, Any],
     extension_execution_instance: Mapping[str, Any],
 ) -> str | None:
-    if extension_execution_actuals.get("external_bindings_follow_up_required") is not True:
+    if (
+        extension_execution_actuals.get("external_bindings_follow_up_required")
+        is not True
+    ):
         return None
-    status = str(extension_execution_actuals.get("external_bindings_status") or "").strip()
+    status = str(
+        extension_execution_actuals.get("external_bindings_status") or ""
+    ).strip()
     if status not in {"placeholder", "partial"}:
         return None
 
@@ -438,9 +447,13 @@ def _build_external_bindings_follow_up_action(
         extension_execution_actuals.get("external_bindings_unconfirmed_sections")
     )
     confirmation_missing_sections = _coerce_non_empty_strings(
-        extension_execution_actuals.get("external_bindings_confirmation_missing_sections")
+        extension_execution_actuals.get(
+            "external_bindings_confirmation_missing_sections"
+        )
     )
-    is_existing_customer_config = _is_non_empty_string(config_path) and config_path not in {
+    is_existing_customer_config = _is_non_empty_string(
+        config_path
+    ) and config_path not in {
         "deployment/customer_delivery.external_bindings.json",
         "deployment/customer_delivery.external_bindings.rehearsal.json",
     }
@@ -472,7 +485,9 @@ def _build_external_bindings_follow_up_action(
         actuals_artifact_path=extension_execution_actuals.get("artifact_path"),
         sections=confirm_sections,
     )
-    action = "将 extension_execution_actuals 的 external bindings 收口到真实客户系统映射: "
+    action = (
+        "将 extension_execution_actuals 的 external bindings 收口到真实客户系统映射: "
+    )
     if is_existing_customer_config:
         action += (
             "先把现有 customer-specific config 中的真实客户系统元数据补齐，再运行以下闭环命令: "
@@ -482,11 +497,14 @@ def _build_external_bindings_follow_up_action(
         action += (
             "当前还没有 customer-specific config。直接运行以下闭环命令会先生成 draft config；"
             "如果你同时提供 `--set section.field=value` 覆盖，它会继续 confirm / rebuild / collect，"
-            "否则会在生成后阻塞等待你补齐真实客户系统元数据: "
-            + closure_command
+            "否则会在生成后阻塞等待你补齐真实客户系统元数据: " + closure_command
         )
-    if _is_non_empty_string(extension_execution_actuals.get("external_bindings_summary")):
-        action += "。当前状态: " + str(extension_execution_actuals.get("external_bindings_summary"))
+    if _is_non_empty_string(
+        extension_execution_actuals.get("external_bindings_summary")
+    ):
+        action += "。当前状态: " + str(
+            extension_execution_actuals.get("external_bindings_summary")
+        )
     if section_details:
         action += "。待处理 sections: " + "; ".join(section_details)
     closure_preview = _load_customer_external_bindings_closure_preview(project_root)
@@ -526,8 +544,7 @@ def _build_external_mainline_execution_plan_preview(
     if errors:
         preview["status"] = "blocked"
         preview["summary"] = (
-            "external mainline execution plan is invalid: "
-            + "; ".join(errors)
+            "external mainline execution plan is invalid: " + "; ".join(errors)
         )
         return preview
     preview["status"] = str(payload.get("status") or "missing").strip() or "missing"
@@ -544,9 +561,7 @@ def _build_external_mainline_execution_plan_preview(
             counts.append(f"{field}={value}")
     preview["summary"] = (
         "external mainline execution plan "
-        f"{preview['status']}: "
-        + ", ".join(counts + [f"report={report_path}"])
-        + "."
+        f"{preview['status']}: " + ", ".join(counts + [f"report={report_path}"]) + "."
     )
     return preview
 
@@ -581,8 +596,7 @@ def _build_external_mainline_input_checklist_preview(
     if errors:
         preview["status"] = "blocked"
         preview["summary"] = (
-            "external mainline input checklist is invalid: "
-            + "; ".join(errors)
+            "external mainline input checklist is invalid: " + "; ".join(errors)
         )
         return preview
     preview["status"] = str(payload.get("status") or "missing").strip() or "missing"
@@ -592,7 +606,9 @@ def _build_external_mainline_input_checklist_preview(
     control_plane_event_stream = payload.get("control_plane_event_stream")
     if isinstance(control_plane_event_stream, Mapping):
         preview["control_plane_event_stream"] = dict(control_plane_event_stream)
-    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), Mapping) else {}
+    metrics = (
+        payload.get("metrics") if isinstance(payload.get("metrics"), Mapping) else {}
+    )
     missing_input_count = metrics.get("missing_input_count")
     if isinstance(missing_input_count, int) and missing_input_count >= 0:
         preview["missing_input_count"] = missing_input_count
@@ -614,9 +630,7 @@ def _build_external_mainline_input_checklist_preview(
         counts.insert(0, f"missing_input_count={preview['missing_input_count']}")
     preview["summary"] = (
         "external mainline input checklist "
-        f"{preview['status']}: "
-        + ", ".join(counts + [f"report={report_path}"])
-        + "."
+        f"{preview['status']}: " + ", ".join(counts + [f"report={report_path}"]) + "."
     )
     return preview
 
@@ -683,7 +697,10 @@ def _build_worktree_release_blocker_preview(
     if isinstance(total_paths, int) and total_paths >= 0:
         preview["total_paths"] = total_paths
     tracked_review_candidate_count = payload.get("tracked_review_candidate_count")
-    if isinstance(tracked_review_candidate_count, int) and tracked_review_candidate_count >= 0:
+    if (
+        isinstance(tracked_review_candidate_count, int)
+        and tracked_review_candidate_count >= 0
+    ):
         preview["tracked_review_candidate_count"] = tracked_review_candidate_count
     tracked_review_status = payload.get("tracked_review_status")
     if isinstance(tracked_review_status, str) and tracked_review_status.strip():
@@ -720,7 +737,9 @@ def _build_vulnerability_exception_review_preview(
     review_status = str(
         metrics.get("vulnerability_exception_review_report_status") or ""
     ).strip()
-    review_candidate_count = metrics.get("vulnerability_exception_review_candidate_count")
+    review_candidate_count = metrics.get(
+        "vulnerability_exception_review_candidate_count"
+    )
     review_report_path = str(
         metrics.get("vulnerability_exception_review_report_path") or ""
     ).strip()
@@ -799,12 +818,20 @@ def _build_channel_readiness_summary(
     gate = preview["release_gate_status"]
     security_preflight = preview["security_release_preflight"]
     vulnerability_exception_review = preview.get("vulnerability_exception_review", {})
-    external_mainline_execution_plan = preview.get("external_mainline_execution_plan", {})
-    external_mainline_input_checklist = preview.get("external_mainline_input_checklist", {})
+    external_mainline_execution_plan = preview.get(
+        "external_mainline_execution_plan", {}
+    )
+    external_mainline_input_checklist = preview.get(
+        "external_mainline_input_checklist", {}
+    )
     worktree_release_blocker = preview.get("worktree_release_blocker", {})
     next_actions = preview["next_actions"]
-    review_status = str(vulnerability_exception_review.get("status") or "missing").strip()
-    review_candidate_count = vulnerability_exception_review.get("review_candidate_count")
+    review_status = str(
+        vulnerability_exception_review.get("status") or "missing"
+    ).strip()
+    review_candidate_count = vulnerability_exception_review.get(
+        "review_candidate_count"
+    )
     review_summary = (
         f"{review_status}/{review_candidate_count}"
         if isinstance(review_candidate_count, int) and review_candidate_count >= 0
@@ -816,10 +843,10 @@ def _build_channel_readiness_summary(
     checklist_summary = format_external_mainline_input_checklist_preview(
         external_mainline_input_checklist
     )
-    worktree_summary = format_worktree_release_blocker_preview(
-        worktree_release_blocker
-    )
-    checklist_status = str(external_mainline_input_checklist.get("status") or "").strip()
+    worktree_summary = format_worktree_release_blocker_preview(worktree_release_blocker)
+    checklist_status = str(
+        external_mainline_input_checklist.get("status") or ""
+    ).strip()
     checklist_suffix = (
         f", external_mainline_input_checklist={checklist_summary}"
         if checklist_status and checklist_status != "missing"
@@ -893,10 +920,18 @@ def _build_preview(
         "security_release_preflight": dict(security_preflight),
         "customer_delivery_surface": dict(payload.get("customer_delivery_surface", {})),
         "industrial_delivery_gate": dict(payload.get("industrial_delivery_gate", {})),
-        "extension_execution_evidence": dict(payload.get("extension_execution_evidence", {})),
-        "extension_execution_instance": dict(payload.get("extension_execution_instance", {})),
-        "extension_execution_schedule": dict(payload.get("extension_execution_schedule", {})),
-        "extension_execution_actuals": dict(payload.get("extension_execution_actuals", {})),
+        "extension_execution_evidence": dict(
+            payload.get("extension_execution_evidence", {})
+        ),
+        "extension_execution_instance": dict(
+            payload.get("extension_execution_instance", {})
+        ),
+        "extension_execution_schedule": dict(
+            payload.get("extension_execution_schedule", {})
+        ),
+        "extension_execution_actuals": dict(
+            payload.get("extension_execution_actuals", {})
+        ),
         "worktree_release_blocker": worktree_release_blocker,
         "external_mainline_execution_plan": _build_external_mainline_execution_plan_preview(
             project_root=project_root
@@ -910,9 +945,15 @@ def _build_preview(
             worktree_release_blocker=worktree_release_blocker,
             customer_delivery_surface=payload.get("customer_delivery_surface", {}),
             industrial_delivery_gate=payload.get("industrial_delivery_gate", {}),
-            extension_execution_evidence=payload.get("extension_execution_evidence", {}),
-            extension_execution_instance=payload.get("extension_execution_instance", {}),
-            extension_execution_schedule=payload.get("extension_execution_schedule", {}),
+            extension_execution_evidence=payload.get(
+                "extension_execution_evidence", {}
+            ),
+            extension_execution_instance=payload.get(
+                "extension_execution_instance", {}
+            ),
+            extension_execution_schedule=payload.get(
+                "extension_execution_schedule", {}
+            ),
             extension_execution_actuals=payload.get("extension_execution_actuals", {}),
         ),
     }
@@ -952,20 +993,31 @@ def _build_next_actions(
     if gate.get("diagnostic_ready_domains", 0) > 0:
         for domain in payload.get("capability_matrix", {}).get("domains", []):
             if domain.get("status") == "diagnostic_ready":
-                actions.append(f"关闭诊断态域 {domain.get('id')}: {domain.get('summary')}")
+                actions.append(
+                    f"关闭诊断态域 {domain.get('id')}: {domain.get('summary')}"
+                )
 
-    if gate.get("release_approval_required", 0) > 0 and gate.get("release_approval_ready", 0) == 0:
+    if (
+        gate.get("release_approval_required", 0) > 0
+        and gate.get("release_approval_ready", 0) == 0
+    ):
         actions.append(
             f"补齐 {channel_label} 签核: "
-            f'python tools/build_release_artifact.py --version {version} --channel {channel} '
+            f"python tools/build_release_artifact.py --version {version} --channel {channel} "
             f'--build-id {payload["build_id"]} --approval-status approved --approved-by release-manager '
             f'--approved-at {_now_iso()} --approval-notes "{channel_label} signoff"'
         )
 
-    if gate.get("release_source_required", 0) > 0 and gate.get("release_source_ready", 0) == 0:
+    if (
+        gate.get("release_source_required", 0) > 0
+        and gate.get("release_source_ready", 0) == 0
+    ):
         actions.append("确保在目标 Git 检出上执行，并让签核 commit 与当前 HEAD 一致。")
 
-    if gate.get("release_worktree_required", 0) > 0 and gate.get("release_worktree_ready", 0) == 0:
+    if (
+        gate.get("release_worktree_required", 0) > 0
+        and gate.get("release_worktree_ready", 0) == 0
+    ):
         summary = worktree_release_blocker.get("summary")
         actions.append(
             "先运行 worktree release blocker runner: "
@@ -980,7 +1032,10 @@ def _build_next_actions(
             )
         )
 
-    if gate.get("release_version_tag_required", 0) > 0 and gate.get("release_version_tag_ready", 0) == 0:
+    if (
+        gate.get("release_version_tag_required", 0) > 0
+        and gate.get("release_version_tag_ready", 0) == 0
+    ):
         head = source.get("commit_sha") or "HEAD"
         actions.append(f"为当前 HEAD 创建匹配版本 tag: git tag {version} {head}")
 
@@ -988,9 +1043,14 @@ def _build_next_actions(
     if stale_action:
         actions.append(stale_action)
 
-    if channel in {"stable", "industrial"} and security_preflight.get("status") != "passed":
+    if (
+        channel in {"stable", "industrial"}
+        and security_preflight.get("status") != "passed"
+    ):
         summary = security_preflight.get("summary")
-        command = security_preflight.get("command") or _default_security_preflight_command()
+        command = (
+            security_preflight.get("command") or _default_security_preflight_command()
+        )
         actions.append(
             "补齐 security release preflight: "
             f"{command}"
@@ -1040,7 +1100,11 @@ def _build_next_actions(
         actions.append(
             "生成客户实例化扩展执行面: "
             "python tools/build_extension_execution_instance.py --output test_env/release_evidence/operations/extension_execution_instance.json"
-            + ("。缺失 profile: " + ", ".join(missing_profiles) if missing_profiles else "")
+            + (
+                "。缺失 profile: " + ", ".join(missing_profiles)
+                if missing_profiles
+                else ""
+            )
         )
 
     if extension_execution_schedule.get("status") != "ready":
@@ -1052,7 +1116,11 @@ def _build_next_actions(
         actions.append(
             "生成客户窗口排程与 closure 归档面: "
             "python tools/build_extension_execution_schedule.py --output test_env/release_evidence/operations/extension_execution_schedule.json"
-            + ("。缺失 profile: " + ", ".join(missing_profiles) if missing_profiles else "")
+            + (
+                "。缺失 profile: " + ", ".join(missing_profiles)
+                if missing_profiles
+                else ""
+            )
         )
 
     if extension_execution_actuals.get("status") != "ready":
@@ -1064,7 +1132,11 @@ def _build_next_actions(
         actions.append(
             "生成客户窗口执行留痕与 closure manifest: "
             "python tools/build_extension_execution_actuals.py --output test_env/release_evidence/operations/extension_execution_actuals.json"
-            + ("。缺失 profile: " + ", ".join(missing_profiles) if missing_profiles else "")
+            + (
+                "。缺失 profile: " + ", ".join(missing_profiles)
+                if missing_profiles
+                else ""
+            )
         )
 
     external_bindings_action = _build_external_bindings_follow_up_action(
@@ -1200,8 +1272,8 @@ def execute_release_readiness(
     next_step_plan = _combine_next_step_plan(previews)
     stable_preview = next(item for item in previews if item["channel"] == "stable")
     rc_preview = next(item for item in previews if item["channel"] == "rc")
-    stable_preview["vulnerability_exception_review"] = _build_vulnerability_exception_review_preview(
-        security_preflight
+    stable_preview["vulnerability_exception_review"] = (
+        _build_vulnerability_exception_review_preview(security_preflight)
     )
     stable_preview["external_mainline_input_checklist"] = (
         _build_external_mainline_input_checklist_preview(
@@ -1223,15 +1295,31 @@ def execute_release_readiness(
         "stable_release_gate": stable_preview["release_gate_status"],
         "customer_delivery_surface": stable_preview["customer_delivery_surface"],
         "industrial_delivery_gate": stable_preview["industrial_delivery_gate"],
-        "vulnerability_exception_review": stable_preview["vulnerability_exception_review"],
-        "external_mainline_input_checklist": stable_preview["external_mainline_input_checklist"],
+        "vulnerability_exception_review": stable_preview[
+            "vulnerability_exception_review"
+        ],
+        "external_mainline_input_checklist": stable_preview[
+            "external_mainline_input_checklist"
+        ],
         "worktree_release_blocker": stable_preview["worktree_release_blocker"],
-        "external_mainline_execution_plan": stable_preview["external_mainline_execution_plan"],
-        "extension_execution_evidence": stable_preview.get("extension_execution_evidence", {}),
-        "extension_execution_instance": stable_preview.get("extension_execution_instance", {}),
-        "extension_execution_schedule": stable_preview.get("extension_execution_schedule", {}),
-        "extension_execution_actuals": stable_preview.get("extension_execution_actuals", {}),
-        "summary": _build_channel_readiness_summary(label="stable", preview=stable_preview),
+        "external_mainline_execution_plan": stable_preview[
+            "external_mainline_execution_plan"
+        ],
+        "extension_execution_evidence": stable_preview.get(
+            "extension_execution_evidence", {}
+        ),
+        "extension_execution_instance": stable_preview.get(
+            "extension_execution_instance", {}
+        ),
+        "extension_execution_schedule": stable_preview.get(
+            "extension_execution_schedule", {}
+        ),
+        "extension_execution_actuals": stable_preview.get(
+            "extension_execution_actuals", {}
+        ),
+        "summary": _build_channel_readiness_summary(
+            label="stable", preview=stable_preview
+        ),
         "previews": previews,
         "next_step_plan": next_step_plan,
     }
@@ -1256,7 +1344,9 @@ def execute_industrial_release_readiness(
         raise ValueError(
             "--current-version is required when the changelog cannot provide a version."
         )
-    industrial_version = request.industrial_version or _derive_stable_version(current_version)
+    industrial_version = request.industrial_version or _derive_stable_version(
+        current_version
+    )
     changelog_title = metadata.get("title", "AGI-Walker Release Notes")
     summary = metadata.get("release_summary", "Industrial release readiness preview.")
     security_preflight = _load_security_preflight_preview(
@@ -1322,14 +1412,28 @@ def execute_industrial_release_readiness(
         "industrial_release_gate": industrial_preview["release_gate_status"],
         "customer_delivery_surface": industrial_preview["customer_delivery_surface"],
         "industrial_delivery_gate": industrial_preview["industrial_delivery_gate"],
-        "vulnerability_exception_review": industrial_preview["vulnerability_exception_review"],
-        "external_mainline_input_checklist": industrial_preview["external_mainline_input_checklist"],
-        "external_mainline_execution_plan": industrial_preview["external_mainline_execution_plan"],
+        "vulnerability_exception_review": industrial_preview[
+            "vulnerability_exception_review"
+        ],
+        "external_mainline_input_checklist": industrial_preview[
+            "external_mainline_input_checklist"
+        ],
+        "external_mainline_execution_plan": industrial_preview[
+            "external_mainline_execution_plan"
+        ],
         "worktree_release_blocker": industrial_preview["worktree_release_blocker"],
-        "extension_execution_evidence": industrial_preview.get("extension_execution_evidence", {}),
-        "extension_execution_instance": industrial_preview.get("extension_execution_instance", {}),
-        "extension_execution_schedule": industrial_preview.get("extension_execution_schedule", {}),
-        "extension_execution_actuals": industrial_preview.get("extension_execution_actuals", {}),
+        "extension_execution_evidence": industrial_preview.get(
+            "extension_execution_evidence", {}
+        ),
+        "extension_execution_instance": industrial_preview.get(
+            "extension_execution_instance", {}
+        ),
+        "extension_execution_schedule": industrial_preview.get(
+            "extension_execution_schedule", {}
+        ),
+        "extension_execution_actuals": industrial_preview.get(
+            "extension_execution_actuals", {}
+        ),
         "summary": _build_channel_readiness_summary(
             label="industrial",
             preview=industrial_preview,

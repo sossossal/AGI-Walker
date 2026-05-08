@@ -64,7 +64,9 @@ from agi_walker.ops.worktree import (
 def _find_repo_root() -> Path:
     current = Path(__file__).resolve()
     for candidate in current.parents:
-        if (candidate / "pyproject.toml").exists() and (candidate / "agi_walker").exists():
+        if (candidate / "pyproject.toml").exists() and (
+            candidate / "agi_walker"
+        ).exists():
             return candidate
     return current.parent
 
@@ -113,7 +115,9 @@ def _default_release_readiness_request() -> ReleaseReadinessRequest:
     )
 
 
-def _default_industrial_release_readiness_request() -> IndustrialReleaseReadinessRequest:
+def _default_industrial_release_readiness_request() -> (
+    IndustrialReleaseReadinessRequest
+):
     return IndustrialReleaseReadinessRequest(
         current_version=None,
         industrial_version=None,
@@ -201,7 +205,9 @@ def _normalize_output_path(result: Any) -> Path | None:
     return None
 
 
-def _instantiate_request(request_type: type, payload: dict[str, Any], default_request: Any) -> Any:
+def _instantiate_request(
+    request_type: type, payload: dict[str, Any], default_request: Any
+) -> Any:
     defaults = asdict(default_request)
     defaults.update(payload)
     try:
@@ -212,7 +218,9 @@ def _instantiate_request(request_type: type, payload: dict[str, Any], default_re
         ) from exc
 
 
-def _normalize_session_context(session: ReleaseOpSessionContext | dict[str, Any]) -> dict[str, str]:
+def _normalize_session_context(
+    session: ReleaseOpSessionContext | dict[str, Any],
+) -> dict[str, str]:
     raw = asdict(session) if isinstance(session, ReleaseOpSessionContext) else session
     if not isinstance(raw, dict):
         raise ValueError("release op session context must be a JSON object")
@@ -489,7 +497,9 @@ def list_release_ops_actions() -> list[dict[str, str]]:
     actions: list[dict[str, str]] = []
     for definition in _RELEASE_OP_DEFINITIONS.values():
         if definition.policy_level not in RELEASE_OP_POLICY_LEVELS:
-            raise ValueError(f"unsupported release op policy: {definition.policy_level}")
+            raise ValueError(
+                f"unsupported release op policy: {definition.policy_level}"
+            )
         actions.append(
             {
                 "action": definition.action,
@@ -676,7 +686,10 @@ def execute_release_op(request: ReleaseOpRequest) -> ReleaseOpResult:
             event_stream_path=event_stream_path,
             event_count=event_count,
         )
-        if enriched_checklist_payload is not checklist_payload and checklist_path.is_file():
+        if (
+            enriched_checklist_payload is not checklist_payload
+            and checklist_path.is_file()
+        ):
             write_release_evidence_report(enriched_checklist_payload, checklist_path)
     enriched_worktree_payload = _enrich_worktree_release_blocker_payload(
         payload,

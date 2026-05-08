@@ -81,7 +81,9 @@ def validate_simulated_circuit_config(config: Dict[str, Any]) -> List[str]:
     joint_order = config.get("joint_order")
     if not isinstance(joint_order, list) or not joint_order:
         errors.append("simulated_circuit.joint_order must be a non-empty list")
-    elif not all(isinstance(joint_name, str) and joint_name for joint_name in joint_order):
+    elif not all(
+        isinstance(joint_name, str) and joint_name for joint_name in joint_order
+    ):
         errors.append("simulated_circuit.joint_order entries must be non-empty strings")
     return errors
 
@@ -107,10 +109,11 @@ def validate_instruction_set_payload(payload: Dict[str, Any]) -> List[str]:
     if not isinstance(payload, dict):
         return ["instruction_set payload must be a dict"]
     if payload.get("schema_version") != ROS2_INSTRUCTION_SET_SCHEMA_VERSION:
-        errors.append(
-            f"schema_version must be {ROS2_INSTRUCTION_SET_SCHEMA_VERSION!r}"
-        )
-    if not isinstance(payload.get("sequence_name"), str) or not payload["sequence_name"]:
+        errors.append(f"schema_version must be {ROS2_INSTRUCTION_SET_SCHEMA_VERSION!r}")
+    if (
+        not isinstance(payload.get("sequence_name"), str)
+        or not payload["sequence_name"]
+    ):
         errors.append("sequence_name must be a non-empty string")
     steps = payload.get("steps")
     if not isinstance(steps, list) or not steps:
@@ -216,7 +219,9 @@ def instruction_set_to_compatibility_params(payload: Dict[str, Any]) -> Dict[str
     return params
 
 
-def instruction_set_to_circuit_command_batch(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+def instruction_set_to_circuit_command_batch(
+    payload: Dict[str, Any],
+) -> List[Dict[str, Any]]:
     config = normalize_simulated_circuit_config(payload.get("simulated_circuit"))
     joint_order = config["joint_order"]
     commands: List[Dict[str, Any]] = []

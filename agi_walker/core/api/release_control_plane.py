@@ -132,14 +132,14 @@ def _build_external_mainline_closeout_component(
         or f"external_mainline_execution_plan loaded from {path}",
         "path": str(path),
         "command": str(next_step.get("command") or "").strip()
-        or build_run_external_mainline_execution_plan_command(
-            output_path=str(path)
-        ),
+        or build_run_external_mainline_execution_plan_command(output_path=str(path)),
         "next_step_id": str(next_step.get("id") or "").strip() or None,
         "next_step_status": str(next_step.get("status") or "").strip() or None,
-        "blocking_inputs": list(next_step.get("blocking_inputs", []))
-        if isinstance(next_step.get("blocking_inputs"), list)
-        else [],
+        "blocking_inputs": (
+            list(next_step.get("blocking_inputs", []))
+            if isinstance(next_step.get("blocking_inputs"), list)
+            else []
+        ),
         "ready_to_run_steps": ready_steps,
         "waiting_external_input_steps": waiting_steps,
         "blocked_steps": blocked_steps,
@@ -186,7 +186,11 @@ def _build_vulnerability_exception_closeout_component(
     )
     if stale_exception_count > 0 or review_status == "expired":
         status = "blocked"
-    elif review_status in {"review_due", "waiting_external_input"} or review_due_count > 0 or review_candidate_count > 0:
+    elif (
+        review_status in {"review_due", "waiting_external_input"}
+        or review_due_count > 0
+        or review_candidate_count > 0
+    ):
         status = "waiting_external_input"
     elif preflight_payload or review_payload:
         status = "completed"
@@ -206,7 +210,9 @@ def _build_vulnerability_exception_closeout_component(
     blocking_inputs: list[str] = []
     if status in {"waiting_external_input", "blocked"}:
         if review_due_count > 0 or review_candidate_count > 0:
-            blocking_inputs.append("更新 vulnerability exception review / replacement 结论")
+            blocking_inputs.append(
+                "更新 vulnerability exception review / replacement 结论"
+            )
         if stale_exception_count > 0:
             blocking_inputs.append("替换已失效的 no-fix exceptions")
         if next_exception_expiry:
@@ -242,7 +248,9 @@ def _build_worktree_closeout_component(
         if isinstance(readiness_payload.get("worktree_release_blocker"), dict)
         else fallback_payload
     )
-    report_path = readiness_path if worktree_payload is not fallback_payload else fallback_path
+    report_path = (
+        readiness_path if worktree_payload is not fallback_payload else fallback_path
+    )
     if not isinstance(worktree_payload, dict) or not worktree_payload:
         return {
             "status": "missing",
@@ -339,7 +347,11 @@ def build_release_closeout_payload(
     )
     if blocked_components > 0:
         closeout_status = "blocked"
-    elif waiting_external_input_components > 0 or ready_to_run_components > 0 or missing_components > 0:
+    elif (
+        waiting_external_input_components > 0
+        or ready_to_run_components > 0
+        or missing_components > 0
+    ):
         closeout_status = "action_required"
     else:
         closeout_status = "ready"
@@ -367,7 +379,9 @@ def build_release_closeout_payload(
                 "component_api_route": f"{DEFAULT_RELEASE_CLOSEOUT_COMPONENT_ROUTE}?component={quote(component_name)}",
             }
         )
-    next_item = action_items[0] if action_items and isinstance(action_items[0], dict) else {}
+    next_item = (
+        action_items[0] if action_items and isinstance(action_items[0], dict) else {}
+    )
     return {
         "status": "success",
         "route": DEFAULT_RELEASE_CLOSEOUT_ROUTE,
@@ -463,7 +477,9 @@ def build_release_closeout_next_payload(
         if isinstance(closeout.get("action_items"), list)
         else []
     )
-    next_item = action_items[0] if action_items and isinstance(action_items[0], dict) else {}
+    next_item = (
+        action_items[0] if action_items and isinstance(action_items[0], dict) else {}
+    )
     component = str(next_item.get("component") or "").strip()
     if not component:
         return {
@@ -577,7 +593,8 @@ def build_release_closeout_plan_payload(
     if not isinstance(customer_sections, list) or not customer_sections:
         customer_sections = ["approval_identity", "archive_target", "due_trigger"]
     customer_config_path = str(
-        customer_inputs.get("config") or default_customer_external_bindings_config_path()
+        customer_inputs.get("config")
+        or default_customer_external_bindings_config_path()
     )
     customer_overrides_path = str(
         customer_inputs.get("overrides_file")
@@ -628,7 +645,9 @@ def build_release_closeout_plan_payload(
     customer_stage = _stage(
         "customer_external_bindings_inputs",
         label="Close Customer External Bindings Inputs",
-        status=str(customer_step.get("status") or external_mainline.get("status") or "missing"),
+        status=str(
+            customer_step.get("status") or external_mainline.get("status") or "missing"
+        ),
         component="external_mainline",
         summary=str(
             customer_step.get("summary")
@@ -712,7 +731,11 @@ def build_release_closeout_plan_payload(
     industrial_stage = _stage(
         "industrial_live_evidence_inputs",
         label="Collect Real Industrial Live-Evidence Inputs",
-        status=str(industrial_step.get("status") or external_mainline.get("status") or "missing"),
+        status=str(
+            industrial_step.get("status")
+            or external_mainline.get("status")
+            or "missing"
+        ),
         component="external_mainline",
         summary=str(
             industrial_step.get("summary")
@@ -725,7 +748,10 @@ def build_release_closeout_plan_payload(
         ],
         input_files=[
             default_external_mainline_inputs_path(),
-            str(industrial_inputs.get("evidence_output_root") or "test_env/industrial_live_evidence"),
+            str(
+                industrial_inputs.get("evidence_output_root")
+                or "test_env/industrial_live_evidence"
+            ),
             "test_env/release_rehearsal_industrial/industrial_delivery_rehearsal_report.json",
         ],
         commands=[
@@ -821,7 +847,9 @@ def build_release_closeout_plan_payload(
         required_inputs=(
             []
             if acceptance_status == "completed"
-            else ["close all upstream external-input stages and rerun canonical closeout"]
+            else [
+                "close all upstream external-input stages and rerun canonical closeout"
+            ]
         ),
         input_files=[
             default_external_mainline_execution_plan_path(),
@@ -935,7 +963,9 @@ def build_release_closeout_plan_stage_payload(
         "route": DEFAULT_RELEASE_CLOSEOUT_PLAN_STAGE_ROUTE,
         "plan_route": payload.get("route"),
         "plan_portal_route": payload.get("portal_route"),
-        "plan_next_route": payload.get("next_route", DEFAULT_RELEASE_CLOSEOUT_PLAN_NEXT_ROUTE),
+        "plan_next_route": payload.get(
+            "next_route", DEFAULT_RELEASE_CLOSEOUT_PLAN_NEXT_ROUTE
+        ),
         "plan_status": payload.get("plan_status"),
         "stage": stage_id,
         "is_next_stage": payload.get("next_stage_id") == stage_id,
@@ -1224,9 +1254,9 @@ def build_release_control_plane_action_payload(*, action: str) -> dict[str, Any]
     )
     if action_definition is None:
         raise ValueError(f"unsupported release op action: {action}")
-    request_templates = build_release_ops_request_templates_payload(
-        action=action
-    ).get("request_templates", [])
+    request_templates = build_release_ops_request_templates_payload(action=action).get(
+        "request_templates", []
+    )
     request_template = request_templates[0] if request_templates else {}
     return {
         "status": "success",
@@ -1343,7 +1373,9 @@ def build_release_control_plane_index_payload(
         else []
     )
     if request_templates:
-        next_action = request_templates[0] if isinstance(request_templates[0], dict) else {}
+        next_action = (
+            request_templates[0] if isinstance(request_templates[0], dict) else {}
+        )
     elif actions:
         next_action = actions[0] if isinstance(actions[0], dict) else {}
     return {
@@ -1367,9 +1399,7 @@ def build_release_control_plane_index_payload(
         "policy_profiles": catalog_payload.get("policy_profiles", []),
         "request_templates": request_templates_payload.get("request_templates", []),
         "next_action": next_action.get("action"),
-        "next_action_default_policy_profile": next_action.get(
-            "default_policy_profile"
-        )
+        "next_action_default_policy_profile": next_action.get("default_policy_profile")
         or next_action.get("policy_level"),
         "next_action_route": next_action.get("portal_route"),
         "next_action_request_route": next_action.get("action_route"),
@@ -1448,9 +1478,7 @@ def build_release_control_plane_index_summary(
         summary["next_action_request_file_download_route"] = next_action.get(
             "request_file_download_route"
         )
-        summary["next_action_request_file_name"] = next_action.get(
-            "request_file_name"
-        )
+        summary["next_action_request_file_name"] = next_action.get("request_file_name")
     return summary
 
 
@@ -1504,15 +1532,11 @@ def build_release_next_payload(
             "primary_portal_route": control_plane_next.get("portal_route"),
             "primary_api_route": control_plane_next.get("action_route"),
             "primary_next_route": control_plane_next.get("route"),
-            "primary_request_file_route": control_plane_next.get(
-                "request_file_route"
-            ),
+            "primary_request_file_route": control_plane_next.get("request_file_route"),
             "primary_request_file_download_route": control_plane_next.get(
                 "request_file_download_route"
             ),
-            "primary_request_file_name": control_plane_next.get(
-                "request_file_name"
-            ),
+            "primary_request_file_name": control_plane_next.get("request_file_name"),
         }
     payload = {
         "status": "success",
@@ -1673,9 +1697,7 @@ def build_release_next_follow_up_payload(
         value = primary_payload.get(field)
         if value:
             follow_up_payload[field] = value
-    follow_up_payload["follow_up_kind"] = primary_payload.get(
-        "primary_follow_up_kind"
-    )
+    follow_up_payload["follow_up_kind"] = primary_payload.get("primary_follow_up_kind")
     follow_up_payload["follow_up_label"] = primary_payload.get(
         "primary_follow_up_label"
     )
@@ -1685,9 +1707,7 @@ def build_release_next_follow_up_payload(
     follow_up_payload["follow_up_download_route"] = primary_payload.get(
         "primary_follow_up_download_route"
     )
-    follow_up_payload["follow_up_text"] = primary_payload.get(
-        "primary_follow_up_text"
-    )
+    follow_up_payload["follow_up_text"] = primary_payload.get("primary_follow_up_text")
     return {
         "status": "success",
         **follow_up_payload,

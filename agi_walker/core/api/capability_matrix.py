@@ -203,7 +203,9 @@ def build_capability_matrix_summary(
     payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return a compact summary suitable for status payloads."""
-    matrix = dict(payload) if payload is not None else build_capability_matrix_artifact()
+    matrix = (
+        dict(payload) if payload is not None else build_capability_matrix_artifact()
+    )
     summary = dict(matrix["summary"])
     return {
         "schema_version": CAPABILITY_MATRIX_VERSION,
@@ -228,17 +230,19 @@ def validate_capability_matrix_artifact(payload: Any) -> list[str]:
             f"schema_version must be {CAPABILITY_MATRIX_VERSION!r}, got {payload.get('schema_version')!r}"
         )
     if payload.get("artifact_type") != CAPABILITY_MATRIX_ARTIFACT_TYPE:
-        errors.append(
-            f"artifact_type must be {CAPABILITY_MATRIX_ARTIFACT_TYPE!r}"
-        )
-    if "generated_at" in payload and not _is_non_empty_string(payload.get("generated_at")):
+        errors.append(f"artifact_type must be {CAPABILITY_MATRIX_ARTIFACT_TYPE!r}")
+    if "generated_at" in payload and not _is_non_empty_string(
+        payload.get("generated_at")
+    ):
         errors.append("generated_at must be a non-empty string")
 
     summary = payload.get("summary")
     if not isinstance(summary, Mapping):
         errors.append("summary must be an object")
     else:
-        missing_summary = sorted(CAPABILITY_MATRIX_SUMMARY_REQUIRED_FIELDS - set(summary))
+        missing_summary = sorted(
+            CAPABILITY_MATRIX_SUMMARY_REQUIRED_FIELDS - set(summary)
+        )
         if missing_summary:
             errors.append(
                 f"summary missing required fields: {', '.join(missing_summary)}"
@@ -336,9 +340,7 @@ def validate_capability_matrix_artifact(payload: Any) -> list[str]:
     else:
         for index, item in enumerate(known_limitations, start=1):
             if not _is_non_empty_string(item):
-                errors.append(
-                    f"known_limitations[{index}] must be a non-empty string"
-                )
+                errors.append(f"known_limitations[{index}] must be a non-empty string")
 
     if not errors and isinstance(summary, Mapping) and isinstance(domains, list):
         calculated_summary = _build_summary(domains)
@@ -351,7 +353,9 @@ def validate_capability_matrix_artifact(payload: Any) -> list[str]:
     return errors
 
 
-def write_capability_matrix_artifact(payload: Mapping[str, Any], path: str | Path) -> Path:
+def write_capability_matrix_artifact(
+    payload: Mapping[str, Any], path: str | Path
+) -> Path:
     """Validate and write a capability-matrix artifact to disk."""
     errors = validate_capability_matrix_artifact(payload)
     if errors:
