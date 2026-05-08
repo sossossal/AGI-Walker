@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "browser_name": "Chromium",
+  "browser_version": "<browser-version>",
+  "web_panel_start_command": "python -m web_panel.server",
+  "session_id": "browser-validation-20260426",
+  "live_hardware_used": false,
+  "instruction_console": {
+    "instruction_set_sent": false,
+    "simulated_circuit_sent": false,
+    "recovery_plan_built": false,
+    "recover_cancel_confirmed": false,
+    "recover_executed": false,
+    "clear_faults_executed": false,
+    "node_status_table_checked": false,
+    "failure_drilldown_checked": false
+  },
+  "operator_history": {
+    "session_search_checked": false,
+    "operator_filter_checked": false,
+    "tag_filter_checked": false,
+    "note_filter_checked": false,
+    "note_exact_checked": false,
+    "sort_checked": false,
+    "json_export_checked": false,
+    "csv_export_checked": false,
+    "replay_checked": false
+  },
+  "operator_timeline": {
+    "session_search_checked": false,
+    "filters_checked": false,
+    "time_range_checked": false,
+    "compare_checked": false,
+    "clear_compare_checked": false,
+    "json_export_checked": false,
+    "csv_export_checked": false
+  },
+  "responsive": {
+    "desktop_layout_checked": false,
+    "narrow_layout_checked": false,
+    "page_refresh_checked": false,
+    "console_errors_checked": false
+  },
+  "evidence": {
+    "screenshots": [],
+    "exports": [],
+    "console_error_summary": ""
+  }
+}

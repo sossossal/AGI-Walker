@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0",
+  "checklist_id": "operator_delivery_checklist_20260427",
+  "automation": {
+    "builder": "tools/build_operator_delivery_checklist.py",
+    "default_output": "test_env/operator_delivery/operator_delivery_checklist.json"
+  },
+  "delivery_window": {
+    "engagement_id": "<customer-engagement-id>",
+    "window_id": "<delivery-window-id>",
+    "operator": "<operator-name>",
+    "environment": "<local|replay|live>",
+    "started_at": "<iso-8601>"
+  },
+  "required_items": [
+    {
+      "id": "system_status",
+      "category": "web",
+      "owner": "operator",
+      "evidence_path": "test_env/operator_delivery/system_status.json",
+      "status_path": "status",
+      "expected_statuses": ["running"],
+      "description": "Archive GET /api/system/status for the target Web Panel."
+    },
+    {
+      "id": "workflow_status",
+      "category": "workflow",
+      "owner": "operator",
+      "evidence_path": "test_env/operator_delivery/workflow_status.json",
+      "status_path": "status",
+      "expected_statuses": ["completed", "passed", "ready"],
+      "description": "Archive the key workflow run terminal status or failure reason."
+    },
+    {
+      "id": "operator_history_export",
+      "category": "audit",
+      "owner": "operator",
+      "evidence_path": "test_env/operator_delivery/operator_history_export.json",
+      "status_path": "status",
+      "expected_statuses": ["exported", "passed", "ready"],
+      "description": "Archive operator history export covering high-risk operations."
+    },
+    {
+      "id": "hardware_live_diagnostics",
+      "category": "hardware",
+      "owner": "hardware_operator",
+      "evidence_path": "test_env/hardware_live/live_diagnostics_checklist.json",
+      "status_path": "status",
+      "expected_statuses": ["ready_to_run", "ready", "passed"],
+      "description": "Archive hardware live diagnostics checklist or a non-live justification."
+    },
+    {
+      "id": "vendor_data_promotion",
+      "category": "hardware",
+      "owner": "delivery_engineer",
+      "evidence_path": "test_env/hardware_live/vendor_data_promotion_checklist.json",
+      "status_path": "status",
+      "expected_statuses": ["ready"],
+      "description": "Archive vendor data promotion checklist for live hardware scenarios."
+    },
+    {
+      "id": "browser_validation_closeout",
+      "category": "browser",
+      "owner": "operator",
+      "evidence_path": "test_env/web_browser_manual_validation/web_browser_validation_closeout.json",
+      "status_path": "status",
+      "expected_statuses": ["passed"],
+      "description": "Archive browser manual validation closeout."
+    },
+    {
+      "id": "ros2_smoke",
+      "category": "ros2",
+      "owner": "delivery_engineer",
+      "evidence_path": "test_env/operator_delivery/ros2_smoke.json",
+      "status_path": "status",
+      "expected_statuses": ["passed", "ready"],
+      "required": false,
+      "description": "Archive ROS2 launch, smoke or bag replay result when ROS2 is in scope."
+    }
+  ]
+}

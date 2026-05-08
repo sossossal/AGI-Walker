@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0",
+  "smoke_id": "customer_site_live_smoke_20260427",
+  "site": {
+    "engagement_id": "<customer-engagement-id>",
+    "site_id": "<customer-site-id>",
+    "target_environment": "<customer-production-environment-id>",
+    "operator": "<operator-name>",
+    "started_at": "<iso-8601>",
+    "finished_at": "<iso-8601>"
+  },
+  "device": {
+    "vendor": "imc22_reflex",
+    "device_id": "<device-id>",
+    "transport": "<serial_bridge|socketcan|pcan>",
+    "endpoint": "<serial-port-or-can-channel>",
+    "firmware_version": "<firmware-version>"
+  },
+  "safety_precheck": {
+    "emergency_stop_verified": false,
+    "power_verified": false,
+    "mechanical_clearance_verified": false,
+    "operator_has_hardware_recovery_role": false
+  },
+  "checks": [
+    {
+      "id": "transport_connect",
+      "status": "pending",
+      "evidence_path": "test_env/customer_site_live_smoke/transport_connect.json",
+      "description": "Connect to the real customer device through the selected live transport."
+    },
+    {
+      "id": "telemetry_read",
+      "status": "pending",
+      "evidence_path": "test_env/customer_site_live_smoke/telemetry_read.json",
+      "description": "Read live telemetry and raw fault code values from the device."
+    },
+    {
+      "id": "fault_table_mapping",
+      "status": "pending",
+      "evidence_path": "test_env/customer_site_live_smoke/fault_table_mapping.json",
+      "description": "Confirm raw fault codes map through the selected vendor fault table."
+    },
+    {
+      "id": "bounded_command",
+      "status": "pending",
+      "evidence_path": "test_env/customer_site_live_smoke/bounded_command.json",
+      "description": "Execute a bounded, low-risk command within configured hardware limits."
+    },
+    {
+      "id": "recovery_plan",
+      "status": "pending",
+      "evidence_path": "test_env/customer_site_live_smoke/recovery_plan.json",
+      "description": "Build and review recovery plan without unsafe repeated recovery loops."
+    },
+    {
+      "id": "clear_faults_or_recover",
+      "status": "pending",
+      "evidence_path": "test_env/customer_site_live_smoke/clear_faults_or_recover.json",
+      "description": "Run the approved clear_faults or fault-class recovery action when safe."
+    },
+    {
+      "id": "operator_history_archived",
+      "status": "pending",
+      "evidence_path": "test_env/customer_site_live_smoke/operator_history_export.json",
+      "description": "Archive operator history entries for all high-risk hardware operations."
+    }
+  ],
+  "archive": {
+    "closure_archive_root": "<customer-archive-root-or-uri>",
+    "report_output": "test_env/customer_site_live_smoke/customer_site_live_smoke_report.json"
+  }
+}
