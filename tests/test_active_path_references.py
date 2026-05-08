@@ -69,6 +69,9 @@ INSTRUCTION_CONTROL_DEMO_RUNBOOK = Path(
 )
 NEXT_STAGE_EXECUTION_PLAN = Path("docs/guides/NEXT_STAGE_EXECUTION_PLAN_20260426.md")
 OPERATOR_HISTORY_TIMELINE = Path("web_panel/static/operator-history-timeline.html")
+WEB_BROWSER_MANUAL_VALIDATION_CHECKLIST = Path(
+    "docs/guides/WEB_BROWSER_MANUAL_VALIDATION_CHECKLIST_20260426.md"
+)
 
 
 def test_dockerfile_does_not_reference_removed_source_layout() -> None:
@@ -608,10 +611,18 @@ def test_readme_references_next_stage_execution_plan() -> None:
     plan = NEXT_STAGE_EXECUTION_PLAN.read_text(encoding="utf-8")
 
     assert "docs/guides/NEXT_STAGE_EXECUTION_PLAN_20260426.md" in readme
-    assert "Web 控制台深化" in plan
-    assert "真实硬件闭环" in plan
+    assert "真实硬件联调" in plan
+    assert "tools/build_hardware_live_diagnostics_checklist.py" in plan
+    assert "deployment/hardware/imc22_live_transport.template.json" in plan
+    assert "tools/build_vendor_fault_data_review.py" in plan
+    assert "tools/build_vendor_data_promotion_checklist.py" in plan
+    assert "deployment/hardware/imc22_fault_telemetry_fields.json" in plan
+    assert "deployment/hardware/imc22_vendor_fault_samples.template.json" in plan
+    assert "Web 硬件操作面深化" in plan
     assert "ROS2 标准化与生态接入" in plan
-    assert "交付与运维产品化" in plan
+    assert "vendor 数据沉淀" in plan
+    assert "交付级 live evidence" in plan
+    assert "浏览器手工验证" in plan
 
 
 def test_operator_history_timeline_is_linked_from_active_surfaces() -> None:
@@ -624,6 +635,32 @@ def test_operator_history_timeline_is_linked_from_active_surfaces() -> None:
     assert "Operator History Timeline" in timeline
     assert 'id="timeline-note-filter"' in timeline
     assert "/api/godot/history/summary" in timeline
+
+
+def test_web_browser_manual_validation_checklist_is_linked() -> None:
+    readme = ROOT_RELEASE_NOTES.parent.joinpath("README.md").read_text(encoding="utf-8")
+    guide = WEB_PANEL_GUIDE.read_text(encoding="utf-8")
+    plan = NEXT_STAGE_EXECUTION_PLAN.read_text(encoding="utf-8")
+    checklist = WEB_BROWSER_MANUAL_VALIDATION_CHECKLIST.read_text(encoding="utf-8")
+
+    assert "docs/guides/WEB_BROWSER_MANUAL_VALIDATION_CHECKLIST_20260426.md" in readme
+    assert "docs/guides/WEB_BROWSER_MANUAL_VALIDATION_CHECKLIST_20260426.md" in guide
+    assert "docs/guides/WEB_BROWSER_MANUAL_VALIDATION_CHECKLIST_20260426.md" in plan
+    assert "deployment/web_browser_manual_validation.template.json" in readme
+    assert "deployment/web_browser_manual_validation.template.json" in plan
+    assert "tools/run_web_browser_playwright_smoke.py" in readme
+    assert "tools/run_web_browser_playwright_smoke.py" in plan
+    assert "tools/build_web_browser_manual_validation_report.py" in readme
+    assert "tools/build_web_browser_manual_validation_report.py" in plan
+    assert "tools/build_web_browser_validation_closeout.py" in readme
+    assert "tools/build_web_browser_validation_closeout.py" in plan
+    assert "manual_report_missing" in plan
+    assert "web_browser_validation_closeout.json` 为 `status=passed" in plan
+    assert "/static/instruction-control.html" in checklist
+    assert "/static/operator-history.html" in checklist
+    assert "/static/operator-history-timeline.html" in checklist
+    assert "recovery plan" in checklist
+    assert "note_exact" in checklist
 
 
 def test_customer_deployment_docs_and_compose_defaults_use_current_single_path() -> None:

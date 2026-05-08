@@ -12,8 +12,8 @@ ENV PYTHONPATH=/app \
 RUN python -m pip install --upgrade pip setuptools wheel
 
 # Install the baseline distributed/runtime dependencies directly in the image.
-# Keep PyYAML aligned with the package baseline so skills_loader imports fail
-# during docker build instead of later during actor discovery.
+# Keep PyYAML aligned with the package baseline so skills_loader import failures
+# are caught during docker build instead of later during actor discovery.
 RUN pip install eclipse-zenoh numpy torch gymnasium psutil pyyaml
 
 # Copy application code

@@ -4,7 +4,7 @@
 
 本页给出当前客户交付面的正式支持边界。它只覆盖当前一线交付路径，不把实验性入口、历史模板或未进入验收主链的环境算作默认支持面。
 
-容量与规模声明见 `CAPACITY_AND_SCALE.md`；若客户目标超出本页支持矩阵，应先回到容量声明和验收清单补做专项确认。
+容量与规模声明见 `CAPACITY_AND_SCALE.md`；若客户目标超出本页支持矩阵，应先回到容量声明和验收清单补做专项确认。版本与运行时组合的详细边界见 `docs/guides/VERSION_COMPATIBILITY_MATRIX_20260427.md`；监控与告警边界见 `docs/guides/MONITORING_ALERTING_BASELINE_20260427.md`；当前可度量服务目标见 `docs/guides/SLA_SLO_VIEW_20260427.md`。
 
 当前 `release_manifest.customer_delivery_surface.extension_support_surface` 会把本页与 `KNOWN_LIMITATIONS.md`、`CUSTOMER_ACCEPTANCE_CHECKLIST.md` 的扩展边界压成机器可读字段，供 industrial gate、readiness 和 customer acceptance bundle 直接消费。
 现在每个扩展 profile 还会附带 `deployment_commands`、`acceptance_checks` 和 `rollback_prerequisites`，避免支持边界只停留在声明层。
