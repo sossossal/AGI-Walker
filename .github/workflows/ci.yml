@@ -74,7 +74,7 @@ jobs:
 
       - name: Upload Smoke Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: smoke-artifacts
           path: test_env/smoke_ci
@@ -125,7 +125,7 @@ jobs:
 
       - name: Upload Security Preflight Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: security-preflight-artifacts
           path: test_env/release_evidence_ci
@@ -166,7 +166,7 @@ jobs:
 
       - name: Upload Distributed Smoke Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: distributed-smoke-artifacts
           path: test_env/distributed_smoke
@@ -207,7 +207,7 @@ jobs:
 
       - name: Upload Headless Smoke Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: godot-headless-smoke-artifacts
           path: test_env/godot_headless_smoke
@@ -257,7 +257,7 @@ jobs:
 
       - name: Upload ROS2 Bridge Smoke Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ros2-bridge-smoke-artifacts
           path: test_env/ros2_bridge_smoke

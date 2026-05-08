@@ -79,6 +79,11 @@ LOG_HINT_PATTERNS = [
         "The distributed runtime image is missing PyYAML; verify deployment/requirements.distributed_runtime.txt and the Dockerfile import sanity check.",
     ),
     (
+        "web_panel_missing_gymnasium",
+        re.compile(r"ModuleNotFoundError: No module named 'gymnasium'"),
+        "The web panel image is missing gymnasium; verify deployment/requirements.web_panel.txt is used by deployment/Dockerfile.web_panel.",
+    ),
+    (
         "zenoh_connection",
         re.compile(
             r"(Zenoh|zenoh|connect/endpoints|Failed to init|Connection refused)"
@@ -470,9 +475,44 @@ def main() -> int:
             _record_check(report, "compose_build", "pass")
             print("compose build: PASS")
 
+            runtime_dependency_result = _run_compose(
+                compose_file,
+                [
+                    "run",
+                    "--rm",
+                    "--no-deps",
+                    "learner",
+                    "python",
+                    "-c",
+                    "import yaml; from agi_walker.skills_loader import SkillsLoader; print('distributed_runtime_import_ok')",
+                ],
+                actor_id=args.actor_id,
+                capture_output=True,
+            )
+            if runtime_dependency_result.returncode != 0:
+                return _fail(
+                    report,
+                    check_name="runtime_dependency_check",
+                    label="runtime dependency check",
+                    detail="distributed runtime image cannot import required Python dependencies",
+                    compose_file=compose_file,
+                    actor_id=args.actor_id,
+                    report_file=args.report_file,
+                    stdout=runtime_dependency_result.stdout,
+                    stderr=runtime_dependency_result.stderr,
+                )
+            _record_check(
+                report,
+                "runtime_dependency_check",
+                "pass",
+                {"stdout": runtime_dependency_result.stdout.strip()},
+            )
+            print("runtime dependency check: PASS")
+
+        up_args = ["up", "-d", "--force-recreate", *SMOKE_BOOTSTRAP_SERVICES]
         result = _run_compose(
             compose_file,
-            ["up", "-d", *SMOKE_BOOTSTRAP_SERVICES],
+            up_args,
             actor_id=args.actor_id,
             capture_output=True,
         )
@@ -539,7 +579,7 @@ def main() -> int:
 
         sidecar_result = _run_compose(
             compose_file,
-            ["up", "-d", "sidecar-1"],
+            ["up", "-d", "--force-recreate", "sidecar-1"],
             actor_id=args.actor_id,
             capture_output=True,
         )
