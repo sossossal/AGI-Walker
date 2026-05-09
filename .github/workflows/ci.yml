@@ -224,6 +224,7 @@ jobs:
     env:
       AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE: "1"
       AGI_WALKER_ROS2_BRIDGE_SMOKE_ARTIFACT_DIR: "test_env/ros2_bridge_smoke"
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2

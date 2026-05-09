@@ -1614,6 +1614,7 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
             env_overrides={
                 "AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE": "1",
                 "AGI_WALKER_ROS2_BRIDGE_SMOKE_ARTIFACT_DIR": str(ros2_smoke_root),
+                "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
             },
             skip_reason=ros2_bridge_skip_reason,
         ),
