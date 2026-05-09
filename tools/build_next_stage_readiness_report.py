@@ -11,6 +11,7 @@ SCHEMA_VERSION = "1.0"
 EXTERNAL_INPUT_ISSUES = {
     "change_request",
     "customer_site_smoke",
+    "evidence_missing",
     "external_mainline_industrial_live_evidence_waiting",
     "fault_telemetry",
     "hardware_transport_diagnostics",

@@ -79,12 +79,20 @@ def test_ros2_typed_idl_cutover_report_ready(tmp_path: Path) -> None:
 
 
 def test_ros2_typed_idl_cutover_blocks_template_defaults(tmp_path: Path) -> None:
+    template_payload = json.loads(TEMPLATE.read_text(encoding="utf-8"))
+    template_payload["evidence"] = {
+        "live_smoke_report": str(tmp_path / "missing_smoke.json"),
+        "typed_inventory": str(tmp_path / "missing_inventory.json"),
+        "rollback_plan": str(tmp_path / "missing_rollback.md"),
+    }
+    input_path = tmp_path / "template.json"
     output_path = tmp_path / "cutover_report.json"
+    _write_json(input_path, template_payload)
 
     exit_code = main(
         [
             "--input",
-            str(TEMPLATE),
+            str(input_path),
             "--output",
             str(output_path),
         ]
@@ -95,8 +103,9 @@ def test_ros2_typed_idl_cutover_blocks_template_defaults(tmp_path: Path) -> None
     assert payload["status"] == "blocked"
     assert "target_environment" in payload["blockers"]
     assert "json_writers_disabled" in payload["blockers"]
-    assert "instruction_set" not in payload["blockers"]
-    assert payload["summary"]["verified_surface_count"] == 4
+    assert "instruction_set" in payload["blockers"]
+    assert payload["summary"]["verified_surface_count"] == 0
+    assert payload["summary"]["blocked_surface_count"] == 4
 
 
 def test_ros2_typed_idl_cutover_blocks_nonpassing_surface(tmp_path: Path) -> None:

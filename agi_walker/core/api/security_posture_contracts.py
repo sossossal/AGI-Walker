@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import json
 import re
-import tomllib
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - exercised on Python 3.10.
+    import tomli as tomllib
 
 from agi_walker.core.api.workflow_contracts import to_jsonable
 
