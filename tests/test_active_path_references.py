@@ -282,6 +282,7 @@ def test_ros2_bridge_smoke_ci_job_uploads_structured_report() -> None:
     assert 'runs-on: ubuntu-22.04' in content
     assert 'AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE: "1"' in content
     assert 'AGI_WALKER_ROS2_BRIDGE_SMOKE_ARTIFACT_DIR: "test_env/ros2_bridge_smoke"' in content
+    assert 'PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"' in content
     assert "ros-humble-ros-base" in content
     assert (
         'python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live" --tb=short -vv'
