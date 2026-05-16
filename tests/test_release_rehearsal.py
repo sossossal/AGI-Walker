@@ -4,11 +4,11 @@ import json
 import shutil
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
 from agi_walker.core.api.release_contracts import validate_release_manifest_artifact
-
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -41,9 +41,15 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
     assert "release_rehearsal_written=" in result.stdout
     assert "industrial_delivery_rehearsal_report_written=" in result.stdout
     assert "industrial_delivery_rehearsal_status=ready" in result.stdout
-    assert "industrial_delivery_vulnerability_exception_review=passed/1" in result.stdout
-    assert "industrial_delivery_customer_external_bindings_closure=passed" in result.stdout
-    assert "industrial_delivery_external_mainline_execution_plan=ready/" in result.stdout
+    assert (
+        "industrial_delivery_vulnerability_exception_review=passed/1" in result.stdout
+    )
+    assert (
+        "industrial_delivery_customer_external_bindings_closure=passed" in result.stdout
+    )
+    assert (
+        "industrial_delivery_external_mainline_execution_plan=ready/" in result.stdout
+    )
     assert "industrial_delivery_release_ops_execution=passed/3" in result.stdout
     assert "release_rehearsal_control_plane_events=3" in result.stdout
     assert "industrial_delivery_control_plane_events=3" in result.stdout
@@ -56,7 +62,10 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
     assert report_payload["release_gate_status"] == "ready"
     assert report_payload["customer_delivery_status"] == "ready"
     assert report_payload["industrial_delivery_status"] == "ready"
-    assert report_payload["control_plane_session"]["engagement_id"] == "release-rehearsal-test"
+    assert (
+        report_payload["control_plane_session"]["engagement_id"]
+        == "release-rehearsal-test"
+    )
     assert report_payload["control_plane_event_stream"]["event_count"] == 3
     assert report_payload["extension_execution_plan"]["status"] == "ready"
     assert report_payload["extension_execution_plan"]["actionable_profiles"] == 3
@@ -68,9 +77,14 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
     assert report_payload["extension_execution_schedule"]["ready_profiles"] == 3
     assert report_payload["extension_execution_actuals"]["status"] == "ready"
     assert report_payload["extension_execution_actuals"]["ready_profiles"] == 3
-    assert report_payload["extension_execution_actuals"]["external_bindings_status"] == "ready"
     assert (
-        report_payload["extension_execution_actuals"]["external_bindings_follow_up_required"]
+        report_payload["extension_execution_actuals"]["external_bindings_status"]
+        == "ready"
+    )
+    assert (
+        report_payload["extension_execution_actuals"][
+            "external_bindings_follow_up_required"
+        ]
         is False
     )
     assert report_payload["security_release_preflight"]["status"] == "passed"
@@ -84,9 +98,28 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
     assert (
         report_payload["vulnerability_exception_review"]["review_candidate_count"] >= 1
     )
+    vulnerability_exception_report = json.loads(
+        (
+            output_root
+            / "test_env"
+            / "release_evidence"
+            / "security"
+            / "vulnerability_exception_report.json"
+        ).read_text(encoding="utf-8")
+    )
+    next_exception_expiry = datetime.fromisoformat(
+        vulnerability_exception_report["next_exception_expiry"]
+    )
+    generated_at = datetime.fromisoformat(report_payload["generated_at"])
+    assert next_exception_expiry > generated_at
     assert report_payload["customer_external_bindings_closure"]["status"] == "passed"
     assert report_payload["external_mainline_execution_plan"]["status"] == "ready"
-    assert report_payload["external_mainline_execution_plan"]["waiting_external_input_steps"] >= 0
+    assert (
+        report_payload["external_mainline_execution_plan"][
+            "waiting_external_input_steps"
+        ]
+        >= 0
+    )
     assert report_payload["release_ops_execution"]["status"] == "passed"
     assert report_payload["release_ops_execution"]["event_count"] == 3
     assert (
@@ -96,9 +129,9 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
         == "release-rehearsal-test"
     )
     assert (
-        report_payload["external_mainline_execution_plan"]["control_plane_event_stream"][
-            "event_count"
-        ]
+        report_payload["external_mainline_execution_plan"][
+            "control_plane_event_stream"
+        ]["event_count"]
         == 3
     )
     assert report_payload["industrial_manifest"]["status"] == "ready"
@@ -152,11 +185,13 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
         report_payload["industrial_customer_acceptance_bundle"]["reports_present"]
         == report_payload["industrial_customer_acceptance_bundle"]["reports_total"]
     )
-    assert report_payload["extension_execution_actuals"]["external_bindings"]["config_path"] == (
-        "deployment/customer_delivery.external_bindings.rehearsal.json"
-    )
+    assert report_payload["extension_execution_actuals"]["external_bindings"][
+        "config_path"
+    ] == ("deployment/customer_delivery.external_bindings.rehearsal.json")
     assert len(report_payload["industrial_delivery_artifact_paths"]) == 5
-    assert [item["name"] for item in report_payload["industrial_delivery_artifact_paths"]] == [
+    assert [
+        item["name"] for item in report_payload["industrial_delivery_artifact_paths"]
+    ] == [
         "release_manifest_industrial.json",
         "industrial_release_readiness_report.json",
         "industrial_promotion_checklist.json",
@@ -182,11 +217,28 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
         for item in report_payload["extension_execution_plan"]["profiles"]
         if item["id"] == "distributed_profile"
     )
-    assert distributed_profile["execution_template"]["rollback_owner_role"] == "rollback_owner"
-    assert distributed_profile["execution_template"]["upgrade_window_steps"][0]["owner_role"] == "delivery_lead"
-    assert distributed_profile["execution_template"]["handoff_owner_role"] == "delivery_lead"
-    assert distributed_profile["execution_template"]["watch_owner_role"] == "customer_operator"
-    assert distributed_profile["execution_template"]["on_call_handoff_owner_role"] == "delivery_lead"
+    assert (
+        distributed_profile["execution_template"]["rollback_owner_role"]
+        == "rollback_owner"
+    )
+    assert (
+        distributed_profile["execution_template"]["upgrade_window_steps"][0][
+            "owner_role"
+        ]
+        == "delivery_lead"
+    )
+    assert (
+        distributed_profile["execution_template"]["handoff_owner_role"]
+        == "delivery_lead"
+    )
+    assert (
+        distributed_profile["execution_template"]["watch_owner_role"]
+        == "customer_operator"
+    )
+    assert (
+        distributed_profile["execution_template"]["on_call_handoff_owner_role"]
+        == "delivery_lead"
+    )
     assert (
         distributed_profile["execution_template"]["signoff_checkpoints"][0][
             "required_artifact"
@@ -271,9 +323,9 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
     assert manifest_payload["extension_execution_instance"]["status"] == "ready"
     assert manifest_payload["extension_execution_schedule"]["status"] == "ready"
     assert manifest_payload["extension_execution_actuals"]["status"] == "ready"
-    assert manifest_payload["extension_execution_actuals"]["external_bindings"]["config_path"] == (
-        "deployment/customer_delivery.external_bindings.rehearsal.json"
-    )
+    assert manifest_payload["extension_execution_actuals"]["external_bindings"][
+        "config_path"
+    ] == ("deployment/customer_delivery.external_bindings.rehearsal.json")
     assert manifest_payload["release_source"]["version_tag_matches"] is True
     industrial_manifest_path = Path(
         report_payload["industrial_manifest"]["manifest_path"]
@@ -299,7 +351,9 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
         == "industrial_release_readiness_report"
     )
     assert industrial_readiness_payload["industrial_release_gate"] == "ready"
-    assert industrial_readiness_payload["extension_execution_actuals"]["status"] == "ready"
+    assert (
+        industrial_readiness_payload["extension_execution_actuals"]["status"] == "ready"
+    )
     industrial_promotion_report_path = Path(
         report_payload["industrial_promotion_checklist"]["report_path"]
     )
@@ -343,9 +397,13 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
     assert acceptance_reports["industrial_promotion_checklist"]["exists"] is True
     assert acceptance_reports["industrial_promotion_checklist"]["status"] == "ready"
     assert acceptance_reports["industrial_delivery_rehearsal_report"]["exists"] is True
-    assert acceptance_reports["industrial_delivery_rehearsal_report"]["status"] == "ready"
+    assert (
+        acceptance_reports["industrial_delivery_rehearsal_report"]["status"] == "ready"
+    )
     assert acceptance_reports["customer_external_bindings_closure"]["exists"] is True
-    assert acceptance_reports["customer_external_bindings_closure"]["status"] == "passed"
+    assert (
+        acceptance_reports["customer_external_bindings_closure"]["status"] == "passed"
+    )
     assert acceptance_reports["external_mainline_execution_plan"]["exists"] is True
     assert acceptance_reports["external_mainline_execution_plan"]["status"] == "ready"
     assert (
@@ -355,21 +413,30 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
         == "release-rehearsal-test"
     )
     assert acceptance_reports["external_mainline_input_checklist"]["exists"] is True
-    assert acceptance_reports["external_mainline_input_checklist"]["status"] == "blocked"
     assert (
-        acceptance_reports["external_mainline_input_checklist"]["control_plane_session"][
-            "engagement_id"
-        ]
+        acceptance_reports["external_mainline_input_checklist"]["status"] == "blocked"
+    )
+    assert (
+        acceptance_reports["external_mainline_input_checklist"][
+            "control_plane_session"
+        ]["engagement_id"]
         == "release-rehearsal-test"
     )
     assert acceptance_reports["release_ops_execution"]["exists"] is True
     assert acceptance_reports["release_ops_execution"]["status"] == "passed"
-    assert acceptance_reports["customer_external_bindings_confirmation"]["exists"] is True
-    assert acceptance_reports["customer_external_bindings_confirmation"]["status"] == "passed"
+    assert (
+        acceptance_reports["customer_external_bindings_confirmation"]["exists"] is True
+    )
+    assert (
+        acceptance_reports["customer_external_bindings_confirmation"]["status"]
+        == "passed"
+    )
     assert acceptance_reports["vulnerability_exception_review"]["exists"] is True
     assert acceptance_reports["vulnerability_exception_review"]["status"] == "passed"
     assert (
-        industrial_bundle_payload["extension_execution_actuals"]["external_bindings_status"]
+        industrial_bundle_payload["extension_execution_actuals"][
+            "external_bindings_status"
+        ]
         == "ready"
     )
     assert (
@@ -402,17 +469,27 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
         "failed": 0,
     }
     assert (
-        industrial_delivery_rehearsal_payload["vulnerability_exception_review"]["status"]
+        industrial_delivery_rehearsal_payload["vulnerability_exception_review"][
+            "status"
+        ]
         == "passed"
     )
-    assert industrial_delivery_rehearsal_payload["release_ops_execution"]["status"] == "passed"
-    assert industrial_delivery_rehearsal_payload["release_ops_execution"]["event_count"] == 3
+    assert (
+        industrial_delivery_rehearsal_payload["release_ops_execution"]["status"]
+        == "passed"
+    )
+    assert (
+        industrial_delivery_rehearsal_payload["release_ops_execution"]["event_count"]
+        == 3
+    )
     assert (
         industrial_delivery_rehearsal_payload["control_plane_session"]["engagement_id"]
         == "release-rehearsal-test"
     )
     assert (
-        industrial_delivery_rehearsal_payload["control_plane_event_stream"]["event_count"]
+        industrial_delivery_rehearsal_payload["control_plane_event_stream"][
+            "event_count"
+        ]
         == 3
     )
     assert (
@@ -437,12 +514,13 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
         industrial_delivery_rehearsal_payload["industrial_manifest"]["summary"]
         == "industrial manifest status=ready."
     )
+    assert industrial_delivery_rehearsal_payload[
+        "release_rehearsal_report_path"
+    ] == str(report_path)
     assert (
-        industrial_delivery_rehearsal_payload["release_rehearsal_report_path"]
-        == str(report_path)
-    )
-    assert (
-        output_root / "deployment" / "customer_delivery.external_bindings.rehearsal.json"
+        output_root
+        / "deployment"
+        / "customer_delivery.external_bindings.rehearsal.json"
     ).exists()
     assert (
         output_root
@@ -523,7 +601,9 @@ def test_run_release_rehearsal_script_is_repeatable_for_same_output_root(
 
 
 def test_run_release_rehearsal_script_accepts_relative_output_root() -> None:
-    relative_output_root = Path("test_env") / f"release_rehearsal_relative_{uuid4().hex[:8]}"
+    relative_output_root = (
+        Path("test_env") / f"release_rehearsal_relative_{uuid4().hex[:8]}"
+    )
     output_root = (PROJECT_ROOT / relative_output_root).resolve()
 
     shutil.rmtree(output_root, ignore_errors=True)
@@ -564,7 +644,9 @@ def test_run_release_rehearsal_script_accepts_relative_output_root() -> None:
         assert report_payload["industrial_manifest"]["status"] == "ready"
         assert report_payload["industrial_release_readiness"]["status"] == "ready"
         assert report_payload["industrial_promotion_checklist"]["status"] == "ready"
-        assert report_payload["industrial_customer_acceptance_bundle"]["status"] == "ready"
+        assert (
+            report_payload["industrial_customer_acceptance_bundle"]["status"] == "ready"
+        )
         assert (
             report_payload["industrial_customer_acceptance_bundle"][
                 "vulnerability_exception_review"
@@ -579,21 +661,21 @@ def test_run_release_rehearsal_script_accepts_relative_output_root() -> None:
         )
         assert len(report_payload["delivery_rehearsal_stages"]) == 6
         assert (
-            report_payload["extension_execution_plan"]["profiles"][0]["execution_template"][
-                "rollback_owner_role"
-            ]
+            report_payload["extension_execution_plan"]["profiles"][0][
+                "execution_template"
+            ]["rollback_owner_role"]
             == "rollback_owner"
         )
         assert (
-            report_payload["extension_execution_plan"]["profiles"][0]["execution_template"][
-                "handoff_owner_role"
-            ]
+            report_payload["extension_execution_plan"]["profiles"][0][
+                "execution_template"
+            ]["handoff_owner_role"]
             == "delivery_lead"
         )
         assert (
-            report_payload["extension_execution_plan"]["profiles"][0]["execution_template"][
-                "residual_risk_owner_role"
-            ]
+            report_payload["extension_execution_plan"]["profiles"][0][
+                "execution_template"
+            ]["residual_risk_owner_role"]
             == "delivery_lead"
         )
 

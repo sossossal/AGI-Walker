@@ -7,7 +7,7 @@ import json
 import subprocess
 import sys
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -72,6 +72,14 @@ from agi_walker.core.api.release_ops_contracts import (  # noqa: E402
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _future_iso(*, days: int) -> str:
+    return (
+        (datetime.now(timezone.utc) + timedelta(days=days))
+        .replace(microsecond=0)
+        .isoformat()
+    )
 
 
 def _path_for_contract(path: str | Path, *, project_root: Path) -> str:
@@ -883,7 +891,7 @@ def _seed_security_evidence(project_root: Path) -> list[dict[str, str]]:
                     "justification": "Rehearsal exception proving industrial delivery can close approved residual image findings.",
                     "approved_by": "security-reviewer",
                     "approved_at": _now_iso(),
-                    "expires_at": "2026-05-15T00:00:00+00:00",
+                    "expires_at": _future_iso(days=21),
                 }
             ],
         ),
@@ -1253,7 +1261,7 @@ def _seed_extension_execution_instance(project_root: Path) -> dict[str, str]:
         window_end_at=_now_iso(),
         delivery_root="test_env/release_delivery/release_rehearsal",
         closure_archive_root="test_env/release_delivery/release_rehearsal/closure_archive",
-        exception_review_due_at="2026-05-15T00:00:00+00:00",
+        exception_review_due_at=_future_iso(days=21),
     )
     written = write_extension_execution_instance_artifact(payload, output_path)
     return {"name": written.name, "path": str(written)}
