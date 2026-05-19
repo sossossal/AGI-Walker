@@ -1139,6 +1139,8 @@ def _append_runtime_value_mismatch(
     actual: Any,
     tolerance: float,
 ) -> None:
+    if _runtime_node_paths_match(field, expected, actual):
+        return
     max_delta = _runtime_value_delta(expected, actual)
     values_match = (
         max_delta <= tolerance
@@ -1158,6 +1160,31 @@ def _append_runtime_value_mismatch(
             "max_delta": max_delta,
         }
     )
+
+
+def _runtime_node_paths_match(field: str, expected: Any, actual: Any) -> bool:
+    path_fields = {
+        "body_node",
+        "collision_node",
+        "mesh_node",
+        "joint_node",
+        "node_a",
+        "node_b",
+    }
+    if field.rsplit(".", 1)[-1] not in path_fields:
+        return False
+    if not _is_non_empty_string(expected) or not _is_non_empty_string(actual):
+        return False
+    expected_parts = _node_path_parts(str(expected))
+    actual_parts = _node_path_parts(str(actual))
+    return (
+        len(actual_parts) >= len(expected_parts)
+        and actual_parts[-len(expected_parts) :] == expected_parts
+    )
+
+
+def _node_path_parts(value: str) -> list[str]:
+    return [part for part in value.replace("\\", "/").split("/") if part]
 
 
 def _runtime_value_delta(expected: Any, actual: Any) -> float | None:

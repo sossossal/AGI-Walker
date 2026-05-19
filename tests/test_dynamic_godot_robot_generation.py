@@ -1227,6 +1227,31 @@ def test_godot_node_tree_manifest_runtime_comparison_accepts_exact_mapping() -> 
     assert summary["mismatch_kind_counts"] == {}
 
 
+def test_godot_node_tree_manifest_runtime_comparison_accepts_runtime_root_prefix() -> None:
+    normalized = robot_schema.normalize_robot_config_for_godot(
+        json.loads(FIXED_PAIR_FIXTURE.read_text(encoding="utf-8"))
+    )
+    manifest = robot_schema.build_godot_node_tree_manifest(normalized)
+    runtime_parts = json.loads(json.dumps(manifest["part_nodes"]))
+    runtime_joints = _runtime_joint_nodes_for_manifest(manifest)
+    for part in runtime_parts:
+        for field in ["body_node", "collision_node", "mesh_node"]:
+            part[field] = f"/root/RLServer/{part[field]}"
+    for joint in runtime_joints:
+        for field in ["joint_node", "node_a", "node_b"]:
+            joint[field] = f"/root/RLServer/{joint[field]}"
+
+    summary = robot_schema.compare_godot_node_tree_manifest_to_runtime(
+        manifest,
+        runtime_parts,
+        runtime_joints,
+    )
+
+    assert summary["complete"] is True
+    assert summary["mismatch_count"] == 0
+    assert summary["mismatch_kind_counts"] == {}
+
+
 def test_godot_node_tree_manifest_runtime_comparison_reports_missing_node() -> None:
     normalized = robot_schema.normalize_robot_config_for_godot(
         json.loads(FIXED_PAIR_FIXTURE.read_text(encoding="utf-8"))
