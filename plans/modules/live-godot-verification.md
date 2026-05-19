@@ -83,6 +83,8 @@ When Godot is available, run the documented live profile and archive report, gat
 - Start with dry-run/discovery behavior so the profile is testable without Godot.
 - 2026-05-19: Added `--live-profile`, discovery metadata, artifact retention metadata, flaky policy metadata, and `--dry-run-discovery` to the smoke runner; report builder now forwards the profile fields.
 - 2026-05-19: Added manual/scheduled `dynamic-godot-live-verification` CI job. It always uploads discovery artifacts and only runs full live verification when `GODOT_EXECUTABLE` is provided.
+- 2026-05-19: Ran the local live profile against `tests/fixtures/robot_dynamic_biped.json` with `D:\迅雷下载\Godot\Godot.exe`. Discovery succeeded, the full mechanical restoration live report/gate passed at `godot_verified`, and readiness summary reported `status=ready`. Artifacts were written under `test_env/dynamic_godot_live/local/`.
+- 2026-05-19: Readiness summary accepts the live generation report and gate as evidence inputs; raw smoke JSON is retained as a required artifact but is not a direct readiness input.
 
 # Drift Check
 
