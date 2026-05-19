@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import socket
 import subprocess
 import sys
 from pathlib import Path
@@ -192,6 +193,7 @@ def _run_godot_smoke(
     live_retention_days: int | None = None,
     flaky_retry_attempts: int | None = None,
 ) -> dict[str, Any]:
+    resolved_port = _resolve_smoke_port(port)
     command = [
         sys.executable,
         str(repo_root / "tools" / "run_dynamic_godot_robot_smoke.py"),
@@ -201,7 +203,7 @@ def _run_godot_smoke(
         "--live-profile",
         live_profile,
         "--port",
-        str(port),
+        str(resolved_port),
         "--timeout-seconds",
         str(timeout_seconds),
         "--action-json",
@@ -319,6 +321,7 @@ def _run_godot_smoke(
         )
     return {
         "command": command,
+        "port": resolved_port,
         "returncode": result.returncode,
         "report_written": report_written,
         "report_read_error": report_read_error,
@@ -331,6 +334,14 @@ def _run_godot_smoke(
         "report_summary": _build_smoke_report_summary(smoke_report),
         "live_verification": smoke_report.get("live_verification", {}),
     }
+
+
+def _resolve_smoke_port(port: int) -> int:
+    if port > 0:
+        return port
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.bind(("127.0.0.1", 0))
+        return int(probe.getsockname()[1])
 
 
 def _build_smoke_report_summary(smoke_report: dict[str, Any]) -> dict[str, Any]:
@@ -3080,7 +3091,15 @@ def main() -> int:
         default=None,
         help="Retry budget recorded by the live Godot smoke runner.",
     )
-    parser.add_argument("--port", type=int, default=19170)
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=0,
+        help=(
+            "TCP port for the live Godot smoke runner. Defaults to 0, which "
+            "auto-selects a free localhost port for each report invocation."
+        ),
+    )
     parser.add_argument("--timeout-seconds", type=float, default=8.0)
     parser.add_argument(
         "--max-endpoint-distance",

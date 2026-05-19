@@ -951,6 +951,8 @@ def test_godot_assembler_materializes_bodies_joints_and_controller() -> None:
     assert "func _joint_mapping(connection: Dictionary, joint: Joint3D)" in content
     assert '"rotation": [body.rotation.x, body.rotation.y, body.rotation.z]' in content
     assert '"axis": connection.get("axis", [0.0, 1.0, 0.0])' in content
+    assert "body.contact_monitor = true" in content
+    assert 'body.max_contacts_reported = int(params.get("max_contacts_reported", 8))' in content
 
 
 def test_generated_robot_controller_exposes_motion_and_telemetry_hooks() -> None:
@@ -965,6 +967,10 @@ def test_generated_robot_controller_exposes_motion_and_telemetry_hooks() -> None
     assert '"body_states": _body_states(bodies)' in content
     assert '"joint_states": _joint_states()' in content
     assert "func _body_states(bodies: Array) -> Dictionary" in content
+    assert '"contact_count": body.get_contact_count()' in content
+    assert '"contacts": _contact_names(body)' in content
+    assert "func _contact_names(body: RigidBody3D) -> Array" in content
+    assert "body.get_colliding_bodies()" in content
     assert "func _joint_states() -> Dictionary" in content
     assert '"endpoint_distance": _joint_endpoint_distance(joint)' in content
     assert '"relative_angle": relative_angle' in content
@@ -14160,6 +14166,9 @@ def test_dynamic_robot_generation_report_tool_keeps_smoke_output_compact() -> No
     assert "--fail-on-node-tree-physical-mismatch" in content
     assert "--fail-on-node-tree-fixed-lock-mismatch" in content
     assert "--node-tree-tolerance" in content
+    assert "def _resolve_smoke_port(port: int) -> int" in content
+    assert "default=0" in content
+    assert '"port": resolved_port' in content
     assert '"stdout": result.stdout' not in content
     assert '"stderr": result.stderr' not in content
     assert '"report": smoke_report' not in content
@@ -14246,6 +14255,89 @@ def test_report_smoke_wrapper_passes_node_tree_fixed_lock_gate(
     assert "--fail-on-node-tree-fixed-lock-mismatch" in result["command"]
     assert "--mechanical-trace-output" in result["command"]
     assert str(trace_output) in result["command"]
+    assert result["port"] == 19170
+    assert result["returncode"] == 0
+
+
+def test_report_smoke_wrapper_auto_selects_port(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    spec = importlib.util.spec_from_file_location("dynamic_godot_report", REPORT_TOOL)
+    report_tool = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(report_tool)
+
+    smoke_output = tmp_path / "smoke.json"
+    normalized_output = tmp_path / "normalized.json"
+    normalized_output.write_text("{}", encoding="utf-8")
+
+    def fake_run(command, **kwargs):
+        smoke_output.write_text(
+            json.dumps(
+                {
+                    "status": "success",
+                    "load_result": {},
+                    "mapping_summary": {},
+                    "step_summary": {},
+                    "node_tree_manifest": {},
+                }
+            ),
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(report_tool.subprocess, "run", fake_run)
+    monkeypatch.setattr(report_tool, "_resolve_smoke_port", lambda port: 23456)
+
+    result = report_tool._run_godot_smoke(
+        repo_root=ROOT,
+        normalized_output=normalized_output,
+        smoke_output=smoke_output,
+        godot_exe="Godot.exe",
+        port=0,
+        timeout_seconds=1.0,
+        max_endpoint_distance=None,
+        max_relative_angle=None,
+        min_body_displacement=None,
+        max_linear_speed=None,
+        min_joint_angle_delta=None,
+        min_joint_angle_range=None,
+        min_moving_joint_coverage=None,
+        min_commanded_joint_response_coverage=None,
+        joint_motion_epsilon=0.0,
+        min_action_target_coverage=None,
+        min_control_action_coverage=None,
+        min_nonzero_action_targets=None,
+        min_action_transitions=None,
+        min_action_transition_delta=None,
+        fail_on_joint_limit_violation=False,
+        fail_on_incomplete_restoration=False,
+        min_restoration_score=None,
+        fail_on_parameter_mismatch=False,
+        fail_on_control_mismatch=False,
+        fail_on_full_mechanical_restoration=False,
+        fail_on_action_target_mismatch=False,
+        fail_on_action_sequence_target_mismatch=False,
+        fail_on_unknown_action_target=False,
+        fail_on_invalid_action_target=False,
+        fail_on_incomplete_node_tree=False,
+        fail_on_full_node_tree_restoration=False,
+        fail_on_node_tree_class_mismatch=False,
+        fail_on_node_tree_missing_parameters=False,
+        fail_on_node_tree_transform_mismatch=False,
+        fail_on_node_tree_physical_mismatch=False,
+        fail_on_node_tree_fixed_lock_mismatch=False,
+        node_tree_tolerance=1e-4,
+        parameter_tolerance=1e-4,
+        action_json="[0.0]",
+        action_sequence_json=None,
+        steps=1,
+        step_delay_seconds=0.0,
+    )
+
+    assert result["port"] == 23456
+    assert result["command"][result["command"].index("--port") + 1] == "23456"
     assert result["returncode"] == 0
 
 

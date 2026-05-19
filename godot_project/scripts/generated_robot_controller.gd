@@ -124,9 +124,19 @@ func _body_states(bodies: Array) -> Dictionary:
 			"rotation": _vector3_array(body.global_rotation),
 			"linear_velocity": _vector3_array(body.linear_velocity),
 			"angular_velocity": _vector3_array(body.angular_velocity),
-			"mass": body.mass
+			"mass": body.mass,
+			"contact_count": body.get_contact_count(),
+			"contacts": _contact_names(body)
 		}
 	return states
+
+
+func _contact_names(body: RigidBody3D) -> Array:
+	var names := []
+	for collider in body.get_colliding_bodies():
+		if collider is Node:
+			names.append(collider.name)
+	return names
 
 
 func _joint_states() -> Dictionary:

@@ -93,6 +93,10 @@ py -3.12 -m pytest tests\test_workflow_contracts.py -q
   `contact_count`, `on_floor`, `ground_contact`, `support_contact` or
   `contact_points`; missing contact telemetry remains a structured residual
   risk.
+- 2026-05-19: Enabled generated `RigidBody3D` contact monitoring and added
+  `contact_count` plus collider names to generated controller `body_states`.
+  Explicit zero-contact readings now count as available contact-state telemetry
+  for live mechanical behavior evidence.
 - 2026-05-19: Added additive report, delivery gate and workflow contract
   coverage for `mechanical_behavior_*` summary counts so behavior evidence
   presence, completeness, residual risks, threshold failures, COM/contact

@@ -93,6 +93,8 @@ func _create_body(part: Dictionary) -> RigidBody3D:
 	var body = RigidBody3D.new()
 	body.name = str(part["id"])
 	body.mass = float(params.get("mass", 1.0))
+	body.contact_monitor = true
+	body.max_contacts_reported = int(params.get("max_contacts_reported", 8))
 	body.position = _vector3(params.get("position", [0.0, 0.0, 0.0]))
 	body.rotation = _vector3(params.get("rotation", [0.0, 0.0, 0.0]))
 	var collision = _collision_for_part(part)

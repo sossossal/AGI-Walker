@@ -1120,10 +1120,13 @@ stability summary with COM height range, horizontal displacement, and COM speed.
 When `body_states` or top-level step telemetry include explicit contact fields
 such as `contact`, `contacts`, `contact_count`, `on_floor`, `ground_contact`,
 `support_contact`, or `contact_points`, the report also fills
-`contact_state_evidence` with support parts and current contacts. If support or
-contact telemetry is not present, contact state remains a structured residual
-risk: `contact_state_runtime_readback_missing`. If body telemetry is unavailable
-or incomplete, center of mass is also reported as
+`contact_state_evidence` with support parts and current contacts. Generated
+Godot bodies enable contact monitoring and report `contact_count` plus collider
+names in `body_states`, so an explicit zero-contact reading is treated as
+available telemetry, not as missing evidence. If support or contact telemetry is
+not present, contact state remains a structured residual risk:
+`contact_state_runtime_readback_missing`. If body telemetry is unavailable or
+incomplete, center of mass is also reported as
 `center_of_mass_runtime_readback_missing`. Existing `godot_verified` gates keep
 their current compatibility while the behavior contract becomes inspectable.
 
@@ -1134,7 +1137,10 @@ the discovery report. If `GODOT_EXECUTABLE` is configured and points to an
 existing executable, the same job runs the full `godot_verified` report/gate
 chain and writes the live smoke, report, gate, and readiness artifacts under
 `test_env/dynamic_godot_live/<profile>/`. Scheduled runs use the `scheduled_ci`
-profile; manual runs use `manual_ci`.
+profile; manual runs use `manual_ci`. The report builder auto-selects a free
+localhost TCP port by default for each live smoke invocation; pass
+`--port <port>` only when a fixed port is required for a local diagnostic
+session.
 
 Archive these exact artifacts:
 
