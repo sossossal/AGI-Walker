@@ -34,6 +34,7 @@ validate_delivery_acceptance_gate = _workflow_contracts.validate_delivery_accept
 
 DELIVERY_ACCEPTANCE_GATE_SOURCE = "dynamic_godot_report_cli"
 DELIVERY_ACCEPTANCE_GATE_SCOPE = "godot_smoke_motion"
+AUTO_PORT_SMOKE_ATTEMPTS = 2
 
 
 def _configure_stdio_for_json_output() -> None:
@@ -193,106 +194,144 @@ def _run_godot_smoke(
     live_retention_days: int | None = None,
     flaky_retry_attempts: int | None = None,
 ) -> dict[str, Any]:
-    resolved_port = _resolve_smoke_port(port)
-    command = [
-        sys.executable,
-        str(repo_root / "tools" / "run_dynamic_godot_robot_smoke.py"),
-        str(normalized_output),
-        "--godot-exe",
-        godot_exe,
-        "--live-profile",
-        live_profile,
-        "--port",
-        str(resolved_port),
-        "--timeout-seconds",
-        str(timeout_seconds),
-        "--action-json",
-        action_json,
-        "--steps",
-        str(steps),
-        "--step-delay-seconds",
-        str(step_delay_seconds),
-        "--output",
-        str(smoke_output),
-    ]
-    if mechanical_trace_output is not None:
-        command.extend(["--mechanical-trace-output", str(mechanical_trace_output)])
-    if live_artifact_root is not None:
-        command.extend(["--live-artifact-root", str(live_artifact_root)])
-    if live_retention_days is not None:
-        command.extend(["--live-retention-days", str(live_retention_days)])
-    if flaky_retry_attempts is not None:
-        command.extend(["--flaky-retry-attempts", str(flaky_retry_attempts)])
-    if action_sequence_json is not None:
-        command.extend(["--action-sequence-json", action_sequence_json])
-    if max_endpoint_distance is not None:
-        command.extend(["--max-endpoint-distance", str(max_endpoint_distance)])
-    if max_relative_angle is not None:
-        command.extend(["--max-relative-angle", str(max_relative_angle)])
-    if min_body_displacement is not None:
-        command.extend(["--min-body-displacement", str(min_body_displacement)])
-    if max_linear_speed is not None:
-        command.extend(["--max-linear-speed", str(max_linear_speed)])
-    if min_joint_angle_delta is not None:
-        command.extend(["--min-joint-angle-delta", str(min_joint_angle_delta)])
-    if min_joint_angle_range is not None:
-        command.extend(["--min-joint-angle-range", str(min_joint_angle_range)])
-    if min_moving_joint_coverage is not None:
-        command.extend(["--min-moving-joint-coverage", str(min_moving_joint_coverage)])
-    if min_commanded_joint_response_coverage is not None:
-        command.extend(
-            [
-                "--min-commanded-joint-response-coverage",
-                str(min_commanded_joint_response_coverage),
-            ]
+    def command_for_port(resolved_port: int) -> list[str]:
+        command = [
+            sys.executable,
+            str(repo_root / "tools" / "run_dynamic_godot_robot_smoke.py"),
+            str(normalized_output),
+            "--godot-exe",
+            godot_exe,
+            "--live-profile",
+            live_profile,
+            "--port",
+            str(resolved_port),
+            "--timeout-seconds",
+            str(timeout_seconds),
+            "--action-json",
+            action_json,
+            "--steps",
+            str(steps),
+            "--step-delay-seconds",
+            str(step_delay_seconds),
+            "--output",
+            str(smoke_output),
+        ]
+        if mechanical_trace_output is not None:
+            command.extend(["--mechanical-trace-output", str(mechanical_trace_output)])
+        if live_artifact_root is not None:
+            command.extend(["--live-artifact-root", str(live_artifact_root)])
+        if live_retention_days is not None:
+            command.extend(["--live-retention-days", str(live_retention_days)])
+        if flaky_retry_attempts is not None:
+            command.extend(["--flaky-retry-attempts", str(flaky_retry_attempts)])
+        if action_sequence_json is not None:
+            command.extend(["--action-sequence-json", action_sequence_json])
+        if max_endpoint_distance is not None:
+            command.extend(["--max-endpoint-distance", str(max_endpoint_distance)])
+        if max_relative_angle is not None:
+            command.extend(["--max-relative-angle", str(max_relative_angle)])
+        if min_body_displacement is not None:
+            command.extend(["--min-body-displacement", str(min_body_displacement)])
+        if max_linear_speed is not None:
+            command.extend(["--max-linear-speed", str(max_linear_speed)])
+        if min_joint_angle_delta is not None:
+            command.extend(["--min-joint-angle-delta", str(min_joint_angle_delta)])
+        if min_joint_angle_range is not None:
+            command.extend(["--min-joint-angle-range", str(min_joint_angle_range)])
+        if min_moving_joint_coverage is not None:
+            command.extend(["--min-moving-joint-coverage", str(min_moving_joint_coverage)])
+        if min_commanded_joint_response_coverage is not None:
+            command.extend(
+                [
+                    "--min-commanded-joint-response-coverage",
+                    str(min_commanded_joint_response_coverage),
+                ]
+            )
+        command.extend(["--joint-motion-epsilon", str(joint_motion_epsilon)])
+        if min_action_target_coverage is not None:
+            command.extend(["--min-action-target-coverage", str(min_action_target_coverage)])
+        if min_control_action_coverage is not None:
+            command.extend(["--min-control-action-coverage", str(min_control_action_coverage)])
+        if min_nonzero_action_targets is not None:
+            command.extend(["--min-nonzero-action-targets", str(min_nonzero_action_targets)])
+        if min_action_transitions is not None:
+            command.extend(["--min-action-transitions", str(min_action_transitions)])
+        if min_action_transition_delta is not None:
+            command.extend(["--min-action-transition-delta", str(min_action_transition_delta)])
+        if fail_on_joint_limit_violation:
+            command.append("--fail-on-joint-limit-violation")
+        if fail_on_incomplete_restoration:
+            command.append("--fail-on-incomplete-restoration")
+        if min_restoration_score is not None:
+            command.extend(["--min-restoration-score", str(min_restoration_score)])
+        if fail_on_parameter_mismatch:
+            command.append("--fail-on-parameter-mismatch")
+        if fail_on_control_mismatch:
+            command.append("--fail-on-control-mismatch")
+        if fail_on_full_mechanical_restoration:
+            command.append("--fail-on-full-mechanical-restoration")
+        if fail_on_action_target_mismatch:
+            command.append("--fail-on-action-target-mismatch")
+        if fail_on_action_sequence_target_mismatch:
+            command.append("--fail-on-action-sequence-target-mismatch")
+        if fail_on_unknown_action_target:
+            command.append("--fail-on-unknown-action-target")
+        if fail_on_invalid_action_target:
+            command.append("--fail-on-invalid-action-target")
+        if fail_on_incomplete_node_tree:
+            command.append("--fail-on-incomplete-node-tree")
+        if fail_on_full_node_tree_restoration:
+            command.append("--fail-on-full-node-tree-restoration")
+        if fail_on_node_tree_class_mismatch:
+            command.append("--fail-on-node-tree-class-mismatch")
+        if fail_on_node_tree_missing_parameters:
+            command.append("--fail-on-node-tree-missing-parameters")
+        if fail_on_node_tree_transform_mismatch:
+            command.append("--fail-on-node-tree-transform-mismatch")
+        if fail_on_node_tree_physical_mismatch:
+            command.append("--fail-on-node-tree-physical-mismatch")
+        if fail_on_node_tree_fixed_lock_mismatch:
+            command.append("--fail-on-node-tree-fixed-lock-mismatch")
+        command.extend(["--node-tree-tolerance", str(node_tree_tolerance)])
+        command.extend(["--parameter-tolerance", str(parameter_tolerance)])
+        return command
+
+    attempts: list[dict[str, Any]] = []
+    max_attempts = AUTO_PORT_SMOKE_ATTEMPTS if port <= 0 else 1
+    final_result: dict[str, Any] | None = None
+    for attempt_index in range(max_attempts):
+        resolved_port = _resolve_smoke_port(port)
+        command = command_for_port(resolved_port)
+        result_payload = _execute_godot_smoke_command(
+            command=command,
+            repo_root=repo_root,
+            smoke_output=smoke_output,
+            resolved_port=resolved_port,
         )
-    command.extend(["--joint-motion-epsilon", str(joint_motion_epsilon)])
-    if min_action_target_coverage is not None:
-        command.extend(["--min-action-target-coverage", str(min_action_target_coverage)])
-    if min_control_action_coverage is not None:
-        command.extend(["--min-control-action-coverage", str(min_control_action_coverage)])
-    if min_nonzero_action_targets is not None:
-        command.extend(["--min-nonzero-action-targets", str(min_nonzero_action_targets)])
-    if min_action_transitions is not None:
-        command.extend(["--min-action-transitions", str(min_action_transitions)])
-    if min_action_transition_delta is not None:
-        command.extend(["--min-action-transition-delta", str(min_action_transition_delta)])
-    if fail_on_joint_limit_violation:
-        command.append("--fail-on-joint-limit-violation")
-    if fail_on_incomplete_restoration:
-        command.append("--fail-on-incomplete-restoration")
-    if min_restoration_score is not None:
-        command.extend(["--min-restoration-score", str(min_restoration_score)])
-    if fail_on_parameter_mismatch:
-        command.append("--fail-on-parameter-mismatch")
-    if fail_on_control_mismatch:
-        command.append("--fail-on-control-mismatch")
-    if fail_on_full_mechanical_restoration:
-        command.append("--fail-on-full-mechanical-restoration")
-    if fail_on_action_target_mismatch:
-        command.append("--fail-on-action-target-mismatch")
-    if fail_on_action_sequence_target_mismatch:
-        command.append("--fail-on-action-sequence-target-mismatch")
-    if fail_on_unknown_action_target:
-        command.append("--fail-on-unknown-action-target")
-    if fail_on_invalid_action_target:
-        command.append("--fail-on-invalid-action-target")
-    if fail_on_incomplete_node_tree:
-        command.append("--fail-on-incomplete-node-tree")
-    if fail_on_full_node_tree_restoration:
-        command.append("--fail-on-full-node-tree-restoration")
-    if fail_on_node_tree_class_mismatch:
-        command.append("--fail-on-node-tree-class-mismatch")
-    if fail_on_node_tree_missing_parameters:
-        command.append("--fail-on-node-tree-missing-parameters")
-    if fail_on_node_tree_transform_mismatch:
-        command.append("--fail-on-node-tree-transform-mismatch")
-    if fail_on_node_tree_physical_mismatch:
-        command.append("--fail-on-node-tree-physical-mismatch")
-    if fail_on_node_tree_fixed_lock_mismatch:
-        command.append("--fail-on-node-tree-fixed-lock-mismatch")
-    command.extend(["--node-tree-tolerance", str(node_tree_tolerance)])
-    command.extend(["--parameter-tolerance", str(parameter_tolerance)])
+        attempts.append(_build_godot_smoke_attempt_summary(attempt_index, result_payload))
+        result_payload["attempt_count"] = len(attempts)
+        result_payload["attempts"] = attempts
+        result_payload["retried"] = len(attempts) > 1
+        final_result = result_payload
+        if not _should_retry_auto_port_smoke(
+            requested_port=port,
+            attempt_index=attempt_index,
+            max_attempts=max_attempts,
+            result_payload=result_payload,
+        ):
+            return result_payload
+    if final_result is None:
+        raise RuntimeError("Godot smoke was not attempted")
+    return final_result
+
+
+def _execute_godot_smoke_command(
+    *,
+    command: list[str],
+    repo_root: Path,
+    smoke_output: Path,
+    resolved_port: int,
+) -> dict[str, Any]:
     if smoke_output.exists():
         smoke_output.unlink()
     result = subprocess.run(
@@ -334,6 +373,43 @@ def _run_godot_smoke(
         "report_summary": _build_smoke_report_summary(smoke_report),
         "live_verification": smoke_report.get("live_verification", {}),
     }
+
+
+def _build_godot_smoke_attempt_summary(
+    attempt_index: int,
+    result_payload: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "attempt_index": attempt_index,
+        "port": result_payload["port"],
+        "returncode": result_payload["returncode"],
+        "report_written": result_payload["report_written"],
+        "report_read_error": result_payload["report_read_error"],
+        "execution_failure_reasons": result_payload["execution_failure_reasons"],
+        "stdout_line_count": result_payload["stdout_line_count"],
+        "stderr_line_count": result_payload["stderr_line_count"],
+        "stderr_tail": result_payload["stderr_tail"],
+    }
+
+
+def _should_retry_auto_port_smoke(
+    *,
+    requested_port: int,
+    attempt_index: int,
+    max_attempts: int,
+    result_payload: dict[str, Any],
+) -> bool:
+    if requested_port > 0 or attempt_index + 1 >= max_attempts:
+        return False
+    if result_payload["returncode"] == 0 or result_payload["report_written"]:
+        return False
+    diagnostics = "\n".join(
+        [
+            *result_payload.get("execution_failure_reasons", []),
+            *result_payload.get("stderr_tail", []),
+        ]
+    )
+    return "Godot TCP server did not respond on port" in diagnostics
 
 
 def _resolve_smoke_port(port: int) -> int:

@@ -1138,9 +1138,11 @@ existing executable, the same job runs the full `godot_verified` report/gate
 chain and writes the live smoke, report, gate, and readiness artifacts under
 `test_env/dynamic_godot_live/<profile>/`. Scheduled runs use the `scheduled_ci`
 profile; manual runs use `manual_ci`. The report builder auto-selects a free
-localhost TCP port by default for each live smoke invocation; pass
-`--port <port>` only when a fixed port is required for a local diagnostic
-session.
+localhost TCP port by default for each live smoke invocation and records
+`godot_smoke.attempts`; if the first auto-port launch fails before writing a
+smoke report with `Godot TCP server did not respond on port`, it retries once
+with a newly selected port. Pass `--port <port>` only when a fixed port is
+required for a local diagnostic session; fixed-port runs do not auto-retry.
 
 Archive these exact artifacts:
 

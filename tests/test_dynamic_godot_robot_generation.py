@@ -14167,8 +14167,12 @@ def test_dynamic_robot_generation_report_tool_keeps_smoke_output_compact() -> No
     assert "--fail-on-node-tree-fixed-lock-mismatch" in content
     assert "--node-tree-tolerance" in content
     assert "def _resolve_smoke_port(port: int) -> int" in content
+    assert "AUTO_PORT_SMOKE_ATTEMPTS = 2" in content
+    assert "def _should_retry_auto_port_smoke(" in content
     assert "default=0" in content
     assert '"port": resolved_port' in content
+    assert '"attempt_count"' in content
+    assert '"attempts"' in content
     assert '"stdout": result.stdout' not in content
     assert '"stderr": result.stderr' not in content
     assert '"report": smoke_report' not in content
@@ -14257,6 +14261,8 @@ def test_report_smoke_wrapper_passes_node_tree_fixed_lock_gate(
     assert str(trace_output) in result["command"]
     assert result["port"] == 19170
     assert result["returncode"] == 0
+    assert result["attempt_count"] == 1
+    assert result["retried"] is False
 
 
 def test_report_smoke_wrapper_auto_selects_port(
@@ -14339,6 +14345,110 @@ def test_report_smoke_wrapper_auto_selects_port(
     assert result["port"] == 23456
     assert result["command"][result["command"].index("--port") + 1] == "23456"
     assert result["returncode"] == 0
+    assert result["attempt_count"] == 1
+    assert result["attempts"][0]["port"] == 23456
+    assert result["retried"] is False
+
+
+def test_report_smoke_wrapper_retries_auto_port_startup_timeout(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    spec = importlib.util.spec_from_file_location("dynamic_godot_report", REPORT_TOOL)
+    report_tool = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(report_tool)
+
+    smoke_output = tmp_path / "smoke.json"
+    normalized_output = tmp_path / "normalized.json"
+    normalized_output.write_text("{}", encoding="utf-8")
+
+    run_calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        run_calls.append(command)
+        port = command[command.index("--port") + 1]
+        if len(run_calls) == 1:
+            return subprocess.CompletedProcess(
+                command,
+                1,
+                stdout="",
+                stderr=f"TimeoutError: Godot TCP server did not respond on port {port}",
+            )
+        smoke_output.write_text(
+            json.dumps(
+                {
+                    "status": "success",
+                    "load_result": {},
+                    "mapping_summary": {},
+                    "step_summary": {},
+                    "node_tree_manifest": {},
+                }
+            ),
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    ports = iter([23456, 23457])
+    monkeypatch.setattr(report_tool.subprocess, "run", fake_run)
+    monkeypatch.setattr(report_tool, "_resolve_smoke_port", lambda port: next(ports))
+
+    result = report_tool._run_godot_smoke(
+        repo_root=ROOT,
+        normalized_output=normalized_output,
+        smoke_output=smoke_output,
+        godot_exe="Godot.exe",
+        port=0,
+        timeout_seconds=1.0,
+        max_endpoint_distance=None,
+        max_relative_angle=None,
+        min_body_displacement=None,
+        max_linear_speed=None,
+        min_joint_angle_delta=None,
+        min_joint_angle_range=None,
+        min_moving_joint_coverage=None,
+        min_commanded_joint_response_coverage=None,
+        joint_motion_epsilon=0.0,
+        min_action_target_coverage=None,
+        min_control_action_coverage=None,
+        min_nonzero_action_targets=None,
+        min_action_transitions=None,
+        min_action_transition_delta=None,
+        fail_on_joint_limit_violation=False,
+        fail_on_incomplete_restoration=False,
+        min_restoration_score=None,
+        fail_on_parameter_mismatch=False,
+        fail_on_control_mismatch=False,
+        fail_on_full_mechanical_restoration=False,
+        fail_on_action_target_mismatch=False,
+        fail_on_action_sequence_target_mismatch=False,
+        fail_on_unknown_action_target=False,
+        fail_on_invalid_action_target=False,
+        fail_on_incomplete_node_tree=False,
+        fail_on_full_node_tree_restoration=False,
+        fail_on_node_tree_class_mismatch=False,
+        fail_on_node_tree_missing_parameters=False,
+        fail_on_node_tree_transform_mismatch=False,
+        fail_on_node_tree_physical_mismatch=False,
+        fail_on_node_tree_fixed_lock_mismatch=False,
+        node_tree_tolerance=1e-4,
+        parameter_tolerance=1e-4,
+        action_json="[0.0]",
+        action_sequence_json=None,
+        steps=1,
+        step_delay_seconds=0.0,
+    )
+
+    assert len(run_calls) == 2
+    assert result["port"] == 23457
+    assert result["command"][result["command"].index("--port") + 1] == "23457"
+    assert result["returncode"] == 0
+    assert result["attempt_count"] == 2
+    assert result["retried"] is True
+    assert [attempt["port"] for attempt in result["attempts"]] == [23456, 23457]
+    assert result["attempts"][0]["returncode"] == 1
+    assert result["attempts"][0]["report_written"] is False
+    assert "Godot TCP server did not respond" in result["attempts"][0]["stderr_tail"][0]
 
 
 def test_report_smoke_wrapper_passes_full_node_tree_restoration_gate(

@@ -71,7 +71,7 @@ Out of scope:
 - Web/session Godot delivery records must expose `static_node_tree_manifest_evidence` and the `web_godot_delivery` gate must preserve static manifest validity, completeness, output coverage and path-map mismatch summary counts.
 - Release/readiness summaries must expose `dynamic_godot_release_readiness_summary.v1` and report the strongest proven level using the ordered levels `static_only`, `godot_load_verified`, and `godot_verified`.
 - Live Godot verification profiles must record Godot executable resolution, profile name, environment mode, failure category, artifact paths, retry/flaky classification and retention policy.
-- Dynamic Godot report live smoke invocations auto-select a free localhost TCP port by default; explicit `--port <port>` remains the fixed-port override for diagnostics.
+- Dynamic Godot report live smoke invocations auto-select a free localhost TCP port by default, record smoke attempt metadata, and retry once on auto-port TCP startup response failures; explicit `--port <port>` remains the fixed-port override for diagnostics and does not auto-retry.
 - Runtime mechanical behavior evidence must use structured fields for joint limits, torque/velocity response, center of mass, contact state and step-by-step motion trace, with tolerances and units documented before enforcement.
 - Web evidence surfaces must preserve the same evidence levels, manifest mismatch counts and residual risk fields used by CLI/readiness artifacts.
 - Schema 1.5 must be additive by default; actuator, sensor, joint limit, controller tuning and material/physics preset fields remain optional until migration tests prove compatibility.
@@ -191,3 +191,4 @@ Phase 2 validation expands this set with module-specific checks:
 - 2026-05-19: Approved release evidence bundle contract addition: dynamic Godot delivery handoff uses `dynamic_godot_release_evidence_bundle.v1` plus `dynamic_godot_release_evidence_bundle_validation.v1` to package and self-check required evidence artifacts and documentation indexes without rerunning Godot.
 - 2026-05-19: Plan status closeout: all Phase 2 dynamic Godot generation modules and root tasks are complete; no further PROJECT_PLAN.md task remains in the current approved scope.
 - 2026-05-19: Approved live smoke port allocation contract update: report builder defaults to auto-selected free localhost TCP ports to avoid local/manual CI collisions while preserving explicit fixed-port override.
+- 2026-05-19: Approved auto-port startup retry contract: report builder records live smoke attempts and retries once only for automatic-port TCP startup response failures, while fixed-port diagnostics remain single-attempt.

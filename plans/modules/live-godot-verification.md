@@ -88,6 +88,7 @@ When Godot is available, run the documented live profile and archive report, gat
 - 2026-05-19: Fixed static-vs-runtime manifest comparison for live Godot absolute NodePath output. Runtime paths such as `/root/RLServer/<robot>/<node>` now compare by suffix against the static manifest's robot-relative node paths for node path fields only; class, transform, physical and parameter comparisons remain exact/tolerance-based.
 - 2026-05-19: Re-ran local live profiles for the golden fixture set `robot_dynamic_biped.json`, `robot_dynamic_fixed_pair.json` and `robot_dynamic_quadruped.json` with `D:\迅雷下载\Godot\Godot.exe`. Each report/gate passed at `godot_verified`, each static manifest comparison reported `mismatch_count=0`, and `test_env/dynamic_godot_live/local/dynamic_godot_golden_live_readiness.json` reported `status=ready` and `proven_level=godot_verified`.
 - 2026-05-19: Changed the report builder's live smoke default from a fixed TCP port to auto-selected free localhost ports. Explicit `--port <port>` still preserves fixed-port diagnostics, while local/manual CI profiles avoid accidental same-port collisions when multiple smoke reports run near each other.
+- 2026-05-19: Added report-level live smoke attempt metadata and one retry for automatic-port TCP startup response failures. Fixed-port diagnostics remain single-attempt so explicit port conflicts stay visible.
 
 # Drift Check
 
