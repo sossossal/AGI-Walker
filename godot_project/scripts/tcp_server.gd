@@ -4,10 +4,14 @@ extends Node
 # Listens on port 9000
 # Exchanges JSON data with Length Prefix (4 bytes, Little Endian)
 
+const RobotAssemblerScript = preload("res://scripts/robot_assembler.gd")
+
 var server = TCPServer.new()
 var PORT = 9000
 var connection: StreamPeerTCP = null
 var robot_node: Node3D = null
+var robot_assembler = null
+var generated_controller = null
 var last_loaded_robot_config: Dictionary = {}
 var last_instruction_set: Dictionary = {}
 var simulated_circuit_config: Dictionary = {}
@@ -37,9 +41,12 @@ func _ready():
 		
 	# Try to find a robot node in the scene
 	# In headless verification, we might need to spawn a dummy one
-	robot_node = get_tree().root.find_child("*Robot*", true, false)
+	robot_node = get_tree().root.find_child("*Robot*", true, false) as Node3D
 	if not robot_node and get_tree().current_scene:
-		robot_node = get_tree().current_scene.find_child("*Robot*", true, false)
+		robot_node = get_tree().current_scene.find_child("*Robot*", true, false) as Node3D
+	robot_assembler = RobotAssemblerScript.new()
+	robot_assembler.name = "RobotAssembler"
+	add_child(robot_assembler)
 
 func _process(delta):
 	# 1. Accept New Connections
@@ -116,7 +123,9 @@ func _process_command(cmd):
 	
 	if cmd.type == "reset":
 		print("🔄 [TCP] Resetting Simulation")
-		if robot_node != null:
+		if generated_controller != null:
+			generated_controller.reset_pose()
+		elif robot_node != null:
 			if robot_node.has_method("reset_pose"):
 				robot_node.reset_pose()
 			if cmd.has("sim_params") and robot_node.has_method("apply_sim_params"):
@@ -125,6 +134,10 @@ func _process_command(cmd):
 		
 	elif cmd.type == "step":
 		var action = cmd.get("action", [])
+		if generated_controller != null:
+			generated_controller.apply_action(action)
+		elif robot_node != null and robot_node.has_method("apply_action"):
+			robot_node.apply_action(action)
 		response = _get_observation()
 		response["reward"] = 0.0 # Placeholder
 		response["done"] = false
@@ -133,11 +146,21 @@ func _process_command(cmd):
 		print("📦 [TCP] Loading Robot Config")
 		var robot_config = cmd.get("robot_config", {})
 		if robot_node == null:
-			robot_node = get_tree().root.find_child("*Robot*", true, false)
+			robot_node = get_tree().root.find_child("*Robot*", true, false) as Node3D
 			if not robot_node and get_tree().current_scene:
-				robot_node = get_tree().current_scene.find_child("*Robot*", true, false)
+				robot_node = get_tree().current_scene.find_child("*Robot*", true, false) as Node3D
 
-		if robot_node != null and robot_node.has_method("load_from_dict"):
+		if robot_assembler != null and not robot_config.get("parts", []).is_empty():
+			var parent = get_tree().current_scene as Node3D
+			if parent == null:
+				parent = Node3D.new()
+				parent.name = "GeneratedRobotRoot"
+				add_child(parent)
+			robot_node = robot_assembler.build_from_config(robot_config, parent)
+			generated_controller = robot_node.get_node_or_null("GeneratedRobotController")
+			last_loaded_robot_config = robot_config.duplicate(true)
+			response = robot_assembler.last_summary
+		elif robot_node != null and robot_node.has_method("load_from_dict"):
 			robot_node.load_from_dict(robot_config)
 			last_loaded_robot_config = robot_config.duplicate(true)
 			response = {"status": "success"}
@@ -147,7 +170,9 @@ func _process_command(cmd):
 			response = {"status": "success", "mode": "fallback"}
 			
 	elif cmd.type == "get_schema":
-		if robot_node != null and robot_node.has_method("get_schema"):
+		if generated_controller != null:
+			response = _generated_robot_schema()
+		elif robot_node != null and robot_node.has_method("get_schema"):
 			response = robot_node.get_schema()
 		else:
 			# Fallback Dummy Schema
@@ -198,6 +223,8 @@ func _process_command(cmd):
 	_send_response(response)
 
 func _apply_instruction_steps(steps: Array) -> void:
+	if generated_controller != null:
+		generated_controller.apply_instruction_steps(steps)
 	current_control_state["step_count"] = steps.size()
 	for step in steps:
 		var kind = step.get("kind", "")
@@ -216,6 +243,15 @@ func _apply_instruction_steps(steps: Array) -> void:
 				current_control_state["angular_z"] = 0.0
 
 func _get_observation():
+	if generated_controller != null:
+		var sensor_data = generated_controller.get_sensor_data()
+		sensor_data["simulated_circuit"] = {
+			"configured": not simulated_circuit_config.is_empty(),
+			"transport": simulated_circuit_config.get("transport", ""),
+			"command_batch_size": last_instruction_command_batch.size()
+		}
+		return sensor_data
+
 	if robot_node != null and robot_node.has_method("get_sensor_data"):
 		return robot_node.get_sensor_data()
 		
@@ -241,6 +277,30 @@ func _get_observation():
 			"configured": not simulated_circuit_config.is_empty(),
 			"transport": simulated_circuit_config.get("transport", ""),
 			"command_batch_size": last_instruction_command_batch.size()
+		}
+	}
+
+func _generated_robot_schema() -> Dictionary:
+	return {
+		"sensors": {
+			"body_count": {"type": "int32", "shape": [1]},
+			"joint_count": {"type": "int32", "shape": [1]},
+			"position": {"type": "float32", "shape": [3]},
+			"body_states": {"type": "dict"},
+			"joint_states": {"type": "dict"},
+			"instruction_runtime": {"type": "dict"},
+			"simulated_circuit": {"type": "dict"}
+		},
+		"actuators": {
+			"action": {"type": "float32", "shape": [generated_controller.joints.size()]},
+			"instruction_set": {"type": "dict"},
+			"configure_simulated_circuit": {"type": "dict"}
+		},
+		"meta": {
+			"dynamic_robot_generation": true,
+			"last_loaded_parts": last_loaded_robot_config.get("parts", []).size(),
+			"last_loaded_connections": last_loaded_robot_config.get("connections", []).size(),
+			"assembly_summary": robot_assembler.last_summary if robot_assembler else {}
 		}
 	}
 

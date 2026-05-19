@@ -1,8 +1,15 @@
-import onnxruntime as ort
 import numpy as np
 import logging
 
 logger = logging.getLogger(__name__)
+
+try:
+    import onnxruntime as ort
+
+    ONNXRUNTIME_AVAILABLE = True
+except ImportError:
+    ort = None
+    ONNXRUNTIME_AVAILABLE = False
 
 
 class ONNXInferenceEngine:
@@ -12,6 +19,9 @@ class ONNXInferenceEngine:
     """
 
     def __init__(self, model_path: str, use_gpu: bool = False):
+        if not ONNXRUNTIME_AVAILABLE:
+            raise ImportError("onnxruntime is required for ONNX inference")
+
         self.model_path = model_path
 
         # 选择执行提供者 (Execution Providers)

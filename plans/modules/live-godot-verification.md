@@ -1,0 +1,89 @@
+# Module Goal
+
+把 manual live Godot smoke 升级为可复用的本地、手动和定时 CI 验证 profile，输出可归档、可诊断、可被 release/readiness 工具消费的 live evidence。
+
+# Ownership
+
+- `tools/run_dynamic_godot_robot_smoke.py`
+- `tools/build_dynamic_robot_generation_report.py`
+- `.github/workflows/ci.yml`
+- Godot executable discovery and environment profile documentation
+- live smoke artifacts under `test_env/` and CI uploaded artifacts
+
+# Inputs and Outputs
+
+Inputs:
+
+- Robot fixture JSON and normalized Godot-ready config.
+- Optional user-provided Godot executable path.
+- Static node-tree manifest and report/gate settings.
+
+Outputs:
+
+- Live smoke JSON with executable resolution, profile name, environment mode and artifact paths.
+- Classified failure details for missing executable, launch failure, load failure, timeout, runtime mismatch, motion failure and flaky retry exhaustion.
+- Retained report, gate, smoke and readiness artifacts for local/manual/scheduled runs.
+
+# Contract Checklist
+
+- Public surface this module exposes: live verification profile names, CLI flags, smoke JSON fields, CI artifact names.
+- Inputs this module accepts: fixture paths, Godot executable path, profile mode, retry/flaky settings, artifact output root.
+- Outputs this module produces: smoke report, delivery gate, readiness summary and retention metadata.
+- Shared types/schemas/config touched: delivery gate metadata, release/readiness evidence, CI workflow config.
+- Backward compatibility requirements: live validation remains opt-in and must not become required for default PR static CI.
+- Integration tests required: dry-run/discovery tests, report/gate contract tests, scheduled/manual workflow shape tests.
+
+# Local Context
+
+Current docs already define a manual live smoke checklist and required `godot_verified` fields. The next increment should turn that checklist into a reusable profile while preserving static CI as the mandatory default.
+
+# Non-Goals
+
+- Do not require Godot on every PR.
+- Do not make flaky live runs silently pass.
+- Do not replace static manifest gates.
+
+# Tasks
+
+- [x] Define live verification profile contract: local, manual CI, scheduled CI.
+- [x] Add Godot executable discovery metadata and explicit failure category output.
+- [x] Add artifact retention metadata for report, gate, smoke and readiness outputs.
+- [x] Define retry/flaky policy and expose final flaky classification in smoke evidence.
+- [x] Add CI workflow entry or documented scheduled/manual profile without changing default PR requirements.
+- [x] Add tests for discovery failure, dry-run profile output and artifact metadata.
+- [x] Update live smoke documentation and release/readiness references.
+
+# Risks and Mitigations
+
+- Risk: Local machines and CI images expose Godot differently.
+  Mitigation: Record executable resolution source and distinguish missing executable from runtime failures.
+
+- Risk: Retry policy hides real failures.
+  Mitigation: Keep all retry attempts in retained artifacts and report final classification separately from raw failures.
+
+# Validation
+
+```powershell
+py -3.12 -m py_compile tools\run_dynamic_godot_robot_smoke.py tools\build_dynamic_robot_generation_report.py
+py -3.12 -m pytest tests\test_dynamic_godot_robot_generation.py -q
+py -3.12 -m pytest -m "not live" --collect-only -q
+```
+
+When Godot is available, run the documented live profile and archive report, gate, smoke and readiness artifacts.
+
+# Completion Criteria
+
+- Live verification has a documented reusable profile.
+- Missing executable and runtime failures are classified differently.
+- Artifacts are retained with stable paths and metadata.
+- Default non-live CI behavior remains unchanged.
+
+# Notes
+
+- Start with dry-run/discovery behavior so the profile is testable without Godot.
+- 2026-05-19: Added `--live-profile`, discovery metadata, artifact retention metadata, flaky policy metadata, and `--dry-run-discovery` to the smoke runner; report builder now forwards the profile fields.
+- 2026-05-19: Added manual/scheduled `dynamic-godot-live-verification` CI job. It always uploads discovery artifacts and only runs full live verification when `GODOT_EXECUTABLE` is provided.
+
+# Drift Check
+
+Before implementation, verify this module still supports `PROJECT_PLAN.md` Phase 2 live verification scope and does not make live Godot mandatory for default PR CI.

@@ -1,0 +1,23 @@
+{
+  "name": "duplicate_part_ids",
+  "schema_version": "1.4",
+  "parts": [
+    {
+      "id": "base",
+      "type": "body",
+      "shape": "box",
+      "params": {
+        "mass": 1.0
+      }
+    },
+    {
+      "id": "base",
+      "type": "body",
+      "shape": "box",
+      "params": {
+        "mass": 0.5
+      }
+    }
+  ],
+  "connections": []
+}

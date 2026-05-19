@@ -89,5 +89,6 @@ pytest_errors.txt
 debug_collection.py
 test_session.json
 coverage.xml
+codex_extbind_*/
 *.zip
 archive/

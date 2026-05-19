@@ -314,6 +314,72 @@
             return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
         }
 
+        function renderParameterMismatchList(parameterConsistencySummary) {
+            const mismatches = Array.isArray(parameterConsistencySummary?.mismatches) ? parameterConsistencySummary.mismatches : [];
+            if (!mismatches.length) return '';
+            const visible = mismatches.slice(0, 5).map((item) => {
+                const joint = item?.joint || '-';
+                const field = item?.field || '-';
+                const expected = item?.expected === undefined ? '-' : JSON.stringify(item.expected);
+                const actual = item?.actual === undefined ? '-' : JSON.stringify(item.actual);
+                return `<div class="meta" style="margin-top:4px; color:var(--bad);">${escapeHtml(joint)} · ${escapeHtml(field)} · expected ${escapeHtml(expected)} / runtime ${escapeHtml(actual)}</div>`;
+            }).join('');
+            const hiddenCount = Math.max(0, mismatches.length - 5);
+            return `
+                <div style="margin-top:8px;">
+                    ${visible}
+                    ${hiddenCount ? `<div class="meta" style="margin-top:4px; color:var(--bad);">其余 ${escapeHtml(String(hiddenCount))} 项已折叠，请查看 smoke JSON 报告。</div>` : ''}
+                </div>
+            `;
+        }
+
+        function renderNodeTreeMismatchList(nodeTreeManifest, key) {
+            const mismatches = Array.isArray(nodeTreeManifest?.[key]) ? nodeTreeManifest[key] : [];
+            if (!mismatches.length) return '';
+            const visible = mismatches.slice(0, 5).map((item) => {
+                const kind = item?.kind || '-';
+                const name = item?.name || '-';
+                const field = item?.field || '-';
+                const expected = item?.expected === undefined ? '-' : JSON.stringify(item.expected);
+                const actual = item?.actual === undefined ? '-' : JSON.stringify(item.actual);
+                const delta = item?.max_delta === undefined || item?.max_delta === null ? '' : ` · delta ${formatMetric(item.max_delta)}`;
+                return `<div class="meta" style="margin-top:4px; color:var(--bad);">${escapeHtml(kind)} · ${escapeHtml(name)} · ${escapeHtml(field)} · expected ${escapeHtml(expected)} / runtime ${escapeHtml(actual)}${escapeHtml(delta)}</div>`;
+            }).join('');
+            const hiddenCount = Math.max(0, mismatches.length - 5);
+            return `
+                <div style="margin-top:8px;">
+                    ${visible}
+                    ${hiddenCount ? `<div class="meta" style="margin-top:4px; color:var(--bad);">其余 ${escapeHtml(String(hiddenCount))} 项已折叠，请查看 smoke JSON 报告。</div>` : ''}
+                </div>
+            `;
+        }
+
+        function renderCommandedJointResponseDetails(jointMotionSummary) {
+            const details = Array.isArray(jointMotionSummary?.commanded_joint_response_details)
+                ? jointMotionSummary.commanded_joint_response_details
+                : [];
+            if (!details.length) return '';
+            const visible = details.slice(0, 5).map((item) => {
+                const joint = item?.joint || '-';
+                const target = item?.max_abs_target === undefined || item?.max_abs_target === null
+                    ? '-'
+                    : formatMetric(item.max_abs_target);
+                const range = item?.angle_range === undefined || item?.angle_range === null
+                    ? '-'
+                    : formatMetric(item.angle_range);
+                const responded = item?.responded === true;
+                const color = responded ? 'var(--muted)' : 'var(--bad)';
+                return `<div class="meta" style="margin-top:4px; color:${color};">${escapeHtml(joint)} · target ${escapeHtml(target)} · range ${escapeHtml(range)} · responded ${escapeHtml(String(responded))}</div>`;
+            }).join('');
+            const hiddenCount = Math.max(0, details.length - 5);
+            return `
+                <div style="margin-top:8px;">
+                    ${visible}
+                    ${hiddenCount ? `<div class="meta" style="margin-top:4px;">其余 ${escapeHtml(String(hiddenCount))} 个 commanded 关节已折叠，请查看 smoke JSON 报告。</div>` : ''}
+                </div>
+            `;
+        }
+
         function showBanner(message, tone = 'info') {
             const el = document.getElementById('banner');
             el.className = `banner ${tone}`;
@@ -407,6 +473,441 @@
                 </div>
                 <div class="meta" style="margin-top:8px;">最近拉取: ${escapeHtml(cached.fetchedAt || '未知')} · 最后传感器键: ${escapeHtml(lastSensorKeys.length ? lastSensorKeys.join(', ') : '无')}</div>
             `;
+        }
+
+        function renderGodotAcceptanceGate(acceptanceGate) {
+            if (!acceptanceGate || Object.keys(acceptanceGate).length === 0) {
+                return '';
+            }
+            const acceptanceFailed = acceptanceGate.passed === false || acceptanceGate.complete === false;
+            const acceptanceCodes = Array.isArray(acceptanceGate.reason_codes) ? acceptanceGate.reason_codes : [];
+            const acceptanceDetails = Array.isArray(acceptanceGate.reason_details) ? acceptanceGate.reason_details : [];
+            const acceptanceInputs = [...new Set(acceptanceDetails.flatMap(detail => Array.isArray(detail.inputs) ? detail.inputs : []))];
+            const summaryCounts = acceptanceGate.summary_counts || {};
+            const requirements = acceptanceGate.acceptance_requirements || {};
+            const requirementText = Object.entries(requirements)
+                .filter(([, value]) => value === true)
+                .map(([key]) => key)
+                .join(', ') || '-';
+            const countText = [
+                `inputs:${summaryCounts.inputs_count ?? 0}`,
+                `errors:${summaryCounts.error_count ?? 0}`,
+                `live:${summaryCounts.live_smoke_count ?? 0}`,
+                `verified:${summaryCounts.delivery_godot_verified_count ?? 0}`,
+                `static:${summaryCounts.delivery_static_only_count ?? 0}`,
+                `fixed:${summaryCounts.fixed_lock_checked_count ?? 0}/${summaryCounts.fixed_lock_mismatch_count ?? 0}`,
+                `treefixed:${summaryCounts.node_tree_fixed_lock_checked_count ?? 0}/${summaryCounts.node_tree_fixed_lock_mismatch_count ?? 0}`,
+                `treefixedok:${summaryCounts.node_tree_fixed_locks_complete_count ?? 0}/${summaryCounts.node_tree_fixed_locks_incomplete_count ?? 0}`,
+                `treegate:${summaryCounts.node_tree_gate_enabled_count ?? 0}/${summaryCounts.node_tree_full_restoration_required_count ?? 0}`,
+                `mechgate:${summaryCounts.mechanical_gate_enabled_count ?? 0}/${summaryCounts.full_mechanical_restoration_required_count ?? 0}`,
+                `failures:${summaryCounts.failure_reasons_count ?? 0}`,
+            ].join(', ');
+            const gateCheckText = [
+                formatGateCheckCounts('tree', summaryCounts.node_tree_gate_check_counts),
+                formatGateCheckCounts('mech', summaryCounts.mechanical_gate_check_counts),
+            ].filter(Boolean).join(' | ') || '-';
+            return `
+                <div class="summary" style="margin-top:10px;">
+                    <div class="mini"><div class="label">Load Gate</div><div class="value" style="${acceptanceFailed ? 'color:var(--bad);' : ''}">${escapeHtml(String(acceptanceGate.level || '-'))}</div></div>
+                    <div class="mini"><div class="label">Scope</div><div class="value">${escapeHtml(String(acceptanceGate.verification_scope || '-'))}</div></div>
+                    <div class="mini"><div class="label">Profile</div><div class="value">${escapeHtml(String(acceptanceGate.acceptance_profile || '-'))}</div></div>
+                    <div class="mini"><div class="label">Requirements</div><div class="value" style="font-size:.82rem;">${escapeHtml(requirementText)}</div></div>
+                    <div class="mini"><div class="label">Version</div><div class="value" style="font-size:.82rem;">${escapeHtml(String(acceptanceGate.contract_version || '-'))}</div></div>
+                    <div class="mini"><div class="label">Accepted</div><div class="value" style="${acceptanceFailed ? 'color:var(--bad);' : ''}">${escapeHtml(String(acceptanceGate.complete ?? acceptanceGate.passed ?? '-'))}</div></div>
+                    <div class="mini"><div class="label">Gate Counts</div><div class="value" style="font-size:.82rem;">${escapeHtml(countText)}</div></div>
+                    <div class="mini"><div class="label">Gate Checks</div><div class="value" style="font-size:.82rem;">${escapeHtml(gateCheckText)}</div></div>
+                    <div class="mini"><div class="label">Reason Codes</div><div class="value" style="font-size:.82rem;">${escapeHtml(acceptanceCodes.join(', ') || '-')}</div></div>
+                    <div class="mini"><div class="label">Affected Inputs</div><div class="value" style="font-size:.82rem;">${escapeHtml(acceptanceInputs.slice(0, 2).join(', ') || '-')}</div></div>
+                </div>
+            `;
+        }
+
+        function renderGodotEvidenceSummary(summary) {
+            if (!summary || Object.keys(summary).length === 0) {
+                return '<div class="empty" style="margin-bottom:14px;">暂无 Godot evidence summary。</div>';
+            }
+            const staticEvidence = summary.static || {};
+            const loadEvidence = summary.load || {};
+            const liveEvidence = summary.live || {};
+            const actions = summary.actions || {};
+            const loadActions = Array.isArray(actions.godot_load) ? actions.godot_load : [];
+            const residualRisks = Array.isArray(summary.residual_risks) ? summary.residual_risks : [];
+            const mismatchKinds = staticEvidence.manifest_mismatch_kind_counts || {};
+            const mismatchText = Object.entries(mismatchKinds)
+                .filter(([, value]) => Number(value || 0) > 0)
+                .map(([key, value]) => `${key}:${value}`)
+                .join(', ') || '-';
+            return `
+                <div class="step" style="margin-bottom:14px; border-color:#d1d5db; background:#fbfdff;">
+                    <div class="row">
+                        <div>
+                            <div class="title">Godot Evidence</div>
+                            <div class="meta">summary ${escapeHtml(summary.summary_version || 'unknown')}</div>
+                        </div>
+                        <span class="pill status-${summary.complete ? 'completed' : 'failed'}">${escapeHtml(summary.level || 'incomplete')}</span>
+                    </div>
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Static</div><div class="value">${escapeHtml(String(staticEvidence.available ?? false))}</div></div>
+                        <div class="mini"><div class="label">Load</div><div class="value">${escapeHtml(String(loadEvidence.complete ?? false))}</div></div>
+                        <div class="mini"><div class="label">Live</div><div class="value">${escapeHtml(String(liveEvidence.available ?? false))}</div></div>
+                        <div class="mini"><div class="label">Manifest</div><div class="value">${escapeHtml(String(staticEvidence.manifest_valid ?? '-'))}/${escapeHtml(String(staticEvidence.manifest_complete ?? '-'))}</div></div>
+                        <div class="mini"><div class="label">Mismatch</div><div class="value">${escapeHtml(String(staticEvidence.manifest_mismatch_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Kinds</div><div class="value" style="font-size:.82rem;">${escapeHtml(mismatchText)}</div></div>
+                        <div class="mini"><div class="label">Gate</div><div class="value">${escapeHtml(String(loadEvidence.level || '-'))}</div></div>
+                        <div class="mini"><div class="label">Risks</div><div class="value">${escapeHtml(String(residualRisks.length))}</div></div>
+                    </div>
+                    ${residualRisks.length ? `<div class="meta" style="margin-top:8px; color:var(--bad);">Residual risk: ${escapeHtml(residualRisks.slice(0, 3).join(' · '))}</div>` : ''}
+                    <div class="actions" style="margin-top:10px;">
+                        ${loadActions.length ? `<button class="btn-xs" onclick="sendArtifactToGodot('${state.selectedRunId}', ${loadActions[0].artifact_index}, '${escapeHtml(loadActions[0].artifact_name || 'artifact')}')">Godot Load</button>` : ''}
+                        ${actions.recommended_godot_sync?.enabled ? `<button class="btn-xs" onclick="syncRunToGodot('${state.selectedRunId}')">Recommended Sync</button>` : ''}
+                        ${actions.readiness_summary?.url ? `<a class="btn-xs" href="${actions.readiness_summary.url}" target="_blank" rel="noopener noreferrer">Readiness</a>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function formatGateCheckCounts(prefix, checkCounts) {
+            if (!checkCounts || typeof checkCounts !== 'object') {
+                return '';
+            }
+            const entries = Object.entries(checkCounts)
+                .filter(([, value]) => Number(value || 0) > 0)
+                .map(([key, value]) => `${key}:${value}`);
+            if (!entries.length) {
+                return '';
+            }
+            return `${prefix}[${entries.join(', ')}]`;
+        }
+
+        function renderGodotAssemblyPanel(godotDelivery) {
+            const mapping = godotDelivery?.assembly_mapping_summary || {};
+            const assembly = godotDelivery?.assembly_summary || {};
+            const endpointSummary = godotDelivery?.godot_smoke?.report_summary?.joint_endpoint_summary || godotDelivery?.joint_endpoint_summary || {};
+            const angleSummary = godotDelivery?.godot_smoke?.report_summary?.joint_angle_summary || godotDelivery?.joint_angle_summary || {};
+            const limitSummary = godotDelivery?.godot_smoke?.report_summary?.joint_limit_summary || godotDelivery?.joint_limit_summary || {};
+            const parameterSummary = godotDelivery?.godot_smoke?.report_summary?.joint_parameter_summary || godotDelivery?.joint_parameter_summary || {};
+            const parameterConsistencySummary = godotDelivery?.godot_smoke?.report_summary?.joint_parameter_consistency_summary || godotDelivery?.joint_parameter_consistency_summary || {};
+            const nodeTreeManifest = godotDelivery?.godot_smoke?.report_summary?.node_tree_manifest || godotDelivery?.node_tree_manifest || {};
+            const controlSummary = godotDelivery?.godot_smoke?.report_summary?.joint_control_summary || godotDelivery?.joint_control_summary || {};
+            const controlConsistencySummary = godotDelivery?.godot_smoke?.report_summary?.joint_control_consistency_summary || godotDelivery?.joint_control_consistency_summary || {};
+            const actionTargetConsistencySummary = godotDelivery?.godot_smoke?.report_summary?.action_target_consistency_summary || godotDelivery?.action_target_consistency_summary || {};
+            const actionSequenceTargetConsistencySummary = godotDelivery?.godot_smoke?.report_summary?.action_sequence_target_consistency_summary || godotDelivery?.action_sequence_target_consistency_summary || {};
+            const actionTargetCoverageSummary = godotDelivery?.godot_smoke?.report_summary?.action_target_coverage_summary || godotDelivery?.action_target_coverage_summary || {};
+            const controlActionCoverageSummary = godotDelivery?.godot_smoke?.report_summary?.control_action_coverage_summary || godotDelivery?.control_action_coverage_summary || {};
+            const simulationSummary = godotDelivery?.godot_smoke?.report_summary?.simulation_summary || godotDelivery?.simulation_summary || {};
+            const jointMotionSummary = godotDelivery?.godot_smoke?.report_summary?.joint_motion_summary || godotDelivery?.joint_motion_summary || {};
+            const actionSequenceSummary = godotDelivery?.godot_smoke?.report_summary?.action_sequence_summary || godotDelivery?.action_sequence_summary || {};
+            const restorationSummary = godotDelivery?.godot_smoke?.report_summary?.mechanical_restoration_summary || godotDelivery?.mechanical_restoration_summary || godotDelivery?.assembly_restoration_summary || {};
+            const assemblyFixedLockSummary = godotDelivery?.assembly_fixed_lock_summary || {};
+            const acceptanceGate = godotDelivery?.delivery_acceptance_gate || {};
+            const hasAcceptanceGate = Object.keys(acceptanceGate).length > 0;
+            const hasAssemblyReport = Boolean(mapping.dynamic_robot_generation || assembly.parts_created || assembly.joints_created);
+            if (!hasAssemblyReport && !hasAcceptanceGate) {
+                return '<div class="empty" style="margin-top:10px;">暂无动态节点树生成报告。</div>';
+            }
+
+            const failedConnections = Array.isArray(assembly.failed_connections) ? assembly.failed_connections : [];
+            const warnings = Array.isArray(assembly.warnings) ? assembly.warnings : [];
+            const hasEndpointSummary = Object.keys(endpointSummary).length > 0;
+            const endpointExceeded = endpointSummary.threshold_exceeded === true;
+            const hasAngleSummary = Object.keys(angleSummary).length > 0;
+            const angleExceeded = angleSummary.threshold_exceeded === true;
+            const hasLimitSummary = Object.keys(limitSummary).length > 0;
+            const limitViolation = Number(limitSummary.violation_count || 0) > 0;
+            const hasParameterSummary = Object.keys(parameterSummary).length > 0;
+            const hasParameterConsistencySummary = Object.keys(parameterConsistencySummary).length > 0;
+            const parameterMismatch = Number(parameterConsistencySummary.mismatch_count || 0) > 0;
+            const hasAssemblyFixedLockSummary = Object.keys(assemblyFixedLockSummary).length > 0;
+            const fixedLockMismatch = Number(parameterConsistencySummary.fixed_lock_mismatch_count || 0) > 0 || Number(assemblyFixedLockSummary.mismatch_count || 0) > 0;
+            const hasNodeTreeManifest = Object.keys(nodeTreeManifest).length > 0;
+            const nodeTreeIncomplete = nodeTreeManifest.complete === false;
+            const nodeTreeClassMismatch = Number(nodeTreeManifest.class_mismatch_count || 0) > 0;
+            const nodeTreeMissingParameters = Number(nodeTreeManifest.parameter_missing_count || 0) > 0;
+            const nodeTreeTransformMismatch = Number(nodeTreeManifest.transform_mismatch_count || 0) > 0;
+            const nodeTreePhysicalMismatch = Number(nodeTreeManifest.physical_mismatch_count || 0) > 0;
+            const nodeTreeFixedLockMismatch = Number(nodeTreeManifest.fixed_lock_mismatch_count || 0) > 0;
+            const hasControlSummary = Object.keys(controlSummary).length > 0;
+            const nonzeroTargetsUnderMin = controlSummary.nonzero_targets_under_min === true;
+            const hasControlConsistencySummary = Object.keys(controlConsistencySummary).length > 0;
+            const controlMismatch = Number(controlConsistencySummary.mismatch_count || 0) > 0;
+            const hasActionTargetConsistencySummary = Object.keys(actionTargetConsistencySummary).length > 0;
+            const actionTargetMismatch = Number(actionTargetConsistencySummary.mismatch_count || 0) > 0;
+            const unknownActionTargets = Number(actionTargetConsistencySummary.unknown_target_count || 0);
+            const invalidActionTargets = Number(actionTargetConsistencySummary.invalid_target_count || 0);
+            const hasActionSequenceTargetConsistencySummary = Object.keys(actionSequenceTargetConsistencySummary).length > 0;
+            const actionSequenceTargetMismatch = Number(actionSequenceTargetConsistencySummary.mismatch_count || 0) > 0;
+            const unknownActionSequenceTargets = Number(actionSequenceTargetConsistencySummary.unknown_target_count || 0);
+            const invalidActionSequenceTargets = Number(actionSequenceTargetConsistencySummary.invalid_target_count || 0);
+            const hasActionTargetCoverageSummary = Object.keys(actionTargetCoverageSummary).length > 0;
+            const actionTargetCoverageUnderMin = actionTargetCoverageSummary.coverage_under_min === true;
+            const hasControlActionCoverageSummary = Object.keys(controlActionCoverageSummary).length > 0;
+            const controlActionCoverageUnderMin = controlActionCoverageSummary.coverage_under_min === true;
+            const hasSimulationSummary = Object.keys(simulationSummary).length > 0;
+            const displacementUnderMin = simulationSummary.displacement_under_min === true;
+            const speedExceeded = simulationSummary.speed_threshold_exceeded === true;
+            const hasJointMotionSummary = Object.keys(jointMotionSummary).length > 0;
+            const jointAngleDeltaUnderMin = jointMotionSummary.angle_delta_under_min === true;
+            const jointAngleRangeUnderMin = jointMotionSummary.angle_range_under_min === true;
+            const movingJointCoverageUnderMin = jointMotionSummary.moving_joint_coverage_under_min === true;
+            const commandedJointResponseUnderMin = jointMotionSummary.commanded_joint_response_under_min === true;
+            const hasActionSequenceSummary = Object.keys(actionSequenceSummary).length > 0;
+            const actionTransitionsUnderMin = actionSequenceSummary.transitions_under_min === true;
+            const actionTransitionDeltaUnderMin = actionSequenceSummary.transition_delta_under_min === true;
+            const hasRestorationSummary = Object.keys(restorationSummary).length > 0;
+            const restorationIncomplete = restorationSummary.complete === false;
+            const restorationScoreUnderMin = restorationSummary.score_under_min === true;
+            const acceptanceGatePanel = renderGodotAcceptanceGate(acceptanceGate);
+            if (!hasAssemblyReport) {
+                return `
+                    ${acceptanceGatePanel}
+                    <div class="empty" style="margin-top:10px;">暂无动态节点树生成报告。</div>
+                `;
+            }
+            return `
+                ${acceptanceGatePanel}
+                <div class="summary" style="margin-top:10px;">
+                    <div class="mini"><div class="label">Assembly Complete</div><div class="value" style="${mapping.complete === false || assembly.complete === false ? 'color:var(--bad);' : ''}">${escapeHtml(String(mapping.complete ?? assembly.complete ?? '-'))}</div></div>
+                    <div class="mini"><div class="label">Bodies</div><div class="value">${escapeHtml(String(mapping.parts_created ?? assembly.parts_created ?? '-'))}/${escapeHtml(String(mapping.expected_parts ?? assembly.expected_parts ?? '-'))}</div></div>
+                    <div class="mini"><div class="label">Joints</div><div class="value" style="${mapping.joints_complete === false || assembly.joints_complete === false ? 'color:var(--bad);' : ''}">${escapeHtml(String(mapping.joints_created ?? assembly.joints_created ?? '-'))}/${escapeHtml(String(mapping.expected_joints ?? assembly.expected_joints ?? '-'))}</div></div>
+                    <div class="mini"><div class="label">Part Map</div><div class="value">${escapeHtml(String(mapping.part_nodes_count ?? (assembly.part_nodes || []).length ?? 0))}</div></div>
+                    <div class="mini"><div class="label">Joint Map</div><div class="value">${escapeHtml(String(mapping.joint_nodes_count ?? (assembly.joint_nodes || []).length ?? 0))}</div></div>
+                    <div class="mini"><div class="label">Param Joints</div><div class="value" style="${mapping.parameters_complete === false || assembly.parameters_complete === false ? 'color:var(--bad);' : ''}">${escapeHtml(String(mapping.parameterized_joints ?? assembly.parameterized_joints ?? '-'))}</div></div>
+                    <div class="mini"><div class="label">Failed</div><div class="value" style="${Number(mapping.failed_joints ?? mapping.failed_connections_count ?? failedConnections.length) ? 'color:var(--bad);' : ''}">${escapeHtml(String(mapping.failed_joints ?? mapping.failed_connections_count ?? failedConnections.length))}</div></div>
+                    <div class="mini"><div class="label">Warnings</div><div class="value">${escapeHtml(String(mapping.warnings_count ?? warnings.length))}</div></div>
+                </div>
+                ${hasEndpointSummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Max Endpoint</div><div class="value">${escapeHtml(formatMetric(endpointSummary.max_endpoint_distance))}</div></div>
+                        <div class="mini"><div class="label">Avg Endpoint</div><div class="value">${escapeHtml(formatMetric(endpointSummary.average_endpoint_distance))}</div></div>
+                        <div class="mini"><div class="label">Threshold</div><div class="value">${escapeHtml(formatMetric(endpointSummary.max_endpoint_distance_threshold))}</div></div>
+                        <div class="mini"><div class="label">Missing Endpoints</div><div class="value">${escapeHtml(String(endpointSummary.missing_endpoint_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Farthest Joint</div><div class="value" style="font-size:.86rem;">${escapeHtml(endpointSummary.farthest_joint || '-')}</div></div>
+                    </div>
+                ` : ''}
+                ${endpointExceeded ? `<div class="meta" style="margin-top:8px; color:var(--bad);">端点距离超过阈值: ${escapeHtml(formatMetric(endpointSummary.max_endpoint_distance))} > ${escapeHtml(formatMetric(endpointSummary.max_endpoint_distance_threshold))}</div>` : ''}
+                ${hasAngleSummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Max Angle</div><div class="value">${escapeHtml(formatMetric(angleSummary.max_abs_relative_angle))}</div></div>
+                        <div class="mini"><div class="label">Avg Angle</div><div class="value">${escapeHtml(formatMetric(angleSummary.average_abs_relative_angle))}</div></div>
+                        <div class="mini"><div class="label">Angle Limit</div><div class="value">${escapeHtml(formatMetric(angleSummary.max_relative_angle_threshold))}</div></div>
+                        <div class="mini"><div class="label">Largest Angle</div><div class="value" style="font-size:.86rem;">${escapeHtml(angleSummary.largest_angle_joint || '-')}</div></div>
+                    </div>
+                ` : ''}
+                ${angleExceeded ? `<div class="meta" style="margin-top:8px; color:var(--bad);">相对角度超过阈值: ${escapeHtml(formatMetric(angleSummary.max_abs_relative_angle))} > ${escapeHtml(formatMetric(angleSummary.max_relative_angle_threshold))}</div>` : ''}
+                ${hasLimitSummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Limit Joints</div><div class="value">${escapeHtml(String(limitSummary.configured_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Violations</div><div class="value" style="${limitViolation ? 'color:var(--bad);' : ''}">${escapeHtml(String(limitSummary.violation_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Min Margin</div><div class="value">${escapeHtml(formatMetric(limitSummary.min_margin))}</div></div>
+                        <div class="mini"><div class="label">Worst Joint</div><div class="value" style="font-size:.86rem;">${escapeHtml(limitSummary.worst_joint || '-')}</div></div>
+                    </div>
+                ` : ''}
+                ${limitViolation ? `<div class="meta" style="margin-top:8px; color:var(--bad);">检测到关节限位越界: ${escapeHtml(String(limitSummary.violation_count || 0))} 个关节超过 JSON 限位。</div>` : ''}
+                ${hasParameterSummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Parameterized</div><div class="value">${escapeHtml(String(parameterSummary.parameterized_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Limit Params</div><div class="value">${escapeHtml(String(parameterSummary.limits_applied_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Motor Capable</div><div class="value">${escapeHtml(String(parameterSummary.motor_supported_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Motor Enabled</div><div class="value">${escapeHtml(String(parameterSummary.motor_enabled_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Dynamics</div><div class="value">${escapeHtml(String(parameterSummary.dynamics_configured_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Damping Applied</div><div class="value">${escapeHtml(String(parameterSummary.damping_applied_count ?? 0))}</div></div>
+                    </div>
+                ` : ''}
+                ${hasParameterConsistencySummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Param Checked</div><div class="value">${escapeHtml(String(parameterConsistencySummary.checked_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Param Mismatch</div><div class="value" style="${parameterMismatch ? 'color:var(--bad);' : ''}">${escapeHtml(String(parameterConsistencySummary.mismatch_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Fixed Locks</div><div class="value">${escapeHtml(String(parameterConsistencySummary.fixed_lock_checked_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Fixed Mismatch</div><div class="value" style="${fixedLockMismatch ? 'color:var(--bad);' : ''}">${escapeHtml(String(parameterConsistencySummary.fixed_lock_mismatch_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Param Match</div><div class="value">${escapeHtml(String(parameterConsistencySummary.complete === true))}</div></div>
+                        <div class="mini"><div class="label">Param Tolerance</div><div class="value">${escapeHtml(formatMetric(parameterConsistencySummary.tolerance))}</div></div>
+                    </div>
+                ` : ''}
+                ${fixedLockMismatch ? `<div class="meta" style="margin-top:8px; color:var(--bad);">检测到 fixed 关节锁定参数不完整: ${escapeHtml(String(parameterConsistencySummary.fixed_lock_mismatch_count || 0))} 项。</div>` : ''}
+                ${parameterMismatch ? `<div class="meta" style="margin-top:8px; color:var(--bad);">检测到 JSON 参数与 Godot 运行时参数不一致: ${escapeHtml(String(parameterConsistencySummary.mismatch_count || 0))} 项。</div>` : ''}
+                ${parameterMismatch ? renderParameterMismatchList(parameterConsistencySummary) : ''}
+                ${hasAssemblyFixedLockSummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Load Fixed Locks</div><div class="value">${escapeHtml(String(assemblyFixedLockSummary.checked_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Load Fixed Mismatch</div><div class="value" style="${Number(assemblyFixedLockSummary.mismatch_count || 0) ? 'color:var(--bad);' : ''}">${escapeHtml(String(assemblyFixedLockSummary.mismatch_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Load Fixed Match</div><div class="value">${escapeHtml(String(assemblyFixedLockSummary.complete === true))}</div></div>
+                    </div>
+                ` : ''}
+                ${Number(assemblyFixedLockSummary.mismatch_count || 0) ? `<div class="meta" style="margin-top:8px; color:var(--bad);">Web 直接加载检测到 fixed 关节锁定参数不完整: ${escapeHtml(String(assemblyFixedLockSummary.mismatch_count || 0))} 项。</div>` : ''}
+                ${Number(assemblyFixedLockSummary.mismatch_count || 0) ? renderParameterMismatchList(assemblyFixedLockSummary) : ''}
+                ${hasNodeTreeManifest ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Tree Complete</div><div class="value" style="${nodeTreeIncomplete ? 'color:var(--bad);' : ''}">${escapeHtml(String(nodeTreeManifest.complete === true))}</div></div>
+                        <div class="mini"><div class="label">Tree Parts</div><div class="value">${escapeHtml(String((nodeTreeManifest.parts || []).length))}</div></div>
+                        <div class="mini"><div class="label">Tree Joints</div><div class="value">${escapeHtml(String((nodeTreeManifest.joints || []).length))}</div></div>
+                        <div class="mini"><div class="label">Missing Parts</div><div class="value" style="${(nodeTreeManifest.missing_part_ids || []).length ? 'color:var(--bad);' : ''}">${escapeHtml(String((nodeTreeManifest.missing_part_ids || []).length))}</div></div>
+                        <div class="mini"><div class="label">Missing Joints</div><div class="value" style="${(nodeTreeManifest.missing_connection_names || []).length ? 'color:var(--bad);' : ''}">${escapeHtml(String((nodeTreeManifest.missing_connection_names || []).length))}</div></div>
+                        <div class="mini"><div class="label">Class Mismatch</div><div class="value" style="${nodeTreeClassMismatch ? 'color:var(--bad);' : ''}">${escapeHtml(String(nodeTreeManifest.class_mismatch_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Missing Params</div><div class="value" style="${nodeTreeMissingParameters ? 'color:var(--bad);' : ''}">${escapeHtml(String(nodeTreeManifest.parameter_missing_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Transform Mismatch</div><div class="value" style="${nodeTreeTransformMismatch ? 'color:var(--bad);' : ''}">${escapeHtml(String(nodeTreeManifest.transform_mismatch_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Physical Mismatch</div><div class="value" style="${nodeTreePhysicalMismatch ? 'color:var(--bad);' : ''}">${escapeHtml(String(nodeTreeManifest.physical_mismatch_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Tree Fixed Locks</div><div class="value">${escapeHtml(String(nodeTreeManifest.fixed_lock_checked_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Tree Fixed Mismatch</div><div class="value" style="${nodeTreeFixedLockMismatch ? 'color:var(--bad);' : ''}">${escapeHtml(String(nodeTreeManifest.fixed_lock_mismatch_count ?? 0))}</div></div>
+                    </div>
+                ` : ''}
+                ${nodeTreeIncomplete ? `<div class="meta" style="margin-top:8px; color:var(--bad);">机械节点树还原不完整，缺失部件: ${escapeHtml((nodeTreeManifest.missing_part_ids || []).join(', ') || '无')}；缺失关节: ${escapeHtml((nodeTreeManifest.missing_connection_names || []).join(', ') || '无')}</div>` : ''}
+                ${nodeTreeClassMismatch ? `<div class="meta" style="margin-top:8px; color:var(--bad);">机械节点类型与 JSON 期望不一致: ${escapeHtml(String(nodeTreeManifest.class_mismatch_count || 0))} 项。</div>` : ''}
+                ${nodeTreeClassMismatch ? renderNodeTreeMismatchList(nodeTreeManifest, 'class_mismatches') : ''}
+                ${nodeTreeMissingParameters ? `<div class="meta" style="margin-top:8px; color:var(--bad);">机械关节参数未挂载到节点: ${escapeHtml((nodeTreeManifest.missing_parameter_connection_names || []).join(', ') || String(nodeTreeManifest.parameter_missing_count || 0))}</div>` : ''}
+                ${nodeTreeTransformMismatch ? `<div class="meta" style="margin-top:8px; color:var(--bad);">机械节点变换与 JSON 期望不一致: ${escapeHtml(String(nodeTreeManifest.transform_mismatch_count || 0))} 项。</div>` : ''}
+                ${nodeTreeTransformMismatch ? renderNodeTreeMismatchList(nodeTreeManifest, 'transform_mismatches') : ''}
+                ${nodeTreePhysicalMismatch ? `<div class="meta" style="margin-top:8px; color:var(--bad);">机械部件物理/几何参数与 JSON 期望不一致: ${escapeHtml(String(nodeTreeManifest.physical_mismatch_count || 0))} 项。</div>` : ''}
+                ${nodeTreePhysicalMismatch ? renderNodeTreeMismatchList(nodeTreeManifest, 'physical_mismatches') : ''}
+                ${nodeTreeFixedLockMismatch ? `<div class="meta" style="margin-top:8px; color:var(--bad);">机械节点树 fixed 关节锁定参数不完整: ${escapeHtml(String(nodeTreeManifest.fixed_lock_mismatch_count || 0))} 项。</div>` : ''}
+                ${nodeTreeFixedLockMismatch ? renderParameterMismatchList({ mismatches: nodeTreeManifest.fixed_lock_mismatches || [] }) : ''}
+                ${hasControlSummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Targeted</div><div class="value">${escapeHtml(String(controlSummary.targeted_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Max Target</div><div class="value">${escapeHtml(formatMetric(controlSummary.max_abs_target_velocity))}</div></div>
+                        <div class="mini"><div class="label">Avg Target</div><div class="value">${escapeHtml(formatMetric(controlSummary.average_abs_target_velocity))}</div></div>
+                        <div class="mini"><div class="label">Nonzero Gate</div><div class="value" style="${nonzeroTargetsUnderMin ? 'color:var(--bad);' : ''}">${escapeHtml(String(controlSummary.min_nonzero_target_threshold ?? '-'))}</div></div>
+                        <div class="mini"><div class="label">Largest Target</div><div class="value" style="font-size:.86rem;">${escapeHtml(controlSummary.largest_target_joint || '-')}</div></div>
+                    </div>
+                ` : ''}
+                ${nonzeroTargetsUnderMin ? `<div class="meta" style="margin-top:8px; color:var(--bad);">非零 action 目标关节数低于阈值: ${escapeHtml(String(controlSummary.targeted_count ?? 0))} < ${escapeHtml(String(controlSummary.min_nonzero_target_threshold ?? '-'))}</div>` : ''}
+                ${hasControlConsistencySummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Control Checked</div><div class="value">${escapeHtml(String(controlConsistencySummary.checked_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Control Missing</div><div class="value" style="${Number(controlConsistencySummary.missing_count || 0) ? 'color:var(--bad);' : ''}">${escapeHtml(String(controlConsistencySummary.missing_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Control Mismatch</div><div class="value" style="${controlMismatch ? 'color:var(--bad);' : ''}">${escapeHtml(String(controlConsistencySummary.mismatch_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Control Match</div><div class="value">${escapeHtml(String(controlConsistencySummary.complete === true))}</div></div>
+                    </div>
+                ` : ''}
+                ${controlMismatch ? `<div class="meta" style="margin-top:8px; color:var(--bad);">检测到 JSON 控制参数与 Godot 运行时控制参数不一致: ${escapeHtml(String(controlConsistencySummary.mismatch_count || 0))} 项。</div>` : ''}
+                ${controlMismatch ? renderParameterMismatchList(controlConsistencySummary) : ''}
+                ${hasActionTargetConsistencySummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Action Targets</div><div class="value">${escapeHtml(String(actionTargetConsistencySummary.expected_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Target Checked</div><div class="value">${escapeHtml(String(actionTargetConsistencySummary.checked_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Target Mismatch</div><div class="value" style="${actionTargetMismatch ? 'color:var(--bad);' : ''}">${escapeHtml(String(actionTargetConsistencySummary.mismatch_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Unknown Targets</div><div class="value" style="${unknownActionTargets ? 'color:var(--bad);' : ''}">${escapeHtml(String(actionTargetConsistencySummary.unknown_target_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Invalid Targets</div><div class="value" style="${invalidActionTargets ? 'color:var(--bad);' : ''}">${escapeHtml(String(actionTargetConsistencySummary.invalid_target_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Target Match</div><div class="value">${escapeHtml(String(actionTargetConsistencySummary.complete === true))}</div></div>
+                    </div>
+                ` : ''}
+                ${actionTargetMismatch ? `<div class="meta" style="margin-top:8px; color:var(--bad);">检测到 action 目标速度与 Godot 运行时目标速度不一致: ${escapeHtml(String(actionTargetConsistencySummary.mismatch_count || 0))} 项。</div>` : ''}
+                ${actionTargetMismatch ? renderParameterMismatchList(actionTargetConsistencySummary) : ''}
+                ${unknownActionTargets ? `<div class="meta" style="margin-top:8px; color:var(--bad);">action 引用了不存在的关节目标: ${escapeHtml(formatUnknownActionTargets(actionTargetConsistencySummary.unknown_targets))}</div>` : ''}
+                ${invalidActionTargets ? `<div class="meta" style="margin-top:8px; color:var(--bad);">action 包含非数字目标值: ${escapeHtml(formatUnknownActionTargets(actionTargetConsistencySummary.invalid_targets))}</div>` : ''}
+                ${hasActionSequenceTargetConsistencySummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Seq Steps</div><div class="value">${escapeHtml(String(actionSequenceTargetConsistencySummary.steps ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Seq Targets</div><div class="value">${escapeHtml(String(actionSequenceTargetConsistencySummary.expected_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Seq Checked</div><div class="value">${escapeHtml(String(actionSequenceTargetConsistencySummary.checked_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Seq Mismatch</div><div class="value" style="${actionSequenceTargetMismatch ? 'color:var(--bad);' : ''}">${escapeHtml(String(actionSequenceTargetConsistencySummary.mismatch_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Seq Unknown</div><div class="value" style="${unknownActionSequenceTargets ? 'color:var(--bad);' : ''}">${escapeHtml(String(actionSequenceTargetConsistencySummary.unknown_target_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Seq Invalid</div><div class="value" style="${invalidActionSequenceTargets ? 'color:var(--bad);' : ''}">${escapeHtml(String(actionSequenceTargetConsistencySummary.invalid_target_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Seq Match</div><div class="value">${escapeHtml(String(actionSequenceTargetConsistencySummary.complete === true))}</div></div>
+                    </div>
+                ` : ''}
+                ${actionSequenceTargetMismatch ? `<div class="meta" style="margin-top:8px; color:var(--bad);">检测到 action 序列目标速度与 Godot 逐步运行时目标速度不一致: ${escapeHtml(String(actionSequenceTargetConsistencySummary.mismatch_count || 0))} 项。</div>` : ''}
+                ${actionSequenceTargetMismatch ? renderParameterMismatchList(actionSequenceTargetConsistencySummary) : ''}
+                ${unknownActionSequenceTargets ? `<div class="meta" style="margin-top:8px; color:var(--bad);">action 序列引用了不存在的关节目标: ${escapeHtml(formatUnknownActionTargets(actionSequenceTargetConsistencySummary.unknown_targets))}</div>` : ''}
+                ${invalidActionSequenceTargets ? `<div class="meta" style="margin-top:8px; color:var(--bad);">action 序列包含非数字目标值: ${escapeHtml(formatUnknownActionTargets(actionSequenceTargetConsistencySummary.invalid_targets))}</div>` : ''}
+                ${hasActionTargetCoverageSummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Action Coverage</div><div class="value" style="${actionTargetCoverageUnderMin ? 'color:var(--bad);' : ''}">${escapeHtml(formatPercent(actionTargetCoverageSummary.coverage_ratio))}</div></div>
+                        <div class="mini"><div class="label">Covered Joints</div><div class="value">${escapeHtml(String(actionTargetCoverageSummary.covered_joint_count ?? 0))}/${escapeHtml(String(actionTargetCoverageSummary.joint_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Missing Targets</div><div class="value" style="${Number(actionTargetCoverageSummary.missing_target_count || 0) ? 'color:var(--bad);' : ''}">${escapeHtml(String(actionTargetCoverageSummary.missing_target_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Coverage Gate</div><div class="value">${escapeHtml(formatPercent(actionTargetCoverageSummary.min_coverage_threshold))}</div></div>
+                    </div>
+                ` : ''}
+                ${actionTargetCoverageUnderMin ? `<div class="meta" style="margin-top:8px; color:var(--bad);">action 关节覆盖率低于阈值: ${escapeHtml(formatPercent(actionTargetCoverageSummary.coverage_ratio))} < ${escapeHtml(formatPercent(actionTargetCoverageSummary.min_coverage_threshold))}</div>` : ''}
+                ${Number(actionTargetCoverageSummary.missing_target_count || 0) ? `<div class="meta" style="margin-top:8px;">未被 action 覆盖的关节: ${escapeHtml((actionTargetCoverageSummary.missing_target_joints || []).slice(0, 8).join(', ') || '无')}</div>` : ''}
+                ${hasControlActionCoverageSummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Control Coverage</div><div class="value" style="${controlActionCoverageUnderMin ? 'color:var(--bad);' : ''}">${escapeHtml(formatPercent(controlActionCoverageSummary.coverage_ratio))}</div></div>
+                        <div class="mini"><div class="label">Covered Controls</div><div class="value">${escapeHtml(String(controlActionCoverageSummary.covered_control_count ?? 0))}/${escapeHtml(String(controlActionCoverageSummary.generated_configured_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Untargeted Controls</div><div class="value" style="${Number(controlActionCoverageSummary.missing_action_count || 0) ? 'color:var(--bad);' : ''}">${escapeHtml(String(controlActionCoverageSummary.missing_action_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Control Gate</div><div class="value">${escapeHtml(formatPercent(controlActionCoverageSummary.min_coverage_threshold))}</div></div>
+                    </div>
+                ` : ''}
+                ${controlActionCoverageUnderMin ? `<div class="meta" style="margin-top:8px; color:var(--bad);">control.joints 动作覆盖率低于阈值: ${escapeHtml(formatPercent(controlActionCoverageSummary.coverage_ratio))} < ${escapeHtml(formatPercent(controlActionCoverageSummary.min_coverage_threshold))}</div>` : ''}
+                ${Number(controlActionCoverageSummary.missing_action_count || 0) ? `<div class="meta" style="margin-top:8px;">未被 action 覆盖的控制关节: ${escapeHtml((controlActionCoverageSummary.missing_action_joints || []).slice(0, 8).join(', ') || '无')}</div>` : ''}
+                ${hasSimulationSummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Steps Run</div><div class="value">${escapeHtml(String(simulationSummary.steps_run ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Max Move</div><div class="value">${escapeHtml(formatMetric(simulationSummary.max_body_displacement))}</div></div>
+                        <div class="mini"><div class="label">Avg Move</div><div class="value">${escapeHtml(formatMetric(simulationSummary.average_body_displacement))}</div></div>
+                        <div class="mini"><div class="label">Max Speed</div><div class="value">${escapeHtml(formatMetric(simulationSummary.max_linear_speed))}</div></div>
+                        <div class="mini"><div class="label">Min Move Gate</div><div class="value">${escapeHtml(formatMetric(simulationSummary.min_body_displacement_threshold))}</div></div>
+                        <div class="mini"><div class="label">Max Speed Gate</div><div class="value">${escapeHtml(formatMetric(simulationSummary.max_linear_speed_threshold))}</div></div>
+                        <div class="mini"><div class="label">Fastest Body</div><div class="value" style="font-size:.86rem;">${escapeHtml(simulationSummary.fastest_body || '-')}</div></div>
+                    </div>
+                ` : ''}
+                ${displacementUnderMin ? `<div class="meta" style="margin-top:8px; color:var(--bad);">运动位移低于阈值: ${escapeHtml(formatMetric(simulationSummary.max_body_displacement))} < ${escapeHtml(formatMetric(simulationSummary.min_body_displacement_threshold))}</div>` : ''}
+                ${speedExceeded ? `<div class="meta" style="margin-top:8px; color:var(--bad);">线速度超过阈值: ${escapeHtml(formatMetric(simulationSummary.max_linear_speed))} > ${escapeHtml(formatMetric(simulationSummary.max_linear_speed_threshold))}</div>` : ''}
+                ${hasJointMotionSummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Joint Motion</div><div class="value">${escapeHtml(String(jointMotionSummary.moving_joint_count ?? 0))}/${escapeHtml(String(jointMotionSummary.measured_joint_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Max Joint Delta</div><div class="value" style="${jointAngleDeltaUnderMin ? 'color:var(--bad);' : ''}">${escapeHtml(formatMetric(jointMotionSummary.max_abs_relative_angle_delta))}</div></div>
+                        <div class="mini"><div class="label">Avg Joint Delta</div><div class="value">${escapeHtml(formatMetric(jointMotionSummary.average_abs_relative_angle_delta))}</div></div>
+                        <div class="mini"><div class="label">Joint Delta Gate</div><div class="value">${escapeHtml(formatMetric(jointMotionSummary.min_joint_angle_delta_threshold))}</div></div>
+                        <div class="mini"><div class="label">Max Joint Range</div><div class="value" style="${jointAngleRangeUnderMin ? 'color:var(--bad);' : ''}">${escapeHtml(formatMetric(jointMotionSummary.max_abs_relative_angle_range))}</div></div>
+                        <div class="mini"><div class="label">Joint Range Gate</div><div class="value">${escapeHtml(formatMetric(jointMotionSummary.min_joint_angle_range_threshold))}</div></div>
+                        <div class="mini"><div class="label">Motion Coverage</div><div class="value" style="${movingJointCoverageUnderMin ? 'color:var(--bad);' : ''}">${escapeHtml(formatPercent(jointMotionSummary.moving_joint_coverage_ratio))}</div></div>
+                        <div class="mini"><div class="label">Motion Gate</div><div class="value">${escapeHtml(formatPercent(jointMotionSummary.min_moving_joint_coverage_threshold))}</div></div>
+                        <div class="mini"><div class="label">Command Response</div><div class="value" style="${commandedJointResponseUnderMin ? 'color:var(--bad);' : ''}">${escapeHtml(formatPercent(jointMotionSummary.commanded_joint_response_ratio))}</div></div>
+                        <div class="mini"><div class="label">Response Gate</div><div class="value">${escapeHtml(formatPercent(jointMotionSummary.min_commanded_joint_response_coverage_threshold))}</div></div>
+                        <div class="mini"><div class="label">Largest Joint</div><div class="value" style="font-size:.86rem;">${escapeHtml(jointMotionSummary.largest_moving_joint || '-')}</div></div>
+                    </div>
+                ` : ''}
+                ${jointAngleDeltaUnderMin ? `<div class="meta" style="margin-top:8px; color:var(--bad);">关节角度变化低于阈值: ${escapeHtml(formatMetric(jointMotionSummary.max_abs_relative_angle_delta))} < ${escapeHtml(formatMetric(jointMotionSummary.min_joint_angle_delta_threshold))}</div>` : ''}
+                ${jointAngleRangeUnderMin ? `<div class="meta" style="margin-top:8px; color:var(--bad);">关节角度范围低于阈值: ${escapeHtml(formatMetric(jointMotionSummary.max_abs_relative_angle_range))} < ${escapeHtml(formatMetric(jointMotionSummary.min_joint_angle_range_threshold))}</div>` : ''}
+                ${movingJointCoverageUnderMin ? `<div class="meta" style="margin-top:8px; color:var(--bad);">运动关节覆盖率低于阈值: ${escapeHtml(formatPercent(jointMotionSummary.moving_joint_coverage_ratio))} < ${escapeHtml(formatPercent(jointMotionSummary.min_moving_joint_coverage_threshold))}</div>` : ''}
+                ${commandedJointResponseUnderMin ? `<div class="meta" style="margin-top:8px; color:var(--bad);">action 指令关节响应覆盖率低于阈值: ${escapeHtml(formatPercent(jointMotionSummary.commanded_joint_response_ratio))} < ${escapeHtml(formatPercent(jointMotionSummary.min_commanded_joint_response_coverage_threshold))}</div>` : ''}
+                ${commandedJointResponseUnderMin ? `<div class="meta" style="margin-top:8px;">未响应的 action 关节: ${escapeHtml((jointMotionSummary.commanded_static_joints || []).slice(0, 8).join(', ') || '无')}</div>` : ''}
+                ${commandedJointResponseUnderMin ? renderCommandedJointResponseDetails(jointMotionSummary) : ''}
+                ${hasActionSequenceSummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Action Steps</div><div class="value">${escapeHtml(String(actionSequenceSummary.steps ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Unique Actions</div><div class="value">${escapeHtml(String(actionSequenceSummary.unique_action_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Transitions</div><div class="value" style="${actionTransitionsUnderMin ? 'color:var(--bad);' : ''}">${escapeHtml(String(actionSequenceSummary.transition_count ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Transition Gate</div><div class="value">${escapeHtml(String(actionSequenceSummary.min_transition_threshold ?? '-'))}</div></div>
+                        <div class="mini"><div class="label">Max Delta</div><div class="value" style="${actionTransitionDeltaUnderMin ? 'color:var(--bad);' : ''}">${escapeHtml(formatMetric(actionSequenceSummary.max_numeric_transition_delta))}</div></div>
+                        <div class="mini"><div class="label">Avg Delta</div><div class="value">${escapeHtml(formatMetric(actionSequenceSummary.average_numeric_transition_delta))}</div></div>
+                        <div class="mini"><div class="label">Delta Gate</div><div class="value">${escapeHtml(formatMetric(actionSequenceSummary.min_transition_delta_threshold))}</div></div>
+                    </div>
+                ` : ''}
+                ${actionTransitionsUnderMin ? `<div class="meta" style="margin-top:8px; color:var(--bad);">action 序列变化次数低于阈值: ${escapeHtml(String(actionSequenceSummary.transition_count ?? 0))} < ${escapeHtml(String(actionSequenceSummary.min_transition_threshold ?? '-'))}</div>` : ''}
+                ${actionTransitionDeltaUnderMin ? `<div class="meta" style="margin-top:8px; color:var(--bad);">action 序列数值变化幅度低于阈值: ${escapeHtml(formatMetric(actionSequenceSummary.max_numeric_transition_delta))} < ${escapeHtml(formatMetric(actionSequenceSummary.min_transition_delta_threshold))}</div>` : ''}
+                ${hasRestorationSummary ? `
+                    <div class="summary" style="margin-top:10px;">
+                        <div class="mini"><div class="label">Restored Parts</div><div class="value">${escapeHtml(String(restorationSummary.restored_parts ?? 0))}/${escapeHtml(String(restorationSummary.expected_parts ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Restored Joints</div><div class="value">${escapeHtml(String(restorationSummary.restored_joints ?? 0))}/${escapeHtml(String(restorationSummary.expected_joints ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Param Joints</div><div class="value">${escapeHtml(String(restorationSummary.parameterized_joints ?? 0))}</div></div>
+                        <div class="mini"><div class="label">Restore Score</div><div class="value">${escapeHtml(formatPercent(restorationSummary.score))}</div></div>
+                        <div class="mini"><div class="label">Restore Gate</div><div class="value">${escapeHtml(formatPercent(restorationSummary.min_restoration_score_threshold))}</div></div>
+                    </div>
+                ` : ''}
+                ${restorationIncomplete ? `<div class="meta" style="margin-top:8px; color:var(--bad);">机械机构还原未完整，请检查零件/关节映射、参数回读和遥测完整性。</div>` : ''}
+                ${restorationScoreUnderMin ? `<div class="meta" style="margin-top:8px; color:var(--bad);">机械机构还原评分低于阈值: ${escapeHtml(formatPercent(restorationSummary.score))} < ${escapeHtml(formatPercent(restorationSummary.min_restoration_score_threshold))}</div>` : ''}
+                ${failedConnections.length ? `<div class="meta" style="margin-top:8px; color:var(--bad);">失败连接: ${escapeHtml(failedConnections.slice(0, 5).join(', '))}${failedConnections.length > 5 ? ' ...' : ''}</div>` : ''}
+                ${warnings.length ? `<div class="meta" style="margin-top:8px; color:#92400e;">警告: ${escapeHtml(warnings.slice(0, 3).join('; '))}${warnings.length > 3 ? ' ...' : ''}</div>` : ''}
+            `;
+        }
+
+        function formatMetric(value) {
+            return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(4) : '-';
+        }
+
+        function formatPercent(value) {
+            return typeof value === 'number' && Number.isFinite(value) ? `${(value * 100).toFixed(0)}%` : '-';
+        }
+
+        function formatUnknownActionTargets(items) {
+            if (!Array.isArray(items) || !items.length) return '无';
+            return items.slice(0, 5).map((item) => {
+                const step = item.step_index === undefined ? '' : `step ${item.step_index}: `;
+                if (item.joint) return `${step}${item.joint}`;
+                if (item.index !== undefined) return `${step}index ${item.index}`;
+                return `${step}unknown`;
+            }).join(', ') + (items.length > 5 ? ' ...' : '');
         }
 
         function renderArtifactContractSummary(artifact) {
@@ -631,10 +1132,12 @@
                 ? `<pre>${escapeHtml(run.live_log_tail.join('\n'))}</pre>`
                 : '<div class="empty">等待实时日志...</div>';
             const godotDelivery = run.godot_delivery;
+            const godotEvidencePanel = renderGodotEvidenceSummary(run.godot_evidence_summary);
             if (godotDelivery?.transport_status_url && !getCachedGodotSessionStatus(run) && !state.godotSessionStatusLoading.has(run.run_id)) {
                 refreshGodotSessionStatus(run.run_id).catch(() => {});
             }
             const godotSessionPanel = renderGodotSessionStatusPanel(run, godotDelivery);
+            const godotAssemblyPanel = renderGodotAssemblyPanel(godotDelivery);
             const godotDeliveryPanel = godotDelivery
                 ? `
                     <div class="step" style="margin-bottom:14px; border-color:#bfdbfe; background:#f8fbff;">
@@ -651,13 +1154,16 @@
                         <div class="meta" style="margin-top:8px;">产物契约: v${escapeHtml(godotDelivery.artifact_schema_version || 'unknown')} · ${escapeHtml(godotDelivery.artifact_contract?.payload_type || godotDelivery.artifact_type || 'file')}</div>
                         <div class="meta" style="margin-top:8px;">状态接口: ${godotDelivery.transport_status_url ? `<a href="${godotDelivery.transport_status_url}" target="_blank" rel="noopener noreferrer">${escapeHtml(godotDelivery.transport_status_url)}</a>` : '无'}</div>
                         ${godotDelivery.failure_stage ? `<div class="meta" style="margin-top:8px; color:var(--bad);">失败阶段: ${escapeHtml(godotDelivery.failure_stage)} · ${escapeHtml(godotDelivery.retry_hint || '请检查日志后重试')}</div>` : ''}
+                        <div class="title" style="margin-top:12px;">动态节点树</div>
+                        ${godotAssemblyPanel}
+                        <div class="title" style="margin-top:12px;">Godot 会话</div>
+                        ${godotSessionPanel}
                         <div class="meta" style="margin-top:8px;">说明: ${escapeHtml(godotDelivery.message || '无')}</div>
                         <div class="actions" style="margin-top:10px;">
                             <button class="btn-xs" onclick="refreshGodotSessionStatus('${run.run_id}', true)">刷新会话状态</button>
                             <button class="btn-xs" onclick="retryGodotDelivery('${run.run_id}')">重试本次交付</button>
                             <button class="btn-xs" onclick="syncRunToGodot('${run.run_id}')">重试推荐同步</button>
                         </div>
-                        ${godotSessionPanel}
                     </div>
                 `
                 : '<div class="empty" style="margin-bottom:14px;">尚未把该 run 的机器人配置送往 Godot。</div>';
@@ -714,6 +1220,8 @@
                 <div class="meta" style="margin-bottom:12px;">工作流契约: v${escapeHtml(run.workflow_contract_version || run.workflow_result_schema_version || 'unknown')} · 结果类型 ${escapeHtml(run.workflow_result_artifact_type || '未知')}</div>
                 <div class="meta" style="margin-bottom:12px;">进度: ${escapeHtml(currentStepMessage)} · 最近更新 ${escapeHtml(run.progress_updated_at || '尚无')}</div>
                 ${diagnosticsPanel}
+                <div class="title" style="margin-bottom:10px;">Godot Evidence</div>
+                ${godotEvidencePanel}
                 <div class="title" style="margin-bottom:10px;">Godot 交付</div>
                 ${godotDeliveryPanel}
                 <div class="actions" style="margin:0 0 14px;">

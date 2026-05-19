@@ -29,10 +29,19 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from agi_walker.core.api.workflow_contracts import (
+    DELIVERY_ACCEPTANCE_GATE_CONTRACT_VERSION,
     WORKFLOW_CONTRACT_VERSION,
+    build_delivery_acceptance_requirements,
+    validate_delivery_acceptance_gate,
     validate_export_result,
     validate_robot_config,
     validate_workflow_step_artifact,
+)
+from agi_walker.core.api.robot_schema import (
+    build_godot_node_tree_manifest,
+    build_godot_node_tree_manifest_path_map_mismatches,
+    normalize_robot_config_for_godot,
+    validate_godot_node_tree_manifest,
 )
 from agi_walker.workflow_orchestrator import get_workflow_orchestrator
 from web_panel.auth_api import get_current_user
@@ -43,6 +52,26 @@ from web_panel.models import User, WorkflowRun
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/workflows", tags=["workflows"])
 WEB_PANEL_ENV_FILE_ENV_VAR = "AGI_WALKER_WEB_ENV_FILE"
+WEB_GODOT_DELIVERY_GATE_SOURCE = "web_godot_delivery"
+WEB_GODOT_DELIVERY_GATE_SCOPE = "godot_load"
+WEB_GODOT_EVIDENCE_SUMMARY_VERSION = "web_godot_evidence_summary.v1"
+GODOT_READINESS_SUMMARY_VERSION = "dynamic_godot_release_readiness_summary.v1"
+GODOT_READINESS_ARTIFACT_TYPE = "dynamic_godot_release_readiness_summary"
+GODOT_EVIDENCE_LEVEL_RANKS = {
+    "incomplete": 0,
+    "static_only": 1,
+    "godot_load_verified": 2,
+    "godot_verified": 3,
+}
+
+
+def _web_godot_load_acceptance_requirements() -> Dict[str, bool]:
+    return build_delivery_acceptance_requirements(
+        godot_load=True,
+        mechanical_restoration_complete=True,
+        joint_parameter_readback=True,
+        node_tree_fixed_lock_match=True,
+    )
 
 
 def _strip_env_value(raw_value: str) -> str:
@@ -1058,6 +1087,22 @@ def _build_artifact_contract(
     }
 
 
+def _static_node_tree_manifest_output_for_artifact(
+    artifact_path: Path,
+    step_output: Dict[str, Any],
+) -> Optional[str]:
+    """Return the known static node-tree manifest sidecar path for an artifact."""
+    for key in ("static_node_tree_manifest_output", "node_tree_manifest_output"):
+        output = step_output.get(key)
+        if isinstance(output, str) and output:
+            return output
+
+    sibling = artifact_path.with_name(f"{artifact_path.stem}.node_tree_manifest.json")
+    if sibling.exists() and sibling.is_file():
+        return str(sibling)
+    return None
+
+
 def _build_artifact_metadata(
     artifact_path: Path,
     run_id: str,
@@ -1071,6 +1116,7 @@ def _build_artifact_metadata(
     godot_load_supported = False
     godot_load_url = None
     preferred_godot_transport_mode = None
+    static_node_tree_manifest_output = None
 
     payload = None
     step_output = (step or {}).get("output") or {}
@@ -1095,6 +1141,9 @@ def _build_artifact_metadata(
             f"/api/workflows/runs/{run_id}/artifacts/{artifact_index}/godot-load"
         )
         preferred_godot_transport_mode = "session_bridge"
+        static_node_tree_manifest_output = (
+            _static_node_tree_manifest_output_for_artifact(artifact_path, step_output)
+        )
 
     return {
         "schema_version": WORKFLOW_CONTRACT_VERSION,
@@ -1104,6 +1153,7 @@ def _build_artifact_metadata(
         "godot_load_supported": godot_load_supported,
         "godot_load_url": godot_load_url,
         "preferred_godot_transport_mode": preferred_godot_transport_mode,
+        "static_node_tree_manifest_output": static_node_tree_manifest_output,
         "contract": contract,
         "contract_valid": contract["valid"],
         "contract_errors": contract["errors"],
@@ -1323,6 +1373,153 @@ def _get_recommended_godot_artifact(run: Dict[str, Any]) -> Dict[str, Any]:
     )
 
 
+def _best_godot_evidence_level(levels: Dict[str, bool]) -> str:
+    best = "incomplete"
+    for level, available in levels.items():
+        if available and GODOT_EVIDENCE_LEVEL_RANKS[level] > GODOT_EVIDENCE_LEVEL_RANKS[best]:
+            best = level
+    return best
+
+
+def _web_godot_load_actions(run: Dict[str, Any]) -> List[Dict[str, Any]]:
+    actions = []
+    for artifact in run.get("artifacts", []):
+        if not artifact.get("godot_load_supported"):
+            continue
+        actions.append(
+            {
+                "kind": "godot_load",
+                "method": "POST",
+                "url": artifact.get("godot_load_url"),
+                "artifact_index": artifact.get("artifact_index"),
+                "artifact_name": artifact.get("name"),
+                "enabled": bool(artifact.get("godot_load_url")),
+            }
+        )
+    return actions
+
+
+def _residual_risks_for_web_godot_evidence(
+    level: str,
+    static_evidence: Dict[str, Any],
+    gate: Dict[str, Any],
+) -> List[str]:
+    risks: List[str] = []
+    if not static_evidence:
+        risks.append("Static Godot node-tree manifest evidence is not available.")
+    elif static_evidence.get("valid") is not True or static_evidence.get("complete") is not True:
+        risks.append("Static Godot node-tree manifest evidence is incomplete or invalid.")
+    if GODOT_EVIDENCE_LEVEL_RANKS[level] < GODOT_EVIDENCE_LEVEL_RANKS["godot_load_verified"]:
+        risks.append("Godot load through Web/session delivery is not proven.")
+    if GODOT_EVIDENCE_LEVEL_RANKS[level] < GODOT_EVIDENCE_LEVEL_RANKS["godot_verified"]:
+        risks.append("Full live Godot smoke-motion verification is not proven.")
+    for item in static_evidence.get("errors", []):
+        if isinstance(item, str):
+            risks.append(item)
+    for item in gate.get("reasons", []):
+        if isinstance(item, str):
+            risks.append(item)
+    return list(dict.fromkeys(risks))
+
+
+def _build_web_godot_evidence_summary(run: Dict[str, Any]) -> Dict[str, Any]:
+    """Build the operator-facing static/load/live Godot evidence summary."""
+    delivery = run.get("godot_delivery") if isinstance(run.get("godot_delivery"), dict) else {}
+    gate = delivery.get("delivery_acceptance_gate") if isinstance(delivery.get("delivery_acceptance_gate"), dict) else {}
+    static_evidence = (
+        delivery.get("static_node_tree_manifest_evidence")
+        if isinstance(delivery.get("static_node_tree_manifest_evidence"), dict)
+        else {}
+    )
+    static_available = bool(static_evidence) or any(
+        artifact.get("godot_load_supported") for artifact in run.get("artifacts", [])
+    )
+    levels = {
+        "static_only": static_available,
+        "godot_load_verified": gate.get("level") == "godot_load_verified"
+        and gate.get("complete") is True,
+        "godot_verified": gate.get("level") == "godot_verified"
+        and gate.get("complete") is True,
+    }
+    level = _best_godot_evidence_level(levels)
+    mismatch_kind_counts = static_evidence.get("path_map_mismatch_kind_counts")
+    if not isinstance(mismatch_kind_counts, dict):
+        mismatch_kind_counts = {}
+    actions = _web_godot_load_actions(run)
+    return {
+        "summary_version": WEB_GODOT_EVIDENCE_SUMMARY_VERSION,
+        "level": level,
+        "level_rank": GODOT_EVIDENCE_LEVEL_RANKS[level],
+        "complete": level != "incomplete",
+        "levels": levels,
+        "static": {
+            "available": static_available,
+            "manifest_valid": static_evidence.get("valid"),
+            "manifest_complete": static_evidence.get("complete"),
+            "manifest_output": static_evidence.get("output"),
+            "manifest_mismatch_count": _int_or_default(
+                static_evidence.get("path_map_mismatch_count"),
+                0,
+            ),
+            "manifest_mismatch_kind_counts": mismatch_kind_counts,
+        },
+        "load": {
+            "available": bool(delivery),
+            "level": gate.get("level"),
+            "complete": gate.get("complete"),
+            "gate_passed": gate.get("passed"),
+            "reason_codes": gate.get("reason_codes", []),
+        },
+        "live": {"available": levels["godot_verified"]},
+        "residual_risks": _residual_risks_for_web_godot_evidence(
+            level,
+            static_evidence,
+            gate,
+        ),
+        "actions": {
+            "godot_load": actions,
+            "recommended_godot_sync": {
+                "kind": "godot_sync",
+                "method": "POST",
+                "url": run.get("recommended_godot_sync_url"),
+                "enabled": bool(actions),
+            },
+            "readiness_summary": {
+                "kind": "readiness_summary",
+                "method": "GET",
+                "url": f"/api/workflows/runs/{run['run_id']}/godot-readiness-summary",
+                "enabled": True,
+            },
+        },
+    }
+
+
+def _run_with_web_godot_evidence_summary(run: Dict[str, Any]) -> Dict[str, Any]:
+    public_run = dict(run)
+    public_run["godot_evidence_summary"] = _build_web_godot_evidence_summary(run)
+    return public_run
+
+
+def _build_web_godot_readiness_summary(run: Dict[str, Any]) -> Dict[str, Any]:
+    evidence_summary = _build_web_godot_evidence_summary(run)
+    level = evidence_summary["level"]
+    status = "ready" if level != "incomplete" else "blocked"
+    return {
+        "summary_version": GODOT_READINESS_SUMMARY_VERSION,
+        "artifact_type": GODOT_READINESS_ARTIFACT_TYPE,
+        "status": status,
+        "proven_level": level,
+        "proven_level_rank": evidence_summary["level_rank"],
+        "input_count": 1,
+        "evidence_count": 1 if level != "incomplete" else 0,
+        "evidence": [evidence_summary],
+        "input_errors": [] if level != "incomplete" else [
+            {"path": run["run_id"], "error": "no recognized dynamic Godot evidence"}
+        ],
+        "residual_risks": evidence_summary["residual_risks"],
+    }
+
+
 def _load_robot_config_from_artifact(artifact: Dict[str, Any]) -> Dict[str, Any]:
     """Read and validate a robot config artifact payload."""
     if not artifact.get("godot_load_supported"):
@@ -1348,7 +1545,7 @@ def _load_robot_config_from_artifact(artifact: Dict[str, Any]) -> Dict[str, Any]
                 "errors": errors,
             },
         )
-    return payload
+    return normalize_robot_config_for_godot(payload)
 
 
 def _normalize_transport_mode(transport_mode: str) -> str:
@@ -1366,6 +1563,7 @@ def _normalize_transport_mode(transport_mode: str) -> str:
 def _build_godot_delivery_record(
     run_id: str,
     artifact: Dict[str, Any],
+    robot_config: Dict[str, Any],
     transport_result: Dict[str, Any],
     payload: WorkflowArtifactGodotLoadRequest,
     *,
@@ -1374,6 +1572,14 @@ def _build_godot_delivery_record(
     """Serialize one successful workflow-to-Godot delivery result."""
     transport_mode = transport_result.get("transport_mode", payload.transport_mode)
     session_id = transport_result.get("session_id", payload.session_id)
+    assembly_summary = _extract_godot_assembly_summary(transport_result)
+    mapping_summary = _build_assembly_mapping_summary(assembly_summary)
+    restoration_summary = _build_assembly_restoration_summary(assembly_summary)
+    fixed_lock_summary = _build_assembly_fixed_lock_summary(assembly_summary)
+    static_manifest_evidence = _build_static_node_tree_manifest_evidence(
+        artifact,
+        robot_config,
+    )
     return {
         "status": "success",
         "timestamp": _now().isoformat(),
@@ -1392,8 +1598,22 @@ def _build_godot_delivery_record(
         "connected": transport_result.get("connected"),
         "schema_available": transport_result.get("schema_available"),
         "schema_keys": transport_result.get("schema_keys") or [],
+        "schema_meta": transport_result.get("schema_meta") or {},
         "launch_result": transport_result.get("launch_result"),
         "load_result": transport_result.get("load_result"),
+        "assembly_summary": assembly_summary,
+        "assembly_mapping_summary": mapping_summary,
+        "assembly_restoration_summary": restoration_summary,
+        "assembly_fixed_lock_summary": fixed_lock_summary,
+        "static_node_tree_manifest_evidence": static_manifest_evidence,
+        "delivery_acceptance_gate": _build_godot_delivery_acceptance_gate(
+            status="success",
+            artifact=artifact,
+            mapping_summary=mapping_summary,
+            restoration_summary=restoration_summary,
+            fixed_lock_summary=fixed_lock_summary,
+            static_manifest_evidence=static_manifest_evidence,
+        ),
         "host": transport_result.get("host", payload.host),
         "port": transport_result.get("port", payload.port),
         "scene": payload.scene,
@@ -1412,9 +1632,471 @@ def _build_godot_delivery_record(
     }
 
 
+def _build_godot_delivery_acceptance_gate(
+    *,
+    status: str,
+    artifact: Dict[str, Any],
+    mapping_summary: Dict[str, Any],
+    restoration_summary: Dict[str, Any],
+    fixed_lock_summary: Optional[Dict[str, Any]] = None,
+    static_manifest_evidence: Optional[Dict[str, Any]] = None,
+    failure_reason: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Build a UI-facing acceptance gate for direct Godot load delivery."""
+    artifact_input = str(artifact.get("path") or artifact.get("name") or "")
+    fixed_lock_counts = fixed_lock_summary if isinstance(fixed_lock_summary, dict) else {}
+    fixed_lock_mismatch_count = _int_or_default(
+        fixed_lock_counts.get("mismatch_count"),
+        0,
+    )
+    static_evidence = (
+        static_manifest_evidence if isinstance(static_manifest_evidence, dict) else {}
+    )
+    static_manifest_count = 1 if static_evidence else 0
+    static_manifest_valid = static_evidence.get("valid") is True
+    static_manifest_complete = static_evidence.get("complete") is True
+    static_endpoint_paths_complete = (
+        static_evidence.get("endpoint_paths_complete") is True
+    )
+    static_parameters_complete = static_evidence.get("parameters_complete") is True
+    static_manifest_error_count = _int_or_default(
+        static_evidence.get("error_count"),
+        0,
+    )
+    static_manifest_path_map_mismatch_count = _int_or_default(
+        static_evidence.get("path_map_mismatch_count"),
+        0,
+    )
+    static_manifest_path_map_mismatch_kind_counts = (
+        static_evidence.get("path_map_mismatch_kind_counts")
+        if isinstance(static_evidence.get("path_map_mismatch_kind_counts"), dict)
+        else {}
+    )
+    complete = (
+        status == "success"
+        and mapping_summary.get("dynamic_robot_generation") is True
+        and mapping_summary.get("complete") is True
+        and mapping_summary.get("parts_complete") is True
+        and mapping_summary.get("joints_complete") is True
+        and mapping_summary.get("parameters_complete") is not False
+        and restoration_summary.get("complete") is True
+        and fixed_lock_mismatch_count == 0
+        and static_manifest_valid
+        and static_manifest_complete
+        and static_manifest_path_map_mismatch_count == 0
+    )
+    level = "godot_load_verified" if complete else "incomplete"
+    details: List[Dict[str, Any]] = []
+
+    def add_reason(code: str, message: str) -> None:
+        details.append(
+            {
+                "code": code,
+                "count": 1,
+                "message": message,
+                "inputs": [artifact_input] if artifact_input else [],
+                "inputs_count": 1 if artifact_input else 0,
+                "inputs_truncated": False,
+            }
+        )
+
+    if status != "success":
+        add_reason(
+            "godot_delivery_failed",
+            failure_reason or "Godot delivery failed before load acceptance.",
+        )
+    if not mapping_summary.get("dynamic_robot_generation"):
+        add_reason(
+            "missing_godot_assembly_summary",
+            "Godot did not return a dynamic assembly summary.",
+        )
+    if mapping_summary.get("complete") is False:
+        add_reason("incomplete_delivery", "Godot assembly delivery is incomplete.")
+    if mapping_summary.get("parts_complete") is False:
+        add_reason("incomplete_parts", "Godot did not create every expected part.")
+    if mapping_summary.get("joints_complete") is False:
+        add_reason("incomplete_joints", "Godot did not create every expected joint.")
+    if mapping_summary.get("parameters_complete") is False:
+        add_reason(
+            "incomplete_joint_parameters",
+            "Godot did not apply every expected joint parameter.",
+        )
+    if restoration_summary.get("complete") is False:
+        add_reason(
+            "incomplete_restoration",
+            "Godot load result cannot fully restore the mechanical structure.",
+        )
+    if fixed_lock_mismatch_count > 0:
+        add_reason(
+            "fixed_lock_mismatch",
+            f"{fixed_lock_mismatch_count} fixed joint lock parameter(s) did not match runtime readback.",
+        )
+    if static_manifest_count and (
+        not static_manifest_valid
+        or not static_manifest_complete
+        or static_manifest_path_map_mismatch_count > 0
+    ):
+        add_reason(
+            "static_node_tree_incomplete",
+            "Static Godot node-tree manifest evidence is invalid or incomplete.",
+        )
+
+    dynamic_generation = mapping_summary.get("dynamic_robot_generation") is True
+    delivery_complete = mapping_summary.get("complete") is True
+    parameters_incomplete = mapping_summary.get("parameters_complete") is False
+
+    gate = {
+        "contract_version": DELIVERY_ACCEPTANCE_GATE_CONTRACT_VERSION,
+        "source": WEB_GODOT_DELIVERY_GATE_SOURCE,
+        "verification_scope": WEB_GODOT_DELIVERY_GATE_SCOPE,
+        "required": False,
+        "requires_full_mechanical_restoration_gate": False,
+        "acceptance_profile": "web_godot_load",
+        "acceptance_requirements": _web_godot_load_acceptance_requirements(),
+        "passed": complete,
+        "exit_code": 0 if complete else 1,
+        "level": level,
+        "complete": complete,
+        "reasons": [detail["message"] for detail in details],
+        "reason_codes": [detail["code"] for detail in details],
+        "reason_details": details,
+            "summary_counts": {
+            "inputs_count": 1,
+            "success_count": 1 if status == "success" else 0,
+            "error_count": 0 if status == "success" else 1,
+            "live_smoke_count": 0,
+            "delivery_godot_verified_count": 1 if complete else 0,
+            "delivery_static_only_count": 0,
+            "delivery_unverified_count": 0 if dynamic_generation else 1,
+            "delivery_dynamic_generation_count": 1 if dynamic_generation else 0,
+            "delivery_complete_count": 1 if delivery_complete else 0,
+            "delivery_incomplete_count": 0 if delivery_complete else 1,
+            "delivery_parameters_incomplete_count": 1 if parameters_incomplete else 0,
+                "fixed_lock_checked_count": fixed_lock_counts.get("checked_count", 0),
+                "fixed_lock_mismatch_count": fixed_lock_counts.get("mismatch_count", 0),
+                "static_node_tree_manifest_count": static_manifest_count,
+                "static_node_tree_manifest_valid_count": (
+                    1 if static_manifest_valid else 0
+                ),
+                "static_node_tree_manifest_invalid_count": (
+                    0 if static_manifest_valid else static_manifest_count
+                ),
+                "static_node_tree_manifest_error_count": static_manifest_error_count,
+                "static_node_tree_manifest_output_count": (
+                    1 if static_evidence.get("output") else 0
+                ),
+                "static_node_tree_manifest_path_map_mismatch_count": (
+                    static_manifest_path_map_mismatch_count
+                ),
+                "static_node_tree_manifest_path_map_mismatch_kind_counts": (
+                    static_manifest_path_map_mismatch_kind_counts
+                ),
+                "static_node_tree_complete_count": (
+                    1 if static_manifest_complete else 0
+                ),
+                "static_node_tree_incomplete_count": (
+                    0 if static_manifest_complete else static_manifest_count
+                ),
+                "static_node_tree_endpoint_paths_complete_count": (
+                    1 if static_endpoint_paths_complete else 0
+                ),
+                "static_node_tree_endpoint_paths_incomplete_count": (
+                    0 if static_endpoint_paths_complete else static_manifest_count
+                ),
+                "static_node_tree_parameters_complete_count": (
+                    1 if static_parameters_complete else 0
+                ),
+                "static_node_tree_parameters_incomplete_count": (
+                    0 if static_parameters_complete else static_manifest_count
+                ),
+                "node_tree_fixed_lock_checked_count": 0,
+            "node_tree_fixed_lock_mismatch_count": 0,
+            "node_tree_fixed_locks_complete_count": 0,
+            "node_tree_fixed_locks_incomplete_count": 0,
+            "node_tree_gate_enabled_count": 1,
+            "node_tree_full_restoration_required_count": 0,
+            "node_tree_full_restoration_not_required_count": 1,
+            "node_tree_gate_check_counts": {
+                "fixed_lock_mismatch": 1,
+            },
+            "mechanical_gate_enabled_count": 2,
+            "full_mechanical_restoration_required_count": 0,
+            "full_mechanical_restoration_not_required_count": 1,
+            "mechanical_gate_check_counts": {
+                "mechanical_restoration": 1,
+                "joint_parameter_readback": 1,
+            },
+            "failure_reasons_count": len(details),
+        },
+    }
+    gate_contract_errors = validate_delivery_acceptance_gate(gate)
+    if gate_contract_errors:
+        raise RuntimeError(
+            "delivery_acceptance_gate contract invalid: "
+            + "; ".join(gate_contract_errors)
+        )
+    return gate
+
+
+def _build_static_node_tree_manifest_evidence(
+    artifact: Dict[str, Any],
+    robot_config: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Build static manifest evidence for one Web workflow robot artifact."""
+    manifest = build_godot_node_tree_manifest(robot_config)
+    errors = validate_godot_node_tree_manifest(manifest)
+    path_map_mismatches = build_godot_node_tree_manifest_path_map_mismatches(manifest)
+    path_map_mismatch_kind_counts: Dict[str, int] = {}
+    for mismatch in path_map_mismatches:
+        kind = str(mismatch.get("kind") or "")
+        path_map_mismatch_kind_counts[kind] = (
+            path_map_mismatch_kind_counts.get(kind, 0) + 1
+        )
+    output = artifact.get("static_node_tree_manifest_output") or artifact.get(
+        "node_tree_manifest_output"
+    )
+    return {
+        "source": "generated_from_artifact",
+        "output": output,
+        "manifest_version": manifest.get("manifest_version"),
+        "valid": not errors,
+        "errors": errors,
+        "error_count": len(errors),
+        "complete": manifest.get("complete") is True,
+        "parameters_complete": manifest.get("parameters_complete") is True,
+        "endpoint_paths_complete": manifest.get("endpoint_paths_complete") is True,
+        "path_maps_complete": manifest.get("path_maps_complete") is True,
+        "parts_count": manifest.get("parts_count"),
+        "joints_count": manifest.get("joints_count"),
+        "parameterized_joints": manifest.get("parameterized_joints"),
+        "path_map_mismatch_count": len(path_map_mismatches),
+        "path_map_mismatch_kind_counts": path_map_mismatch_kind_counts,
+        "path_map_mismatches": path_map_mismatches,
+    }
+
+
+def _extract_godot_assembly_summary(transport_result: Dict[str, Any]) -> Dict[str, Any]:
+    """Return the dynamic Godot assembly summary from load or schema payloads."""
+    load_result = transport_result.get("load_result")
+    if isinstance(load_result, dict):
+        if isinstance(load_result.get("assembly_summary"), dict):
+            return load_result["assembly_summary"]
+        if "parts_created" in load_result or "part_nodes" in load_result:
+            return load_result
+
+    schema_meta = transport_result.get("schema_meta")
+    if isinstance(schema_meta, dict) and isinstance(
+        schema_meta.get("assembly_summary"), dict
+    ):
+        return schema_meta["assembly_summary"]
+
+    return {}
+
+
+def _build_assembly_mapping_summary(assembly_summary: Dict[str, Any]) -> Dict[str, Any]:
+    """Build compact UI-facing counts from a Godot assembly summary."""
+    part_nodes = assembly_summary.get("part_nodes", [])
+    joint_nodes = assembly_summary.get("joint_nodes", [])
+    failed_connections = assembly_summary.get("failed_connections", [])
+    failed_joints = _int_or_default(
+        assembly_summary.get("failed_joints"),
+        len(failed_connections) if isinstance(failed_connections, list) else 0,
+    )
+    return {
+        "dynamic_robot_generation": bool(assembly_summary),
+        "complete": assembly_summary.get("complete"),
+        "expected_parts": assembly_summary.get("expected_parts"),
+        "parts_created": assembly_summary.get("parts_created"),
+        "parts_complete": assembly_summary.get("parts_complete"),
+        "expected_joints": assembly_summary.get("expected_joints"),
+        "joints_created": assembly_summary.get("joints_created"),
+        "failed_joints": failed_joints,
+        "joints_complete": assembly_summary.get("joints_complete"),
+        "parameterized_joints": assembly_summary.get("parameterized_joints"),
+        "parameters_complete": assembly_summary.get("parameters_complete"),
+        "part_nodes_count": len(part_nodes) if isinstance(part_nodes, list) else 0,
+        "joint_nodes_count": len(joint_nodes) if isinstance(joint_nodes, list) else 0,
+        "failed_connections_count": failed_joints,
+        "warnings_count": len(assembly_summary.get("warnings", []))
+        if isinstance(assembly_summary.get("warnings"), list)
+        else 0,
+    }
+
+
+def _build_assembly_restoration_summary(
+    assembly_summary: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Build a smoke-free restoration summary from one Godot load result."""
+    part_nodes = assembly_summary.get("part_nodes", [])
+    joint_nodes = assembly_summary.get("joint_nodes", [])
+    failed_connections = assembly_summary.get("failed_connections", [])
+    restored_parts = len(part_nodes) if isinstance(part_nodes, list) else 0
+    restored_joints = len(joint_nodes) if isinstance(joint_nodes, list) else 0
+    failed_joint_count = (
+        len(failed_connections) if isinstance(failed_connections, list) else 0
+    )
+    expected_parts = _int_or_default(
+        assembly_summary.get("expected_parts"),
+        restored_parts,
+    )
+    expected_joints_default = _int_or_default(
+        assembly_summary.get("joints_created"),
+        restored_joints,
+    ) + failed_joint_count
+    expected_joints = _int_or_default(
+        assembly_summary.get("expected_joints"),
+        expected_joints_default,
+    )
+    parameterized_joints = _int_or_default(
+        assembly_summary.get("parameterized_joints"),
+        _count_parameterized_joint_nodes(joint_nodes),
+    )
+
+    denominator = max(expected_parts + expected_joints + expected_joints, 1)
+    score = (restored_parts + restored_joints + parameterized_joints) / denominator
+    parts_complete = _bool_or_default(
+        assembly_summary.get("parts_complete"),
+        restored_parts == expected_parts,
+    )
+    joints_complete = _bool_or_default(
+        assembly_summary.get("joints_complete"),
+        restored_joints == expected_joints and failed_joint_count == 0,
+    )
+    parameters_complete = _bool_or_default(
+        assembly_summary.get("parameters_complete"),
+        parameterized_joints == restored_joints,
+    )
+    return {
+        "source": "assembly_summary",
+        "expected_parts": expected_parts,
+        "restored_parts": restored_parts,
+        "expected_joints": expected_joints,
+        "restored_joints": restored_joints,
+        "failed_joints": failed_joint_count,
+        "parameterized_joints": parameterized_joints,
+        "parts_complete": parts_complete,
+        "joints_complete": joints_complete,
+        "parameters_complete": parameters_complete,
+        "complete": (
+            bool(assembly_summary)
+            and parts_complete
+            and joints_complete
+            and parameters_complete
+        ),
+        "score": score,
+    }
+
+
+def _build_assembly_fixed_lock_summary(
+    assembly_summary: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Summarize fixed-joint lock readback from direct Godot load assembly data."""
+    joint_nodes = assembly_summary.get("joint_nodes", [])
+    if not isinstance(joint_nodes, list):
+        joint_nodes = []
+    checked_count = 0
+    mismatches: List[Dict[str, Any]] = []
+    for joint in joint_nodes:
+        if not isinstance(joint, dict):
+            continue
+        applied = joint.get("applied_parameters")
+        runtime = applied.get("runtime") if isinstance(applied, dict) else {}
+        if not isinstance(runtime, dict):
+            runtime = {}
+        is_fixed = (
+            joint.get("joint_type") == "fixed"
+            or runtime.get("fixed_approximation") is True
+            or runtime.get("fixed_lock_applied") is not None
+        )
+        if not is_fixed:
+            continue
+        checked_count += 1
+        joint_name = str(joint.get("connection_name") or joint.get("joint_node") or "")
+        _append_fixed_lock_mismatch(
+            mismatches,
+            joint_name=joint_name,
+            field="fixed.lock_applied",
+            expected=True,
+            actual=runtime.get("fixed_lock_applied"),
+        )
+        for group_name in ["linear_limit_enabled", "angular_limit_enabled"]:
+            group = runtime.get(group_name)
+            for axis in ["x", "y", "z"]:
+                _append_fixed_lock_mismatch(
+                    mismatches,
+                    joint_name=joint_name,
+                    field=f"fixed.{group_name}.{axis}",
+                    expected=True,
+                    actual=group.get(axis) if isinstance(group, dict) else None,
+                )
+        for group_name in ["linear_lower", "linear_upper", "angular_lower", "angular_upper"]:
+            group = runtime.get(group_name)
+            for axis in ["x", "y", "z"]:
+                _append_fixed_lock_mismatch(
+                    mismatches,
+                    joint_name=joint_name,
+                    field=f"fixed.{group_name}.{axis}",
+                    expected=0.0,
+                    actual=group.get(axis) if isinstance(group, dict) else None,
+                )
+
+    return {
+        "source": "assembly_summary",
+        "checked_count": checked_count,
+        "mismatch_count": len(mismatches),
+        "mismatches": mismatches[:20],
+        "complete": checked_count == 0 or not mismatches,
+    }
+
+
+def _append_fixed_lock_mismatch(
+    mismatches: List[Dict[str, Any]],
+    *,
+    joint_name: str,
+    field: str,
+    expected: Any,
+    actual: Any,
+) -> None:
+    if expected != actual:
+        mismatches.append(
+            {
+                "joint": joint_name,
+                "field": field,
+                "expected": expected,
+                "actual": actual,
+            }
+        )
+
+
+def _int_or_default(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _bool_or_default(value: Any, default: bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    return default
+
+
+def _count_parameterized_joint_nodes(joint_nodes: Any) -> int:
+    if not isinstance(joint_nodes, list):
+        return 0
+    return sum(
+        1
+        for joint in joint_nodes
+        if isinstance(joint, dict)
+        and isinstance(joint.get("applied_parameters"), dict)
+        and bool(joint.get("applied_parameters"))
+    )
+
+
 def _build_godot_delivery_failure_record(
     run_id: str,
     artifact: Dict[str, Any],
+    robot_config: Dict[str, Any],
     payload: WorkflowArtifactGodotLoadRequest,
     detail: str,
     *,
@@ -1422,6 +2104,10 @@ def _build_godot_delivery_failure_record(
 ) -> Dict[str, Any]:
     """Serialize one failed workflow-to-Godot delivery attempt."""
     classification = _classify_godot_delivery_failure(detail, payload.transport_mode)
+    static_manifest_evidence = _build_static_node_tree_manifest_evidence(
+        artifact,
+        robot_config,
+    )
     return {
         "status": "error",
         "timestamp": _now().isoformat(),
@@ -1432,6 +2118,15 @@ def _build_godot_delivery_failure_record(
         "artifact_schema_version": artifact.get("schema_version"),
         "artifact_contract": artifact.get("contract"),
         "auto_selected": auto_selected,
+        "static_node_tree_manifest_evidence": static_manifest_evidence,
+        "delivery_acceptance_gate": _build_godot_delivery_acceptance_gate(
+            status="error",
+            artifact=artifact,
+            mapping_summary={},
+            restoration_summary={},
+            static_manifest_evidence=static_manifest_evidence,
+            failure_reason=detail,
+        ),
         "transport_mode": payload.transport_mode,
         "session_id": payload.session_id,
         "scene": payload.scene,
@@ -1612,6 +2307,7 @@ async def _load_robot_via_session_bridge(
     schema = await bridge.wait_until_schema(
         timeout_seconds=min(payload.wait_for_tcp_seconds, 5.0)
     )
+    schema_meta = schema.get("meta", {}) if isinstance(schema, dict) else {}
     session_status = (
         bridge.get_status_payload()
         if hasattr(bridge, "get_status_payload")
@@ -1632,6 +2328,7 @@ async def _load_robot_via_session_bridge(
         "load_result": load_result,
         "schema_available": bool(schema),
         "schema_keys": sorted(schema.keys()) if schema else [],
+        "schema_meta": schema_meta if isinstance(schema_meta, dict) else {},
     }
 
 
@@ -1639,9 +2336,10 @@ async def _execute_godot_delivery(
     request: Request,
     artifact: Dict[str, Any],
     payload: WorkflowArtifactGodotLoadRequest,
+    robot_config: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Load one artifact into Godot and return the transport payload."""
-    robot_config = _load_robot_config_from_artifact(artifact)
+    robot_config = robot_config or _load_robot_config_from_artifact(artifact)
     transport_mode = _normalize_transport_mode(payload.transport_mode)
 
     if transport_mode == "legacy_controller":
@@ -2033,7 +2731,7 @@ async def list_runs(
         "offset": offset,
         "has_previous_page": normalized_page > 1,
         "has_next_page": offset + len(runs) < total_count,
-        "runs": runs,
+        "runs": [_run_with_web_godot_evidence_summary(run) for run in runs],
         "filters": {
             "workflow_name": workflow_name,
             "status": status,
@@ -2050,7 +2748,10 @@ async def list_runs(
 @router.get("/runs/{run_id}")
 async def get_run_detail(run_id: str) -> Dict[str, Any]:
     """Get the full execution record for a workflow run."""
-    return {"status": "success", "run": await _get_run_record(run_id)}
+    return {
+        "status": "success",
+        "run": _run_with_web_godot_evidence_summary(await _get_run_record(run_id)),
+    }
 
 
 @router.get("/runs/{run_id}/status")
@@ -2096,6 +2797,13 @@ async def get_run_status(run_id: str) -> Dict[str, Any]:
             "recommended_godot_sync_url": run["recommended_godot_sync_url"],
         },
     }
+
+
+@router.get("/runs/{run_id}/godot-readiness-summary")
+async def get_run_godot_readiness_summary(run_id: str) -> Dict[str, Any]:
+    """Summarize static/load/live Godot evidence for one workflow run."""
+    run = await _get_run_record(run_id)
+    return _build_web_godot_readiness_summary(run)
 
 
 @router.get("/runs/{run_id}/events")
@@ -2199,7 +2907,7 @@ async def load_run_artifact_into_godot(
 
     try:
         transport_result = await _execute_godot_delivery(
-            request, artifact, normalized_payload
+            request, artifact, normalized_payload, robot_config
         )
     except HTTPException as exc:
         await _update_run_record(
@@ -2208,6 +2916,7 @@ async def load_run_artifact_into_godot(
             godot_delivery=_build_godot_delivery_failure_record(
                 run_id,
                 artifact,
+                robot_config,
                 normalized_payload.model_copy(
                     update={"transport_mode": transport_mode}
                 ),
@@ -2223,12 +2932,14 @@ async def load_run_artifact_into_godot(
         godot_delivery=_build_godot_delivery_record(
             run_id,
             artifact,
+            robot_config,
             transport_result,
             normalized_payload.model_copy(update={"transport_mode": transport_mode}),
             auto_selected=False,
         ),
     )
 
+    updated_run = await _get_run_record(run_id)
     return {
         "status": "success",
         "message": f"Artifact '{artifact['name']}' sent to Godot via {transport_mode}.",
@@ -2236,7 +2947,8 @@ async def load_run_artifact_into_godot(
         "workflow_name": run["workflow_name"],
         "artifact": artifact,
         "transport": transport_result,
-        "godot_delivery": (await _get_run_record(run_id))["godot_delivery"],
+        "godot_delivery": updated_run["godot_delivery"],
+        "godot_evidence_summary": _build_web_godot_evidence_summary(updated_run),
         "robot_config_summary": {
             "parts_count": len(robot_config.get("parts", [])),
             "connections_count": len(robot_config.get("connections", [])),
@@ -2259,13 +2971,14 @@ async def sync_run_into_godot(
         if normalized_payload.artifact_index is not None
         else _get_recommended_godot_artifact(run)
     )
+    robot_config = _load_robot_config_from_artifact(artifact)
     normalized_payload = normalized_payload.model_copy(
         update={"transport_mode": transport_mode}
     )
 
     try:
         transport_result = await _execute_godot_delivery(
-            request, artifact, normalized_payload
+            request, artifact, normalized_payload, robot_config
         )
     except HTTPException as exc:
         await _update_run_record(
@@ -2274,6 +2987,7 @@ async def sync_run_into_godot(
             godot_delivery=_build_godot_delivery_failure_record(
                 run_id,
                 artifact,
+                robot_config,
                 normalized_payload,
                 str(exc.detail),
                 auto_selected=normalized_payload.artifact_index is None,
@@ -2284,6 +2998,7 @@ async def sync_run_into_godot(
     delivery_record = _build_godot_delivery_record(
         run_id,
         artifact,
+        robot_config,
         transport_result,
         normalized_payload,
         auto_selected=normalized_payload.artifact_index is None,
@@ -2302,6 +3017,9 @@ async def sync_run_into_godot(
         "artifact": artifact,
         "transport": transport_result,
         "godot_delivery": delivery_record,
+        "godot_evidence_summary": _build_web_godot_evidence_summary(
+            {**run, "godot_delivery": delivery_record}
+        ),
     }
 
 

@@ -1,0 +1,36 @@
+{
+  "name": "duplicate_connection_names",
+  "schema_version": "1.4",
+  "parts": [
+    {
+      "id": "base",
+      "type": "body",
+      "shape": "box",
+      "params": {
+        "mass": 1.0
+      }
+    },
+    {
+      "id": "payload",
+      "type": "body",
+      "shape": "box",
+      "params": {
+        "mass": 0.5
+      }
+    }
+  ],
+  "connections": [
+    {
+      "name": "base_payload",
+      "from": "base",
+      "to": "payload",
+      "joint_type": "fixed"
+    },
+    {
+      "name": "base_payload",
+      "from": "base",
+      "to": "payload",
+      "joint_type": "fixed"
+    }
+  ]
+}

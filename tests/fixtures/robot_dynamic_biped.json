@@ -1,0 +1,71 @@
+{
+  "name": "dynamic_biped",
+  "parts": [
+    {
+      "id": "torso_1",
+      "type": "torso",
+      "shape": "box",
+      "params": {
+        "mass": 5.0,
+        "size": [0.3, 0.2, 0.5],
+        "position": [0.0, 1.2, 0.0],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    },
+    {
+      "id": "thigh_left",
+      "type": "thigh",
+      "shape": "capsule",
+      "params": {
+        "mass": 1.0,
+        "length": 0.3,
+        "radius": 0.04,
+        "position": [-0.15, 0.85, 0.0],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    },
+    {
+      "id": "shin_left",
+      "type": "shin",
+      "shape": "capsule",
+      "params": {
+        "mass": 0.8,
+        "length": 0.3,
+        "radius": 0.035,
+        "position": [-0.15, 0.5, 0.0],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "name": "hip_left",
+      "from": "torso_1",
+      "to": "thigh_left",
+      "joint_type": "hinge",
+      "origin": [-0.15, 1.0, 0.0],
+      "axis": [0.0, 0.0, 1.0],
+      "limits": {"lower": -1.2, "upper": 1.2},
+      "motor": {"enabled": true, "target_velocity": 0.0, "max_impulse": 120.0},
+      "dynamics": {"damping": 0.1, "friction": 0.01}
+    },
+    {
+      "name": "knee_left",
+      "from": "thigh_left",
+      "to": "shin_left",
+      "joint_type": "hinge",
+      "origin": [-0.15, 0.68, 0.0],
+      "axis": [0.0, 0.0, 1.0],
+      "limits": {"lower": -1.5, "upper": 0.2},
+      "motor": {"enabled": true, "target_velocity": 0.0, "max_impulse": 90.0},
+      "dynamics": {"damping": 0.1, "friction": 0.01}
+    }
+  ],
+  "control": {
+    "mode": "motor_velocity",
+    "joints": {
+      "hip_left": {"kp": 50.0, "kd": 5.0},
+      "knee_left": {"kp": 45.0, "kd": 4.0}
+    }
+  }
+}

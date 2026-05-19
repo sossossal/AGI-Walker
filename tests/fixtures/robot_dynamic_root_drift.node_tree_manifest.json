@@ -1,0 +1,40 @@
+{
+  "manifest_version": "godot_node_tree_manifest.v1",
+  "schema_version": "1.4",
+  "robot_name": "root_drift",
+  "robot_node": "root_drift",
+  "controller_node": "root_drift/GeneratedRobotController",
+  "parts_count": 1,
+  "joints_count": 0,
+  "parameterized_joints": 0,
+  "parameters_complete": true,
+  "endpoint_paths_complete": true,
+  "path_maps_complete": true,
+  "missing_endpoint_part_ids": [],
+  "missing_endpoint_connection_names": [],
+  "missing_endpoint_details": [],
+  "complete": true,
+  "part_node_paths": {
+    "base": {
+      "body_node": "root_drift/base",
+      "collision_node": "root_drift/base/CollisionShape3D",
+      "mesh_node": "root_drift/base/MeshInstance3D"
+    }
+  },
+  "joint_node_paths": {},
+  "part_nodes": [
+    {
+      "part_id": "base",
+      "body_node": "OtherRoot/base",
+      "body_class": "RigidBody3D",
+      "collision_node": "OtherRoot/base/CollisionShape3D",
+      "collision_shape": "BoxShape3D",
+      "mesh_node": "OtherRoot/base/MeshInstance3D",
+      "mesh_type": "BoxMesh",
+      "mass": 1.0,
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0]
+    }
+  ],
+  "joint_nodes": []
+}
