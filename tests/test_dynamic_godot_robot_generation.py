@@ -4409,6 +4409,61 @@ def test_dynamic_godot_release_evidence_bundle_validator_checks_validation_repor
     ) in payload["errors"]
 
 
+def test_dynamic_godot_release_evidence_bundle_validator_rejects_stale_validation_report_snapshot(
+    tmp_path: Path,
+) -> None:
+    closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
+        tmp_path
+    )
+    output_root = tmp_path / "bundle"
+    subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_TOOL),
+            "--static-closeout",
+            str(closeout_path),
+            "--delivery-gate",
+            str(gate_path),
+            "--readiness-summary",
+            str(readiness_path),
+            "--output-root",
+            str(output_root),
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    validation_path = output_root / "bundle_validation.json"
+    validation = json.loads(validation_path.read_text(encoding="utf-8"))
+    validation["artifact_count"] = 0
+    validation["errors"] = ["stale error"]
+    validation["status"] = "ready"
+    validation_path.write_text(json.dumps(validation), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
+            str(output_root / "bundle_index.json"),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "invalid"
+    assert (
+        "validation_report.status must match its own errors field 'invalid'"
+    ) in payload["errors"]
+    assert (
+        "validation_report.artifact_count must match current bundle artifact count 3"
+    ) in payload["errors"]
+
+
 def test_dynamic_godot_release_evidence_bundle_validator_rejects_missing_artifact(
     tmp_path: Path,
 ) -> None:

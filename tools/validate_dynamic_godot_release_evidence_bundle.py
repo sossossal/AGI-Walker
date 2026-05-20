@@ -280,6 +280,43 @@ def _validate_validation_report_reference(
     return report
 
 
+def _validate_validation_report_snapshot(
+    *,
+    report: dict[str, Any],
+    index: dict[str, Any],
+    artifact_count: int,
+    documentation_count: int,
+    errors: list[str],
+) -> None:
+    report_errors = report.get("errors")
+    if not isinstance(report_errors, list) or not all(
+        isinstance(error, str) for error in report_errors
+    ):
+        errors.append("validation_report.errors must be a list of strings")
+        return
+    expected_status = "ready" if not report_errors else "invalid"
+    if report.get("status") != expected_status:
+        errors.append(
+            "validation_report.status must match its own errors field "
+            f"{expected_status!r}"
+        )
+    if report.get("artifact_count") != artifact_count:
+        errors.append(
+            "validation_report.artifact_count must match current bundle "
+            f"artifact count {artifact_count}"
+        )
+    if report.get("documentation_count") != documentation_count:
+        errors.append(
+            "validation_report.documentation_count must match current bundle "
+            f"documentation count {documentation_count}"
+        )
+    if report.get("evidence_level") != index.get("evidence_level"):
+        errors.append(
+            "validation_report.evidence_level must match current bundle "
+            "evidence_level"
+        )
+
+
 def _validate_live_smoke(live_smoke: dict[str, Any], errors: list[str]) -> None:
     live_verification = live_smoke.get("live_verification")
     if not isinstance(live_verification, dict):
@@ -514,20 +551,29 @@ def validate_bundle_index(
     if readiness_payload:
         _validate_readiness(readiness_payload, index, errors)
 
-    status_without_status_checks = "ready" if not errors else "invalid"
+    current_bundle_status = "ready" if not errors else "invalid"
+    if validation_report:
+        _validate_validation_report_snapshot(
+            report=validation_report,
+            index=index,
+            artifact_count=len(artifact_entries),
+            documentation_count=len(doc_entries),
+            errors=errors,
+        )
+
     if require_validation_report:
-        if index.get("validation_status") != status_without_status_checks:
+        if index.get("validation_status") != current_bundle_status:
             errors.append(
                 "bundle validation_status must match current validation status "
-                f"{status_without_status_checks!r}"
+                f"{current_bundle_status!r}"
             )
         if (
             validation_report
-            and validation_report.get("status") != status_without_status_checks
+            and validation_report.get("status") != current_bundle_status
         ):
             errors.append(
                 "validation_report.status must match current validation status "
-                f"{status_without_status_checks!r}"
+                f"{current_bundle_status!r}"
             )
 
     return {
