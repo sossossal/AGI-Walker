@@ -232,6 +232,27 @@ def _validate_unique_values(
         errors.append(f"{collection}.{field} must be unique: {value!r}")
 
 
+def _validate_required_flags(
+    *,
+    entries: list[dict[str, Any]],
+    field: str,
+    required_values: tuple[str, ...],
+    collection: str,
+    errors: list[str],
+) -> None:
+    required_set = set(required_values)
+    for entry in entries:
+        value = entry.get(field)
+        if not isinstance(value, str):
+            continue
+        expected = value in required_set
+        if entry.get("required") is not expected:
+            errors.append(
+                f"{collection}.{value} required must be "
+                f"{str(expected).lower()}"
+            )
+
+
 def _extract_gate(payload: dict[str, Any]) -> dict[str, Any] | None:
     if payload.get("contract_version") == GATE_CONTRACT_VERSION:
         return payload
@@ -532,6 +553,20 @@ def validate_bundle_index(
     _validate_unique_values(
         entries=doc_entries,
         field="role",
+        collection="documentation",
+        errors=errors,
+    )
+    _validate_required_flags(
+        entries=artifact_entries,
+        field="key",
+        required_values=REQUIRED_ARTIFACT_KEYS,
+        collection="artifacts",
+        errors=errors,
+    )
+    _validate_required_flags(
+        entries=doc_entries,
+        field="role",
+        required_values=REQUIRED_DOC_ROLES,
         collection="documentation",
         errors=errors,
     )

@@ -4366,6 +4366,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_checks_validation_repor
         tmp_path
     )
     output_root = tmp_path / "bundle"
+    default_doc = ROOT / "docs" / "guides" / "DYNAMIC_GODOT_ROBOT_GENERATION.md"
     subprocess.run(
         [
             sys.executable,
@@ -4530,6 +4531,72 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_stale_index_met
     assert (
         "bundle residual_risks must match readiness_summary.residual_risks"
     ) in payload["errors"]
+
+
+def test_dynamic_godot_release_evidence_bundle_validator_rejects_required_flag_drift(
+    tmp_path: Path,
+) -> None:
+    closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
+        tmp_path
+    )
+    optional_doc = tmp_path / "operator_note.md"
+    optional_doc.write_text("operator note", encoding="utf-8")
+    output_root = tmp_path / "bundle"
+    default_doc = ROOT / "docs" / "guides" / "DYNAMIC_GODOT_ROBOT_GENERATION.md"
+    subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_TOOL),
+            "--static-closeout",
+            str(closeout_path),
+            "--delivery-gate",
+            str(gate_path),
+            "--readiness-summary",
+            str(readiness_path),
+            "--doc",
+            f"static_workflow={default_doc}",
+            "--doc",
+            f"live_workflow={default_doc}",
+            "--doc",
+            f"web_workflow={default_doc}",
+            "--doc",
+            f"readiness_workflow={default_doc}",
+            "--doc",
+            f"operator_note={optional_doc}",
+            "--output-root",
+            str(output_root),
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    index_path = output_root / "bundle_index.json"
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    index["artifacts"][0]["required"] = False
+    for entry in index["documentation"]:
+        if entry["role"] == "operator_note":
+            entry["required"] = True
+            break
+    index_path.write_text(json.dumps(index), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
+            str(index_path),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "invalid"
+    assert "artifacts.static_closeout required must be true" in payload["errors"]
+    assert "documentation.operator_note required must be false" in payload["errors"]
 
 
 def test_dynamic_godot_release_evidence_bundle_validator_rejects_missing_artifact(

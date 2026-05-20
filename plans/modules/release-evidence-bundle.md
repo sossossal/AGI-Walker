@@ -67,6 +67,9 @@ Static closeout and readiness summary already exist. This module packages those 
 - Risk: Bundle archives stale artifacts.
   Mitigation: Record artifact paths, sizes/checksums, source timestamps and bundled-file timestamps in the index; validate index bundle root, generated timestamp, readiness status and residual risks against the current bundle.
 
+- Risk: Bundle index marks required evidence as optional or optional handoff notes as required.
+  Mitigation: Validate each artifact and documentation `required` flag against the canonical required key/role lists.
+
 # Validation
 
 ```powershell
@@ -96,6 +99,7 @@ py -3.12 -m pytest -m "not live" --collect-only -q
 - 2026-05-20: Bundle validation now checks the stored validation report snapshot for status/error self-consistency, artifact count, documentation count and evidence level drift.
 - 2026-05-20: Bundle validation now checks the stored validation report snapshot for bundle root and required artifact/documentation role contract-list drift.
 - 2026-05-20: Bundle validation now checks index metadata drift for `bundle_root`, timezone-aware `generated_at`, `readiness_status` and `residual_risks`.
+- 2026-05-20: Bundle validation now checks artifact and documentation `required` flags against the canonical required key/role lists.
 
 # Drift Check
 

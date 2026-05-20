@@ -1077,11 +1077,13 @@ static closeout, delivery gate, readiness summary, optional live smoke, optional
 Web delivery record, and documentation index entries into one directory. Each
 artifact and documentation entry records its source path, bundle path, byte size,
 SHA-256 checksum, `source_modified_at`, and `bundle_modified_at`. Artifact keys
-and documentation roles must be unique. Bundle paths must be non-empty paths
-relative to the bundle root and may not resolve outside that root, so the
-delivered directory remains self-contained. Static-only bundles are valid when
-the readiness summary proves `static_only`; stronger bundles can add `--live-smoke` and
-`--web-delivery-record` while preserving the same readiness semantics. The
+and documentation roles must be unique. The `required` flag must match the
+canonical required artifact key and documentation role lists. Bundle paths must
+be non-empty paths relative to the bundle root and may not resolve outside that
+root, so the delivered directory remains self-contained. Static-only bundles are
+valid when the readiness summary proves `static_only`; stronger bundles can add
+`--live-smoke` and `--web-delivery-record` while preserving the same readiness
+semantics. The
 self-validator writes
 `dynamic_godot_release_evidence_bundle_validation.v1` and fails if required
 artifacts are missing, checksums drift, readiness status is not `ready`, or the
