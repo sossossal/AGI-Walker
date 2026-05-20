@@ -1082,7 +1082,11 @@ proves `static_only`; stronger bundles can add `--live-smoke` and
 self-validator writes
 `dynamic_godot_release_evidence_bundle_validation.v1` and fails if required
 artifacts are missing, checksums drift, readiness status is not `ready`, or the
-bundle level does not match `readiness_summary.proven_level`.
+bundle level does not match `readiness_summary.proven_level`. When `--live-smoke`
+is included, validation also checks that the smoke artifact carries
+`dynamic_godot_live_verification_profile.v1` metadata and internally consistent
+wrapper retry fields such as `wrapper_attempts`, `wrapper_attempt_count`, and
+`attempts_recorded`.
 
 Manual live smoke checklist, when a Godot executable is available:
 

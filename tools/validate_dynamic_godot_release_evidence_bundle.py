@@ -14,6 +14,7 @@ VALIDATION_VERSION = "dynamic_godot_release_evidence_bundle_validation.v1"
 READINESS_VERSION = "dynamic_godot_release_readiness_summary.v1"
 READINESS_ARTIFACT_TYPE = "dynamic_godot_release_readiness_summary"
 GATE_CONTRACT_VERSION = "delivery_acceptance_gate.v1"
+LIVE_VERIFICATION_PROFILE_VERSION = "dynamic_godot_live_verification_profile.v1"
 LEVEL_RANKS = {
     "incomplete": 0,
     "static_only": 1,
@@ -110,6 +111,55 @@ def _validate_readiness(
         errors.append("readiness_summary.status must be 'ready'")
 
 
+def _validate_live_smoke(live_smoke: dict[str, Any], errors: list[str]) -> None:
+    live_verification = live_smoke.get("live_verification")
+    if not isinstance(live_verification, dict):
+        errors.append("live_smoke.live_verification must be an object")
+        return
+    if live_verification.get("profile_version") != LIVE_VERIFICATION_PROFILE_VERSION:
+        errors.append(
+            "live_smoke.live_verification.profile_version must be "
+            f"{LIVE_VERIFICATION_PROFILE_VERSION!r}"
+        )
+    flaky_policy = live_verification.get("flaky_policy")
+    if not isinstance(flaky_policy, dict):
+        errors.append("live_smoke.live_verification.flaky_policy must be an object")
+        return
+    classification = flaky_policy.get("classification")
+    if classification not in {
+        "not_retried",
+        "passed_after_retry",
+        "failed_after_retry",
+    }:
+        errors.append(
+            "live_smoke.live_verification.flaky_policy.classification must be known"
+        )
+    if "wrapper_attempts" not in flaky_policy:
+        return
+    wrapper_attempts = flaky_policy.get("wrapper_attempts")
+    if not isinstance(wrapper_attempts, list):
+        errors.append(
+            "live_smoke.live_verification.flaky_policy.wrapper_attempts must be a list"
+        )
+        return
+    wrapper_attempt_count = flaky_policy.get("wrapper_attempt_count")
+    if wrapper_attempt_count != len(wrapper_attempts):
+        errors.append(
+            "live_smoke.live_verification.flaky_policy.wrapper_attempt_count must "
+            f"equal {len(wrapper_attempts)}"
+        )
+    if flaky_policy.get("wrapper_retried") != (len(wrapper_attempts) > 1):
+        errors.append(
+            "live_smoke.live_verification.flaky_policy.wrapper_retried must match "
+            "wrapper_attempts length"
+        )
+    if flaky_policy.get("attempts_recorded") != len(wrapper_attempts):
+        errors.append(
+            "live_smoke.live_verification.flaky_policy.attempts_recorded must match "
+            "wrapper_attempts length"
+        )
+
+
 def validate_bundle_index(index_path: Path) -> dict[str, Any]:
     index_path = index_path.resolve()
     bundle_root = index_path.parent
@@ -183,6 +233,13 @@ def validate_bundle_index(index_path: Path) -> dict[str, Any]:
             errors.append("delivery_gate must contain delivery_acceptance_gate.v1")
         elif key == "readiness_summary":
             readiness_payload = payload
+    live_smoke_entry = artifact_by_key.get("live_smoke")
+    if live_smoke_entry is not None:
+        payload, error = read_json_object(_entry_path(bundle_root, live_smoke_entry))
+        if error is not None:
+            errors.append(f"live_smoke: {error}")
+        else:
+            _validate_live_smoke(payload, errors)
     if readiness_payload:
         _validate_readiness(readiness_payload, index, errors)
 

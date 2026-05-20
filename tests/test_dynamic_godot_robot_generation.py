@@ -4438,6 +4438,92 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_malformed_bundl
     assert "readiness_summary.status must be 'ready'" in payload["errors"]
 
 
+def test_dynamic_godot_release_evidence_bundle_validates_live_smoke(
+    tmp_path: Path,
+) -> None:
+    closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
+        tmp_path
+    )
+    live_smoke_path = tmp_path / "live_smoke.json"
+    live_smoke_path.write_text(
+        json.dumps(
+            {
+                "status": "success",
+                "live_verification": {
+                    "profile_version": (
+                        "dynamic_godot_live_verification_profile.v1"
+                    ),
+                    "profile_name": "local",
+                    "flaky_policy": {
+                        "classification": "passed_after_retry",
+                        "attempts_recorded": 2,
+                        "max_attempts": 2,
+                        "wrapper_attempt_count": 2,
+                        "wrapper_retried": True,
+                        "wrapper_attempts": [
+                            {"attempt_index": 0, "port": 24567, "returncode": 1},
+                            {"attempt_index": 1, "port": 24568, "returncode": 0},
+                        ],
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_root = tmp_path / "bundle"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_TOOL),
+            "--static-closeout",
+            str(closeout_path),
+            "--delivery-gate",
+            str(gate_path),
+            "--readiness-summary",
+            str(readiness_path),
+            "--live-smoke",
+            str(live_smoke_path),
+            "--output-root",
+            str(output_root),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    index = json.loads(result.stdout)
+    assert index["validation_status"] == "ready"
+    assert "live_smoke" in {entry["key"] for entry in index["artifacts"]}
+
+    bundled_live_smoke = output_root / "artifacts" / "live_smoke.json"
+    tampered = json.loads(bundled_live_smoke.read_text(encoding="utf-8"))
+    tampered["live_verification"]["flaky_policy"]["wrapper_attempt_count"] = 99
+    bundled_live_smoke.write_text(json.dumps(tampered), encoding="utf-8")
+
+    validate_result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
+            str(output_root / "bundle_index.json"),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert validate_result.returncode == 1
+    payload = json.loads(validate_result.stdout)
+    assert payload["status"] == "invalid"
+    assert "artifacts.live_smoke sha256 must equal" in "\n".join(payload["errors"])
+    assert (
+        "live_smoke.live_verification.flaky_policy.wrapper_attempt_count must "
+        "equal 2"
+    ) in payload["errors"]
+
+
 def test_dynamic_godot_manual_live_smoke_checklist_documents_artifacts_and_fields() -> None:
     content = (ROOT / "docs" / "guides" / "DYNAMIC_GODOT_ROBOT_GENERATION.md").read_text(
         encoding="utf-8"
