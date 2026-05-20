@@ -2,6 +2,7 @@ import json
 import importlib.util
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -4322,6 +4323,8 @@ def test_dynamic_godot_release_evidence_bundle_builds_and_validates_static_only(
         assert (output_root / entry["bundle_path"]).exists()
         assert entry["size_bytes"] > 0
         assert len(entry["sha256"]) == 64
+        assert datetime.fromisoformat(entry["source_modified_at"]).tzinfo is not None
+        assert datetime.fromisoformat(entry["bundle_modified_at"]).tzinfo is not None
 
     validate_result = subprocess.run(
         [sys.executable, str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL), str(index_path)],
@@ -4482,6 +4485,65 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_duplicate_entri
     assert "artifacts.key must be unique: 'static_closeout'" in payload["errors"]
     assert (
         "documentation.role must be unique: 'static_workflow'"
+    ) in payload["errors"]
+
+
+def test_dynamic_godot_release_evidence_bundle_validator_rejects_invalid_timestamps(
+    tmp_path: Path,
+) -> None:
+    closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
+        tmp_path
+    )
+    output_root = tmp_path / "bundle"
+    subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_TOOL),
+            "--static-closeout",
+            str(closeout_path),
+            "--delivery-gate",
+            str(gate_path),
+            "--readiness-summary",
+            str(readiness_path),
+            "--output-root",
+            str(output_root),
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    index_path = output_root / "bundle_index.json"
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    index["artifacts"][0].pop("source_modified_at")
+    index["artifacts"][0]["bundle_modified_at"] = "2026-05-20T00:00:00+00:00"
+    index["documentation"][0]["source_modified_at"] = "2026-05-20T00:00:00"
+    index_path.write_text(json.dumps(index), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
+            str(index_path),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "invalid"
+    joined_errors = "\n".join(payload["errors"])
+    assert (
+        "artifacts.static_closeout source_modified_at must be a non-empty "
+        "ISO timestamp"
+    ) in payload["errors"]
+    assert "artifacts.static_closeout bundle_modified_at must equal" in joined_errors
+    assert (
+        "documentation.static_workflow source_modified_at must include timezone "
+        "information"
     ) in payload["errors"]
 
 

@@ -27,6 +27,10 @@ from validate_dynamic_godot_release_evidence_bundle import (  # noqa: E402
 DEFAULT_DOC_PATH = ROOT / "docs" / "guides" / "DYNAMIC_GODOT_ROBOT_GENERATION.md"
 
 
+def _mtime_iso(path: Path) -> str:
+    return datetime.fromtimestamp(path.stat().st_mtime, UTC).isoformat()
+
+
 def _read_json_object(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     return payload if isinstance(payload, dict) else {}
@@ -58,6 +62,8 @@ def _copy_entry(
         "bundle_path": str(target.relative_to(output_root)),
         "size_bytes": target.stat().st_size,
         "sha256": sha256_file(target),
+        "source_modified_at": _mtime_iso(source),
+        "bundle_modified_at": _mtime_iso(target),
     }
 
 

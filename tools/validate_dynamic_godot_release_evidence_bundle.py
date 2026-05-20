@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -53,6 +54,10 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _mtime_iso(path: Path) -> str:
+    return datetime.fromtimestamp(path.stat().st_mtime, UTC).isoformat()
+
+
 def _entry_path(bundle_root: Path, entry: dict[str, Any]) -> Path:
     bundle_path = Path(str(entry.get("bundle_path") or ""))
     return bundle_path if bundle_path.is_absolute() else bundle_root / bundle_path
@@ -73,6 +78,29 @@ def _resolve_bundle_entry_path(
     if not resolved_path.is_relative_to(resolved_root):
         return None, "bundle_path must be relative and stay within bundle root"
     return resolved_path, None
+
+
+def _validate_timestamp_field(
+    *,
+    entry: dict[str, Any],
+    field: str,
+    collection: str,
+    key: object,
+    errors: list[str],
+) -> datetime | None:
+    value = entry.get(field)
+    if not isinstance(value, str) or not value.strip():
+        errors.append(f"{collection}.{key} {field} must be a non-empty ISO timestamp")
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        errors.append(f"{collection}.{key} {field} must be a valid ISO timestamp")
+        return None
+    if parsed.tzinfo is None:
+        errors.append(f"{collection}.{key} {field} must include timezone information")
+        return None
+    return parsed
 
 
 def _validate_entry(
@@ -101,6 +129,25 @@ def _validate_entry(
     checksum = sha256_file(path)
     if entry.get("sha256") != checksum:
         errors.append(f"{collection}.{key} sha256 must equal {checksum}")
+    _validate_timestamp_field(
+        entry=entry,
+        field="source_modified_at",
+        collection=collection,
+        key=key,
+        errors=errors,
+    )
+    _validate_timestamp_field(
+        entry=entry,
+        field="bundle_modified_at",
+        collection=collection,
+        key=key,
+        errors=errors,
+    )
+    expected_bundle_mtime = _mtime_iso(path)
+    if entry.get("bundle_modified_at") != expected_bundle_mtime:
+        errors.append(
+            f"{collection}.{key} bundle_modified_at must equal {expected_bundle_mtime}"
+        )
     return entry
 
 

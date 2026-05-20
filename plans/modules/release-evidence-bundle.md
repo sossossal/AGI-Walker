@@ -62,7 +62,7 @@ Static closeout and readiness summary already exist. This module packages those 
   Mitigation: Validate artifact presence and consistency, then delegate artifact-specific validation to existing contracts where possible.
 
 - Risk: Bundle archives stale artifacts.
-  Mitigation: Record artifact paths, sizes/checksums and source timestamps in the index.
+  Mitigation: Record artifact paths, sizes/checksums, source timestamps and bundled-file timestamps in the index.
 
 # Validation
 
@@ -87,6 +87,7 @@ py -3.12 -m pytest -m "not live" --collect-only -q
 - 2026-05-20: Optional bundled Web delivery records are now validated for `web_godot_delivery/godot_load` gate metadata and static node-tree manifest evidence consistency when present.
 - 2026-05-20: Bundle validation now rejects absolute or escaping `bundle_path` values so artifacts and docs remain self-contained under the bundle root.
 - 2026-05-20: Bundle validation now rejects duplicate artifact `key` values and documentation `role` values to avoid ambiguous or overwritten evidence entries.
+- 2026-05-20: Bundle entries now record timezone-aware `source_modified_at` and `bundle_modified_at`; validation checks timestamp shape and bundled file mtime consistency.
 
 # Drift Check
 
