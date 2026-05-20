@@ -104,6 +104,26 @@ def _validate_entry(
     return entry
 
 
+def _validate_unique_values(
+    *,
+    entries: list[dict[str, Any]],
+    field: str,
+    collection: str,
+    errors: list[str],
+) -> None:
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    for entry in entries:
+        value = entry.get(field)
+        if not isinstance(value, str):
+            continue
+        if value in seen:
+            duplicates.add(value)
+        seen.add(value)
+    for value in sorted(duplicates):
+        errors.append(f"{collection}.{field} must be unique: {value!r}")
+
+
 def _extract_gate(payload: dict[str, Any]) -> dict[str, Any] | None:
     if payload.get("contract_version") == GATE_CONTRACT_VERSION:
         return payload
@@ -283,6 +303,18 @@ def validate_bundle_index(index_path: Path) -> dict[str, Any]:
         )
         if isinstance(entry, dict)
     ]
+    _validate_unique_values(
+        entries=artifact_entries,
+        field="key",
+        collection="artifacts",
+        errors=errors,
+    )
+    _validate_unique_values(
+        entries=doc_entries,
+        field="role",
+        collection="documentation",
+        errors=errors,
+    )
     artifact_by_key = {
         str(entry.get("key")): entry
         for entry in artifact_entries
