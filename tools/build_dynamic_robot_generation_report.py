@@ -312,6 +312,11 @@ def _run_godot_smoke(
         result_payload["attempt_count"] = len(attempts)
         result_payload["attempts"] = attempts
         result_payload["retried"] = len(attempts) > 1
+        _record_report_smoke_attempts(
+            result_payload,
+            attempts_recorded=len(attempts),
+            max_attempts=max_attempts,
+        )
         final_result = result_payload
         if not _should_retry_auto_port_smoke(
             requested_port=port,
@@ -393,6 +398,30 @@ def _build_godot_smoke_attempt_summary(
         "stderr_line_count": result_payload["stderr_line_count"],
         "stderr_tail": result_payload["stderr_tail"],
     }
+
+
+def _record_report_smoke_attempts(
+    result_payload: dict[str, Any],
+    *,
+    attempts_recorded: int,
+    max_attempts: int,
+) -> None:
+    live_verification = result_payload.setdefault("live_verification", {})
+    if not isinstance(live_verification, dict):
+        return
+    flaky_policy = live_verification.setdefault("flaky_policy", {})
+    if not isinstance(flaky_policy, dict):
+        return
+    if attempts_recorded <= 1:
+        flaky_policy.setdefault("attempts_recorded", attempts_recorded)
+        flaky_policy.setdefault("classification", "not_retried")
+        return
+    flaky_policy["attempts_recorded"] = attempts_recorded
+    flaky_policy["max_attempts"] = max_attempts
+    if result_payload.get("returncode") == 0:
+        flaky_policy["classification"] = "passed_after_retry"
+    else:
+        flaky_policy["classification"] = "failed_after_retry"
 
 
 def _should_retry_auto_port_smoke(

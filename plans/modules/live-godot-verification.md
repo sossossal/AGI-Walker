@@ -90,6 +90,7 @@ When Godot is available, run the documented live profile and archive report, gat
 - 2026-05-19: Changed the report builder's live smoke default from a fixed TCP port to auto-selected free localhost ports. Explicit `--port <port>` still preserves fixed-port diagnostics, while local/manual CI profiles avoid accidental same-port collisions when multiple smoke reports run near each other.
 - 2026-05-19: Added report-level live smoke attempt metadata and one retry for automatic-port TCP startup response failures. Fixed-port diagnostics remain single-attempt so explicit port conflicts stay visible.
 - 2026-05-20: Direct smoke runner now writes structured error reports for Godot launch failures, TCP startup timeouts and unexpected runtime command failures. Report-builder auto-port retry also recognizes structured `godot_tcp_timeout` smoke reports.
+- 2026-05-20: Report-builder live evidence now mirrors wrapper-level attempt count, max attempts and retry result into `godot_smoke.live_verification.flaky_policy`, so retained report artifacts expose `passed_after_retry` or `failed_after_retry` instead of only the final child smoke process classification.
 
 # Drift Check
 

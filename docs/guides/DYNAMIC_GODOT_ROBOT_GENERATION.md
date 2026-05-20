@@ -1147,7 +1147,10 @@ localhost TCP port by default for each live smoke invocation and records
 `godot_tcp_timeout`, or fails before writing a smoke report with
 `Godot TCP server did not respond on port`, it retries once with a newly
 selected port. Pass `--port <port>` only when a fixed port is required for a
-local diagnostic session; fixed-port runs do not auto-retry.
+local diagnostic session; fixed-port runs do not auto-retry. Report-level live
+evidence updates `godot_smoke.live_verification.flaky_policy.attempts_recorded`,
+and, when a wrapper retry occurs, `max_attempts` and `classification` so a
+successful retry is visible as `passed_after_retry` instead of `not_retried`.
 
 Archive these exact artifacts:
 

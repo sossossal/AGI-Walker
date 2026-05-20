@@ -14348,6 +14348,8 @@ def test_report_smoke_wrapper_auto_selects_port(
     assert result["attempt_count"] == 1
     assert result["attempts"][0]["port"] == 23456
     assert result["retried"] is False
+    assert result["live_verification"]["flaky_policy"]["attempts_recorded"] == 1
+    assert result["live_verification"]["flaky_policy"]["classification"] == "not_retried"
 
 
 def test_report_smoke_wrapper_retries_auto_port_startup_timeout(
@@ -14383,6 +14385,9 @@ def test_report_smoke_wrapper_retries_auto_port_startup_timeout(
                     "mapping_summary": {},
                     "step_summary": {},
                     "node_tree_manifest": {},
+                    "live_verification": {
+                        "flaky_policy": {"classification": "not_retried"}
+                    },
                 }
             ),
             encoding="utf-8",
@@ -14449,6 +14454,12 @@ def test_report_smoke_wrapper_retries_auto_port_startup_timeout(
     assert result["attempts"][0]["returncode"] == 1
     assert result["attempts"][0]["report_written"] is False
     assert "Godot TCP server did not respond" in result["attempts"][0]["stderr_tail"][0]
+    assert result["live_verification"]["flaky_policy"]["attempts_recorded"] == 2
+    assert result["live_verification"]["flaky_policy"]["max_attempts"] == 2
+    assert (
+        result["live_verification"]["flaky_policy"]["classification"]
+        == "passed_after_retry"
+    )
 
 
 def test_report_smoke_wrapper_retries_structured_auto_port_timeout(
@@ -14490,6 +14501,9 @@ def test_report_smoke_wrapper_retries_structured_auto_port_timeout(
                     "mapping_summary": {},
                     "step_summary": {},
                     "node_tree_manifest": {},
+                    "live_verification": {
+                        "flaky_policy": {"classification": "not_retried"}
+                    },
                 }
             ),
             encoding="utf-8",
@@ -14552,6 +14566,12 @@ def test_report_smoke_wrapper_retries_structured_auto_port_timeout(
     assert [attempt["port"] for attempt in result["attempts"]] == [24567, 24568]
     assert result["attempts"][0]["report_written"] is True
     assert result["attempts"][0]["failure_category"] == "godot_tcp_timeout"
+    assert result["live_verification"]["flaky_policy"]["attempts_recorded"] == 2
+    assert result["live_verification"]["flaky_policy"]["max_attempts"] == 2
+    assert (
+        result["live_verification"]["flaky_policy"]["classification"]
+        == "passed_after_retry"
+    )
 
 
 def test_report_smoke_wrapper_passes_full_node_tree_restoration_gate(
