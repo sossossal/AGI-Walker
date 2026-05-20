@@ -93,6 +93,7 @@ When Godot is available, run the documented live profile and archive report, gat
 - 2026-05-20: Report-builder live evidence now mirrors wrapper-level attempt count, max attempts and retry result into `godot_smoke.live_verification.flaky_policy`, so retained report artifacts expose `passed_after_retry` or `failed_after_retry` instead of only the final child smoke process classification.
 - 2026-05-20: Report-builder wrapper retries now also synchronize the final retained smoke JSON's `live_verification.flaky_policy` fields with the report-level evidence, preventing archived smoke artifacts from showing stale child-process retry metadata.
 - 2026-05-20: Retained smoke JSON now stores wrapper retry attempt summaries in `live_verification.flaky_policy.wrapper_attempts` after wrapper retries, so archived smoke evidence remains self-contained even without the parent generation report.
+- 2026-05-20: Re-ran the local biped live profile with `D:\迅雷下载\Godot\Godot.exe`. Dry-run discovery succeeded with no failure category. The full mechanical restoration generation report and delivery gate passed at `godot_verified`, and `test_env/dynamic_godot_live/local/dynamic_godot_biped_live_readiness.json` reported `status=ready`, `proven_level=godot_verified`, and no residual risks. The gate validator also passed with `--require-passed --require-complete --expect-level godot_verified --expect-source dynamic_godot_report_cli --expect-verification-scope godot_smoke_motion`.
 
 # Drift Check
 
