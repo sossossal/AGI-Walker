@@ -449,6 +449,11 @@ def _sync_smoke_report_live_verification(
     smoke_report, report_read_error = _read_optional_json_object(report_path)
     if report_read_error or not smoke_report:
         return
+    flaky_policy = live_verification.setdefault("flaky_policy", {})
+    if isinstance(flaky_policy, dict):
+        flaky_policy["wrapper_attempt_count"] = attempts_recorded
+        flaky_policy["wrapper_retried"] = attempts_recorded > 1
+        flaky_policy["wrapper_attempts"] = result_payload.get("attempts", [])
     smoke_report["live_verification"] = live_verification
     _write_json(report_path, smoke_report)
     result_payload["report_summary"] = _build_smoke_report_summary(smoke_report)

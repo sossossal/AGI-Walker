@@ -92,6 +92,7 @@ When Godot is available, run the documented live profile and archive report, gat
 - 2026-05-20: Direct smoke runner now writes structured error reports for Godot launch failures, TCP startup timeouts and unexpected runtime command failures. Report-builder auto-port retry also recognizes structured `godot_tcp_timeout` smoke reports.
 - 2026-05-20: Report-builder live evidence now mirrors wrapper-level attempt count, max attempts and retry result into `godot_smoke.live_verification.flaky_policy`, so retained report artifacts expose `passed_after_retry` or `failed_after_retry` instead of only the final child smoke process classification.
 - 2026-05-20: Report-builder wrapper retries now also synchronize the final retained smoke JSON's `live_verification.flaky_policy` fields with the report-level evidence, preventing archived smoke artifacts from showing stale child-process retry metadata.
+- 2026-05-20: Retained smoke JSON now stores wrapper retry attempt summaries in `live_verification.flaky_policy.wrapper_attempts` after wrapper retries, so archived smoke evidence remains self-contained even without the parent generation report.
 
 # Drift Check
 

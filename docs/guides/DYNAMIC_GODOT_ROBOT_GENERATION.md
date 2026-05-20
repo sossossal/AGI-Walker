@@ -1153,7 +1153,10 @@ and, when a wrapper retry occurs, `max_attempts` and `classification` so a
 successful retry is visible as `passed_after_retry` instead of `not_retried`.
 After a wrapper retry, the final retained smoke JSON is synchronized with the
 same `live_verification.flaky_policy` fields so archived smoke artifacts and
-the generation report do not disagree.
+the generation report do not disagree. The retained smoke JSON also records
+`wrapper_attempt_count`, `wrapper_retried`, and `wrapper_attempts` under
+`live_verification.flaky_policy` so retry diagnostics remain available when the
+smoke artifact is inspected by itself.
 
 Archive these exact artifacts:
 

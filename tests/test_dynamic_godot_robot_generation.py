@@ -14466,6 +14466,17 @@ def test_report_smoke_wrapper_retries_auto_port_startup_timeout(
     )
     assert retained_smoke["live_verification"]["flaky_policy"]["max_attempts"] == 2
     assert (
+        retained_smoke["live_verification"]["flaky_policy"]["wrapper_attempt_count"]
+        == 2
+    )
+    assert retained_smoke["live_verification"]["flaky_policy"]["wrapper_retried"] is True
+    assert [
+        attempt["port"]
+        for attempt in retained_smoke["live_verification"]["flaky_policy"][
+            "wrapper_attempts"
+        ]
+    ] == [23456, 23457]
+    assert (
         retained_smoke["live_verification"]["flaky_policy"]["classification"]
         == "passed_after_retry"
     )
@@ -14593,6 +14604,17 @@ def test_report_smoke_wrapper_retries_structured_auto_port_timeout(
     )
     assert retained_smoke["live_verification"]["flaky_policy"]["max_attempts"] == 2
     assert (
+        retained_smoke["live_verification"]["flaky_policy"]["wrapper_attempt_count"]
+        == 2
+    )
+    assert retained_smoke["live_verification"]["flaky_policy"]["wrapper_retried"] is True
+    assert [
+        attempt["port"]
+        for attempt in retained_smoke["live_verification"]["flaky_policy"][
+            "wrapper_attempts"
+        ]
+    ] == [24567, 24568]
+    assert (
         retained_smoke["live_verification"]["flaky_policy"]["classification"]
         == "passed_after_retry"
     )
@@ -14699,6 +14721,17 @@ def test_report_smoke_wrapper_syncs_failed_retry_to_retained_smoke(
         retained_smoke["live_verification"]["flaky_policy"]["attempts_recorded"] == 2
     )
     assert retained_smoke["live_verification"]["flaky_policy"]["max_attempts"] == 2
+    assert (
+        retained_smoke["live_verification"]["flaky_policy"]["wrapper_attempt_count"]
+        == 2
+    )
+    assert retained_smoke["live_verification"]["flaky_policy"]["wrapper_retried"] is True
+    assert [
+        attempt["port"]
+        for attempt in retained_smoke["live_verification"]["flaky_policy"][
+            "wrapper_attempts"
+        ]
+    ] == [25567, 25568]
     assert (
         retained_smoke["live_verification"]["flaky_policy"]["classification"]
         == "failed_after_retry"
