@@ -4379,6 +4379,60 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_missing_artifac
     assert any("delivery_gate" in error for error in payload["errors"])
 
 
+def test_dynamic_godot_release_evidence_bundle_validator_rejects_external_bundle_path(
+    tmp_path: Path,
+) -> None:
+    closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
+        tmp_path
+    )
+    output_root = tmp_path / "bundle"
+    subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_TOOL),
+            "--static-closeout",
+            str(closeout_path),
+            "--delivery-gate",
+            str(gate_path),
+            "--readiness-summary",
+            str(readiness_path),
+            "--output-root",
+            str(output_root),
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    index_path = output_root / "bundle_index.json"
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    for entry in index["artifacts"]:
+        if entry["key"] == "delivery_gate":
+            entry["bundle_path"] = entry["source_path"]
+            break
+    index_path.write_text(json.dumps(index), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
+            str(index_path),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "invalid"
+    assert (
+        "artifacts.delivery_gate bundle_path must be relative and stay within "
+        "bundle root"
+    ) in payload["errors"]
+
+
 def test_dynamic_godot_release_evidence_bundle_validator_rejects_malformed_bundle(
     tmp_path: Path,
 ) -> None:

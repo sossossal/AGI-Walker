@@ -58,6 +58,23 @@ def _entry_path(bundle_root: Path, entry: dict[str, Any]) -> Path:
     return bundle_path if bundle_path.is_absolute() else bundle_root / bundle_path
 
 
+def _resolve_bundle_entry_path(
+    bundle_root: Path,
+    entry: dict[str, Any],
+) -> tuple[Path | None, str | None]:
+    raw_path = entry.get("bundle_path")
+    if not isinstance(raw_path, str) or not raw_path.strip():
+        return None, "bundle_path must be a non-empty relative path"
+    bundle_path = Path(raw_path)
+    if bundle_path.is_absolute():
+        return None, "bundle_path must be relative and stay within bundle root"
+    resolved_root = bundle_root.resolve()
+    resolved_path = (resolved_root / bundle_path).resolve()
+    if not resolved_path.is_relative_to(resolved_root):
+        return None, "bundle_path must be relative and stay within bundle root"
+    return resolved_path, None
+
+
 def _validate_entry(
     entry: Any,
     *,
@@ -71,7 +88,10 @@ def _validate_entry(
     key = entry.get("key") or entry.get("role")
     if not isinstance(key, str) or not key.strip():
         errors.append(f"{collection} entry key/role must be a non-empty string")
-    path = _entry_path(bundle_root, entry)
+    path, path_error = _resolve_bundle_entry_path(bundle_root, entry)
+    if path_error is not None:
+        errors.append(f"{collection}.{key} {path_error}")
+        return None
     if not path.exists():
         errors.append(f"{collection}.{key} bundle_path does not exist: {path}")
         return entry

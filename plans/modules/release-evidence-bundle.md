@@ -85,6 +85,7 @@ py -3.12 -m pytest -m "not live" --collect-only -q
 - Validation evidence: `py -3.12 -m py_compile tools\build_dynamic_godot_release_evidence_bundle.py tools\validate_dynamic_godot_release_evidence_bundle.py`; `py -3.12 -m pytest tests\test_dynamic_godot_robot_generation.py -q -k "release_evidence_bundle"`; `py -3.12 -m pytest tests\test_dynamic_godot_robot_generation.py -q`; `py -3.12 -m pytest tests\test_workflow_contracts.py -q`; `py -3.12 -m pytest -m "not live" --collect-only -q`.
 - 2026-05-20: Optional bundled live smoke artifacts are now validated for `dynamic_godot_live_verification_profile.v1` metadata and wrapper retry field consistency when present.
 - 2026-05-20: Optional bundled Web delivery records are now validated for `web_godot_delivery/godot_load` gate metadata and static node-tree manifest evidence consistency when present.
+- 2026-05-20: Bundle validation now rejects absolute or escaping `bundle_path` values so artifacts and docs remain self-contained under the bundle root.
 
 # Drift Check
 

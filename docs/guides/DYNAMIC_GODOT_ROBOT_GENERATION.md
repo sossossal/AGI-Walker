@@ -1076,8 +1076,10 @@ The bundle index uses `dynamic_godot_release_evidence_bundle.v1`. It copies the
 static closeout, delivery gate, readiness summary, optional live smoke, optional
 Web delivery record, and documentation index entries into one directory. Each
 artifact and documentation entry records its source path, bundle path, byte size,
-and SHA-256 checksum. Static-only bundles are valid when the readiness summary
-proves `static_only`; stronger bundles can add `--live-smoke` and
+and SHA-256 checksum. Bundle paths must be non-empty paths relative to the bundle
+root and may not resolve outside that root, so the delivered directory remains
+self-contained. Static-only bundles are valid when the readiness summary proves
+`static_only`; stronger bundles can add `--live-smoke` and
 `--web-delivery-record` while preserving the same readiness semantics. The
 self-validator writes
 `dynamic_godot_release_evidence_bundle_validation.v1` and fails if required
