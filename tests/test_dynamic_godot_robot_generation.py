@@ -4524,6 +4524,99 @@ def test_dynamic_godot_release_evidence_bundle_validates_live_smoke(
     ) in payload["errors"]
 
 
+def test_dynamic_godot_release_evidence_bundle_validates_web_delivery_record(
+    tmp_path: Path,
+) -> None:
+    closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
+        tmp_path
+    )
+    web_delivery_path = tmp_path / "web_delivery_record.json"
+    web_delivery_path.write_text(
+        json.dumps(
+            {
+                "status": "success",
+                "static_node_tree_manifest_evidence": {
+                    "manifest_version": "godot_node_tree_manifest.v1",
+                    "valid": True,
+                    "complete": True,
+                    "path_map_mismatch_count": 0,
+                },
+                "delivery_acceptance_gate": {
+                    "contract_version": "delivery_acceptance_gate.v1",
+                    "source": "web_godot_delivery",
+                    "verification_scope": "godot_load",
+                    "acceptance_profile": "web_godot_load",
+                    "passed": True,
+                    "complete": True,
+                    "level": "godot_load_verified",
+                    "exit_code": 0,
+                    "reason_codes": [],
+                    "summary_counts": {},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_root = tmp_path / "bundle"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_TOOL),
+            "--static-closeout",
+            str(closeout_path),
+            "--delivery-gate",
+            str(gate_path),
+            "--readiness-summary",
+            str(readiness_path),
+            "--web-delivery-record",
+            str(web_delivery_path),
+            "--output-root",
+            str(output_root),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    index = json.loads(result.stdout)
+    assert index["validation_status"] == "ready"
+    assert "web_delivery_record" in {entry["key"] for entry in index["artifacts"]}
+
+    bundled_record = output_root / "artifacts" / "web_delivery_record.json"
+    tampered = json.loads(bundled_record.read_text(encoding="utf-8"))
+    tampered["delivery_acceptance_gate"]["source"] = "dynamic_godot_report_cli"
+    tampered["static_node_tree_manifest_evidence"]["path_map_mismatch_count"] = 1
+    bundled_record.write_text(json.dumps(tampered), encoding="utf-8")
+
+    validate_result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
+            str(output_root / "bundle_index.json"),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert validate_result.returncode == 1
+    payload = json.loads(validate_result.stdout)
+    assert payload["status"] == "invalid"
+    joined_errors = "\n".join(payload["errors"])
+    assert "artifacts.web_delivery_record sha256 must equal" in joined_errors
+    assert (
+        "web_delivery_record.delivery_acceptance_gate.source must be "
+        "'web_godot_delivery'"
+    ) in payload["errors"]
+    assert (
+        "web_delivery_record.static_node_tree_manifest_evidence."
+        "path_map_mismatch_count must be 0 when gate complete is true"
+    ) in payload["errors"]
+
+
 def test_dynamic_godot_manual_live_smoke_checklist_documents_artifacts_and_fields() -> None:
     content = (ROOT / "docs" / "guides" / "DYNAMIC_GODOT_ROBOT_GENERATION.md").read_text(
         encoding="utf-8"

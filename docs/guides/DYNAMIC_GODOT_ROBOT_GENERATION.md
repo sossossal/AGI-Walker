@@ -1086,7 +1086,9 @@ bundle level does not match `readiness_summary.proven_level`. When `--live-smoke
 is included, validation also checks that the smoke artifact carries
 `dynamic_godot_live_verification_profile.v1` metadata and internally consistent
 wrapper retry fields such as `wrapper_attempts`, `wrapper_attempt_count`, and
-`attempts_recorded`.
+`attempts_recorded`. When `--web-delivery-record` is included, validation checks
+that the record carries a `web_godot_delivery` / `godot_load` acceptance gate and
+consistent static node-tree manifest evidence.
 
 Manual live smoke checklist, when a Godot executable is available:
 

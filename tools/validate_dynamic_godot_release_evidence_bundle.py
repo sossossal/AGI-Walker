@@ -15,6 +15,9 @@ READINESS_VERSION = "dynamic_godot_release_readiness_summary.v1"
 READINESS_ARTIFACT_TYPE = "dynamic_godot_release_readiness_summary"
 GATE_CONTRACT_VERSION = "delivery_acceptance_gate.v1"
 LIVE_VERIFICATION_PROFILE_VERSION = "dynamic_godot_live_verification_profile.v1"
+WEB_GODOT_DELIVERY_SOURCE = "web_godot_delivery"
+WEB_GODOT_DELIVERY_SCOPE = "godot_load"
+WEB_GODOT_DELIVERY_PROFILE = "web_godot_load"
 LEVEL_RANKS = {
     "incomplete": 0,
     "static_only": 1,
@@ -160,6 +163,68 @@ def _validate_live_smoke(live_smoke: dict[str, Any], errors: list[str]) -> None:
         )
 
 
+def _validate_web_delivery_record(
+    web_delivery_record: dict[str, Any],
+    errors: list[str],
+) -> None:
+    gate = _extract_gate(web_delivery_record)
+    if gate is None:
+        errors.append("web_delivery_record must contain delivery_acceptance_gate.v1")
+        return
+    if gate.get("source") != WEB_GODOT_DELIVERY_SOURCE:
+        errors.append(
+            f"web_delivery_record.delivery_acceptance_gate.source must be {WEB_GODOT_DELIVERY_SOURCE!r}"
+        )
+    if gate.get("verification_scope") != WEB_GODOT_DELIVERY_SCOPE:
+        errors.append(
+            "web_delivery_record.delivery_acceptance_gate.verification_scope must "
+            f"be {WEB_GODOT_DELIVERY_SCOPE!r}"
+        )
+    if gate.get("acceptance_profile") != WEB_GODOT_DELIVERY_PROFILE:
+        errors.append(
+            "web_delivery_record.delivery_acceptance_gate.acceptance_profile must "
+            f"be {WEB_GODOT_DELIVERY_PROFILE!r}"
+        )
+    if gate.get("complete") is True:
+        if gate.get("passed") is not True:
+            errors.append(
+                "web_delivery_record.delivery_acceptance_gate.passed must be true "
+                "when complete is true"
+            )
+        if gate.get("level") != "godot_load_verified":
+            errors.append(
+                "web_delivery_record.delivery_acceptance_gate.level must be "
+                "'godot_load_verified' when complete is true"
+            )
+    static_evidence = web_delivery_record.get("static_node_tree_manifest_evidence")
+    if not isinstance(static_evidence, dict):
+        errors.append(
+            "web_delivery_record.static_node_tree_manifest_evidence must be an object"
+        )
+        return
+    if static_evidence.get("manifest_version") != "godot_node_tree_manifest.v1":
+        errors.append(
+            "web_delivery_record.static_node_tree_manifest_evidence.manifest_version "
+            "must be 'godot_node_tree_manifest.v1'"
+        )
+    if gate.get("complete") is True:
+        if static_evidence.get("valid") is not True:
+            errors.append(
+                "web_delivery_record.static_node_tree_manifest_evidence.valid must "
+                "be true when gate complete is true"
+            )
+        if static_evidence.get("complete") is not True:
+            errors.append(
+                "web_delivery_record.static_node_tree_manifest_evidence.complete must "
+                "be true when gate complete is true"
+            )
+        if static_evidence.get("path_map_mismatch_count") != 0:
+            errors.append(
+                "web_delivery_record.static_node_tree_manifest_evidence."
+                "path_map_mismatch_count must be 0 when gate complete is true"
+            )
+
+
 def validate_bundle_index(index_path: Path) -> dict[str, Any]:
     index_path = index_path.resolve()
     bundle_root = index_path.parent
@@ -240,6 +305,13 @@ def validate_bundle_index(index_path: Path) -> dict[str, Any]:
             errors.append(f"live_smoke: {error}")
         else:
             _validate_live_smoke(payload, errors)
+    web_delivery_entry = artifact_by_key.get("web_delivery_record")
+    if web_delivery_entry is not None:
+        payload, error = read_json_object(_entry_path(bundle_root, web_delivery_entry))
+        if error is not None:
+            errors.append(f"web_delivery_record: {error}")
+        else:
+            _validate_web_delivery_record(payload, errors)
     if readiness_payload:
         _validate_readiness(readiness_payload, index, errors)
 

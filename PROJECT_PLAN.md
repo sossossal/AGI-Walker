@@ -77,7 +77,7 @@ Out of scope:
 - Web evidence surfaces must preserve the same evidence levels, manifest mismatch counts and residual risk fields used by CLI/readiness artifacts.
 - Schema 1.5 must be additive by default; actuator, sensor, joint limit, controller tuning and material/physics preset fields remain optional until migration tests prove compatibility.
 - Schema 1.5 optional fields use additive robot JSON keys: connection-level `actuator`, `sensor`/`sensors`, extended `limits.effort`/`limits.velocity`, connection-level `controller`, and part-level `material`/`physics`. Older configs remain valid without these fields.
-- Release evidence bundles use `dynamic_godot_release_evidence_bundle.v1` and self-validation uses `dynamic_godot_release_evidence_bundle_validation.v1`; bundle indexes link static closeout, gate, readiness, optional live smoke, optional Web delivery record and documentation artifacts with size and SHA-256 metadata. When optional live smoke is supplied, bundle validation checks its live verification profile and wrapper retry metadata consistency.
+- Release evidence bundles use `dynamic_godot_release_evidence_bundle.v1` and self-validation uses `dynamic_godot_release_evidence_bundle_validation.v1`; bundle indexes link static closeout, gate, readiness, optional live smoke, optional Web delivery record and documentation artifacts with size and SHA-256 metadata. When optional live smoke is supplied, bundle validation checks its live verification profile and wrapper retry metadata consistency. When optional Web delivery record evidence is supplied, bundle validation checks its `web_godot_delivery/godot_load` gate metadata and static manifest evidence consistency.
 
 # Integration Plan
 
@@ -198,3 +198,4 @@ Phase 2 validation expands this set with module-specific checks:
 - 2026-05-20: Approved retained smoke artifact retry metadata contract: after wrapper-level retries, the final archived smoke JSON is synchronized with report-level `live_verification.flaky_policy` retry fields.
 - 2026-05-20: Approved retained smoke attempt evidence contract: wrapper-level retry attempt summaries are preserved in the final archived smoke JSON under `live_verification.flaky_policy.wrapper_attempts`.
 - 2026-05-20: Approved release bundle live smoke validation contract: optional bundled live smoke artifacts are self-validated for dynamic Godot live profile metadata and wrapper retry consistency.
+- 2026-05-20: Approved release bundle Web delivery validation contract: optional bundled Web delivery records are self-validated for `web_godot_delivery/godot_load` gate metadata and static manifest evidence consistency.
