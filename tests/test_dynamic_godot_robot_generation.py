@@ -4437,7 +4437,10 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_stale_validatio
     validation_path = output_root / "bundle_validation.json"
     validation = json.loads(validation_path.read_text(encoding="utf-8"))
     validation["artifact_count"] = 0
+    validation["bundle_root"] = str(tmp_path / "other_bundle")
     validation["errors"] = ["stale error"]
+    validation["required_artifacts"] = ["static_closeout"]
+    validation["required_documentation_roles"] = ["static_workflow"]
     validation["status"] = "ready"
     validation_path.write_text(json.dumps(validation), encoding="utf-8")
 
@@ -4461,6 +4464,13 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_stale_validatio
     ) in payload["errors"]
     assert (
         "validation_report.artifact_count must match current bundle artifact count 3"
+    ) in payload["errors"]
+    assert "validation_report.bundle_root must match bundle root path" in payload["errors"]
+    assert (
+        "validation_report.required_artifacts must match bundle contract"
+    ) in payload["errors"]
+    assert (
+        "validation_report.required_documentation_roles must match bundle contract"
     ) in payload["errors"]
 
 

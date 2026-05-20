@@ -59,7 +59,7 @@ Static closeout and readiness summary already exist. This module packages those 
 # Risks and Mitigations
 
 - Risk: Bundle self-validation report drifts from the current bundle index.
-  Mitigation: Require the final index to reference an in-bundle validation report and verify its status, error self-consistency, counts and evidence level against the current validation result.
+  Mitigation: Require the final index to reference an in-bundle validation report and verify its status, error self-consistency, bundle root, required contract lists, counts and evidence level against the current validation result.
 
 - Risk: Bundle validation duplicates existing gate logic.
   Mitigation: Validate artifact presence and consistency, then delegate delivery gate shape checks to the shared `delivery_acceptance_gate.v1` contract.
@@ -94,6 +94,7 @@ py -3.12 -m pytest -m "not live" --collect-only -q
 - 2026-05-20: Bundle validation now delegates bundled delivery gates and Web delivery record gates to the shared `delivery_acceptance_gate.v1` contract.
 - 2026-05-20: Bundle validation now checks the final index `validation_report` path and ensures the stored report status plus `validation_status` match the current validation result.
 - 2026-05-20: Bundle validation now checks the stored validation report snapshot for status/error self-consistency, artifact count, documentation count and evidence level drift.
+- 2026-05-20: Bundle validation now checks the stored validation report snapshot for bundle root and required artifact/documentation role contract-list drift.
 
 # Drift Check
 

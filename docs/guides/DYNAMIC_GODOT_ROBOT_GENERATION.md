@@ -1091,8 +1091,9 @@ Final bundle validation requires `validation_report` to point to an in-bundle
 validation report and checks that both the index `validation_status` and the
 stored report status match the current validation result. It also checks that
 the stored validation report is internally status/error consistent and that its
-artifact count, documentation count and evidence level still match the current
-bundle index.
+bundle root, required artifact list, required documentation role list, artifact
+count, documentation count and evidence level still match the current bundle
+index.
 Bundled delivery gates, including gates inside Web delivery records, are
 validated with the shared `delivery_acceptance_gate.v1` contract.
 When `--live-smoke`

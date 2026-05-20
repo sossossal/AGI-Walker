@@ -284,6 +284,7 @@ def _validate_validation_report_snapshot(
     *,
     report: dict[str, Any],
     index: dict[str, Any],
+    bundle_root: Path,
     artifact_count: int,
     documentation_count: int,
     errors: list[str],
@@ -314,6 +315,14 @@ def _validate_validation_report_snapshot(
         errors.append(
             "validation_report.evidence_level must match current bundle "
             "evidence_level"
+        )
+    if report.get("bundle_root") != str(bundle_root):
+        errors.append("validation_report.bundle_root must match bundle root path")
+    if report.get("required_artifacts") != list(REQUIRED_ARTIFACT_KEYS):
+        errors.append("validation_report.required_artifacts must match bundle contract")
+    if report.get("required_documentation_roles") != list(REQUIRED_DOC_ROLES):
+        errors.append(
+            "validation_report.required_documentation_roles must match bundle contract"
         )
 
 
@@ -556,6 +565,7 @@ def validate_bundle_index(
         _validate_validation_report_snapshot(
             report=validation_report,
             index=index,
+            bundle_root=bundle_root,
             artifact_count=len(artifact_entries),
             documentation_count=len(doc_entries),
             errors=errors,
