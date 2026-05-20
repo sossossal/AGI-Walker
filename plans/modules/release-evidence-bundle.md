@@ -65,7 +65,7 @@ Static closeout and readiness summary already exist. This module packages those 
   Mitigation: Validate artifact presence and consistency, then delegate delivery gate shape checks to the shared `delivery_acceptance_gate.v1` contract.
 
 - Risk: Bundle archives stale artifacts.
-  Mitigation: Record artifact paths, sizes/checksums, source timestamps and bundled-file timestamps in the index.
+  Mitigation: Record artifact paths, sizes/checksums, source timestamps and bundled-file timestamps in the index; validate index bundle root, generated timestamp, readiness status and residual risks against the current bundle.
 
 # Validation
 
@@ -95,6 +95,7 @@ py -3.12 -m pytest -m "not live" --collect-only -q
 - 2026-05-20: Bundle validation now checks the final index `validation_report` path and ensures the stored report status plus `validation_status` match the current validation result.
 - 2026-05-20: Bundle validation now checks the stored validation report snapshot for status/error self-consistency, artifact count, documentation count and evidence level drift.
 - 2026-05-20: Bundle validation now checks the stored validation report snapshot for bundle root and required artifact/documentation role contract-list drift.
+- 2026-05-20: Bundle validation now checks index metadata drift for `bundle_root`, timezone-aware `generated_at`, `readiness_status` and `residual_risks`.
 
 # Drift Check
 

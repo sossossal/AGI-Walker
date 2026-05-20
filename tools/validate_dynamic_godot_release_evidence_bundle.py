@@ -138,6 +138,32 @@ def _validate_timestamp_field(
     return parsed
 
 
+def _validate_index_metadata(
+    *,
+    index: dict[str, Any],
+    bundle_root: Path,
+    errors: list[str],
+) -> None:
+    if index.get("bundle_root") != str(bundle_root):
+        errors.append("bundle_root must match bundle index directory")
+    generated_at = index.get("generated_at")
+    if not isinstance(generated_at, str) or not generated_at.strip():
+        errors.append("generated_at must be a non-empty ISO timestamp")
+        return
+    try:
+        parsed = datetime.fromisoformat(generated_at)
+    except ValueError:
+        errors.append("generated_at must be a valid ISO timestamp")
+        return
+    if parsed.tzinfo is None:
+        errors.append("generated_at must include timezone information")
+    residual_risks = index.get("residual_risks")
+    if not isinstance(residual_risks, list) or not all(
+        isinstance(risk, str) for risk in residual_risks
+    ):
+        errors.append("residual_risks must be a list of strings")
+
+
 def _validate_entry(
     entry: Any,
     *,
@@ -244,6 +270,10 @@ def _validate_readiness(
         errors.append("bundle evidence_level_rank must match readiness summary rank")
     if readiness.get("status") != "ready":
         errors.append("readiness_summary.status must be 'ready'")
+    if index.get("readiness_status") != readiness.get("status"):
+        errors.append("bundle readiness_status must match readiness_summary.status")
+    if index.get("residual_risks") != readiness.get("residual_risks", []):
+        errors.append("bundle residual_risks must match readiness_summary.residual_risks")
 
 
 def _validate_validation_report_reference(
@@ -458,6 +488,7 @@ def validate_bundle_index(
         errors.append(f"bundle_version must be {BUNDLE_VERSION!r}")
     if index.get("artifact_type") != BUNDLE_ARTIFACT_TYPE:
         errors.append(f"artifact_type must be {BUNDLE_ARTIFACT_TYPE!r}")
+    _validate_index_metadata(index=index, bundle_root=bundle_root, errors=errors)
     validation_report: dict[str, Any] = {}
     if require_validation_report:
         validation_report = _validate_validation_report_reference(

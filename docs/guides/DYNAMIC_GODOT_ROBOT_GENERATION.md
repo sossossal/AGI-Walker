@@ -1086,7 +1086,10 @@ self-validator writes
 `dynamic_godot_release_evidence_bundle_validation.v1` and fails if required
 artifacts are missing, checksums drift, readiness status is not `ready`, or the
 bundle level does not match `readiness_summary.proven_level`. It also checks
-timestamp shape and verifies `bundle_modified_at` against the bundled file mtime.
+timestamp shape, verifies `bundle_modified_at` against the bundled file mtime,
+and checks index `bundle_root`, timezone-aware `generated_at`,
+`readiness_status`, and `residual_risks` against the current bundle and
+readiness summary.
 Final bundle validation requires `validation_report` to point to an in-bundle
 validation report and checks that both the index `validation_status` and the
 stored report status match the current validation result. It also checks that

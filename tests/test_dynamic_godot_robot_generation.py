@@ -4474,6 +4474,64 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_stale_validatio
     ) in payload["errors"]
 
 
+def test_dynamic_godot_release_evidence_bundle_validator_rejects_stale_index_metadata(
+    tmp_path: Path,
+) -> None:
+    closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
+        tmp_path
+    )
+    output_root = tmp_path / "bundle"
+    subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_TOOL),
+            "--static-closeout",
+            str(closeout_path),
+            "--delivery-gate",
+            str(gate_path),
+            "--readiness-summary",
+            str(readiness_path),
+            "--output-root",
+            str(output_root),
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    index_path = output_root / "bundle_index.json"
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    index["bundle_root"] = str(tmp_path / "other_bundle")
+    index["generated_at"] = "2026-05-20T00:00:00"
+    index["readiness_status"] = "blocked"
+    index["residual_risks"] = ["stale risk"]
+    index_path.write_text(json.dumps(index), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
+            str(index_path),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "invalid"
+    assert "bundle_root must match bundle index directory" in payload["errors"]
+    assert "generated_at must include timezone information" in payload["errors"]
+    assert (
+        "bundle readiness_status must match readiness_summary.status"
+    ) in payload["errors"]
+    assert (
+        "bundle residual_risks must match readiness_summary.residual_risks"
+    ) in payload["errors"]
+
+
 def test_dynamic_godot_release_evidence_bundle_validator_rejects_missing_artifact(
     tmp_path: Path,
 ) -> None:
