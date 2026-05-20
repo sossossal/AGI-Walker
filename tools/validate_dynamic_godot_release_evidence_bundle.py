@@ -91,16 +91,27 @@ def _resolve_bundle_entry_path(
     bundle_root: Path,
     entry: dict[str, Any],
 ) -> tuple[Path | None, str | None]:
-    raw_path = entry.get("bundle_path")
+    return _resolve_bundle_relative_path(
+        bundle_root,
+        entry.get("bundle_path"),
+        "bundle_path",
+    )
+
+
+def _resolve_bundle_relative_path(
+    bundle_root: Path,
+    raw_path: Any,
+    field_name: str,
+) -> tuple[Path | None, str | None]:
     if not isinstance(raw_path, str) or not raw_path.strip():
-        return None, "bundle_path must be a non-empty relative path"
+        return None, f"{field_name} must be a non-empty relative path"
     bundle_path = Path(raw_path)
     if bundle_path.is_absolute():
-        return None, "bundle_path must be relative and stay within bundle root"
+        return None, f"{field_name} must be relative and stay within bundle root"
     resolved_root = bundle_root.resolve()
     resolved_path = (resolved_root / bundle_path).resolve()
     if not resolved_path.is_relative_to(resolved_root):
-        return None, "bundle_path must be relative and stay within bundle root"
+        return None, f"{field_name} must be relative and stay within bundle root"
     return resolved_path, None
 
 
@@ -235,6 +246,40 @@ def _validate_readiness(
         errors.append("readiness_summary.status must be 'ready'")
 
 
+def _validate_validation_report_reference(
+    *,
+    index: dict[str, Any],
+    index_path: Path,
+    bundle_root: Path,
+    errors: list[str],
+) -> dict[str, Any]:
+    report_path, path_error = _resolve_bundle_relative_path(
+        bundle_root,
+        index.get("validation_report"),
+        "validation_report",
+    )
+    if path_error is not None:
+        errors.append(path_error)
+        return {}
+    if not report_path.exists():
+        errors.append(f"validation_report path does not exist: {report_path}")
+        return {}
+    report, read_error = read_json_object(report_path)
+    if read_error is not None:
+        errors.append(f"validation_report: {read_error}")
+        return {}
+    if report.get("validation_version") != VALIDATION_VERSION:
+        errors.append(f"validation_report.validation_version must be {VALIDATION_VERSION!r}")
+    if report.get("artifact_type") != "dynamic_godot_release_evidence_bundle_validation":
+        errors.append(
+            "validation_report.artifact_type must be "
+            "'dynamic_godot_release_evidence_bundle_validation'"
+        )
+    if report.get("bundle_index") != str(index_path):
+        errors.append("validation_report.bundle_index must match bundle index path")
+    return report
+
+
 def _validate_live_smoke(live_smoke: dict[str, Any], errors: list[str]) -> None:
     live_verification = live_smoke.get("live_verification")
     if not isinstance(live_verification, dict):
@@ -351,7 +396,11 @@ def _validate_web_delivery_record(
             )
 
 
-def validate_bundle_index(index_path: Path) -> dict[str, Any]:
+def validate_bundle_index(
+    index_path: Path,
+    *,
+    require_validation_report: bool = True,
+) -> dict[str, Any]:
     index_path = index_path.resolve()
     bundle_root = index_path.parent
     index, read_error = read_json_object(index_path)
@@ -363,6 +412,14 @@ def validate_bundle_index(index_path: Path) -> dict[str, Any]:
         errors.append(f"bundle_version must be {BUNDLE_VERSION!r}")
     if index.get("artifact_type") != BUNDLE_ARTIFACT_TYPE:
         errors.append(f"artifact_type must be {BUNDLE_ARTIFACT_TYPE!r}")
+    validation_report: dict[str, Any] = {}
+    if require_validation_report:
+        validation_report = _validate_validation_report_reference(
+            index=index,
+            index_path=index_path,
+            bundle_root=bundle_root,
+            errors=errors,
+        )
 
     artifacts = index.get("artifacts")
     if not isinstance(artifacts, list):
@@ -456,6 +513,22 @@ def validate_bundle_index(index_path: Path) -> dict[str, Any]:
             _validate_web_delivery_record(payload, errors)
     if readiness_payload:
         _validate_readiness(readiness_payload, index, errors)
+
+    status_without_status_checks = "ready" if not errors else "invalid"
+    if require_validation_report:
+        if index.get("validation_status") != status_without_status_checks:
+            errors.append(
+                "bundle validation_status must match current validation status "
+                f"{status_without_status_checks!r}"
+            )
+        if (
+            validation_report
+            and validation_report.get("status") != status_without_status_checks
+        ):
+            errors.append(
+                "validation_report.status must match current validation status "
+                f"{status_without_status_checks!r}"
+            )
 
     return {
         "validation_version": VALIDATION_VERSION,

@@ -138,7 +138,7 @@ def build_bundle(args: argparse.Namespace) -> dict[str, Any]:
     index_path = output_root / "bundle_index.json"
     validation_path = output_root / "bundle_validation.json"
     _write_json(index_path, index)
-    validation = validate_bundle_index(index_path)
+    validation = validate_bundle_index(index_path, require_validation_report=False)
     _write_json(validation_path, validation)
     index["validation_report"] = str(validation_path.relative_to(output_root))
     index["validation_status"] = validation["status"]

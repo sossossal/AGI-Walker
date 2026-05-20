@@ -4325,7 +4325,11 @@ def test_dynamic_godot_release_evidence_bundle_builds_and_validates_static_only(
     assert index["evidence_level"] == "static_only"
     assert index["evidence_level_rank"] == 1
     assert index["validation_status"] == "ready"
+    assert index["validation_report"] == "bundle_validation.json"
     assert validation["status"] == "ready"
+    assert validation["validation_version"] == (
+        "dynamic_godot_release_evidence_bundle_validation.v1"
+    )
     assert {entry["key"] for entry in index["artifacts"]} == {
         "static_closeout",
         "delivery_gate",
@@ -4353,6 +4357,56 @@ def test_dynamic_godot_release_evidence_bundle_builds_and_validates_static_only(
     )
     assert validate_result.returncode == 0
     assert json.loads(validate_result.stdout)["status"] == "ready"
+
+
+def test_dynamic_godot_release_evidence_bundle_validator_checks_validation_report(
+    tmp_path: Path,
+) -> None:
+    closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
+        tmp_path
+    )
+    output_root = tmp_path / "bundle"
+    subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_TOOL),
+            "--static-closeout",
+            str(closeout_path),
+            "--delivery-gate",
+            str(gate_path),
+            "--readiness-summary",
+            str(readiness_path),
+            "--output-root",
+            str(output_root),
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    validation_path = output_root / "bundle_validation.json"
+    validation = json.loads(validation_path.read_text(encoding="utf-8"))
+    validation["status"] = "invalid"
+    validation_path.write_text(json.dumps(validation), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
+            str(output_root / "bundle_index.json"),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "invalid"
+    assert (
+        "validation_report.status must match current validation status 'ready'"
+    ) in payload["errors"]
 
 
 def test_dynamic_godot_release_evidence_bundle_validator_rejects_missing_artifact(
