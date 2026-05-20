@@ -1151,6 +1151,9 @@ local diagnostic session; fixed-port runs do not auto-retry. Report-level live
 evidence updates `godot_smoke.live_verification.flaky_policy.attempts_recorded`,
 and, when a wrapper retry occurs, `max_attempts` and `classification` so a
 successful retry is visible as `passed_after_retry` instead of `not_retried`.
+After a wrapper retry, the final retained smoke JSON is synchronized with the
+same `live_verification.flaky_policy` fields so archived smoke artifacts and
+the generation report do not disagree.
 
 Archive these exact artifacts:
 

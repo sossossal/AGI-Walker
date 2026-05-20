@@ -317,6 +317,10 @@ def _run_godot_smoke(
             attempts_recorded=len(attempts),
             max_attempts=max_attempts,
         )
+        _sync_smoke_report_live_verification(
+            result_payload,
+            attempts_recorded=len(attempts),
+        )
         final_result = result_payload
         if not _should_retry_auto_port_smoke(
             requested_port=port,
@@ -422,6 +426,32 @@ def _record_report_smoke_attempts(
         flaky_policy["classification"] = "passed_after_retry"
     else:
         flaky_policy["classification"] = "failed_after_retry"
+
+
+def _sync_smoke_report_live_verification(
+    result_payload: dict[str, Any],
+    *,
+    attempts_recorded: int,
+) -> None:
+    if attempts_recorded <= 1:
+        return
+    if not result_payload.get("report_written") or result_payload.get(
+        "report_read_error"
+    ):
+        return
+    live_verification = result_payload.get("live_verification")
+    if not isinstance(live_verification, dict):
+        return
+    report_path_value = result_payload.get("report_path")
+    if not isinstance(report_path_value, str) or not report_path_value:
+        return
+    report_path = Path(report_path_value)
+    smoke_report, report_read_error = _read_optional_json_object(report_path)
+    if report_read_error or not smoke_report:
+        return
+    smoke_report["live_verification"] = live_verification
+    _write_json(report_path, smoke_report)
+    result_payload["report_summary"] = _build_smoke_report_summary(smoke_report)
 
 
 def _should_retry_auto_port_smoke(

@@ -14460,6 +14460,21 @@ def test_report_smoke_wrapper_retries_auto_port_startup_timeout(
         result["live_verification"]["flaky_policy"]["classification"]
         == "passed_after_retry"
     )
+    retained_smoke = json.loads(smoke_output.read_text(encoding="utf-8"))
+    assert (
+        retained_smoke["live_verification"]["flaky_policy"]["attempts_recorded"] == 2
+    )
+    assert retained_smoke["live_verification"]["flaky_policy"]["max_attempts"] == 2
+    assert (
+        retained_smoke["live_verification"]["flaky_policy"]["classification"]
+        == "passed_after_retry"
+    )
+    assert (
+        result["report_summary"]["live_verification"]["flaky_policy"][
+            "classification"
+        ]
+        == "passed_after_retry"
+    )
 
 
 def test_report_smoke_wrapper_retries_structured_auto_port_timeout(
@@ -14571,6 +14586,128 @@ def test_report_smoke_wrapper_retries_structured_auto_port_timeout(
     assert (
         result["live_verification"]["flaky_policy"]["classification"]
         == "passed_after_retry"
+    )
+    retained_smoke = json.loads(smoke_output.read_text(encoding="utf-8"))
+    assert (
+        retained_smoke["live_verification"]["flaky_policy"]["attempts_recorded"] == 2
+    )
+    assert retained_smoke["live_verification"]["flaky_policy"]["max_attempts"] == 2
+    assert (
+        retained_smoke["live_verification"]["flaky_policy"]["classification"]
+        == "passed_after_retry"
+    )
+    assert (
+        result["report_summary"]["live_verification"]["flaky_policy"][
+            "classification"
+        ]
+        == "passed_after_retry"
+    )
+
+
+def test_report_smoke_wrapper_syncs_failed_retry_to_retained_smoke(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    spec = importlib.util.spec_from_file_location("dynamic_godot_report", REPORT_TOOL)
+    report_tool = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(report_tool)
+
+    smoke_output = tmp_path / "smoke.json"
+    normalized_output = tmp_path / "normalized.json"
+    normalized_output.write_text("{}", encoding="utf-8")
+
+    run_calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        run_calls.append(command)
+        smoke_output.write_text(
+            json.dumps(
+                {
+                    "status": "error",
+                    "live_verification": {
+                        "failure_category": "godot_tcp_timeout",
+                        "flaky_policy": {"classification": "not_retried"},
+                    },
+                    "errors": ["timed out"],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(command, 1, stdout="", stderr="")
+
+    ports = iter([25567, 25568])
+    monkeypatch.setattr(report_tool.subprocess, "run", fake_run)
+    monkeypatch.setattr(report_tool, "_resolve_smoke_port", lambda port: next(ports))
+
+    result = report_tool._run_godot_smoke(
+        repo_root=ROOT,
+        normalized_output=normalized_output,
+        smoke_output=smoke_output,
+        godot_exe="Godot.exe",
+        port=0,
+        timeout_seconds=1.0,
+        max_endpoint_distance=None,
+        max_relative_angle=None,
+        min_body_displacement=None,
+        max_linear_speed=None,
+        min_joint_angle_delta=None,
+        min_joint_angle_range=None,
+        min_moving_joint_coverage=None,
+        min_commanded_joint_response_coverage=None,
+        joint_motion_epsilon=0.0,
+        min_action_target_coverage=None,
+        min_control_action_coverage=None,
+        min_nonzero_action_targets=None,
+        min_action_transitions=None,
+        min_action_transition_delta=None,
+        fail_on_joint_limit_violation=False,
+        fail_on_incomplete_restoration=False,
+        min_restoration_score=None,
+        fail_on_parameter_mismatch=False,
+        fail_on_control_mismatch=False,
+        fail_on_full_mechanical_restoration=False,
+        fail_on_action_target_mismatch=False,
+        fail_on_action_sequence_target_mismatch=False,
+        fail_on_unknown_action_target=False,
+        fail_on_invalid_action_target=False,
+        fail_on_incomplete_node_tree=False,
+        fail_on_full_node_tree_restoration=False,
+        fail_on_node_tree_class_mismatch=False,
+        fail_on_node_tree_missing_parameters=False,
+        fail_on_node_tree_transform_mismatch=False,
+        fail_on_node_tree_physical_mismatch=False,
+        fail_on_node_tree_fixed_lock_mismatch=False,
+        node_tree_tolerance=1e-4,
+        parameter_tolerance=1e-4,
+        action_json="[0.0]",
+        action_sequence_json=None,
+        steps=1,
+        step_delay_seconds=0.0,
+    )
+
+    assert len(run_calls) == 2
+    assert result["returncode"] == 1
+    assert result["retried"] is True
+    assert [attempt["port"] for attempt in result["attempts"]] == [25567, 25568]
+    assert (
+        result["live_verification"]["flaky_policy"]["classification"]
+        == "failed_after_retry"
+    )
+    retained_smoke = json.loads(smoke_output.read_text(encoding="utf-8"))
+    assert (
+        retained_smoke["live_verification"]["flaky_policy"]["attempts_recorded"] == 2
+    )
+    assert retained_smoke["live_verification"]["flaky_policy"]["max_attempts"] == 2
+    assert (
+        retained_smoke["live_verification"]["flaky_policy"]["classification"]
+        == "failed_after_retry"
+    )
+    assert (
+        result["report_summary"]["live_verification"]["flaky_policy"][
+            "classification"
+        ]
+        == "failed_after_retry"
     )
 
 
