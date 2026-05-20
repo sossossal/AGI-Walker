@@ -1087,6 +1087,8 @@ self-validator writes
 artifacts are missing, checksums drift, readiness status is not `ready`, or the
 bundle level does not match `readiness_summary.proven_level`. It also checks
 timestamp shape and verifies `bundle_modified_at` against the bundled file mtime.
+Bundled delivery gates, including gates inside Web delivery records, are
+validated with the shared `delivery_acceptance_gate.v1` contract.
 When `--live-smoke`
 is included, validation also checks that the smoke artifact carries
 `dynamic_godot_live_verification_profile.v1` metadata and internally consistent

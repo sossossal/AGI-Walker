@@ -4,10 +4,34 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+WORKFLOW_CONTRACTS_PATH = ROOT / "agi_walker" / "core" / "api" / "workflow_contracts.py"
+
+
+def _load_workflow_contracts() -> Any:
+    spec = importlib.util.spec_from_file_location(
+        "workflow_contracts",
+        WORKFLOW_CONTRACTS_PATH,
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError(
+            f"Unable to load workflow contracts from {WORKFLOW_CONTRACTS_PATH}"
+        )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_WORKFLOW_CONTRACTS = _load_workflow_contracts()
+validate_delivery_acceptance_gate_contract = (
+    _WORKFLOW_CONTRACTS.validate_delivery_acceptance_gate
+)
 
 BUNDLE_VERSION = "dynamic_godot_release_evidence_bundle.v1"
 BUNDLE_ARTIFACT_TYPE = "dynamic_godot_release_evidence_bundle"
@@ -180,6 +204,16 @@ def _extract_gate(payload: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
+def _validate_gate_contract(
+    gate: dict[str, Any],
+    *,
+    prefix: str,
+    errors: list[str],
+) -> None:
+    for error in validate_delivery_acceptance_gate_contract(gate):
+        errors.append(f"{prefix} contract invalid: {error}")
+
+
 def _validate_readiness(
     readiness: dict[str, Any],
     index: dict[str, Any],
@@ -258,6 +292,11 @@ def _validate_web_delivery_record(
     if gate is None:
         errors.append("web_delivery_record must contain delivery_acceptance_gate.v1")
         return
+    _validate_gate_contract(
+        gate,
+        prefix="web_delivery_record.delivery_acceptance_gate",
+        errors=errors,
+    )
     if gate.get("source") != WEB_GODOT_DELIVERY_SOURCE:
         errors.append(
             f"web_delivery_record.delivery_acceptance_gate.source must be {WEB_GODOT_DELIVERY_SOURCE!r}"
@@ -393,8 +432,12 @@ def validate_bundle_index(index_path: Path) -> dict[str, Any]:
                 errors.append("static_closeout.status must be 'success'")
             if payload.get("acceptance_level") != "static_only":
                 errors.append("static_closeout.acceptance_level must be 'static_only'")
-        elif key == "delivery_gate" and _extract_gate(payload) is None:
-            errors.append("delivery_gate must contain delivery_acceptance_gate.v1")
+        elif key == "delivery_gate":
+            gate = _extract_gate(payload)
+            if gate is None:
+                errors.append("delivery_gate must contain delivery_acceptance_gate.v1")
+            else:
+                _validate_gate_contract(gate, prefix="delivery_gate", errors=errors)
         elif key == "readiness_summary":
             readiness_payload = payload
     live_smoke_entry = artifact_by_key.get("live_smoke")

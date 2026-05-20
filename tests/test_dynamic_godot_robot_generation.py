@@ -4240,14 +4240,32 @@ def _write_static_release_bundle_inputs(tmp_path: Path) -> tuple[Path, Path, Pat
         json.dumps(
             {
                 "contract_version": "delivery_acceptance_gate.v1",
-                "source": "dynamic_godot_static_evidence",
-                "verification_scope": "static_manifest",
-                "acceptance_profile": "static_godot_node_tree_evidence",
+                "source": "dynamic_godot_report_cli",
+                "verification_scope": "godot_smoke_motion",
+                "required": False,
+                "requires_full_mechanical_restoration_gate": False,
+                "acceptance_profile": "custom",
+                "acceptance_requirements": _acceptance_requirements(),
                 "level": "static_only",
                 "passed": True,
-                "complete": True,
                 "exit_code": 0,
+                "complete": False,
+                "reasons": [],
                 "reason_codes": [],
+                "reason_details": [],
+                "summary_counts": {
+                    "inputs_count": 1,
+                    "success_count": 1,
+                    "error_count": 0,
+                    "delivery_godot_verified_count": 0,
+                    "delivery_static_only_count": 1,
+                    "delivery_unverified_count": 0,
+                    "delivery_complete_count": 0,
+                    "delivery_incomplete_count": 1,
+                    "static_node_tree_manifest_count": 1,
+                    "static_node_tree_manifest_valid_count": 1,
+                    "static_node_tree_manifest_invalid_count": 0,
+                },
             }
         ),
         encoding="utf-8",
@@ -4606,6 +4624,58 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_malformed_bundl
     assert "readiness_summary.status must be 'ready'" in payload["errors"]
 
 
+def test_dynamic_godot_release_evidence_bundle_validator_rejects_invalid_gate_contract(
+    tmp_path: Path,
+) -> None:
+    closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
+        tmp_path
+    )
+    output_root = tmp_path / "bundle"
+    subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_TOOL),
+            "--static-closeout",
+            str(closeout_path),
+            "--delivery-gate",
+            str(gate_path),
+            "--readiness-summary",
+            str(readiness_path),
+            "--output-root",
+            str(output_root),
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    bundled_gate = output_root / "artifacts" / "delivery_gate.json"
+    gate = json.loads(bundled_gate.read_text(encoding="utf-8"))
+    gate.pop("acceptance_requirements")
+    bundled_gate.write_text(json.dumps(gate), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
+            str(output_root / "bundle_index.json"),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "invalid"
+    joined_errors = "\n".join(payload["errors"])
+    assert "artifacts.delivery_gate sha256 must equal" in joined_errors
+    assert (
+        "delivery_gate contract invalid: acceptance_requirements must be an object"
+    ) in payload["errors"]
+
+
 def test_dynamic_godot_release_evidence_bundle_validates_live_smoke(
     tmp_path: Path,
 ) -> None:
@@ -4713,13 +4783,66 @@ def test_dynamic_godot_release_evidence_bundle_validates_web_delivery_record(
                     "contract_version": "delivery_acceptance_gate.v1",
                     "source": "web_godot_delivery",
                     "verification_scope": "godot_load",
+                    "required": False,
+                    "requires_full_mechanical_restoration_gate": False,
                     "acceptance_profile": "web_godot_load",
+                    "acceptance_requirements": _acceptance_requirements(
+                        godot_load=True,
+                        mechanical_restoration_complete=True,
+                        joint_parameter_readback=True,
+                        node_tree_fixed_lock_match=True,
+                    ),
                     "passed": True,
-                    "complete": True,
-                    "level": "godot_load_verified",
                     "exit_code": 0,
+                    "level": "godot_load_verified",
+                    "complete": True,
+                    "reasons": [],
                     "reason_codes": [],
-                    "summary_counts": {},
+                    "reason_details": [],
+                    "summary_counts": {
+                        "inputs_count": 1,
+                        "success_count": 1,
+                        "error_count": 0,
+                        "live_smoke_count": 0,
+                        "delivery_godot_verified_count": 1,
+                        "delivery_static_only_count": 0,
+                        "delivery_unverified_count": 0,
+                        "delivery_dynamic_generation_count": 1,
+                        "delivery_complete_count": 1,
+                        "delivery_incomplete_count": 0,
+                        "delivery_parameters_incomplete_count": 0,
+                        "fixed_lock_checked_count": 0,
+                        "fixed_lock_mismatch_count": 0,
+                        "static_node_tree_manifest_count": 1,
+                        "static_node_tree_manifest_valid_count": 1,
+                        "static_node_tree_manifest_invalid_count": 0,
+                        "static_node_tree_manifest_error_count": 0,
+                        "static_node_tree_manifest_output_count": 1,
+                        "static_node_tree_manifest_path_map_mismatch_count": 0,
+                        "static_node_tree_manifest_path_map_mismatch_kind_counts": {},
+                        "static_node_tree_complete_count": 1,
+                        "static_node_tree_incomplete_count": 0,
+                        "static_node_tree_endpoint_paths_complete_count": 1,
+                        "static_node_tree_endpoint_paths_incomplete_count": 0,
+                        "static_node_tree_parameters_complete_count": 1,
+                        "static_node_tree_parameters_incomplete_count": 0,
+                        "node_tree_fixed_lock_checked_count": 0,
+                        "node_tree_fixed_lock_mismatch_count": 0,
+                        "node_tree_fixed_locks_complete_count": 0,
+                        "node_tree_fixed_locks_incomplete_count": 0,
+                        "node_tree_gate_enabled_count": 1,
+                        "node_tree_full_restoration_required_count": 0,
+                        "node_tree_full_restoration_not_required_count": 1,
+                        "node_tree_gate_check_counts": {"fixed_lock_mismatch": 1},
+                        "mechanical_gate_enabled_count": 2,
+                        "full_mechanical_restoration_required_count": 0,
+                        "full_mechanical_restoration_not_required_count": 1,
+                        "mechanical_gate_check_counts": {
+                            "mechanical_restoration": 1,
+                            "joint_parameter_readback": 1,
+                        },
+                        "failure_reasons_count": 0,
+                    },
                 },
             }
         ),
