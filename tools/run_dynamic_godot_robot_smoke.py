@@ -604,6 +604,32 @@ def _build_discovery_report(
     }
 
 
+def _build_runtime_failure_report(
+    *,
+    robot_config: dict[str, Any],
+    live_verification: dict[str, Any],
+    error: Exception,
+    stdout: str = "",
+    stderr: str = "",
+) -> dict[str, Any]:
+    failure_category = live_verification.get("failure_category") or "godot_runtime_failure"
+    return {
+        "status": "error",
+        "robot_name": robot_config.get("name"),
+        "live_verification": live_verification,
+        "failure_detail": {
+            "category": failure_category,
+            "exception_type": type(error).__name__,
+            "message": str(error),
+        },
+        "errors": [
+            f"live verification failed: {failure_category}: {error}",
+        ],
+        "stdout_tail": stdout.splitlines()[-20:],
+        "stderr_tail": stderr.splitlines()[-20:],
+    }
+
+
 def _send_command(port: int, payload: dict[str, Any]) -> dict[str, Any]:
     message = json.dumps(payload).encode("utf-8")
     with socket.create_connection(("127.0.0.1", port), timeout=5) as sock:
@@ -3266,27 +3292,69 @@ def main() -> int:
         }
         _write_and_print_report(report, args.output)
         return 1
-    process = _launch_godot(args)
+    try:
+        process = _launch_godot(args)
+    except OSError as exc:
+        report = _build_runtime_failure_report(
+            robot_config=robot_config,
+            live_verification=_live_verification_metadata(
+                args,
+                failure_category="godot_launch_failure",
+            ),
+            error=exc,
+        )
+        _write_and_print_report(report, args.output)
+        return 1
+
     stdout = ""
     stderr = ""
     try:
-        load_result = _send_command_with_retry(
-            args.port,
-            {"type": "load_robot", "robot_config": robot_config},
-            args.timeout_seconds,
-        )
-        schema_result = _send_command(args.port, {"type": "get_schema"})
-        step_results = []
-        actions_sent = []
-        for index in range(max(args.steps, 1)):
-            if index > 0 and args.step_delay_seconds > 0:
-                time.sleep(args.step_delay_seconds)
-            step_action = _action_for_step(action, action_sequence, index)
-            actions_sent.append(step_action)
-            step_results.append(
-                _send_command(args.port, {"type": "step", "action": step_action})
+        try:
+            load_result = _send_command_with_retry(
+                args.port,
+                {"type": "load_robot", "robot_config": robot_config},
+                args.timeout_seconds,
             )
-        step_result = step_results[-1]
+            schema_result = _send_command(args.port, {"type": "get_schema"})
+            step_results = []
+            actions_sent = []
+            for index in range(max(args.steps, 1)):
+                if index > 0 and args.step_delay_seconds > 0:
+                    time.sleep(args.step_delay_seconds)
+                step_action = _action_for_step(action, action_sequence, index)
+                actions_sent.append(step_action)
+                step_results.append(
+                    _send_command(args.port, {"type": "step", "action": step_action})
+                )
+            step_result = step_results[-1]
+        except TimeoutError as exc:
+            live_verification = _live_verification_metadata(
+                args,
+                failure_category="godot_tcp_timeout",
+            )
+            report = _build_runtime_failure_report(
+                robot_config=robot_config,
+                live_verification=live_verification,
+                error=exc,
+                stdout=stdout,
+                stderr=stderr,
+            )
+            _write_and_print_report(report, args.output)
+            return 1
+        except Exception as exc:
+            live_verification = _live_verification_metadata(
+                args,
+                failure_category="godot_runtime_failure",
+            )
+            report = _build_runtime_failure_report(
+                robot_config=robot_config,
+                live_verification=live_verification,
+                error=exc,
+                stdout=stdout,
+                stderr=stderr,
+            )
+            _write_and_print_report(report, args.output)
+            return 1
     finally:
         process.terminate()
         try:

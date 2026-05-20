@@ -385,6 +385,9 @@ def _build_godot_smoke_attempt_summary(
         "returncode": result_payload["returncode"],
         "report_written": result_payload["report_written"],
         "report_read_error": result_payload["report_read_error"],
+        "failure_category": result_payload.get("live_verification", {}).get(
+            "failure_category"
+        ),
         "execution_failure_reasons": result_payload["execution_failure_reasons"],
         "stdout_line_count": result_payload["stdout_line_count"],
         "stderr_line_count": result_payload["stderr_line_count"],
@@ -401,7 +404,14 @@ def _should_retry_auto_port_smoke(
 ) -> bool:
     if requested_port > 0 or attempt_index + 1 >= max_attempts:
         return False
-    if result_payload["returncode"] == 0 or result_payload["report_written"]:
+    if result_payload["returncode"] == 0:
+        return False
+    if (
+        result_payload.get("live_verification", {}).get("failure_category")
+        == "godot_tcp_timeout"
+    ):
+        return True
+    if result_payload["report_written"]:
         return False
     diagnostics = "\n".join(
         [

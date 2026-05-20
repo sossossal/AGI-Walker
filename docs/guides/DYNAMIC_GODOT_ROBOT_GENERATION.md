@@ -1103,7 +1103,11 @@ The discovery report and every live smoke report include
 `profile_name`, `environment_mode`, `godot_executable`, `failure_category`,
 `artifact_retention`, and `flaky_policy`. Missing executables are classified as
 `missing_godot_executable` and produce a structured smoke report instead of
-depending on a stale or absent output file.
+depending on a stale or absent output file. Launch failures and TCP startup
+timeouts are also written as structured smoke reports with
+`failure_category=godot_launch_failure` or `godot_tcp_timeout` and a
+`failure_detail` object; other unexpected command/runtime failures use
+`godot_runtime_failure`.
 
 Live smoke reports also include additive
 `mechanical_behavior_evidence.evidence_version=dynamic_godot_mechanical_behavior_evidence.v1`.
@@ -1139,10 +1143,11 @@ chain and writes the live smoke, report, gate, and readiness artifacts under
 `test_env/dynamic_godot_live/<profile>/`. Scheduled runs use the `scheduled_ci`
 profile; manual runs use `manual_ci`. The report builder auto-selects a free
 localhost TCP port by default for each live smoke invocation and records
-`godot_smoke.attempts`; if the first auto-port launch fails before writing a
-smoke report with `Godot TCP server did not respond on port`, it retries once
-with a newly selected port. Pass `--port <port>` only when a fixed port is
-required for a local diagnostic session; fixed-port runs do not auto-retry.
+`godot_smoke.attempts`; if the first auto-port launch fails with
+`godot_tcp_timeout`, or fails before writing a smoke report with
+`Godot TCP server did not respond on port`, it retries once with a newly
+selected port. Pass `--port <port>` only when a fixed port is required for a
+local diagnostic session; fixed-port runs do not auto-retry.
 
 Archive these exact artifacts:
 
