@@ -1,4 +1,14 @@
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${AGI_WALKER_REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   # Zenoh Router (Central Message Broker)
   zenoh-router:
     build:
@@ -81,18 +91,21 @@ services:
       args:
         WEB_PANEL_APT_PACKAGES: ""
         WEB_PANEL_REQUIREMENTS_FILE: /app/deployment/requirements.web_panel.txt
-    command: ["python", "-m", "uvicorn", "web_panel.server:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["sh", "-c", "alembic upgrade head && python -m uvicorn web_panel.server:app --host 0.0.0.0 --port 8000"]
     depends_on:
+      - redis
       - zenoh-router
     env_file:
       - ${AGI_WALKER_COMPOSE_WEB_ENV_FILE:-./web_panel.env.example}
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
+      - AGI_WALKER_SECRET_KEY=${AGI_WALKER_SECRET_KEY:-change-me-before-production}
       - AGI_WALKER_ZENOH_ENDPOINT=tcp/zenoh-router:7447
       - AGI_WALKER_DATABASE_URL=${AGI_WALKER_DATABASE_URL:-sqlite+aiosqlite:////var/lib/agi_walker/db/agi_walker.db}
       - AGI_WALKER_WEB_OUTPUT_ROOT=${AGI_WALKER_WEB_OUTPUT_ROOT:-/var/lib/agi_walker/workflow_runs}
       - AGI_WALKER_WEB_ARCHIVE_ROOT=${AGI_WALKER_WEB_ARCHIVE_ROOT:-/var/lib/agi_walker/workflow_archive}
+      - AGI_WALKER_REDIS_URL=${AGI_WALKER_REDIS_URL:-redis://redis:6379/0}
     ports:
       - "${AGI_WALKER_WEB_PORT:-8080}:8000"
     volumes:
@@ -106,6 +119,34 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+
+  workflow-worker:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.web_panel
+      args:
+        WEB_PANEL_APT_PACKAGES: ""
+        WEB_PANEL_REQUIREMENTS_FILE: /app/deployment/requirements.web_panel.txt
+    command: ["celery", "-A", "web_panel.celery_app", "worker", "--loglevel=INFO", "--concurrency=1"]
+    depends_on:
+      - redis
+      - zenoh-router
+    env_file:
+      - ${AGI_WALKER_COMPOSE_WEB_ENV_FILE:-./web_panel.env.example}
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+      - AGI_WALKER_SECRET_KEY=${AGI_WALKER_SECRET_KEY:-change-me-before-production}
+      - AGI_WALKER_ZENOH_ENDPOINT=tcp/zenoh-router:7447
+      - AGI_WALKER_DATABASE_URL=${AGI_WALKER_DATABASE_URL:-sqlite+aiosqlite:////var/lib/agi_walker/db/agi_walker.db}
+      - AGI_WALKER_WEB_OUTPUT_ROOT=${AGI_WALKER_WEB_OUTPUT_ROOT:-/var/lib/agi_walker/workflow_runs}
+      - AGI_WALKER_WEB_ARCHIVE_ROOT=${AGI_WALKER_WEB_ARCHIVE_ROOT:-/var/lib/agi_walker/workflow_archive}
+      - AGI_WALKER_REDIS_URL=${AGI_WALKER_REDIS_URL:-redis://redis:6379/0}
+    volumes:
+      - "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/db:/var/lib/agi_walker/db"
+      - "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/workflow_runs:/var/lib/agi_walker/workflow_runs"
+      - "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/workflow_archive:/var/lib/agi_walker/workflow_archive"
+      - "${AGI_WALKER_RUNTIME_ROOT:-./runtime}/backups:/var/lib/agi_walker/backups"
 
   # Web Panel / Distributed-capable variant (optional, installs zenoh Python package)
   web-panel-distributed:

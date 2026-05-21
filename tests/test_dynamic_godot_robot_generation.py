@@ -987,6 +987,8 @@ def test_generated_robot_controller_exposes_motion_and_telemetry_hooks() -> None
         "func _joint_limit_state(relative_angle: float, connection_config: Dictionary) -> Dictionary"
         in content
     )
+    assert 'str(connection_config.get("joint_type", "")) == "fixed"' in content
+    assert '"reason": "fixed_joint"' in content
     assert '"violation": relative_angle < lower or relative_angle > upper' in content
     assert "func _joint_endpoint_state(endpoint_path: NodePath) -> Dictionary" in content
     assert "func _joint_relative_angle(joint: Joint3D) -> float" in content
@@ -2318,6 +2320,50 @@ def test_mechanical_behavior_evidence_reports_threshold_failures() -> None:
         "commanded_joint_response_under_min",
         "action_target_coverage_under_min",
         "control_action_coverage_under_min",
+    ]
+    assert evidence["threshold_failure_details"]["joint_limit_violation"] == [
+        {"joint": "hip"}
+    ]
+    assert evidence["threshold_failure_details"]["joint_motion"][
+        "commanded_joint_response_under_min"
+    ] is True
+
+
+def test_joint_limit_summary_includes_violation_details() -> None:
+    spec = importlib.util.spec_from_file_location("dynamic_godot_smoke", SMOKE_TOOL)
+    smoke_tool = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(smoke_tool)
+
+    summary = smoke_tool._joint_limit_summary(
+        {
+            "hip": {
+                "relative_angle": 1.2,
+                "limits": {
+                    "configured": True,
+                    "lower": -0.5,
+                    "upper": 1.0,
+                    "margin_lower": 1.7,
+                    "margin_upper": -0.2,
+                    "min_margin": -0.2,
+                    "violation": True,
+                },
+            }
+        }
+    )
+
+    assert summary["violation_count"] == 1
+    assert summary["worst_joint"] == "hip"
+    assert summary["violations"] == [
+        {
+            "joint": "hip",
+            "relative_angle": 1.2,
+            "lower": -0.5,
+            "upper": 1.0,
+            "margin_lower": 1.7,
+            "margin_upper": -0.2,
+            "min_margin": -0.2,
+        }
     ]
 
 

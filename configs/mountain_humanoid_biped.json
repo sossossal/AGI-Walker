@@ -1,0 +1,283 @@
+{
+  "schema_version": "1.5",
+  "name": "mountain_humanoid_biped",
+  "metadata": {
+    "description": "Humanoid biped configured for local mountain terrain simulation.",
+    "terrain_profile": "mountain",
+    "height_m": 1.42,
+    "nominal_mass_kg": 14.3,
+    "dof": 10,
+    "tags": ["humanoid", "biped", "mountain", "local-simulation"]
+  },
+  "parts": [
+    {
+      "id": "pelvis",
+      "type": "torso",
+      "shape": "box",
+      "params": {
+        "mass": 3.2,
+        "size": [0.32, 0.18, 0.20],
+        "position": [0.0, 1.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0]
+      },
+      "material": {"preset": "light_alloy", "friction": 0.9},
+      "physics": {"preset": "balanced", "linear_damping": 0.05, "angular_damping": 0.08}
+    },
+    {
+      "id": "torso",
+      "type": "torso",
+      "shape": "box",
+      "params": {
+        "mass": 4.8,
+        "size": [0.36, 0.22, 0.44],
+        "position": [0.0, 1.28, 0.0],
+        "rotation": [0.0, 0.0, 0.0]
+      },
+      "material": {"preset": "light_alloy", "friction": 0.85},
+      "physics": {"preset": "balanced", "linear_damping": 0.06, "angular_damping": 0.1}
+    },
+    {
+      "id": "head",
+      "type": "head",
+      "shape": "sphere",
+      "params": {
+        "mass": 0.9,
+        "radius": 0.1,
+        "position": [0.0, 1.58, 0.0],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    },
+    {
+      "id": "left_upper_arm",
+      "type": "arm",
+      "shape": "capsule",
+      "params": {
+        "mass": 0.45,
+        "length": 0.28,
+        "radius": 0.035,
+        "position": [-0.28, 1.24, 0.0],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    },
+    {
+      "id": "right_upper_arm",
+      "type": "arm",
+      "shape": "capsule",
+      "params": {
+        "mass": 0.45,
+        "length": 0.28,
+        "radius": 0.035,
+        "position": [0.28, 1.24, 0.0],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    },
+    {
+      "id": "left_thigh",
+      "type": "thigh",
+      "shape": "capsule",
+      "params": {
+        "mass": 1.25,
+        "length": 0.42,
+        "radius": 0.045,
+        "position": [-0.11, 0.72, 0.0],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    },
+    {
+      "id": "left_shin",
+      "type": "shin",
+      "shape": "capsule",
+      "params": {
+        "mass": 0.95,
+        "length": 0.40,
+        "radius": 0.038,
+        "position": [-0.11, 0.32, 0.0],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    },
+    {
+      "id": "left_foot",
+      "type": "foot",
+      "shape": "box",
+      "params": {
+        "mass": 0.45,
+        "size": [0.24, 0.08, 0.34],
+        "position": [-0.11, 0.08, 0.06],
+        "rotation": [0.0, 0.0, 0.0]
+      },
+      "material": {"preset": "rubber_sole", "friction": 1.25}
+    },
+    {
+      "id": "right_thigh",
+      "type": "thigh",
+      "shape": "capsule",
+      "params": {
+        "mass": 1.25,
+        "length": 0.42,
+        "radius": 0.045,
+        "position": [0.11, 0.72, 0.0],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    },
+    {
+      "id": "right_shin",
+      "type": "shin",
+      "shape": "capsule",
+      "params": {
+        "mass": 0.95,
+        "length": 0.40,
+        "radius": 0.038,
+        "position": [0.11, 0.32, 0.0],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    },
+    {
+      "id": "right_foot",
+      "type": "foot",
+      "shape": "box",
+      "params": {
+        "mass": 0.45,
+        "size": [0.24, 0.08, 0.34],
+        "position": [0.11, 0.08, 0.06],
+        "rotation": [0.0, 0.0, 0.0]
+      },
+      "material": {"preset": "rubber_sole", "friction": 1.25}
+    }
+  ],
+  "connections": [
+    {
+      "name": "spine_pitch",
+      "from": "pelvis",
+      "to": "torso",
+      "joint_type": "hinge",
+      "origin": [0.0, 1.1, 0.0],
+      "axis": [1.0, 0.0, 0.0],
+      "limits": {"lower": -0.35, "upper": 0.35, "effort": 80.0, "velocity": 3.0},
+      "motor": {"enabled": true, "target_velocity": 0.0, "max_impulse": 95.0},
+      "dynamics": {"damping": 0.16, "friction": 0.03},
+      "actuator": {"type": "servo", "max_torque": 48.0, "max_velocity": 3.0},
+      "controller": {"kp": 58.0, "ki": 0.0, "kd": 6.0, "max_output": 80.0}
+    },
+    {
+      "name": "neck_fixed",
+      "from": "torso",
+      "to": "head",
+      "joint_type": "fixed",
+      "origin": [0.0, 1.5, 0.0],
+      "axis": [0.0, 1.0, 0.0],
+      "limits": {"lower": 0.0, "upper": 0.0},
+      "motor": {"enabled": false, "target_velocity": 0.0, "max_impulse": 0.0},
+      "dynamics": {"damping": 0.1, "friction": 0.02}
+    },
+    {
+      "name": "left_shoulder_swing",
+      "from": "torso",
+      "to": "left_upper_arm",
+      "joint_type": "hinge",
+      "origin": [-0.23, 1.36, 0.0],
+      "axis": [1.0, 0.0, 0.0],
+      "limits": {"lower": -1.4, "upper": 1.4, "effort": 30.0, "velocity": 5.0},
+      "motor": {"enabled": true, "target_velocity": 0.0, "max_impulse": 35.0},
+      "dynamics": {"damping": 0.1, "friction": 0.02}
+    },
+    {
+      "name": "right_shoulder_swing",
+      "from": "torso",
+      "to": "right_upper_arm",
+      "joint_type": "hinge",
+      "origin": [0.23, 1.36, 0.0],
+      "axis": [1.0, 0.0, 0.0],
+      "limits": {"lower": -1.4, "upper": 1.4, "effort": 30.0, "velocity": 5.0},
+      "motor": {"enabled": true, "target_velocity": 0.0, "max_impulse": 35.0},
+      "dynamics": {"damping": 0.1, "friction": 0.02}
+    },
+    {
+      "name": "left_hip_pitch",
+      "from": "pelvis",
+      "to": "left_thigh",
+      "joint_type": "hinge",
+      "origin": [-0.11, 0.93, 0.0],
+      "axis": [1.0, 0.0, 0.0],
+      "limits": {"lower": -1.1, "upper": 0.9, "effort": 140.0, "velocity": 5.0},
+      "motor": {"enabled": true, "target_velocity": 0.0, "max_impulse": 150.0},
+      "dynamics": {"damping": 0.18, "friction": 0.04},
+      "actuator": {"type": "servo", "max_torque": 72.0, "max_velocity": 4.5},
+      "controller": {"kp": 82.0, "ki": 0.0, "kd": 8.0, "max_output": 120.0}
+    },
+    {
+      "name": "left_knee_pitch",
+      "from": "left_thigh",
+      "to": "left_shin",
+      "joint_type": "hinge",
+      "origin": [-0.11, 0.51, 0.0],
+      "axis": [1.0, 0.0, 0.0],
+      "limits": {"lower": -1.55, "upper": 0.08, "effort": 120.0, "velocity": 5.5},
+      "motor": {"enabled": true, "target_velocity": 0.0, "max_impulse": 120.0},
+      "dynamics": {"damping": 0.16, "friction": 0.04},
+      "controller": {"kp": 76.0, "ki": 0.0, "kd": 7.0, "max_output": 110.0}
+    },
+    {
+      "name": "left_ankle_pitch",
+      "from": "left_shin",
+      "to": "left_foot",
+      "joint_type": "hinge",
+      "origin": [-0.11, 0.12, 0.02],
+      "axis": [1.0, 0.0, 0.0],
+      "limits": {"lower": -0.65, "upper": 0.65, "effort": 60.0, "velocity": 4.0},
+      "motor": {"enabled": true, "target_velocity": 0.0, "max_impulse": 75.0},
+      "dynamics": {"damping": 0.2, "friction": 0.05},
+      "sensor": {"type": "foot_contact", "rate_hz": 120.0, "noise_stddev": 0.01}
+    },
+    {
+      "name": "right_hip_pitch",
+      "from": "pelvis",
+      "to": "right_thigh",
+      "joint_type": "hinge",
+      "origin": [0.11, 0.93, 0.0],
+      "axis": [1.0, 0.0, 0.0],
+      "limits": {"lower": -1.1, "upper": 0.9, "effort": 140.0, "velocity": 5.0},
+      "motor": {"enabled": true, "target_velocity": 0.0, "max_impulse": 150.0},
+      "dynamics": {"damping": 0.18, "friction": 0.04},
+      "actuator": {"type": "servo", "max_torque": 72.0, "max_velocity": 4.5},
+      "controller": {"kp": 82.0, "ki": 0.0, "kd": 8.0, "max_output": 120.0}
+    },
+    {
+      "name": "right_knee_pitch",
+      "from": "right_thigh",
+      "to": "right_shin",
+      "joint_type": "hinge",
+      "origin": [0.11, 0.51, 0.0],
+      "axis": [1.0, 0.0, 0.0],
+      "limits": {"lower": -1.55, "upper": 0.08, "effort": 120.0, "velocity": 5.5},
+      "motor": {"enabled": true, "target_velocity": 0.0, "max_impulse": 120.0},
+      "dynamics": {"damping": 0.16, "friction": 0.04},
+      "controller": {"kp": 76.0, "ki": 0.0, "kd": 7.0, "max_output": 110.0}
+    },
+    {
+      "name": "right_ankle_pitch",
+      "from": "right_shin",
+      "to": "right_foot",
+      "joint_type": "hinge",
+      "origin": [0.11, 0.12, 0.02],
+      "axis": [1.0, 0.0, 0.0],
+      "limits": {"lower": -0.65, "upper": 0.65, "effort": 60.0, "velocity": 4.0},
+      "motor": {"enabled": true, "target_velocity": 0.0, "max_impulse": 75.0},
+      "dynamics": {"damping": 0.2, "friction": 0.05},
+      "sensor": {"type": "foot_contact", "rate_hz": 120.0, "noise_stddev": 0.01}
+    }
+  ],
+  "control": {
+    "mode": "deterministic_mountain_gait",
+    "joints": {
+      "spine_pitch": {"kp": 58.0, "kd": 6.0},
+      "left_shoulder_swing": {"kp": 18.0, "kd": 2.0},
+      "right_shoulder_swing": {"kp": 18.0, "kd": 2.0},
+      "left_hip_pitch": {"kp": 82.0, "kd": 8.0},
+      "left_knee_pitch": {"kp": 76.0, "kd": 7.0},
+      "left_ankle_pitch": {"kp": 42.0, "kd": 4.0},
+      "right_hip_pitch": {"kp": 82.0, "kd": 8.0},
+      "right_knee_pitch": {"kp": 76.0, "kd": 7.0},
+      "right_ankle_pitch": {"kp": 42.0, "kd": 4.0}
+    }
+  }
+}

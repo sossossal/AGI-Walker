@@ -416,6 +416,28 @@ def _mechanical_behavior_evidence(
         threshold_failures.append("action_target_coverage_under_min")
     if control_action_coverage_summary.get("coverage_under_min"):
         threshold_failures.append("control_action_coverage_under_min")
+    threshold_failure_details = {
+        "joint_limit_violation": limit_summary.get("violations", []),
+        "joint_motion": {
+            "angle_delta_under_min": joint_motion_summary.get(
+                "angle_delta_under_min", False
+            ),
+            "angle_range_under_min": joint_motion_summary.get(
+                "angle_range_under_min", False
+            ),
+            "moving_joint_coverage_under_min": joint_motion_summary.get(
+                "moving_joint_coverage_under_min", False
+            ),
+            "commanded_joint_response_under_min": joint_motion_summary.get(
+                "commanded_joint_response_under_min", False
+            ),
+            "commanded_joint_response_details": joint_motion_summary.get(
+                "commanded_joint_response_details", []
+            ),
+        },
+        "action_target_coverage": action_target_coverage_summary,
+        "control_action_coverage": control_action_coverage_summary,
+    }
 
     return {
         "evidence_version": MECHANICAL_BEHAVIOR_EVIDENCE_VERSION,
@@ -442,6 +464,7 @@ def _mechanical_behavior_evidence(
         "missing_sections": missing_sections,
         "residual_risks": residual_risks,
         "threshold_failures": threshold_failures,
+        "threshold_failure_details": threshold_failure_details,
         "complete": not residual_risks and not threshold_failures,
         "joint_limit_evidence": {
             "available": bool(limit_summary),
@@ -727,6 +750,7 @@ def _build_result(
     actions: list[Any],
     stdout: str,
     stderr: str,
+    terrain_result: dict[str, Any] | None = None,
     live_verification: dict[str, Any] | None = None,
     trace_artifact_path: str | None = None,
 ) -> dict[str, Any]:
@@ -832,6 +856,8 @@ def _build_result(
     errors = []
     if load_result.get("status") != "success":
         errors.append("load_robot did not return success")
+    if terrain_result is not None and terrain_result.get("status") != "success":
+        errors.append("configure_terrain did not return success")
     if load_result.get("parts_created") != expected_parts:
         errors.append("parts_created does not match config parts count")
     if load_result.get("joints_created") != expected_joints:
@@ -1046,6 +1072,7 @@ def _build_result(
         "expected_parts": expected_parts,
         "expected_joints": expected_joints,
         "load_result": load_result,
+        "terrain_result": terrain_result or {},
         "schema_meta": schema_result.get("meta", {}),
         "mapping_summary": {
             "part_nodes": len(part_nodes),
@@ -1080,6 +1107,7 @@ def _build_result(
             "joint_motion_summary": joint_motion_summary,
             "action_sequence_summary": action_sequence_summary,
             "mechanical_restoration_summary": restoration_summary,
+            "terrain": step_result.get("terrain", {}),
             "action_sent": action,
             "first_action_sent": actions[0] if actions else action,
             "last_action_sent": actions[-1] if actions else action,
@@ -2799,11 +2827,13 @@ def _joint_limit_summary(joint_states: Any) -> dict[str, Any]:
             "joint_count": 0,
             "configured_count": 0,
             "violation_count": 0,
+            "violations": [],
             "min_margin": None,
             "worst_joint": None,
         }
 
     margins: list[tuple[str, float]] = []
+    violations: list[dict[str, Any]] = []
     violation_count = 0
     configured_count = 0
     for joint_name, state in joint_states.items():
@@ -2815,6 +2845,17 @@ def _joint_limit_summary(joint_states: Any) -> dict[str, Any]:
         configured_count += 1
         if limits.get("violation") is True:
             violation_count += 1
+            violations.append(
+                {
+                    "joint": str(joint_name),
+                    "relative_angle": state.get("relative_angle"),
+                    "lower": limits.get("lower"),
+                    "upper": limits.get("upper"),
+                    "margin_lower": limits.get("margin_lower"),
+                    "margin_upper": limits.get("margin_upper"),
+                    "min_margin": limits.get("min_margin"),
+                }
+            )
         margin = limits.get("min_margin")
         if isinstance(margin, (int, float)):
             margins.append((str(joint_name), float(margin)))
@@ -2824,6 +2865,7 @@ def _joint_limit_summary(joint_states: Any) -> dict[str, Any]:
         "joint_count": len(joint_states),
         "configured_count": configured_count,
         "violation_count": violation_count,
+        "violations": violations,
         "min_margin": worst[1] if worst else None,
         "worst_joint": worst[0] if worst else None,
     }
@@ -3225,10 +3267,20 @@ def main() -> int:
         type=Path,
         help="Optional JSON artifact path for the full mechanical step trace.",
     )
+    parser.add_argument(
+        "--terrain-json",
+        type=Path,
+        help="Optional Godot terrain JSON to configure before stepping.",
+    )
     parser.add_argument("--output", type=Path, help="Optional JSON report path.")
     args = parser.parse_args()
 
     robot_config = json.loads(Path(args.robot_config).read_text(encoding="utf-8"))
+    terrain_config = (
+        json.loads(args.terrain_json.read_text(encoding="utf-8"))
+        if args.terrain_json is not None
+        else None
+    )
     action = json.loads(args.action_json)
     action_sequence = (
         json.loads(args.action_sequence_json)
@@ -3315,6 +3367,12 @@ def main() -> int:
                 {"type": "load_robot", "robot_config": robot_config},
                 args.timeout_seconds,
             )
+            terrain_result = None
+            if terrain_config is not None:
+                terrain_result = _send_command(
+                    args.port,
+                    {"type": "configure_terrain", "terrain": terrain_config},
+                )
             schema_result = _send_command(args.port, {"type": "get_schema"})
             step_results = []
             actions_sent = []
@@ -3405,6 +3463,7 @@ def main() -> int:
 
     report = _build_result(
         robot_config=robot_config,
+        terrain_result=terrain_result,
         load_result=load_result,
         schema_result=schema_result,
         step_result=step_result,

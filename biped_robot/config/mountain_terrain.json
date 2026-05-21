@@ -1,0 +1,18 @@
+{
+  "schema_version": "mountain-terrain.v1",
+  "name": "local_mountain_walkway",
+  "size_meters": 42.0,
+  "grid_resolution": 48,
+  "base_height": 0.0,
+  "ridge_amplitude": 0.85,
+  "ridge_frequency": 0.34,
+  "roughness_amplitude": 0.18,
+  "roughness_frequency": 1.15,
+  "walkway_width": 3.6,
+  "walkway_smoothing": 0.58,
+  "acceptance": {
+    "max_allowed_slope_degrees": 30.0,
+    "min_clearance_meters": 0.035,
+    "min_stability_margin": 0.10
+  }
+}

@@ -189,6 +189,7 @@ def _run_godot_smoke(
     steps: int,
     step_delay_seconds: float,
     mechanical_trace_output: Path | None = None,
+    terrain_json: Path | None = None,
     live_profile: str = "local",
     live_artifact_root: Path | None = None,
     live_retention_days: int | None = None,
@@ -218,6 +219,8 @@ def _run_godot_smoke(
         ]
         if mechanical_trace_output is not None:
             command.extend(["--mechanical-trace-output", str(mechanical_trace_output)])
+        if terrain_json is not None:
+            command.extend(["--terrain-json", str(terrain_json)])
         if live_artifact_root is not None:
             command.extend(["--live-artifact-root", str(live_artifact_root)])
         if live_retention_days is not None:
@@ -796,6 +799,7 @@ def _build_report_for_input(
     steps: int,
     step_delay_seconds: float,
     mechanical_trace_output: Path | None = None,
+    terrain_json: Path | None = None,
     live_profile: str = "local",
     live_artifact_root: Path | None = None,
     live_retention_days: int | None = None,
@@ -887,6 +891,7 @@ def _build_report_for_input(
             steps=steps,
             step_delay_seconds=step_delay_seconds,
             mechanical_trace_output=mechanical_trace_output,
+            terrain_json=terrain_json,
         )
         report["godot_smoke"] = smoke_result
         smoke_report, _report_read_error = _read_optional_json_object(smoke_output)
@@ -3182,6 +3187,11 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--terrain-json",
+        type=Path,
+        help="Optional Godot terrain JSON passed to the live smoke runner.",
+    )
+    parser.add_argument(
         "--full-mechanical-restoration-acceptance",
         action="store_true",
         help=(
@@ -3580,6 +3590,7 @@ def main() -> int:
             steps=args.steps,
             step_delay_seconds=args.step_delay_seconds,
             mechanical_trace_output=args.mechanical_trace_output,
+            terrain_json=args.terrain_json,
         )
         if args.static_node_tree_manifest_dir:
             manifest_output = _static_node_tree_manifest_output_path(

@@ -55,6 +55,9 @@ Out of scope:
 | web-evidence-dashboard | `plans/modules/web-evidence-dashboard.md` | Web UI/API flow for static/load/live evidence display, manifest mismatch, residual risk, one-click load/readiness actions | Web/session evidence, release readiness | complete |
 | schema-evolution | `plans/modules/schema-evolution.md` | Robot schema 1.5 optional actuator/sensor/joint-limit/controller/material physics fields and migration compatibility | Static schema, runtime behavior, fixtures | complete |
 | release-evidence-bundle | `plans/modules/release-evidence-bundle.md` | Customer-facing evidence bundle with static closeout, gate, readiness, live smoke, Web delivery record, docs index, self-validation | All evidence modules | complete |
+| mountain-biped-simulation | `plans/modules/mountain-biped-simulation.md` | Local deterministic mountain-running example for a humanoid biped robot, with terrain/run evidence artifacts | Robot schema 1.5, examples, tests | complete |
+| production-compose-smoke | `plans/modules/production-compose-smoke.md` | Supported Docker Compose deployment entrypoint and authenticated Web workflow smoke | Web panel, Celery worker, Redis, deployment docs/tests | complete |
+| hardwareless-acceptance | `plans/modules/hardwareless-acceptance.md` | No-hardware acceptance report that preserves substitute evidence and explicit external blockers | Hardware replay/mock tests, ROS2 fake runtime, live Godot readiness, production compose smoke | complete |
 
 # Interfaces and Contracts
 
@@ -74,10 +77,18 @@ Out of scope:
 - Dynamic Godot report live smoke invocations auto-select a free localhost TCP port by default, record smoke attempt metadata, update report-level flaky policy attempt/classification fields, and retry once on auto-port TCP startup response failures; explicit `--port <port>` remains the fixed-port override for diagnostics and does not auto-retry.
 - After a dynamic Godot report wrapper retry, the final retained smoke JSON artifact and report-level `godot_smoke` evidence must agree on `live_verification.flaky_policy.attempts_recorded`, `max_attempts`, and `classification`; the retained smoke artifact also records wrapper attempt summaries under `live_verification.flaky_policy.wrapper_attempts`.
 - Runtime mechanical behavior evidence must use structured fields for joint limits, torque/velocity response, center of mass, contact state and step-by-step motion trace, with tolerances and units documented before enforcement.
+- Runtime mechanical behavior evidence includes threshold failure details; joint limit violations expose joint name, relative angle, configured lower/upper limits and margin values so behavior risks are diagnosable rather than only counted.
+- Fixed joints are validated by fixed-lock restoration evidence and are excluded from hinge-style angular joint-limit violation checks.
 - Web evidence surfaces must preserve the same evidence levels, manifest mismatch counts and residual risk fields used by CLI/readiness artifacts.
 - Schema 1.5 must be additive by default; actuator, sensor, joint limit, controller tuning and material/physics preset fields remain optional until migration tests prove compatibility.
 - Schema 1.5 optional fields use additive robot JSON keys: connection-level `actuator`, `sensor`/`sensors`, extended `limits.effort`/`limits.velocity`, connection-level `controller`, and part-level `material`/`physics`. Older configs remain valid without these fields.
 - Release evidence bundles use `dynamic_godot_release_evidence_bundle.v1` and self-validation uses `dynamic_godot_release_evidence_bundle_validation.v1`; bundle indexes link static closeout, gate, readiness, optional live smoke, optional Web delivery record, validation report and documentation artifacts with unique artifact keys/documentation roles, correct required flags, bundle-root-relative paths, size, SHA-256 and source/bundle modified timestamp metadata. Bundle validation delegates bundled delivery gate shape checks to the shared `delivery_acceptance_gate.v1` contract and checks that index `bundle_root`, timezone-aware `generated_at`, `readiness_status`, `residual_risks`, `validation_status`, the bundled validation report status, validation report error/status self-consistency, validation report bundle root, required artifact/doc role contract lists, artifact/documentation counts and evidence level match the current validation result. When optional live smoke is supplied, bundle validation checks its live verification profile and wrapper retry metadata consistency. When optional Web delivery record evidence is supplied, bundle validation checks its `web_godot_delivery/godot_load` gate metadata and static manifest evidence consistency.
+- No-hardware acceptance reports use `hardwareless_acceptance_report.v1`; they may record mock/replay, fake-runtime, live Godot and compose evidence commands, but must keep real robot hardware, real serial/CAN transport and missing ROS2 runtime as external blockers rather than marking hardware validation as passed.
+- No-hardware acceptance reports include `hardwareless_safety_scenarios` so command limit clamping, watchdog fallback, fault-class recovery, serial protocol replay, Web recovery permission gates and live Godot mountain mechanical evidence are tracked as covered mitigations before any remaining residual risk is accepted.
+- No-hardware acceptance reports expose `required_external_evidence` for real hardware closeout and ROS2 bridge live smoke; missing evidence remains an external blocker, and passed/ready artifacts remove those blockers without changing mock/replay semantics.
+- No-hardware acceptance strict mode uses `--require-external-evidence` and must return `blocked` when real hardware closeout or ROS2 bridge live smoke evidence is missing or not ready.
+- No-hardware acceptance reports must expose `release_gate.status`; release-gate status remains `blocked` while required external evidence is missing, even if the local hardwareless report status is `accepted_with_documented_external_blockers`.
+- No-hardware release readiness is validated by `tools/validate_hardwareless_release_gate.py`, which fails unless `release_gate.status` matches the expected value.
 
 # Integration Plan
 
@@ -114,6 +125,8 @@ Out of scope:
 - [x] Add Web evidence dashboard and artifact actions for static/load/live levels, manifest mismatch and readiness summary.
 - [x] Plan additive robot schema 1.5 fields with backward compatibility and migration tests.
 - [x] Add self-validating release evidence bundle for delivery artifacts and documentation index.
+- [x] Add local deterministic mountain humanoid biped simulation example and evidence artifacts.
+- [x] Add no-hardware acceptance report and targeted substitute validation evidence.
 
 # Risks and Mitigations
 
@@ -206,5 +219,15 @@ Phase 2 validation expands this set with module-specific checks:
 - 2026-05-20: Approved release bundle self-validation report contract: final bundle indexes must reference an in-bundle `dynamic_godot_release_evidence_bundle_validation.v1` report whose status matches the current validation result.
 - 2026-05-20: Approved release bundle validation snapshot contract: bundled validation reports must be internally status/error consistent and their artifact count, documentation count and evidence level must match the current bundle index.
 - 2026-05-20: Approved release bundle validation contract snapshot hardening: bundled validation reports must also match the current bundle root and required artifact/documentation role contract lists.
+- 2026-05-21: Approved production compose smoke contract update: the opt-in production compose live smoke uses the supported `deployment/docker-compose.yml` entrypoint, starts `redis`, `zenoh-router`, `web-panel`, and `workflow-worker`, runs Alembic migrations before Web startup, and proves authenticated workflow execution through the Web API.
+- 2026-05-21: Approved mechanical behavior diagnostics hardening: threshold failures include structured detail, and joint-limit summaries carry violation records with angle, limits and margins.
+- 2026-05-21: Approved fixed-joint limit classification update: `joint_type=fixed` reports joint-limit telemetry as not applicable so fixed joints do not create false hinge-limit violations.
+- 2026-05-21: Approved no-hardware acceptance contract addition: `hardwareless_acceptance_report.v1` records substitute evidence and external blockers without weakening real hardware live closeout.
+- 2026-05-21: Approved no-hardware safety scenario matrix addition: hardwareless acceptance must separate locally covered safety mitigations from irreducible external live hardware/ROS2 blockers.
+- 2026-05-21: Approved required external evidence gates for no-hardware acceptance: real hardware closeout and ROS2 bridge live smoke are resolvable artifact inputs rather than duplicated residual-risk text.
+- 2026-05-21: Approved strict no-hardware release gate: `--require-external-evidence` converts unresolved external evidence blockers into a blocking report status.
+- 2026-05-21: Approved machine-readable release gate verdict for no-hardware reports so local acceptance evidence cannot be misread as release readiness.
+- 2026-05-21: Approved standalone no-hardware release gate validator to remove hand-rolled JSON parsing from release scripts.
 - 2026-05-20: Approved release bundle index metadata hardening: bundle validation must verify index `bundle_root`, timezone-aware `generated_at`, `readiness_status` and `residual_risks` against the current bundle and readiness summary.
 - 2026-05-20: Approved release bundle required-flag contract: artifact and documentation index entries must mark only required artifact keys and required documentation roles as `required=true`.
+- 2026-05-20: Approved additive example scope: local mountain humanoid biped simulation may add example config, CLI, docs and tests without changing dynamic Godot release gate contracts or requiring live Godot.

@@ -1,0 +1,43 @@
+{
+  "schema_version": "biped-hardware-interface.v1",
+  "name": "future_biped_hardware_boundary",
+  "status": "not_connected",
+  "ownership_boundary": {
+    "current_folder": "biped_robot",
+    "outside_changes_require_user_approval": true,
+    "outside_paths_expected_later": [
+      "hardware/",
+      "godot_project/",
+      "configs/",
+      "tests/",
+      "ROS2 workspace or launch files"
+    ]
+  },
+  "required_capabilities": [
+    {
+      "name": "motor_transport",
+      "accepted_transports": ["serial", "CAN"],
+      "current_status": "missing_hardware"
+    },
+    {
+      "name": "joint_state_feedback",
+      "required_fields": ["joint_name", "position_degrees", "velocity_degrees_per_second", "timestamp"],
+      "current_status": "missing_hardware"
+    },
+    {
+      "name": "imu_feedback",
+      "required_fields": ["roll_degrees", "pitch_degrees", "yaw_degrees", "linear_acceleration", "timestamp"],
+      "current_status": "missing_hardware"
+    },
+    {
+      "name": "ros2_bridge",
+      "required_topics": ["/joint_states", "/imu", "/cmd_joint_targets"],
+      "current_status": "missing_ros2_runtime"
+    }
+  ],
+  "safe_defaults": {
+    "hardware_commands_enabled": false,
+    "max_joint_target_degrees_per_second": 45.0,
+    "emergency_stop_required": true
+  }
+}

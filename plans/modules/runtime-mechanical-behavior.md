@@ -51,6 +51,8 @@ Runtime restoration already compares node existence, classes, transforms, axes, 
 - [x] Add contact state evidence for feet/support parts where available.
 - [x] Add step-by-step motion trace with bounded size and artifact path support.
 - [x] Add report/gate/workflow contract tests for behavior evidence fields.
+- [x] Add structured threshold failure details for joint-limit diagnostics.
+- [x] Exclude fixed joints from hinge-style joint-limit violation checks.
 
 # Risks and Mitigations
 
@@ -102,6 +104,18 @@ py -3.12 -m pytest tests\test_workflow_contracts.py -q
   presence, completeness, residual risks, threshold failures, COM/contact
   availability and trace artifact output are machine-readable without making
   them release blocking by default.
+- 2026-05-21: Added `threshold_failure_details` and detailed joint-limit
+  violation records with joint name, relative angle, lower/upper limits and
+  margin values. This closes the prior behavior-evidence gap where live smoke
+  could report a `joint_limit_violation` without enough diagnostic detail.
+- 2026-05-21: Fixed false-positive joint-limit telemetry for fixed joints.
+  `GeneratedRobotController._joint_limit_state` now returns `not_applicable`
+  for `joint_type=fixed`, so fixed-lock validation remains covered by the
+  fixed-lock gate while hinge-style angular limit checks only apply to movable
+  joints. Re-running the mountain humanoid live Godot gate produced
+  `mechanical_behavior_complete_count=1`,
+  `mechanical_behavior_threshold_failure_count=0` and
+  `mechanical_behavior_residual_risk_count=0`.
 
 # Drift Check
 

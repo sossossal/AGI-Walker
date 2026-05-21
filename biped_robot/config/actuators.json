@@ -1,0 +1,48 @@
+{
+  "schema_version": "biped-actuators.v1",
+  "name": "local_series_elastic_actuator_approximation",
+  "control_hz": 120,
+  "duration_seconds": 8.0,
+  "retention": {
+    "telemetry_format": "jsonl",
+    "retention_days": 30,
+    "artifacts_dir": "test_env",
+    "required_files": [
+      "actuator_physics_report.json",
+      "actuator_telemetry.jsonl",
+      "component_parameter_log.json",
+      "retention_manifest.json"
+    ]
+  },
+  "defaults": {
+    "kp": 8.0,
+    "kd": 0.42,
+    "inertia_kg_m2": 0.045,
+    "damping_nms_per_rad": 0.08,
+    "torque_limit_nm": 38.0,
+    "velocity_limit_degrees_per_second": 240.0,
+    "motor_constant_nm_per_amp": 0.78,
+    "winding_resistance_ohm": 0.42,
+    "thermal_capacity_j_per_c": 145.0,
+    "thermal_resistance_c_per_w": 2.2,
+    "ambient_c": 24.0,
+    "max_temperature_c": 72.0
+  },
+  "joints": [
+    {"name": "left_hip_pitch", "target_amplitude_degrees": 18.0, "phase_offset_degrees": 0.0, "gravity_load_nm": 8.5},
+    {"name": "left_knee_pitch", "target_amplitude_degrees": 22.0, "phase_offset_degrees": 180.0, "gravity_load_nm": 6.8, "positive_only": true},
+    {"name": "left_ankle_pitch", "target_amplitude_degrees": 10.0, "phase_offset_degrees": 30.0, "gravity_load_nm": 3.6},
+    {"name": "right_hip_pitch", "target_amplitude_degrees": 18.0, "phase_offset_degrees": 180.0, "gravity_load_nm": 8.5},
+    {"name": "right_knee_pitch", "target_amplitude_degrees": 22.0, "phase_offset_degrees": 0.0, "gravity_load_nm": 6.8, "positive_only": true},
+    {"name": "right_ankle_pitch", "target_amplitude_degrees": 10.0, "phase_offset_degrees": 210.0, "gravity_load_nm": 3.6},
+    {"name": "left_shoulder_pitch", "target_amplitude_degrees": 14.0, "phase_offset_degrees": 180.0, "gravity_load_nm": 1.4},
+    {"name": "right_shoulder_pitch", "target_amplitude_degrees": 14.0, "phase_offset_degrees": 0.0, "gravity_load_nm": 1.4}
+  ],
+  "acceptance": {
+    "max_tracking_error_degrees": 9.5,
+    "max_temperature_c": 72.0,
+    "max_current_amp": 55.0,
+    "max_saturation_ratio": 0.04,
+    "max_energy_wh": 8.0
+  }
+}

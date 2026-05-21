@@ -194,6 +194,8 @@ func _applied_parameters_with_runtime(joint: Joint3D) -> Dictionary:
 
 
 func _joint_limit_state(relative_angle: float, connection_config: Dictionary) -> Dictionary:
+	if str(connection_config.get("joint_type", "")) == "fixed":
+		return {"configured": false, "not_applicable": true, "reason": "fixed_joint"}
 	var limits = connection_config.get("limits", {})
 	if not (limits is Dictionary) or not limits.has("lower") or not limits.has("upper"):
 		return {"configured": false}
