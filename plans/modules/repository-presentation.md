@@ -11,6 +11,7 @@ Make the GitHub-facing repository entry points easier to understand without chan
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/ISSUE_TEMPLATE/*.md`
 - `.github/ISSUE_TEMPLATE/config.yml`
+- `.github/CODEOWNERS`
 - `CONTRIBUTING.md`
 - `SUPPORT.md`
 - `CODE_OF_CONDUCT.md`
@@ -25,6 +26,7 @@ Make the GitHub-facing repository entry points easier to understand without chan
 - GitHub metadata this module produces: generated/sample-heavy path attributes and PR validation prompts.
 - Public collaboration surfaces this module keeps aligned: contribution, conduct and security reporting entry points.
 - Issue triage surfaces this module keeps aligned: bug, feature and nightly regression templates plus issue contact links.
+- Governance metadata this module keeps aligned: CODEOWNERS routing for GitHub review ownership.
 - Shared contracts touched: documentation entry points only.
 - Backward compatibility requirements: do not rename or remove existing runtime, test, Web, Godot, deployment or evidence contract files.
 - Integration tests required: documentation link/reference smoke where feasible.
@@ -49,6 +51,7 @@ Make the GitHub-facing repository entry points easier to understand without chan
 - [x] Align issue templates with module scope, contract impact, validation evidence and residual-risk triage.
 - [x] Add issue template config to route security reports and docs questions to the right entry points.
 - [x] Add a support policy that routes usage, bug, release, live-environment and security requests.
+- [x] Add CODEOWNERS routing for source, docs, deployment, Godot, hardware and GitHub governance surfaces.
 
 # Validation
 
