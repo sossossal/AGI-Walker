@@ -37,6 +37,7 @@ This index groups the main documentation entry points. The root `README.md` is i
 
 ## Security and Operations
 
+- [Security Policy](../SECURITY.md)
 - [Security Baseline](guides/SECURITY_BASELINE.md)
 - [Audit Trail Policy](guides/AUDIT_TRAIL_POLICY.md)
 - [Monitoring and Alerting Baseline](guides/MONITORING_ALERTING_BASELINE_20260427.md)

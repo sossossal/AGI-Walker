@@ -221,6 +221,8 @@ Planning and Codex workflow:
 
 - [Project Plan](PROJECT_PLAN.md)
 - [Codex Working Rules](AGENTS.md)
+- [Contributing Guide](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
 - [Dynamic Godot Future Plan](docs/guides/DYNAMIC_GODOT_ROBOT_GENERATION_FUTURE_PLAN.md)
 
 ## License
