@@ -202,6 +202,10 @@ py -3.12 tools\run_security_release_preflight.py --output-root test_env\release_
 | `offline_data/`, `weights/` | Small sample/demo data and model-adjacent assets, not production model stores. |
 | `archive/` | Historical snapshots and legacy planning notes. |
 
+More detail:
+
+- [Repository Layout](docs/REPOSITORY_LAYOUT.md)
+
 ## Documentation Index
 
 Start here:

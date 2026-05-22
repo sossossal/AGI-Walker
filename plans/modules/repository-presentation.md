@@ -6,6 +6,9 @@ Make the GitHub-facing repository entry points easier to understand without chan
 
 - `README.md`
 - `docs/README.md`
+- `docs/REPOSITORY_LAYOUT.md`
+- `.gitattributes`
+- `.github/PULL_REQUEST_TEMPLATE.md`
 - `PROJECT_PLAN.md`
 
 # Contract Checklist
@@ -13,6 +16,7 @@ Make the GitHub-facing repository entry points easier to understand without chan
 - Public surface this module exposes: GitHub root README and documentation index.
 - Inputs this module accepts: existing docs, plans, package entry points, Web/Godot run commands and tracked sample directories.
 - Outputs this module produces: concise root README, grouped docs index and explicit repository tree guidance.
+- GitHub metadata this module produces: generated/sample-heavy path attributes and PR validation prompts.
 - Shared contracts touched: documentation entry points only.
 - Backward compatibility requirements: do not rename or remove existing runtime, test, Web, Godot, deployment or evidence contract files.
 - Integration tests required: documentation link/reference smoke where feasible.
@@ -29,6 +33,9 @@ Make the GitHub-facing repository entry points easier to understand without chan
 - [x] Add a grouped docs index under `docs/README.md`.
 - [x] Document top-level directories, including sample/artifact-like directories.
 - [x] Record the cross-module documentation presentation change in `PROJECT_PLAN.md`.
+- [x] Add GitHub presentation attributes for generated/sample-heavy paths.
+- [x] Add a repository layout guide for first-time GitHub readers.
+- [x] Align the PR template with AGENTS.md validation and residual-risk expectations.
 
 # Validation
 
