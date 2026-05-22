@@ -58,6 +58,7 @@ Out of scope:
 | mountain-biped-simulation | `plans/modules/mountain-biped-simulation.md` | Local deterministic mountain-running example for a humanoid biped robot, with terrain/run evidence artifacts | Robot schema 1.5, examples, tests | complete |
 | production-compose-smoke | `plans/modules/production-compose-smoke.md` | Supported Docker Compose deployment entrypoint and authenticated Web workflow smoke | Web panel, Celery worker, Redis, deployment docs/tests | complete |
 | hardwareless-acceptance | `plans/modules/hardwareless-acceptance.md` | No-hardware acceptance report that preserves substitute evidence and explicit external blockers | Hardware replay/mock tests, ROS2 fake runtime, live Godot readiness, production compose smoke | complete |
+| repository-presentation | `plans/modules/repository-presentation.md` | GitHub-facing README, docs index and repository tree guidance | Existing docs, plans, source layout | complete |
 
 # Interfaces and Contracts
 
@@ -229,6 +230,7 @@ Phase 2 validation expands this set with module-specific checks:
 - 2026-05-21: Approved machine-readable release gate verdict for no-hardware reports so local acceptance evidence cannot be misread as release readiness.
 - 2026-05-21: Approved standalone no-hardware release gate validator to remove hand-rolled JSON parsing from release scripts.
 - 2026-05-21: Approved security preflight scanner normalization fix: Python vulnerability scan runners treat pip-audit "No known vulnerabilities found" text output as a clean structured report, and container scan project roots are resolved before Docker volume mounting.
+- 2026-05-22: Approved repository presentation optimization: root README becomes a concise GitHub entry, detailed docs move behind `docs/README.md`, and tracked sample/artifact-like directories are documented rather than deleted in this pass.
 - 2026-05-20: Approved release bundle index metadata hardening: bundle validation must verify index `bundle_root`, timezone-aware `generated_at`, `readiness_status` and `residual_risks` against the current bundle and readiness summary.
 - 2026-05-20: Approved release bundle required-flag contract: artifact and documentation index entries must mark only required artifact keys and required documentation roles as `required=true`.
 - 2026-05-20: Approved additive example scope: local mountain humanoid biped simulation may add example config, CLI, docs and tests without changing dynamic Godot release gate contracts or requiring live Godot.
