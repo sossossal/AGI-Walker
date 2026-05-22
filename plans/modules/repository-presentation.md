@@ -12,6 +12,7 @@ Make the GitHub-facing repository entry points easier to understand without chan
 - `.github/ISSUE_TEMPLATE/*.md`
 - `.github/ISSUE_TEMPLATE/config.yml`
 - `CONTRIBUTING.md`
+- `SUPPORT.md`
 - `CODE_OF_CONDUCT.md`
 - `SECURITY.md`
 - `PROJECT_PLAN.md`
@@ -47,6 +48,7 @@ Make the GitHub-facing repository entry points easier to understand without chan
 - [x] Refresh contribution/conduct guidance to avoid stale validation commands and placeholder contacts.
 - [x] Align issue templates with module scope, contract impact, validation evidence and residual-risk triage.
 - [x] Add issue template config to route security reports and docs questions to the right entry points.
+- [x] Add a support policy that routes usage, bug, release, live-environment and security requests.
 
 # Validation
 

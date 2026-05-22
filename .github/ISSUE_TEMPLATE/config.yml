@@ -6,6 +6,9 @@ contact_links:
   - name: Documentation index
     url: https://github.com/sossossal/AGI-Walker/blob/main/docs/README.md
     about: Start here for setup, Web, Godot, deployment, hardware and release evidence documentation.
+  - name: Support policy
+    url: https://github.com/sossossal/AGI-Walker/blob/main/SUPPORT.md
+    about: Understand support boundaries, issue triage expectations and live-environment evidence requirements.
   - name: Repository layout guide
     url: https://github.com/sossossal/AGI-Walker/blob/main/docs/REPOSITORY_LAYOUT.md
     about: Understand source directories, sample artifacts, generated files and GitHub presentation rules.

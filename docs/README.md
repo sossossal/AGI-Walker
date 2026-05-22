@@ -6,6 +6,7 @@ This index groups the main documentation entry points. The root `README.md` is i
 
 - [Current Status](CURRENT_STATUS.md)
 - [Repository Layout](REPOSITORY_LAYOUT.md)
+- [Support Policy](../SUPPORT.md)
 - [Testing Guide](guides/TESTING_GUIDE.md)
 - [Version Compatibility Matrix](guides/VERSION_COMPATIBILITY_MATRIX_20260427.md)
 - [Known Limitations](guides/KNOWN_LIMITATIONS.md)
