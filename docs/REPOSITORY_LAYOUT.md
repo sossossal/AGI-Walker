@@ -33,7 +33,7 @@ Some tracked directories look like local artifacts but remain in Git because tes
 
 - Root `README.md` stays short and points to the most important runnable paths.
 - `docs/README.md` is the grouped documentation index.
-- Public collaboration entry points live at `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` and `.github/PULL_REQUEST_TEMPLATE.md`.
+- Public collaboration entry points live at `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `.github/PULL_REQUEST_TEMPLATE.md` and `.github/ISSUE_TEMPLATE/`.
 - `.gitattributes` marks generated/sample-heavy paths so GitHub language statistics and source archives are less noisy.
 - `.gitignore` prevents new local runtime data, caches and large artifacts from entering future commits.
 - Do not delete tracked sample/evidence directories without a dedicated compatibility review and path-reference validation.

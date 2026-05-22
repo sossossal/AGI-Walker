@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability report
+    url: https://github.com/sossossal/AGI-Walker/security/policy
+    about: Report exploitable vulnerabilities, credential exposure or sensitive security issues privately.
+  - name: Documentation index
+    url: https://github.com/sossossal/AGI-Walker/blob/main/docs/README.md
+    about: Start here for setup, Web, Godot, deployment, hardware and release evidence documentation.
+  - name: Repository layout guide
+    url: https://github.com/sossossal/AGI-Walker/blob/main/docs/REPOSITORY_LAYOUT.md
+    about: Understand source directories, sample artifacts, generated files and GitHub presentation rules.
