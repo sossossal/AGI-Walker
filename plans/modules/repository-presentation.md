@@ -9,6 +9,7 @@ Make the GitHub-facing repository entry points easier to understand without chan
 - `docs/REPOSITORY_LAYOUT.md`
 - `.gitattributes`
 - `.github/PULL_REQUEST_TEMPLATE.md`
+- `.github/ISSUE_TEMPLATE/*.md`
 - `CONTRIBUTING.md`
 - `CODE_OF_CONDUCT.md`
 - `SECURITY.md`
@@ -21,6 +22,7 @@ Make the GitHub-facing repository entry points easier to understand without chan
 - Outputs this module produces: concise root README, grouped docs index and explicit repository tree guidance.
 - GitHub metadata this module produces: generated/sample-heavy path attributes and PR validation prompts.
 - Public collaboration surfaces this module keeps aligned: contribution, conduct and security reporting entry points.
+- Issue triage surfaces this module keeps aligned: bug, feature and nightly regression templates.
 - Shared contracts touched: documentation entry points only.
 - Backward compatibility requirements: do not rename or remove existing runtime, test, Web, Godot, deployment or evidence contract files.
 - Integration tests required: documentation link/reference smoke where feasible.
@@ -42,6 +44,7 @@ Make the GitHub-facing repository entry points easier to understand without chan
 - [x] Align the PR template with AGENTS.md validation and residual-risk expectations.
 - [x] Add a security policy and link it from public documentation entry points.
 - [x] Refresh contribution/conduct guidance to avoid stale validation commands and placeholder contacts.
+- [x] Align issue templates with module scope, contract impact, validation evidence and residual-risk triage.
 
 # Validation
 
