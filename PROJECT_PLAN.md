@@ -59,6 +59,7 @@ Out of scope:
 | production-compose-smoke | `plans/modules/production-compose-smoke.md` | Supported Docker Compose deployment entrypoint and authenticated Web workflow smoke | Web panel, Celery worker, Redis, deployment docs/tests | complete |
 | hardwareless-acceptance | `plans/modules/hardwareless-acceptance.md` | No-hardware acceptance report that preserves substitute evidence and explicit external blockers | Hardware replay/mock tests, ROS2 fake runtime, live Godot readiness, production compose smoke | complete |
 | repository-presentation | `plans/modules/repository-presentation.md` | GitHub-facing README, docs index and repository tree guidance | Existing docs, plans, source layout | complete |
+| security-release-preflight | `plans/modules/security-release-preflight.md` | Security release preflight scanner execution, vulnerability exception matching and release-blocker classification | Security posture contracts, scanner wrappers, deployment exceptions, CI | complete |
 
 # Interfaces and Contracts
 
@@ -237,6 +238,8 @@ Phase 2 validation expands this set with module-specific checks:
 - 2026-05-22: Approved issue routing hardening: GitHub issue template contact links may route security and documentation questions to existing policy/docs entry points without changing runtime, API, CI or deployment behavior.
 - 2026-05-22: Approved support entrypoint hardening: a root support policy may route usage, release, live-environment and security requests to existing docs and issue templates without changing runtime, API, CI or deployment behavior.
 - 2026-05-22: Approved CODEOWNERS governance hardening: GitHub review ownership may be declared for source, docs, deployment, Godot, hardware and governance files without changing runtime, API, CI or deployment behavior.
+- 2026-05-23: Approved security preflight blocker triage scope: CI security preflight failures must be classified through scanner execution, unresolved findings, stale/expired exceptions and managed exception matching before any release gate behavior is changed.
+- 2026-05-23: Approved Starlette vulnerability remediation constraint: Python project and Web Panel deployment dependency contracts explicitly require `starlette>=1.0.1` to resolve `PYSEC-2026-161` while preserving existing FastAPI and scanner gate behavior.
 - 2026-05-20: Approved release bundle index metadata hardening: bundle validation must verify index `bundle_root`, timezone-aware `generated_at`, `readiness_status` and `residual_risks` against the current bundle and readiness summary.
 - 2026-05-20: Approved release bundle required-flag contract: artifact and documentation index entries must mark only required artifact keys and required documentation roles as `required=true`.
 - 2026-05-20: Approved additive example scope: local mountain humanoid biped simulation may add example config, CLI, docs and tests without changing dynamic Godot release gate contracts or requiring live Godot.
