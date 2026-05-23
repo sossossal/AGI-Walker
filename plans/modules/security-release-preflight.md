@@ -33,7 +33,9 @@ Keep the security release preflight actionable and release-safe: scanner executi
 # Notes
 
 - 2026-05-23: GitHub CI artifact `security-preflight-artifacts` from run `26324738634` showed one unresolved Python finding: `starlette 0.52.1`, `PYSEC-2026-161` / `GHSA-86qp-5c8j-p5mr`, fixed by `starlette>=1.0.1`. Container findings were covered by active tracked exceptions; stale and expired exception counts were zero.
-- 2026-05-23: Local Python vulnerability scanner passed after dependency remediation: `vulnerability_scan_status=passed`, `vulnerability_scan_findings=0`. Full local release preflight remains environment-dependent because Docker is unavailable in this workspace.
+- 2026-05-23: Local Python vulnerability scanner passed after dependency remediation: `vulnerability_scan_status=passed`, `vulnerability_scan_findings=0`.
+- 2026-05-23: Local Docker/Trivy evidence was rerun against `deployment-zenoh-router` and `deployment-web-panel-distributed`; current scanner data reported `98` container findings across `30` affected components. Rebuilt remediation/posture/preflight artifacts classify them as `accepted_finding_count=98`, `unresolved_finding_count=0`, `stale_exception_count=0`, `security_posture_status=ready`, and skip-collect `security_release_preflight_status=passed`.
+- 2026-05-23: Full local preflight with collect was attempted, but the command exceeded a 15-minute local timeout while running the broad `pytest -m "not live"` collect gate after security scan artifacts had already been produced. Security-only skip-collect preflight was used to validate the vulnerability posture from those generated artifacts.
 
 # Non-Goals
 
@@ -51,5 +53,6 @@ py -3.12 tools\run_security_release_preflight.py --output-root test_env\release_
 
 # Residual Risks
 
-- Real `pip-audit` / `trivy` / Docker behavior depends on external scanner databases and local or CI image availability.
-- Accepted no-fix exceptions remain temporary release risk and must be reviewed before expiry.
+- Real `pip-audit` / `trivy` / Docker behavior depends on external scanner databases and local or CI image availability; the current local Docker path is available and scanned successfully.
+- Accepted no-fix exceptions remain temporary release risk and must be reviewed before expiry; current generated evidence shows zero stale or expired exceptions and next expiry at `2026-06-24T00:00:00+01:00`.
+- Full preflight still includes a broad non-live collect gate; security posture itself is ready from fresh artifacts, but the all-in-one command may need a longer CI/local timeout when it also runs the full non-live gate.
