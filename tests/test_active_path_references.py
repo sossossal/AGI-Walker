@@ -522,7 +522,7 @@ def test_security_preflight_ci_job_uses_current_runner_and_artifacts() -> None:
     assert 'AGI_WALKER_ZENOH_IMAGE: "deployment-zenoh-router"' in content
     assert "docker compose -f deployment/docker-compose.yml --profile distributed build zenoh-router web-panel-distributed" in content
     assert "docker pull ${{ env.AGI_WALKER_ZENOH_BASE_IMAGE }}" in content
-    assert "python tools/run_security_release_preflight.py --output-root test_env/release_evidence_ci --run-python-vuln-scan --run-container-vuln-scan --container-image-ref ${{ env.AGI_WALKER_ZENOH_IMAGE }} --container-image-ref deployment-web-panel-distributed" in content
+    assert "python tools/run_security_release_preflight.py --security-only --output-root test_env/release_evidence_ci --run-python-vuln-scan --run-container-vuln-scan --container-image-ref ${{ env.AGI_WALKER_ZENOH_IMAGE }} --container-image-ref deployment-web-panel-distributed" in content
     assert "name: security-preflight-artifacts" in content
     assert "path: test_env/release_evidence_ci" in content
 

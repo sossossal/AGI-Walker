@@ -151,7 +151,7 @@ jobs:
 
       - name: Run Security Release Preflight
         run: |
-          python tools/run_security_release_preflight.py --output-root test_env/release_evidence_ci --run-python-vuln-scan --run-container-vuln-scan --container-image-ref ${{ env.AGI_WALKER_ZENOH_IMAGE }} --container-image-ref deployment-web-panel-distributed
+          python tools/run_security_release_preflight.py --security-only --output-root test_env/release_evidence_ci --run-python-vuln-scan --run-container-vuln-scan --container-image-ref ${{ env.AGI_WALKER_ZENOH_IMAGE }} --container-image-ref deployment-web-panel-distributed
 
       - name: Upload Security Preflight Artifacts
         if: always()

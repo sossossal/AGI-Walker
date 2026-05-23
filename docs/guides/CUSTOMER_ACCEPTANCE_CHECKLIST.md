@@ -92,6 +92,6 @@ python tests/run_distributed_smoke.py --build --stop-after --report-file test_en
 $env:AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE='1'; python -m pytest tests/test_godot_headless_smoke.py -q -m "integration and live" --tb=short -vv
 AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE=1 python -m pytest tests/test_ros2_bridge_smoke.py -q -m "integration and live" --tb=short -vv
 python tools/collect_release_evidence.py --output-root test_env/release_evidence
-python tools/run_security_release_preflight.py --output-root test_env/release_evidence --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed --vulnerability-exception-input-source deployment/security/vulnerability_exceptions.input.json
+python tools/run_security_release_preflight.py --security-only --output-root test_env/release_evidence --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed --vulnerability-exception-input-source deployment/security/vulnerability_exceptions.input.json
 python tools/build_customer_acceptance_bundle.py --manifest test_env/release/release_manifest_rc_evidence.json --output test_env/release/customer_acceptance_bundle_rc_evidence.json
 ```

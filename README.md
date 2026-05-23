@@ -182,7 +182,7 @@ py -3.12 -m pytest -m "not live" --collect-only -q
 Security release preflight:
 
 ```powershell
-py -3.12 tools\run_security_release_preflight.py --output-root test_env\release_evidence --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed
+py -3.12 tools\run_security_release_preflight.py --security-only --output-root test_env\release_evidence --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed
 ```
 
 ## Repository Map
