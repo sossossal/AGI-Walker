@@ -63,3 +63,7 @@ py -3.12 -m pytest tests\test_active_path_references.py -q
 # Residual Risks
 
 - Some tracked sample/artifact directories remain visible in the GitHub tree; removal needs a separate compatibility review because tests and docs currently reference them.
+
+# Notes
+
+- 2026-05-24: PR CI showed README optimization had removed active operator/delivery links that are protected by docs contract tests. Root README now keeps a compact active-link block for those canonical tools, templates and guides while preserving the concise GitHub entry structure.

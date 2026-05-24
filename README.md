@@ -129,7 +129,25 @@ The following paths are active user-facing or delivery-facing surfaces and are k
 - `tools/run_web_browser_playwright_smoke.py`
 - `tools/build_web_browser_manual_validation_report.py`
 - `tools/build_web_browser_validation_closeout.py`
+- `tools/build_web_browser_validation_evidence_pack.py`
 - [Next Stage Execution Plan](docs/guides/NEXT_STAGE_EXECUTION_PLAN_20260426.md)
+- [Customer Site Real Device Smoke](docs/guides/CUSTOMER_SITE_REAL_DEVICE_SMOKE_20260427.md)
+- [Industrial Live Evidence Archive](docs/guides/INDUSTRIAL_LIVE_EVIDENCE_ARCHIVE_20260427.md)
+- [Operator Hardware Recovery Runbook](docs/guides/OPERATOR_HARDWARE_RECOVERY_RUNBOOK_20260427.md)
+- [Monitoring and Alerting Baseline](docs/guides/MONITORING_ALERTING_BASELINE_20260427.md)
+- [SLA/SLO View](docs/guides/SLA_SLO_VIEW_20260427.md)
+- [Version Compatibility Matrix](docs/guides/VERSION_COMPATIBILITY_MATRIX_20260427.md)
+- `tools/build_customer_site_live_smoke_report.py`
+- `tools/build_hardware_live_closeout_report.py`
+- `tools/build_industrial_live_evidence_archive_report.py`
+- `tools/build_next_stage_readiness_report.py`
+- `tools/build_operator_delivery_checklist.py`
+- `tools/build_ros2_typed_idl_cutover_report.py`
+- `tools/build_vendor_fault_sample_closeout.py`
+- [Customer Site Live Smoke Template](deployment/customer_site_live_smoke.template.json)
+- [Operator Delivery Checklist Template](deployment/operator_delivery_checklist.template.json)
+- [ROS2 Typed IDL Cutover Template](deployment/ros2_typed_idl_cutover.template.json)
+- [Web Hardware Role Policy](deployment/web_hardware_role_policy.json)
 
 Release handoff evidence keeps these canonical fields visible for reviewers:
 
