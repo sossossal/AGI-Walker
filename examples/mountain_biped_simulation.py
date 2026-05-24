@@ -129,7 +129,9 @@ def _stability_margin(stance_width: float, slope_y: float, phase: float) -> floa
     return round(active_support - abs(lateral_com), 5)
 
 
-def _forward_speed(nominal_speed: float, slope_x: float, stability_margin: float) -> float:
+def _forward_speed(
+    nominal_speed: float, slope_x: float, stability_margin: float
+) -> float:
     grade_penalty = max(0.35, 1.0 - max(0.0, slope_x) * 1.4)
     stability_penalty = 0.55 if stability_margin < 0.02 else 1.0
     return max(0.0, nominal_speed * grade_penalty * stability_penalty)
@@ -200,9 +202,9 @@ def _build_report(
             "steps_recorded": len(trace),
             "fall_detected": any(item["stability_margin_m"] < -0.04 for item in trace),
             "distance_m": round(distances[-1] if distances else 0.0, 4),
-            "average_speed_mps": round((distances[-1] / (len(trace) * run.dt_s)), 4)
-            if trace
-            else 0.0,
+            "average_speed_mps": (
+                round((distances[-1] / (len(trace) * run.dt_s)), 4) if trace else 0.0
+            ),
             "max_abs_pitch_deg": round(max(pitches) if pitches else 0.0, 3),
             "min_stability_margin_m": round(min(margins) if margins else 0.0, 5),
             "energy_estimate_j": round(energy_j, 3),
@@ -217,7 +219,9 @@ def _build_report(
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
 
 def parse_args() -> argparse.Namespace:

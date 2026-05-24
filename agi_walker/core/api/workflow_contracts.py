@@ -698,7 +698,10 @@ def _complete_summary_counts_for_source_scope(
 
 def _summary_value_paths_for_fields(fields: set[str]) -> list[str]:
     paths = set(fields & DELIVERY_ACCEPTANCE_GATE_SUMMARY_COUNT_FIELDS)
-    for map_field, key_values in DELIVERY_ACCEPTANCE_GATE_SUMMARY_COUNT_MAP_KEY_VALUES.items():
+    for (
+        map_field,
+        key_values,
+    ) in DELIVERY_ACCEPTANCE_GATE_SUMMARY_COUNT_MAP_KEY_VALUES.items():
         if map_field not in fields:
             continue
         paths.update(f"{map_field}.{key_value}" for key_value in key_values)
@@ -707,9 +710,7 @@ def _summary_value_paths_for_fields(fields: set[str]) -> list[str]:
 
 DELIVERY_ACCEPTANCE_GATE_SCHEMA = {
     "contract_version": DELIVERY_ACCEPTANCE_GATE_CONTRACT_VERSION,
-    "validation_summary_version": (
-        DELIVERY_ACCEPTANCE_GATE_VALIDATION_SUMMARY_VERSION
-    ),
+    "validation_summary_version": (DELIVERY_ACCEPTANCE_GATE_VALIDATION_SUMMARY_VERSION),
     "validation_summary_required_fields": sorted(
         DELIVERY_ACCEPTANCE_GATE_VALIDATION_SUMMARY_REQUIRED_FIELDS
     ),
@@ -720,9 +721,7 @@ DELIVERY_ACCEPTANCE_GATE_SCHEMA = {
         DELIVERY_ACCEPTANCE_GATE_VALIDATION_SUMMARY_METADATA_FIELDS
     ),
     "validation_summary_metadata_field_types": dict(
-        sorted(
-            DELIVERY_ACCEPTANCE_GATE_VALIDATION_SUMMARY_METADATA_FIELD_TYPES.items()
-        )
+        sorted(DELIVERY_ACCEPTANCE_GATE_VALIDATION_SUMMARY_METADATA_FIELD_TYPES.items())
     ),
     "validation_summary_constraint_fields": sorted(
         DELIVERY_ACCEPTANCE_GATE_VALIDATION_SUMMARY_CONSTRAINT_FIELDS
@@ -736,18 +735,12 @@ DELIVERY_ACCEPTANCE_GATE_SCHEMA = {
         DELIVERY_ACCEPTANCE_GATE_VALIDATION_SUMMARY_POLICY_FIELDS
     ),
     "validation_summary_policy_field_types": dict(
-        sorted(
-            DELIVERY_ACCEPTANCE_GATE_VALIDATION_SUMMARY_POLICY_FIELD_TYPES.items()
-        )
+        sorted(DELIVERY_ACCEPTANCE_GATE_VALIDATION_SUMMARY_POLICY_FIELD_TYPES.items())
     ),
     "required": sorted(DELIVERY_ACCEPTANCE_GATE_REQUIRED_FIELDS),
     "source_values": sorted(DELIVERY_ACCEPTANCE_GATE_SOURCES),
-    "verification_scope_values": sorted(
-        DELIVERY_ACCEPTANCE_GATE_VERIFICATION_SCOPES
-    ),
-    "acceptance_profile_values": sorted(
-        DELIVERY_ACCEPTANCE_GATE_ACCEPTANCE_PROFILES
-    ),
+    "verification_scope_values": sorted(DELIVERY_ACCEPTANCE_GATE_VERIFICATION_SCOPES),
+    "acceptance_profile_values": sorted(DELIVERY_ACCEPTANCE_GATE_ACCEPTANCE_PROFILES),
     "level_values": sorted(DELIVERY_ACCEPTANCE_GATE_LEVELS),
     "source_scope_pairs": dict(sorted(DELIVERY_ACCEPTANCE_GATE_SOURCE_SCOPES.items())),
     "source_profile_values": {
@@ -998,9 +991,7 @@ def validate_delivery_acceptance_gate(payload: Any) -> list[str]:
                     f"for verification_scope {verification_scope!r}"
                 )
             if payload.get("complete") is False and level == complete_level:
-                errors.append(
-                    f"complete must be true when level is {complete_level!r}"
-                )
+                errors.append(f"complete must be true when level is {complete_level!r}")
     for key in [
         "required",
         "requires_full_mechanical_restoration_gate",
@@ -1023,7 +1014,9 @@ def validate_delivery_acceptance_gate(payload: Any) -> list[str]:
                 f"acceptance_requirements contains unknown fields: {', '.join(unknown)}"
             )
         non_bool = sorted(
-            str(key) for key, value in requirements.items() if not isinstance(value, bool)
+            str(key)
+            for key, value in requirements.items()
+            if not isinstance(value, bool)
         )
         if non_bool:
             errors.append(
@@ -1037,7 +1030,8 @@ def validate_delivery_acceptance_gate(payload: Any) -> list[str]:
                 invalid_enabled_requirements = sorted(
                     str(key)
                     for key, value in requirements.items()
-                    if key in allowed and value is True
+                    if key in allowed
+                    and value is True
                     and key not in allowed_enabled_requirements
                 )
                 if invalid_enabled_requirements:
@@ -1096,8 +1090,7 @@ def validate_delivery_acceptance_gate(payload: Any) -> list[str]:
         duplicate_reasons = _duplicate_non_empty_strings(payload["reasons"])
         if duplicate_reasons:
             errors.append(
-                "reasons entries must be unique: "
-                f"{'; '.join(duplicate_reasons)}"
+                "reasons entries must be unique: " f"{'; '.join(duplicate_reasons)}"
             )
     if isinstance(payload.get("reason_codes"), list):
         invalid_reason_codes = [
@@ -1276,9 +1269,7 @@ def validate_delivery_acceptance_gate(payload: Any) -> list[str]:
         payload.get("reason_details"), list
     ):
         reasons = [
-            str(reason)
-            for reason in payload["reasons"]
-            if _is_non_empty_string(reason)
+            str(reason) for reason in payload["reasons"] if _is_non_empty_string(reason)
         ]
         missing_messages_from_details = sorted(set(reasons) - set(detail_messages))
         missing_messages_from_reasons = sorted(set(detail_messages) - set(reasons))
@@ -1332,9 +1323,7 @@ def validate_delivery_acceptance_gate(payload: Any) -> list[str]:
                 "is incomplete"
             )
     if payload.get("complete") is True:
-        for key in DELIVERY_ACCEPTANCE_GATE_COMPLETE_RESULT_REQUIREMENTS[
-            "empty_lists"
-        ]:
+        for key in DELIVERY_ACCEPTANCE_GATE_COMPLETE_RESULT_REQUIREMENTS["empty_lists"]:
             if isinstance(payload.get(key), list) and payload[key]:
                 errors.append(f"{key} must be empty when complete is true")
 
@@ -1407,15 +1396,16 @@ def validate_delivery_acceptance_gate(payload: Any) -> list[str]:
                     inputs_count,
                 )
             for key in sorted(
-                DELIVERY_ACCEPTANCE_GATE_COMPLETE_SUMMARY_ZERO
-                & complete_summary_fields
+                DELIVERY_ACCEPTANCE_GATE_COMPLETE_SUMMARY_ZERO & complete_summary_fields
             ):
                 _validate_complete_summary_count(errors, summary_counts, key, 0)
             scope_counts = DELIVERY_ACCEPTANCE_GATE_SCOPE_COMPLETE_SUMMARY_COUNTS.get(
                 str(payload.get("verification_scope"))
             )
             if scope_counts is not None:
-                for key in sorted(scope_counts["equal_inputs"] & complete_summary_fields):
+                for key in sorted(
+                    scope_counts["equal_inputs"] & complete_summary_fields
+                ):
                     _validate_complete_summary_count(
                         errors,
                         summary_counts,
@@ -1497,6 +1487,7 @@ def validate_delivery_acceptance_gate(payload: Any) -> list[str]:
             )
 
     return errors
+
 
 WORKFLOW_STEP_STATUSES = {"pending", "running", "completed", "failed", "skipped"}
 WORKFLOW_EXECUTOR_MODES = {"mock", "real"}
@@ -1874,8 +1865,7 @@ def validate_delivery_acceptance_validation_summary(payload: Any) -> list[str]:
         duplicate_errors = _duplicate_non_empty_strings(summary_errors)
         if duplicate_errors:
             errors.append(
-                "errors entries must be unique: "
-                f"{'; '.join(duplicate_errors)}"
+                "errors entries must be unique: " f"{'; '.join(duplicate_errors)}"
             )
 
     _validate_optional_summary_metadata_preview(
@@ -2094,9 +2084,7 @@ def _validate_optional_node_tree_manifest_sidecar_summary(
         ]:
             if field in item and not _is_non_negative_int(item.get(field)):
                 errors.append(f"{prefix}.{field} must be a non-negative integer")
-        validation_error_count = item.get(
-            "node_tree_manifest_validation_error_count"
-        )
+        validation_error_count = item.get("node_tree_manifest_validation_error_count")
         validation_errors = item.get("node_tree_manifest_validation_errors")
         if "node_tree_manifest_validation_errors" in item:
             if not isinstance(validation_errors, list) or not all(
@@ -2106,10 +2094,9 @@ def _validate_optional_node_tree_manifest_sidecar_summary(
                     f"{prefix}.node_tree_manifest_validation_errors must be "
                     "a list of strings"
                 )
-            elif (
-                _is_non_negative_int(validation_error_count)
-                and int(validation_error_count) != len(validation_errors)
-            ):
+            elif _is_non_negative_int(validation_error_count) and int(
+                validation_error_count
+            ) != len(validation_errors):
                 errors.append(
                     f"{prefix}.node_tree_manifest_validation_error_count "
                     "must equal node_tree_manifest_validation_errors length"
@@ -2140,8 +2127,9 @@ def _validate_optional_node_tree_manifest_sidecar_summary(
                         f"{prefix}.node_tree_manifest_path_map_mismatch_kind_counts "
                         "must sum to node_tree_manifest_path_map_mismatch_count"
                     )
-        if "node_tree_manifest_path_map_mismatch_count" in item and not _is_non_negative_int(
-            mismatch_count
+        if (
+            "node_tree_manifest_path_map_mismatch_count" in item
+            and not _is_non_negative_int(mismatch_count)
         ):
             errors.append(
                 f"{prefix}.node_tree_manifest_path_map_mismatch_count must be "
@@ -2171,9 +2159,8 @@ def _validate_optional_node_tree_manifest_sidecar_summary(
                             mismatch,
                             f"{prefix}.node_tree_manifest_path_map_mismatches[{mismatch_index}]",
                         )
-                if (
-                    _is_non_negative_int(mismatch_count)
-                    and int(mismatch_count) < len(mismatches)
+                if _is_non_negative_int(mismatch_count) and int(mismatch_count) < len(
+                    mismatches
                 ):
                     errors.append(
                         f"{prefix}.node_tree_manifest_path_map_mismatch_count "
@@ -2194,36 +2181,28 @@ def _validate_optional_node_tree_manifest_sidecar_summary(
         item_part_paths = item.get("part_node_path_count")
         if all(_is_non_negative_int(value) for value in [item_parts, item_part_paths]):
             if int(item_part_paths) > int(item_parts):
-                errors.append(
-                    f"{prefix}.part_node_path_count must be <= parts_count"
-                )
+                errors.append(f"{prefix}.part_node_path_count must be <= parts_count")
         item_joints = item.get("joints_count")
         item_joint_paths = item.get("joint_node_path_count")
-        if all(_is_non_negative_int(value) for value in [item_joints, item_joint_paths]):
-            if int(item_joint_paths) > int(item_joints):
-                errors.append(
-                    f"{prefix}.joint_node_path_count must be <= joints_count"
-                )
-        if (
-            isinstance(item.get("path_maps_complete"), bool)
-            and all(
-                _is_non_negative_int(value)
-                for value in [
-                    item_parts,
-                    item_joints,
-                    item_part_paths,
-                    item_joint_paths,
-                ]
-            )
+        if all(
+            _is_non_negative_int(value) for value in [item_joints, item_joint_paths]
         ):
-            expected_path_maps_complete = (
-                int(item_part_paths) >= int(item_parts)
-                and int(item_joint_paths) >= int(item_joints)
-            )
+            if int(item_joint_paths) > int(item_joints):
+                errors.append(f"{prefix}.joint_node_path_count must be <= joints_count")
+        if isinstance(item.get("path_maps_complete"), bool) and all(
+            _is_non_negative_int(value)
+            for value in [
+                item_parts,
+                item_joints,
+                item_part_paths,
+                item_joint_paths,
+            ]
+        ):
+            expected_path_maps_complete = int(item_part_paths) >= int(
+                item_parts
+            ) and int(item_joint_paths) >= int(item_joints)
             if item["path_maps_complete"] is not expected_path_maps_complete:
-                errors.append(
-                    f"{prefix}.path_maps_complete must match path map counts"
-                )
+                errors.append(f"{prefix}.path_maps_complete must match path map counts")
 
     if truncated is False and not invalid_sidecars:
         _validate_sidecar_preview_count_sum(
@@ -2306,17 +2285,11 @@ def _validate_non_negative_int_map(
     if not isinstance(value, Mapping):
         errors.append(f"{prefix} must be an object when present")
         return
-    invalid_keys = [
-        str(key)
-        for key in value
-        if not _is_non_empty_string(key)
-    ]
+    invalid_keys = [str(key) for key in value if not _is_non_empty_string(key)]
     if invalid_keys:
         errors.append(f"{prefix} keys must be non-empty strings")
     invalid_values = [
-        str(key)
-        for key, item in value.items()
-        if not _is_non_negative_int(item)
+        str(key) for key, item in value.items() if not _is_non_negative_int(item)
     ]
     if invalid_values:
         errors.append(
@@ -2330,9 +2303,7 @@ def _validate_sidecar_preview_kind_count_sum(
     payload: Mapping[str, Any],
     sidecars: list[Any],
 ) -> None:
-    aggregate = payload.get(
-        "node_tree_manifest_sidecar_path_map_mismatch_kind_counts"
-    )
+    aggregate = payload.get("node_tree_manifest_sidecar_path_map_mismatch_kind_counts")
     if not isinstance(aggregate, Mapping):
         return
     summed: dict[str, int] = {}
@@ -2369,11 +2340,7 @@ def _validate_sidecar_preview_count_sum(
 ) -> None:
     if aggregate_field not in payload:
         return
-    values = [
-        item.get(item_field)
-        for item in sidecars
-        if isinstance(item, Mapping)
-    ]
+    values = [item.get(item_field) for item in sidecars if isinstance(item, Mapping)]
     if len(values) != len(sidecars) or not all(
         _is_non_negative_int(value) for value in values
     ):
@@ -2426,23 +2393,25 @@ def _validate_sidecar_preview_boolean_counts(
     true_field: str,
     false_field: str,
 ) -> None:
-    values = [
-        item.get(item_field)
-        for item in sidecars
-        if isinstance(item, Mapping)
-    ]
+    values = [item.get(item_field) for item in sidecars if isinstance(item, Mapping)]
     if len(values) != len(sidecars) or not all(
         isinstance(value, bool) for value in values
     ):
         return
     true_count = sum(1 for value in values if value is True)
     false_count = sum(1 for value in values if value is False)
-    if _is_non_negative_int(payload.get(true_field)) and int(payload[true_field]) != true_count:
+    if (
+        _is_non_negative_int(payload.get(true_field))
+        and int(payload[true_field]) != true_count
+    ):
         errors.append(
             f"{true_field} must equal node_tree_manifest_sidecars "
             f"{item_field}=true count when preview is not truncated"
         )
-    if _is_non_negative_int(payload.get(false_field)) and int(payload[false_field]) != false_count:
+    if (
+        _is_non_negative_int(payload.get(false_field))
+        and int(payload[false_field]) != false_count
+    ):
         errors.append(
             f"{false_field} must equal node_tree_manifest_sidecars "
             f"{item_field}=false count when preview is not truncated"
@@ -2601,8 +2570,7 @@ def _validate_optional_summary_metadata_preview(
     duplicate_values = _duplicate_non_empty_strings(values)
     if duplicate_values:
         errors.append(
-            f"{field} entries must be unique: "
-            f"{'; '.join(duplicate_values)}"
+            f"{field} entries must be unique: " f"{'; '.join(duplicate_values)}"
         )
     if not _is_non_negative_int(count):
         errors.append(f"{count_field} must be a non-negative integer when present")
@@ -2702,8 +2670,7 @@ def _validate_optional_string_list_field(
     duplicate_values = _duplicate_non_empty_strings(values)
     if duplicate_values:
         errors.append(
-            f"{field} entries must be unique: "
-            f"{'; '.join(duplicate_values)}"
+            f"{field} entries must be unique: " f"{'; '.join(duplicate_values)}"
         )
     return [value for value in values if _is_non_empty_string(value)]
 

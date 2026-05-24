@@ -59,9 +59,7 @@ def normalize_robot_config_for_godot(payload: Mapping[str, Any]) -> dict[str, An
         config.get("connections", []),
     )
     config["parts"] = [_normalize_part(part) for part in parts]
-    config["connections"] = [
-        _normalize_connection(conn) for conn in connections
-    ]
+    config["connections"] = [_normalize_connection(conn) for conn in connections]
     return config
 
 
@@ -165,7 +163,10 @@ def _position_compound_leg_segments(
         if isinstance(part, Mapping) and part.get("id") is not None
     }
     for connection in connections:
-        if not isinstance(connection, Mapping) or connection.get("to") not in segment_map:
+        if (
+            not isinstance(connection, Mapping)
+            or connection.get("to") not in segment_map
+        ):
             continue
         upper_id, lower_id, upper_length, lower_length = segment_map[
             str(connection["to"])
@@ -259,7 +260,9 @@ def validate_godot_robot_config(payload: Any) -> list[str]:
     errors: list[str] = []
     _validate_schema_version(payload.get("schema_version"), errors)
     part_ids = _validate_parts(payload.get("parts"), errors)
-    connection_names = _validate_connections(payload.get("connections"), part_ids, errors)
+    connection_names = _validate_connections(
+        payload.get("connections"), part_ids, errors
+    )
     _validate_control(payload.get("control"), connection_names, errors)
     return errors
 
@@ -290,9 +293,7 @@ def build_mechanical_topology_summary(payload: Mapping[str, Any]) -> dict[str, A
     for parent, child, _prefix in edges:
         adjacency.setdefault(parent, []).append(child)
     reachable = (
-        _reachable_parts(root_parts[0], adjacency)
-        if len(root_parts) == 1
-        else set()
+        _reachable_parts(root_parts[0], adjacency) if len(root_parts) == 1 else set()
     )
     cycle = _first_connection_cycle(edges)
     duplicate_child_endpoints = _duplicate_child_endpoints(edges)
@@ -337,16 +338,24 @@ def build_godot_node_tree_manifest(payload: Mapping[str, Any]) -> dict[str, Any]
         and isinstance(part, Mapping)
         and _is_non_empty_string(part.get("id"))
     }
-    part_nodes = [
-        _planned_part_node(part, robot_name)
-        for part in parts
-        if isinstance(part, Mapping) and _is_non_empty_string(part.get("id"))
-    ] if isinstance(parts, list) else []
-    joint_nodes = [
-        _planned_joint_node(connection, robot_name, part_ids)
-        for connection in connections
-        if isinstance(connection, Mapping)
-    ] if isinstance(connections, list) else []
+    part_nodes = (
+        [
+            _planned_part_node(part, robot_name)
+            for part in parts
+            if isinstance(part, Mapping) and _is_non_empty_string(part.get("id"))
+        ]
+        if isinstance(parts, list)
+        else []
+    )
+    joint_nodes = (
+        [
+            _planned_joint_node(connection, robot_name, part_ids)
+            for connection in connections
+            if isinstance(connection, Mapping)
+        ]
+        if isinstance(connections, list)
+        else []
+    )
     parameterized_joints = sum(
         1 for joint in joint_nodes if joint.get("applied_parameters")
     )
@@ -390,10 +399,9 @@ def build_godot_node_tree_manifest(payload: Mapping[str, Any]) -> dict[str, Any]
         }
         for joint in joint_nodes
     }
-    path_maps_complete = (
-        len(part_node_paths) == len(part_nodes)
-        and len(joint_node_paths) == len(joint_nodes)
-    )
+    path_maps_complete = len(part_node_paths) == len(part_nodes) and len(
+        joint_node_paths
+    ) == len(joint_nodes)
     return {
         "manifest_version": GODOT_NODE_TREE_MANIFEST_VERSION,
         "schema_version": str(
@@ -455,7 +463,9 @@ def validate_godot_node_tree_manifest(payload: Any) -> list[str]:
         prefix="node_tree_manifest.joint_nodes",
         errors=errors,
     )
-    _validate_manifest_part_node_paths(payload.get("part_node_paths"), part_nodes, errors)
+    _validate_manifest_part_node_paths(
+        payload.get("part_node_paths"), part_nodes, errors
+    )
     _validate_manifest_joint_node_paths(
         payload.get("joint_node_paths"), joint_nodes, errors
     )
@@ -502,8 +512,8 @@ def validate_godot_node_tree_manifest(payload: Any) -> list[str]:
             )
 
     missing_endpoint_part_ids = _manifest_missing_endpoint_part_ids(joint_nodes)
-    missing_endpoint_connection_names = (
-        _manifest_missing_endpoint_connection_names(joint_nodes)
+    missing_endpoint_connection_names = _manifest_missing_endpoint_connection_names(
+        joint_nodes
     )
     missing_endpoint_details = _manifest_missing_endpoint_details(joint_nodes)
     _validate_manifest_string_list(
@@ -606,9 +616,7 @@ def build_godot_node_tree_manifest_path_map_mismatches(
             _manifest_path_map_mismatches(
                 map_name="part_node_paths",
                 expected=_expected_manifest_part_node_paths(part_nodes),
-                actual=_normalized_manifest_part_node_paths(
-                    payload["part_node_paths"]
-                ),
+                actual=_normalized_manifest_part_node_paths(payload["part_node_paths"]),
             )
         )
     if isinstance(payload.get("joint_node_paths"), Mapping):
@@ -658,7 +666,16 @@ def compare_godot_node_tree_manifest_to_runtime(
         expected_items=joint_nodes,
         actual_items=runtime_joint_nodes,
         key_field="connection_name",
-        fields=["joint_node", "joint_class", "from", "to", "node_a", "node_b", "origin", "axis"],
+        fields=[
+            "joint_node",
+            "joint_class",
+            "from",
+            "to",
+            "node_a",
+            "node_b",
+            "origin",
+            "axis",
+        ],
         map_name="joint_nodes",
         tolerance=tolerance,
     )
@@ -802,7 +819,10 @@ def _validate_manifest_missing_endpoint_details(
         for field in ["connection_name", "field", "part_id"]:
             if not _is_non_empty_string(detail.get(field)):
                 errors.append(f"{prefix}.{field} must be a non-empty string")
-        if all(_is_non_empty_string(detail.get(field)) for field in ["connection_name", "field", "part_id"]):
+        if all(
+            _is_non_empty_string(detail.get(field))
+            for field in ["connection_name", "field", "part_id"]
+        ):
             normalized.append(
                 {
                     "connection_name": str(detail["connection_name"]),
@@ -837,7 +857,9 @@ def _validate_manifest_part_node_paths(
         )
 
 
-def _expected_manifest_part_node_paths(part_nodes: list[Any]) -> dict[str, dict[str, str]]:
+def _expected_manifest_part_node_paths(
+    part_nodes: list[Any],
+) -> dict[str, dict[str, str]]:
     return {
         str(part["part_id"]): {
             "body_node": str(part["body_node"]),
@@ -893,11 +915,14 @@ def _manifest_path_maps_complete(
         joint_nodes, "connection_name"
     ):
         return False
-    return (
-        _normalized_manifest_part_node_paths(part_node_paths)
-        == _expected_manifest_part_node_paths(part_nodes)
-        and _normalized_manifest_joint_node_paths(joint_node_paths)
-        == _expected_manifest_joint_node_paths(joint_nodes)
+    return _normalized_manifest_part_node_paths(
+        part_node_paths
+    ) == _expected_manifest_part_node_paths(
+        part_nodes
+    ) and _normalized_manifest_joint_node_paths(
+        joint_node_paths
+    ) == _expected_manifest_joint_node_paths(
+        joint_nodes
     )
 
 
@@ -949,9 +974,7 @@ def _append_manifest_path_map_mismatch_errors(
         for field, expected_value in sorted(expected[key].items()):
             actual_value = actual[key].get(field)
             if actual_value != expected_value:
-                errors.append(
-                    f"{prefix}.{key}.{field} must equal {expected_value!r}"
-                )
+                errors.append(f"{prefix}.{key}.{field} must equal {expected_value!r}")
 
 
 def _manifest_path_map_mismatches(
@@ -1143,9 +1166,7 @@ def _append_runtime_value_mismatch(
         return
     max_delta = _runtime_value_delta(expected, actual)
     values_match = (
-        max_delta <= tolerance
-        if max_delta is not None
-        else expected == actual
+        max_delta <= tolerance if max_delta is not None else expected == actual
     )
     if values_match:
         return
@@ -1308,7 +1329,9 @@ def _append_manifest_root_path_mismatch(
         )
 
 
-def _expected_manifest_joint_node_paths(joint_nodes: list[Any]) -> dict[str, dict[str, str]]:
+def _expected_manifest_joint_node_paths(
+    joint_nodes: list[Any],
+) -> dict[str, dict[str, str]]:
     return {
         str(joint["connection_name"]): {
             "joint_node": str(joint["joint_node"]),
@@ -1454,7 +1477,9 @@ def _validate_manifest_joint_node(
                 errors.append(f"{prefix}.{node_field} must equal {expected_node!r}")
     for field in ["missing_endpoint_part_ids", "missing_endpoint_fields"]:
         value = joint.get(field)
-        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        if not isinstance(value, list) or not all(
+            isinstance(item, str) for item in value
+        ):
             errors.append(f"{prefix}.{field} must be a list of strings")
     details = joint.get("missing_endpoint_details")
     if not isinstance(details, list):
@@ -1473,7 +1498,6 @@ def _validate_manifest_joint_node(
             errors.append(f"{prefix}.{field} must be a 3-number sequence")
     if not isinstance(joint.get("applied_parameters"), Mapping):
         errors.append(f"{prefix}.applied_parameters must be an object")
-
 
 
 def _normalize_part(part: Any) -> dict[str, Any]:
@@ -1633,8 +1657,14 @@ def _planned_joint_parameters(
     connection: Mapping[str, Any],
     joint_type: str,
 ) -> dict[str, Any]:
-    limits = connection.get("limits") if isinstance(connection.get("limits"), Mapping) else {}
-    motor = connection.get("motor") if isinstance(connection.get("motor"), Mapping) else {}
+    limits = (
+        connection.get("limits")
+        if isinstance(connection.get("limits"), Mapping)
+        else {}
+    )
+    motor = (
+        connection.get("motor") if isinstance(connection.get("motor"), Mapping) else {}
+    )
     extra = _planned_schema_1_5_joint_metadata(connection, limits)
     if joint_type in {"hinge", "revolute"}:
         return {
@@ -1793,10 +1823,9 @@ def _validate_connections(
             errors.append(f"{prefix}.name must be a non-empty string")
         _validate_connection_endpoint(connection, "from", part_ids, prefix, errors)
         _validate_connection_endpoint(connection, "to", part_ids, prefix, errors)
-        if (
-            _is_non_empty_string(connection.get("from"))
-            and connection.get("from") == connection.get("to")
-        ):
+        if _is_non_empty_string(connection.get("from")) and connection.get(
+            "from"
+        ) == connection.get("to"):
             errors.append(f"{prefix}.from and .to must reference different parts")
         parent = connection.get("from")
         child = connection.get("to")
@@ -1813,7 +1842,9 @@ def _validate_connections(
                     f"already connected by {child_connections[str(child)]}"
                 )
             else:
-                child_connections[str(child)] = str(name) if _is_non_empty_string(name) else prefix
+                child_connections[str(child)] = (
+                    str(name) if _is_non_empty_string(name) else prefix
+                )
             edges.append((str(parent), str(child), prefix))
         if connection.get("joint_type") not in SUPPORTED_GODOT_JOINTS:
             errors.append(
@@ -1826,9 +1857,7 @@ def _validate_connections(
             if _is_vector3(connection.get("axis")) and not _is_nonzero_vector3(
                 connection.get("axis")
             ):
-                errors.append(
-                    f"{prefix}.axis must be non-zero for movable joints"
-                )
+                errors.append(f"{prefix}.axis must be non-zero for movable joints")
         _validate_limits(connection.get("limits"), prefix, errors)
         if connection.get("joint_type") == "fixed":
             _validate_fixed_limits(connection.get("limits"), prefix, errors)
@@ -1881,8 +1910,7 @@ def _validate_connection_tree(
     cycle = _first_connection_cycle(edges)
     if cycle:
         errors.append(
-            "connections must not contain directed cycles: "
-            f"{' -> '.join(cycle)}"
+            "connections must not contain directed cycles: " f"{' -> '.join(cycle)}"
         )
 
 
@@ -2024,9 +2052,7 @@ def _validate_limits(limits: Any, prefix: str, errors: list[str]) -> None:
             errors.append(f"{prefix}.limits.{field} must be a number")
     for field in ["effort", "velocity"]:
         if field in limits and not _is_non_negative_number(limits.get(field)):
-            errors.append(
-                f"{prefix}.limits.{field} must be a non-negative number"
-            )
+            errors.append(f"{prefix}.limits.{field} must be a non-negative number")
     if _is_number(limits.get("lower")) and _is_number(limits.get("upper")):
         if float(limits["lower"]) > float(limits["upper"]):
             errors.append(f"{prefix}.limits.lower must be <= limits.upper")
@@ -2067,9 +2093,7 @@ def _validate_dynamics(dynamics: Any, prefix: str, errors: list[str]) -> None:
         return
     for field in ["damping", "friction"]:
         if field in dynamics and not _is_non_negative_number(dynamics.get(field)):
-            errors.append(
-                f"{prefix}.dynamics.{field} must be a non-negative number"
-            )
+            errors.append(f"{prefix}.dynamics.{field} must be a non-negative number")
 
 
 def _validate_material(material: Any, prefix: str, errors: list[str]) -> None:
@@ -2139,7 +2163,9 @@ def _validate_controller_tuning(
         errors.append(f"{prefix}.controller must be an object when present")
         return
     for field in ["kp", "ki", "kd", "max_output"]:
-        _validate_optional_non_negative(controller, field, f"{prefix}.controller", errors)
+        _validate_optional_non_negative(
+            controller, field, f"{prefix}.controller", errors
+        )
     for field in ["target_position", "target_velocity"]:
         if field in controller and not _is_number(controller.get(field)):
             errors.append(f"{prefix}.controller.{field} must be a number")
