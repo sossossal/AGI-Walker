@@ -6,7 +6,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -79,7 +79,7 @@ def sha256_file(path: Path) -> str:
 
 
 def _mtime_iso(path: Path) -> str:
-    return datetime.fromtimestamp(path.stat().st_mtime, UTC).isoformat()
+    return datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat()
 
 
 def _entry_path(bundle_root: Path, entry: dict[str, Any]) -> Path:

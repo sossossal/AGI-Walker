@@ -6,7 +6,7 @@ import argparse
 import json
 import shutil
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -28,7 +28,7 @@ DEFAULT_DOC_PATH = ROOT / "docs" / "guides" / "DYNAMIC_GODOT_ROBOT_GENERATION.md
 
 
 def _mtime_iso(path: Path) -> str:
-    return datetime.fromtimestamp(path.stat().st_mtime, UTC).isoformat()
+    return datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat()
 
 
 def _read_json_object(path: Path) -> dict[str, Any]:
@@ -126,7 +126,7 @@ def build_bundle(args: argparse.Namespace) -> dict[str, Any]:
     index = {
         "bundle_version": BUNDLE_VERSION,
         "artifact_type": BUNDLE_ARTIFACT_TYPE,
-        "generated_at": datetime.now(UTC).isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "bundle_root": str(output_root),
         "evidence_level": level,
         "evidence_level_rank": LEVEL_RANKS.get(level, 0),

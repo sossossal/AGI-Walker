@@ -100,6 +100,7 @@ py -3.12 -m pytest -m "not live" --collect-only -q
 - 2026-05-20: Bundle validation now checks the stored validation report snapshot for bundle root and required artifact/documentation role contract-list drift.
 - 2026-05-20: Bundle validation now checks index metadata drift for `bundle_root`, timezone-aware `generated_at`, `readiness_status` and `residual_risks`.
 - 2026-05-20: Bundle validation now checks artifact and documentation `required` flags against the canonical required key/role lists.
+- 2026-05-24: PR Ubuntu 3.10 CI exposed that `datetime.UTC` is not available before Python 3.11. Bundle builder and validator now use `timezone.utc` to preserve the documented Python 3.10 compatibility matrix.
 
 # Drift Check
 
