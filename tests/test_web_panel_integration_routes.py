@@ -11,6 +11,10 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
+from agi_walker.core.api.robot_schema import (
+    ROBOT_MECHANICAL_SCHEMA_VERSION,
+    build_godot_node_tree_manifest,
+)
 from agi_walker.core.api.workflow_contracts import WORKFLOW_CONTRACT_VERSION
 from agi_walker.workflow_orchestrator import (
     StepStatus,
@@ -57,6 +61,28 @@ def _mark_run_terminal(run_id, status, **changes):
     return _run_coro(
         web_panel.workflows_api._mark_run_terminal(run_id, status, **changes)
     )
+
+
+def test_assembly_restoration_score_includes_parameter_readback() -> None:
+    summary = web_panel.workflows_api._build_assembly_restoration_summary(
+        {
+            "expected_parts": 2,
+            "expected_joints": 2,
+            "part_nodes": [{}, {}],
+            "joint_nodes": [{}, {}],
+            "failed_connections": [],
+            "parameterized_joints": 1,
+            "parts_complete": True,
+            "joints_complete": True,
+            "parameters_complete": False,
+        }
+    )
+
+    assert summary["restored_parts"] == 2
+    assert summary["restored_joints"] == 2
+    assert summary["parameterized_joints"] == 1
+    assert summary["complete"] is False
+    assert summary["score"] == pytest.approx(5 / 6)
 
 
 @pytest.fixture()
@@ -181,15 +207,15 @@ def _build_completed_workflow_result(tmp_path: Path) -> WorkflowResult:
     robot_urdf = exports_dir / "robot.urdf"
     log_path = output_dir / "workflow_log_robot_creation_pipeline.json"
 
-    created_robot.write_text(
-        json.dumps(
-            {
-                "name": "web_panel_bot",
-                "parts": [{"id": "torso", "type": "body", "params": {}}],
-                "connections": [],
-            },
-            indent=2,
-        ),
+    robot_payload = {
+        "name": "web_panel_bot",
+        "parts": [{"id": "torso", "type": "body", "params": {}}],
+        "connections": [],
+    }
+    created_robot.write_text(json.dumps(robot_payload, indent=2), encoding="utf-8")
+    manifest_output = output_dir / "created_robot.node_tree_manifest.json"
+    manifest_output.write_text(
+        json.dumps(build_godot_node_tree_manifest(robot_payload), indent=2),
         encoding="utf-8",
     )
     robot_urdf.write_text("<robot name='web_panel_bot' />", encoding="utf-8")
@@ -211,7 +237,10 @@ def _build_completed_workflow_result(tmp_path: Path) -> WorkflowResult:
                 skill_executor="robot_modeling",
                 action="create_from_template",
                 status=StepStatus.COMPLETED,
-                output={"output_file": str(created_robot)},
+                output={
+                    "output_file": str(created_robot),
+                    "static_node_tree_manifest_output": str(manifest_output),
+                },
                 start_time=start_time,
                 end_time=first_end,
             ),
@@ -513,6 +542,9 @@ def test_workflow_routes_list_execute_and_download_artifacts(
             run_detail_response.json()["run"]["artifacts"][0]["schema_version"]
             == WORKFLOW_CONTRACT_VERSION
         )
+        assert run_detail_response.json()["run"]["artifacts"][0][
+            "static_node_tree_manifest_output"
+        ] == str(tmp_path / ".output" / "created_robot.node_tree_manifest.json")
         assert (
             run_detail_response.json()["run"]["artifacts"][1]["artifact_type"] == "urdf"
         )
@@ -619,14 +651,84 @@ def test_workflow_artifact_godot_load_uses_legacy_controller(
             "parts_count": 1,
             "connections_count": 0,
         }
+        assert (
+            payload["godot_delivery"]["static_node_tree_manifest_evidence"]["valid"]
+            is True
+        )
+        assert (
+            payload["godot_delivery"]["delivery_acceptance_gate"]["summary_counts"][
+                "static_node_tree_manifest_valid_count"
+            ]
+            == 1
+        )
         assert recorded == {
             "host": "127.0.0.1",
             "port": 9999,
             "connect_session_id": "design-tab-1",
-            "parts": [{"id": "torso", "type": "body", "params": {}}],
+            "parts": [
+                {
+                    "id": "torso",
+                    "type": "body",
+                    "shape": "box",
+                    "params": {
+                        "mass": 1.0,
+                        "position": [0.0, 0.0, 0.0],
+                        "rotation": [0.0, 0.0, 0.0],
+                        "size": [0.2, 0.2, 0.2],
+                    },
+                }
+            ],
             "connections": [],
             "load_session_id": "design-tab-1",
         }
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_workflow_run_exposes_static_godot_evidence_summary(
+    client: TestClient,
+) -> None:
+    tmp_path = _make_test_dir("workflow_static_godot_evidence")
+    try:
+        result = _build_completed_workflow_result(tmp_path)
+        request = web_panel.workflows_api.WorkflowRunRequest(
+            use_real=True,
+            execution_strategy="force",
+            parameters={"execution_strategy": "force", "output_root": str(tmp_path)},
+        )
+        run_id = uuid.uuid4().hex
+        record = web_panel.workflows_api._build_initial_run_record(
+            run_id,
+            "robot_creation_pipeline",
+            request,
+            str(tmp_path),
+        )
+        _store_run_record(record)
+        _finalize_run_from_result(run_id, result.to_dict())
+
+        detail = client.get(f"/api/workflows/runs/{run_id}").json()["run"]
+        summary = detail["godot_evidence_summary"]
+
+        assert summary["summary_version"] == "web_godot_evidence_summary.v1"
+        assert summary["level"] == "static_only"
+        assert summary["levels"] == {
+            "static_only": True,
+            "godot_load_verified": False,
+            "godot_verified": False,
+        }
+        assert summary["static"]["available"] is True
+        assert summary["static"]["manifest_mismatch_count"] == 0
+        assert summary["actions"]["godot_load"][0]["artifact_index"] == 0
+        assert summary["actions"]["recommended_godot_sync"]["enabled"] is True
+        assert summary["actions"]["readiness_summary"]["url"].endswith(
+            f"/api/workflows/runs/{run_id}/godot-readiness-summary"
+        )
+
+        readiness = client.get(
+            f"/api/workflows/runs/{run_id}/godot-readiness-summary"
+        ).json()
+        assert readiness["status"] == "ready"
+        assert readiness["proven_level"] == "static_only"
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -684,7 +786,33 @@ def test_workflow_artifact_godot_load_uses_session_bridge(
                 self, config: dict[str, object]
             ) -> dict[str, object]:
                 observed["robot_config"] = config
-                return {"status": "success"}
+                return {
+                    "status": "success",
+                    "assembly_summary": {
+                        "status": "success",
+                        "robot_name": "web_panel_bot",
+                        "expected_parts": 1,
+                        "parts_created": 1,
+                        "parts_complete": True,
+                        "expected_joints": 0,
+                        "joints_created": 0,
+                        "failed_joints": 0,
+                        "joints_complete": True,
+                        "parameterized_joints": 0,
+                        "parameters_complete": True,
+                        "complete": True,
+                        "part_nodes": [
+                            {
+                                "part_id": "torso",
+                                "body_node": "/root/GeneratedRobot/torso",
+                                "body_class": "RigidBody3D",
+                            }
+                        ],
+                        "joint_nodes": [],
+                        "failed_connections": [],
+                        "warnings": [],
+                    },
+                }
 
             async def wait_until_schema(
                 self, timeout_seconds: float = 5.0
@@ -738,6 +866,159 @@ def test_workflow_artifact_godot_load_uses_session_bridge(
             payload["godot_delivery"]["delivery_target"]
             == "session bridge workflow-preview"
         )
+        assert payload["godot_delivery"]["assembly_mapping_summary"] == {
+            "dynamic_robot_generation": True,
+            "complete": True,
+            "expected_parts": 1,
+            "parts_created": 1,
+            "parts_complete": True,
+            "expected_joints": 0,
+            "joints_created": 0,
+            "failed_joints": 0,
+            "joints_complete": True,
+            "parameterized_joints": 0,
+            "parameters_complete": True,
+            "part_nodes_count": 1,
+            "joint_nodes_count": 0,
+            "failed_connections_count": 0,
+            "warnings_count": 0,
+        }
+        assert payload["godot_delivery"]["assembly_restoration_summary"] == {
+            "source": "assembly_summary",
+            "expected_parts": 1,
+            "restored_parts": 1,
+            "expected_joints": 0,
+            "restored_joints": 0,
+            "failed_joints": 0,
+            "parameterized_joints": 0,
+            "parts_complete": True,
+            "joints_complete": True,
+            "parameters_complete": True,
+            "complete": True,
+            "score": 1.0,
+        }
+        assert payload["godot_delivery"]["static_node_tree_manifest_evidence"] == {
+            "source": "generated_from_artifact",
+            "output": str(tmp_path / ".output" / "created_robot.node_tree_manifest.json"),
+            "manifest_version": "godot_node_tree_manifest.v1",
+            "valid": True,
+            "errors": [],
+            "error_count": 0,
+            "complete": True,
+            "parameters_complete": True,
+            "endpoint_paths_complete": True,
+            "path_maps_complete": True,
+            "parts_count": 1,
+            "joints_count": 0,
+            "parameterized_joints": 0,
+            "path_map_mismatch_count": 0,
+            "path_map_mismatch_kind_counts": {},
+            "path_map_mismatches": [],
+        }
+        assert payload["godot_delivery"]["delivery_acceptance_gate"] == {
+            "contract_version": "delivery_acceptance_gate.v1",
+            "source": "web_godot_delivery",
+            "verification_scope": "godot_load",
+            "required": False,
+            "requires_full_mechanical_restoration_gate": False,
+            "acceptance_profile": "web_godot_load",
+            "acceptance_requirements": (
+                web_panel.workflows_api._web_godot_load_acceptance_requirements()
+            ),
+            "passed": True,
+            "exit_code": 0,
+            "level": "godot_load_verified",
+            "complete": True,
+            "reasons": [],
+            "reason_codes": [],
+            "reason_details": [],
+            "summary_counts": {
+                "inputs_count": 1,
+                "success_count": 1,
+                "error_count": 0,
+                "live_smoke_count": 0,
+                "delivery_godot_verified_count": 1,
+                "delivery_static_only_count": 0,
+                "delivery_unverified_count": 0,
+                "delivery_dynamic_generation_count": 1,
+                "delivery_complete_count": 1,
+                "delivery_incomplete_count": 0,
+                "delivery_parameters_incomplete_count": 0,
+                "fixed_lock_checked_count": 0,
+                "fixed_lock_mismatch_count": 0,
+                "static_node_tree_manifest_count": 1,
+                "static_node_tree_manifest_valid_count": 1,
+                "static_node_tree_manifest_invalid_count": 0,
+                "static_node_tree_manifest_error_count": 0,
+                "static_node_tree_manifest_output_count": 1,
+                "static_node_tree_manifest_path_map_mismatch_count": 0,
+                "static_node_tree_manifest_path_map_mismatch_kind_counts": {},
+                "static_node_tree_complete_count": 1,
+                "static_node_tree_incomplete_count": 0,
+                "static_node_tree_endpoint_paths_complete_count": 1,
+                "static_node_tree_endpoint_paths_incomplete_count": 0,
+                "static_node_tree_parameters_complete_count": 1,
+                "static_node_tree_parameters_incomplete_count": 0,
+                "node_tree_fixed_lock_checked_count": 0,
+                "node_tree_fixed_lock_mismatch_count": 0,
+                "node_tree_fixed_locks_complete_count": 0,
+                "node_tree_fixed_locks_incomplete_count": 0,
+                "node_tree_gate_enabled_count": 1,
+                "node_tree_full_restoration_required_count": 0,
+                "node_tree_full_restoration_not_required_count": 1,
+                "node_tree_gate_check_counts": {"fixed_lock_mismatch": 1},
+                "mechanical_gate_enabled_count": 2,
+                "full_mechanical_restoration_required_count": 0,
+                "full_mechanical_restoration_not_required_count": 1,
+                "mechanical_gate_check_counts": {
+                    "mechanical_restoration": 1,
+                    "joint_parameter_readback": 1,
+                },
+                "failure_reasons_count": 0,
+            },
+        }
+        assert (
+            web_panel.workflows_api.validate_delivery_acceptance_gate(
+                payload["godot_delivery"]["delivery_acceptance_gate"]
+            )
+            == []
+        )
+        assert payload["godot_evidence_summary"]["summary_version"] == (
+            "web_godot_evidence_summary.v1"
+        )
+        assert payload["godot_evidence_summary"]["level"] == "godot_load_verified"
+        assert payload["godot_evidence_summary"]["levels"] == {
+            "static_only": True,
+            "godot_load_verified": True,
+            "godot_verified": False,
+        }
+        assert payload["godot_evidence_summary"]["static"] == {
+            "available": True,
+            "manifest_valid": True,
+            "manifest_complete": True,
+            "manifest_output": str(
+                tmp_path / ".output" / "created_robot.node_tree_manifest.json"
+            ),
+            "manifest_mismatch_count": 0,
+            "manifest_mismatch_kind_counts": {},
+        }
+        assert payload["godot_evidence_summary"]["actions"]["godot_load"][0][
+            "url"
+        ].endswith(f"/api/workflows/runs/{run_id}/artifacts/0/godot-load")
+        assert payload["godot_evidence_summary"]["actions"]["readiness_summary"][
+            "url"
+        ].endswith(f"/api/workflows/runs/{run_id}/godot-readiness-summary")
+
+        run_detail = client.get(f"/api/workflows/runs/{run_id}").json()["run"]
+        assert run_detail["godot_evidence_summary"]["level"] == "godot_load_verified"
+        readiness = client.get(
+            f"/api/workflows/runs/{run_id}/godot-readiness-summary"
+        ).json()
+        assert readiness["summary_version"] == (
+            "dynamic_godot_release_readiness_summary.v1"
+        )
+        assert readiness["status"] == "ready"
+        assert readiness["proven_level"] == "godot_load_verified"
         assert observed["session_id"] == "workflow-preview"
         assert observed["launch"] == {
             "scene": "demo_generated_biped.tscn",
@@ -746,7 +1027,21 @@ def test_workflow_artifact_godot_load_uses_session_bridge(
         }
         assert observed["robot_config"] == {
             "name": "web_panel_bot",
-            "parts": [{"id": "torso", "type": "body", "params": {}}],
+            "schema_version": ROBOT_MECHANICAL_SCHEMA_VERSION,
+            "metadata": {},
+            "parts": [
+                {
+                    "id": "torso",
+                    "type": "body",
+                    "shape": "box",
+                    "params": {
+                        "mass": 1.0,
+                        "position": [0.0, 0.0, 0.0],
+                        "rotation": [0.0, 0.0, 0.0],
+                        "size": [0.2, 0.2, 0.2],
+                    },
+                }
+            ],
             "connections": [],
         }
     finally:
@@ -847,7 +1142,21 @@ def test_workflow_godot_sync_uses_recommended_artifact_and_persists_delivery(
         assert observed["session_id"] == "official-session"
         assert observed["robot_config"] == {
             "name": "web_panel_bot",
-            "parts": [{"id": "torso", "type": "body", "params": {}}],
+            "schema_version": ROBOT_MECHANICAL_SCHEMA_VERSION,
+            "metadata": {},
+            "parts": [
+                {
+                    "id": "torso",
+                    "type": "body",
+                    "shape": "box",
+                    "params": {
+                        "mass": 1.0,
+                        "position": [0.0, 0.0, 0.0],
+                        "rotation": [0.0, 0.0, 0.0],
+                        "size": [0.2, 0.2, 0.2],
+                    },
+                }
+            ],
             "connections": [],
         }
 
@@ -920,6 +1229,70 @@ def test_workflow_godot_sync_persists_failure_stage_and_retry_hint(
         assert run_detail["godot_delivery"]["artifact_retry_url"].endswith(
             f"/api/workflows/runs/{run_id}/artifacts/0/godot-load"
         )
+        assert run_detail["godot_delivery"]["delivery_acceptance_gate"][
+            "reason_codes"
+        ] == [
+            "godot_delivery_failed",
+            "missing_godot_assembly_summary",
+        ]
+        assert run_detail["godot_delivery"]["delivery_acceptance_gate"][
+            "contract_version"
+        ] == "delivery_acceptance_gate.v1"
+        assert run_detail["godot_delivery"]["delivery_acceptance_gate"][
+            "source"
+        ] == "web_godot_delivery"
+        assert run_detail["godot_delivery"]["delivery_acceptance_gate"][
+            "verification_scope"
+        ] == "godot_load"
+        assert run_detail["godot_delivery"]["delivery_acceptance_gate"][
+            "passed"
+        ] is False
+        assert run_detail["godot_delivery"]["delivery_acceptance_gate"][
+            "summary_counts"
+        ] == {
+            "inputs_count": 1,
+            "success_count": 0,
+            "error_count": 1,
+            "live_smoke_count": 0,
+            "delivery_godot_verified_count": 0,
+            "delivery_static_only_count": 0,
+            "delivery_unverified_count": 1,
+            "delivery_dynamic_generation_count": 0,
+            "delivery_complete_count": 0,
+            "delivery_incomplete_count": 1,
+            "delivery_parameters_incomplete_count": 0,
+            "fixed_lock_checked_count": 0,
+            "fixed_lock_mismatch_count": 0,
+            "static_node_tree_manifest_count": 1,
+            "static_node_tree_manifest_valid_count": 1,
+            "static_node_tree_manifest_invalid_count": 0,
+            "static_node_tree_manifest_error_count": 0,
+            "static_node_tree_manifest_output_count": 1,
+            "static_node_tree_manifest_path_map_mismatch_count": 0,
+            "static_node_tree_manifest_path_map_mismatch_kind_counts": {},
+            "static_node_tree_complete_count": 1,
+            "static_node_tree_incomplete_count": 0,
+            "static_node_tree_endpoint_paths_complete_count": 1,
+            "static_node_tree_endpoint_paths_incomplete_count": 0,
+            "static_node_tree_parameters_complete_count": 1,
+            "static_node_tree_parameters_incomplete_count": 0,
+            "node_tree_fixed_lock_checked_count": 0,
+            "node_tree_fixed_lock_mismatch_count": 0,
+            "node_tree_fixed_locks_complete_count": 0,
+            "node_tree_fixed_locks_incomplete_count": 0,
+            "node_tree_gate_enabled_count": 1,
+            "node_tree_full_restoration_required_count": 0,
+            "node_tree_full_restoration_not_required_count": 1,
+            "node_tree_gate_check_counts": {"fixed_lock_mismatch": 1},
+            "mechanical_gate_enabled_count": 2,
+            "full_mechanical_restoration_required_count": 0,
+            "full_mechanical_restoration_not_required_count": 1,
+            "mechanical_gate_check_counts": {
+                "mechanical_restoration": 1,
+                "joint_parameter_readback": 1,
+            },
+            "failure_reasons_count": 2,
+        }
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 

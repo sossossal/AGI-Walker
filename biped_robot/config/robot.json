@@ -1,0 +1,47 @@
+{
+  "schema_version": "biped-robot.v1",
+  "name": "mountain_humanoid_biped",
+  "description": "Standalone hardware-free humanoid biped contract for Godot mountain walking validation.",
+  "units": {
+    "length": "meter",
+    "angle": "degree",
+    "mass": "kilogram"
+  },
+  "body": {
+    "height": 1.72,
+    "mass": 62.0,
+    "center_of_mass_height": 0.92
+  },
+  "segments": [
+    {"name": "torso", "size": [0.42, 0.64, 0.24], "mass": 22.0},
+    {"name": "head", "size": [0.24, 0.24, 0.24], "mass": 4.0},
+    {"name": "left_upper_leg", "size": [0.14, 0.46, 0.14], "mass": 5.0},
+    {"name": "left_lower_leg", "size": [0.12, 0.46, 0.12], "mass": 4.0},
+    {"name": "left_foot", "size": [0.18, 0.08, 0.32], "mass": 1.2},
+    {"name": "right_upper_leg", "size": [0.14, 0.46, 0.14], "mass": 5.0},
+    {"name": "right_lower_leg", "size": [0.12, 0.46, 0.12], "mass": 4.0},
+    {"name": "right_foot", "size": [0.18, 0.08, 0.32], "mass": 1.2},
+    {"name": "left_upper_arm", "size": [0.11, 0.36, 0.11], "mass": 2.0},
+    {"name": "left_lower_arm", "size": [0.10, 0.34, 0.10], "mass": 1.5},
+    {"name": "right_upper_arm", "size": [0.11, 0.36, 0.11], "mass": 2.0},
+    {"name": "right_lower_arm", "size": [0.10, 0.34, 0.10], "mass": 1.5}
+  ],
+  "joints": [
+    {"name": "left_hip_pitch", "axis": "x", "limit": [-38, 42]},
+    {"name": "left_knee_pitch", "axis": "x", "limit": [0, 72]},
+    {"name": "left_ankle_pitch", "axis": "x", "limit": [-24, 28]},
+    {"name": "right_hip_pitch", "axis": "x", "limit": [-38, 42]},
+    {"name": "right_knee_pitch", "axis": "x", "limit": [0, 72]},
+    {"name": "right_ankle_pitch", "axis": "x", "limit": [-24, 28]},
+    {"name": "left_shoulder_pitch", "axis": "x", "limit": [-55, 55]},
+    {"name": "right_shoulder_pitch", "axis": "x", "limit": [-55, 55]}
+  ],
+  "gait": {
+    "cycle_seconds": 1.15,
+    "step_length": 0.42,
+    "step_height": 0.12,
+    "nominal_speed_mps": 0.55,
+    "max_slope_degrees": 27.0,
+    "stability_margin_min": 0.11
+  }
+}

@@ -1,20 +1,42 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Propose a planned capability, contract change or delivery improvement
 title: "[FEATURE] "
 labels: enhancement
 assignees: ''
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+**Problem or goal**
+What user, operator, release or engineering problem should this solve?
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+**Proposed outcome**
+What should be true when this is complete?
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+**Affected modules**
+- [ ] Core workflow / API
+- [ ] Dynamic Godot robot generation
+- [ ] Runtime mechanical behavior evidence
+- [ ] Web Panel / operator UI
+- [ ] Deployment / release evidence
+- [ ] Hardware / ROS2 / no-hardware acceptance
+- [ ] Documentation / planning
+- [ ] Other:
+
+**Contracts or compatibility**
+- Public API/schema/CLI/config/file format changes:
+- Backward compatibility or migration expectation:
+- Out-of-scope items:
+
+**Validation expectations**
+Which checks, artifacts or manual smoke tests should prove the feature?
+
+```text
+command or artifact -> expected result
+```
+
+**Alternatives considered**
+List any simpler, safer or deferred approaches.
 
 **Additional context**
-Add any other context or screenshots about the feature request here.
+Links to `PROJECT_PLAN.md`, `plans/modules/<module>.md`, docs, artifacts or screenshots.

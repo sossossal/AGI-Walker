@@ -1,0 +1,71 @@
+{
+  "name": "dynamic_quadruped",
+  "parts": [
+    {
+      "id": "body",
+      "type": "torso",
+      "shape": "box",
+      "params": {
+        "mass": 6.0,
+        "size": [0.6, 0.25, 0.2],
+        "position": [0.0, 0.7, 0.0],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    },
+    {
+      "id": "front_left_upper",
+      "type": "thigh",
+      "shape": "capsule",
+      "params": {
+        "mass": 0.5,
+        "length": 0.25,
+        "radius": 0.03,
+        "position": [0.22, 0.48, 0.12],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    },
+    {
+      "id": "front_left_lower",
+      "type": "shin",
+      "shape": "capsule",
+      "params": {
+        "mass": 0.3,
+        "length": 0.25,
+        "radius": 0.025,
+        "position": [0.22, 0.24, 0.12],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "name": "front_left_hip",
+      "from": "body",
+      "to": "front_left_upper",
+      "joint_type": "hinge",
+      "origin": [0.22, 0.56, 0.12],
+      "axis": [1.0, 0.0, 0.0],
+      "limits": {"lower": -0.8, "upper": 0.8},
+      "motor": {"enabled": true, "target_velocity": 0.0, "max_impulse": 80.0},
+      "dynamics": {"damping": 0.1, "friction": 0.01}
+    },
+    {
+      "name": "front_left_knee",
+      "from": "front_left_upper",
+      "to": "front_left_lower",
+      "joint_type": "hinge",
+      "origin": [0.22, 0.36, 0.12],
+      "axis": [1.0, 0.0, 0.0],
+      "limits": {"lower": -2.0, "upper": 0.6},
+      "motor": {"enabled": true, "target_velocity": 0.0, "max_impulse": 60.0},
+      "dynamics": {"damping": 0.1, "friction": 0.01}
+    }
+  ],
+  "control": {
+    "mode": "motor_velocity",
+    "joints": {
+      "front_left_hip": {"kp": 45.0, "kd": 4.5},
+      "front_left_knee": {"kp": 40.0, "kd": 4.0}
+    }
+  }
+}

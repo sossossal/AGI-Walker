@@ -138,7 +138,7 @@ python tools/collect_release_evidence.py --vulnerability-exception-input-source 
 如果你需要一条会对 `security_posture_report` 做最终成败判定的正式预检命令，应运行：
 
 ```bash
-python tools/run_security_release_preflight.py --output-root test_env/release_evidence --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed --vulnerability-exception-input-source deployment/security/vulnerability_exceptions.input.json
+python tools/run_security_release_preflight.py --security-only --output-root test_env/release_evidence --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed --vulnerability-exception-input-source deployment/security/vulnerability_exceptions.input.json
 ```
 
 该命令当前是阶段 D 的正式 preflight 入口，CI 也应复用它，而不是各自拼 scanner 命令。

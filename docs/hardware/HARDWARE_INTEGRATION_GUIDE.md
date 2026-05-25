@@ -393,6 +393,71 @@ test_env/hardware_live/hardware_live_closeout_report.json
 
 缺任一必需证据时，报告保持 `blocked`，避免把准备态或 replay 证据误声明为真实硬件 closeout。
 
+### 无硬件时的最大化验收
+
+如果当前机器没有真实机器人、串口或 CAN 设备，使用硬件无关验收报告收口可替代证据：
+
+```bash
+python tools/build_hardwareless_acceptance_report.py --no-hardware
+```
+
+默认输出：
+
+```bash
+test_env/hardwareless_acceptance/hardwareless_acceptance_report.json
+```
+
+这份报告会记录应配套保留的 mock / replay / fake-runtime / live Godot / production compose 命令，并探测本机 ROS2 Python runtime 与 Zenoh Python runtime 是否可用。它的语义是“缺少硬件时的最大化本地验收”，不是硬件 live closeout。真实机器人、真实 serial/CAN transport、缺失的 ROS2 Humble runtime 会继续以 `blocked_external_prerequisite` 出现在报告里。
+
+当现场证据补齐后，可以把真实硬件 closeout 和 ROS2 bridge live smoke artifact 传回同一个报告工具，解除对应 external blocker：
+
+```bash
+python tools/build_hardwareless_acceptance_report.py \
+  --no-hardware \
+  --hardware-live-closeout test_env/hardware_live/hardware_live_closeout_report.json \
+  --ros2-bridge-smoke test_env/ros2_bridge_smoke/ros2_bridge_smoke_report.json
+```
+
+正式交付或 release gate 应开启严格模式；缺少真实硬件 closeout 或 ROS2 bridge live smoke 时会直接返回 `blocked`：
+
+```bash
+python tools/build_hardwareless_acceptance_report.py \
+  --no-hardware \
+  --require-external-evidence
+```
+
+即使不启用严格模式，也应读取报告中的 `release_gate.status`。只要外部证据未 ready，`release_gate.status` 会保持 `blocked`，避免把本地无硬件替代验收误当成正式发布通过。
+
+CI 或 release 脚本应使用专用校验器，而不是手写 JSON 判断：
+
+```bash
+python tools/validate_hardwareless_release_gate.py test_env/hardwareless_acceptance/hardwareless_acceptance_report.json
+```
+
+需要归档校验结果时：
+
+```bash
+python tools/validate_hardwareless_release_gate.py \
+  test_env/hardwareless_acceptance/hardwareless_acceptance_report.json \
+  --output test_env/hardwareless_acceptance/hardwareless_release_gate_validation.json
+```
+
+报告中的 `hardwareless_safety_scenarios` 会把以下风险从笼统残余风险收敛成可验证 mitigation：
+
+- command limit clamping
+- watchdog hold fallback
+- fault-class recovery policy
+- serial protocol replay
+- Web hardware recovery permission gate
+- live Godot mountain mechanical gate
+
+建议配套命令：
+
+```bash
+python -m pytest tests/test_real_robot_driver.py tests/test_hardware_controller.py tests/test_ros2_bridge_runtime.py tests/test_ros2_workspace.py -q -rs
+python -m pytest tests/test_web_godot_session_bridge.py tests/test_web_hardware_operation_permissions_static.py tests/test_web_hardware_role_policy.py -q -rs
+```
+
 ## 7. `HardwareEnvironment`
 
 `HardwareEnvironment` 试图把真实硬件包成类似 Gym 的接口：

@@ -69,6 +69,14 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Do not execute collect_release_evidence.py; only evaluate the existing security posture report.",
     )
+    parser.add_argument(
+        "--security-only",
+        action="store_true",
+        help=(
+            "Pass --security-only to collect_release_evidence.py so the preflight "
+            "collects only security posture evidence and skips broad release gates."
+        ),
+    )
     parser.add_argument("--python-vuln-report-source", default=None)
     parser.add_argument("--python-vuln-raw-report", default=None)
     parser.add_argument(
@@ -167,6 +175,8 @@ def _run_collect_release_evidence(args: argparse.Namespace, output_root: Path) -
         command.append("--run-python-vuln-scan")
     if args.run_container_vuln_scan:
         command.append("--run-container-vuln-scan")
+    if args.security_only:
+        command.append("--security-only")
     for image_ref in args.container_image_ref:
         command.extend(["--container-image-ref", image_ref])
 

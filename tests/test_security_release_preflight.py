@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import subprocess
 import sys
+from types import SimpleNamespace
 from pathlib import Path
 
 from agi_walker.core.api.release_contracts import (
@@ -16,6 +18,19 @@ from agi_walker.core.api.security_posture_contracts import (
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SECURITY_PREFLIGHT_PATH = PROJECT_ROOT / "tools" / "run_security_release_preflight.py"
+
+
+def _load_security_preflight_module():
+    spec = importlib.util.spec_from_file_location(
+        "run_security_release_preflight_module",
+        SECURITY_PREFLIGHT_PATH,
+    )
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def _seed_ready_security_posture_report(report_path: Path) -> None:
@@ -179,6 +194,52 @@ def test_security_release_preflight_passes_with_ready_security_posture(
         payload["metrics"]["vulnerability_exception_next_expiry"]
         == "2026-05-15T00:00:00+00:00"
     )
+
+
+def test_security_release_preflight_forwards_security_only_collect_profile(
+    tmp_path: Path, monkeypatch
+) -> None:
+    module = _load_security_preflight_module()
+    captured: dict[str, object] = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = list(command)
+        captured["cwd"] = kwargs.get("cwd")
+        return SimpleNamespace(returncode=0, stdout="release_evidence_status=passed\n", stderr="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    args = SimpleNamespace(
+        python_vuln_report_source=None,
+        python_vuln_raw_report=None,
+        python_vuln_raw_format="pip-audit-json",
+        python_vuln_command="pip-audit --format json",
+        python_vuln_raw_output=None,
+        container_vuln_report_source=None,
+        container_vuln_raw_report=None,
+        container_vuln_raw_format="trivy-json",
+        container_vuln_command="trivy image --scanners vuln --timeout 15m --format json",
+        container_vuln_raw_output_dir=None,
+        vulnerability_exception_report_source=None,
+        vulnerability_exception_input_source="deployment/security/vulnerability_exceptions.input.json",
+        run_python_vuln_scan=True,
+        run_container_vuln_scan=True,
+        container_image_ref=["deployment-web-panel-distributed"],
+        security_only=True,
+    )
+
+    code, summary = module._run_collect_release_evidence(
+        args,
+        tmp_path / "release_evidence",
+    )
+
+    assert code == 0
+    assert "release_evidence_status=passed" in summary
+    command = captured["command"]
+    assert isinstance(command, list)
+    assert "tools/collect_release_evidence.py" in command
+    assert "--security-only" in command
+    assert "--run-python-vuln-scan" in command
+    assert "--run-container-vuln-scan" in command
 
 
 def test_security_release_preflight_blocks_with_blocked_security_posture(

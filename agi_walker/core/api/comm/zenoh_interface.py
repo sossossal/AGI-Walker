@@ -27,6 +27,7 @@ try:
     PROTOBUF_AVAILABLE = True
 except ImportError:
     PROTOBUF_AVAILABLE = False
+    Message = Any
 
 logger = logging.getLogger(__name__)
 

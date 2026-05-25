@@ -1,0 +1,39 @@
+{
+  "schema_version": "biped-godot-io-input.v1",
+  "simulation": {
+    "duration_seconds": 2.0,
+    "telemetry_interval_seconds": 0.05,
+    "speed_scale": 1.0,
+    "gait_cycle_seconds": 1.15
+  },
+  "commands": [
+    {
+      "time_s": 0.0,
+      "command": "set_gait",
+      "speed_scale": 1.0,
+      "gait_cycle_seconds": 1.15
+    },
+    {
+      "time_s": 0.75,
+      "command": "set_gait",
+      "speed_scale": 0.82,
+      "gait_cycle_seconds": 1.28
+    },
+    {
+      "time_s": 1.35,
+      "command": "set_gait",
+      "speed_scale": 1.08,
+      "gait_cycle_seconds": 1.08
+    }
+  ],
+  "outputs": {
+    "telemetry_path": "res://../test_env/godot_io_telemetry.jsonl",
+    "report_path": "res://../test_env/godot_io_report.json"
+  },
+  "acceptance": {
+    "min_telemetry_rows": 20,
+    "require_command_application": true,
+    "max_allowed_abs_roll_degrees": 6.0,
+    "max_allowed_abs_pitch_degrees": 5.0
+  }
+}

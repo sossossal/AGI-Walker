@@ -1,31 +1,54 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Report a reproducible defect, broken contract or failed local workflow
 title: "[BUG] "
 labels: bug
 assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**Summary**
+A concise description of the defect and the user-visible impact.
 
-**To Reproduce**
-Steps to reproduce the behavior:
+**Affected area**
+- [ ] Core workflow / API
+- [ ] Dynamic Godot robot generation
+- [ ] Web Panel / operator UI
+- [ ] Deployment / Docker
+- [ ] Hardware / ROS2 / no-hardware acceptance
+- [ ] Documentation / release evidence
+- [ ] Other:
+
+**Reproduction steps**
 1. Go to '...'
-2. Click on '...'
-3. Scroll down to '...'
-4. See error
+2. Run '...'
+3. Observe '...'
 
 **Expected behavior**
-A clear and concise description of what you expected to happen.
+What should have happened?
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+**Actual behavior**
+What happened instead? Include the key error lines, artifact path or screenshot if available.
 
-**Desktop (please complete the following information):**
- - OS: [e.g. Windows]
- - Python Version [e.g. 3.8]
+**Environment**
+- OS:
+- Python version:
+- Branch / commit:
+- Godot version or executable path, if relevant:
+- Docker / ROS2 / hardware environment, if relevant:
+
+**Validation evidence**
+Commands or checks already run:
+
+```text
+command -> result
+```
+
+**Residual risk or safety impact**
+- [ ] No known safety/security/data impact
+- [ ] Possible security, credential or privacy issue
+- [ ] Possible robot hardware or operator safety issue
+- [ ] Possible release readiness blocker
 
 **Additional context**
-Add any other context about the problem here.
+Links to related plans, artifacts, runbooks, CI runs or prior reports.

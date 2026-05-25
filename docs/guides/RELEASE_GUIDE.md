@@ -82,7 +82,7 @@ python tools/build_release_artifact.py --version 2026.04.12-rc1 --channel rc --b
 ```bash
 python tools/run_clean_checkout_smoke.py --output-root test_env/clean_checkout_smoke_real
 python tools/collect_release_evidence.py --output-root test_env/release_evidence --vulnerability-exception-input-source deployment/security/vulnerability_exceptions.input.json
-python tools/run_security_release_preflight.py --output-root test_env/release_evidence --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed --vulnerability-exception-input-source deployment/security/vulnerability_exceptions.input.json
+python tools/run_security_release_preflight.py --security-only --output-root test_env/release_evidence --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed --vulnerability-exception-input-source deployment/security/vulnerability_exceptions.input.json
 python tools/build_extension_execution_evidence.py --output-root test_env/release_evidence/operations --vulnerability-exception-report test_env/release_evidence/security/vulnerability_exception_report.json
 python tools/build_extension_execution_instance.py --output test_env/release_evidence/operations/extension_execution_instance.json --vulnerability-exception-report test_env/release_evidence/security/vulnerability_exception_report.json
 python tools/build_extension_execution_schedule.py --output test_env/release_evidence/operations/extension_execution_schedule.json --instance-artifact test_env/release_evidence/operations/extension_execution_instance.json
@@ -221,7 +221,7 @@ python tools/run_python_vulnerability_scan.py --include-optional-group training 
 如果你希望把这条扫描链作为正式发布前检查，而不是手工拼 `collect_release_evidence.py` 参数，可直接运行：
 
 ```bash
-python tools/run_security_release_preflight.py --output-root test_env/release_evidence --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed --vulnerability-exception-input-source deployment/security/vulnerability_exceptions.input.json
+python tools/run_security_release_preflight.py --security-only --output-root test_env/release_evidence --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed --vulnerability-exception-input-source deployment/security/vulnerability_exceptions.input.json
 ```
 
 该命令会：
@@ -269,7 +269,7 @@ python tools/collect_release_evidence.py --output-root test_env/release_evidence
 6. 在目标发布检出上运行正式 security release preflight：
 
 ```bash
-python tools/run_security_release_preflight.py --output-root test_env/release_evidence --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed --vulnerability-exception-input-source deployment/security/vulnerability_exceptions.input.json
+python tools/run_security_release_preflight.py --security-only --output-root test_env/release_evidence --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed --vulnerability-exception-input-source deployment/security/vulnerability_exceptions.input.json
 ```
 
 7. 生成扩展执行留痕报告：

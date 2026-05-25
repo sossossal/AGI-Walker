@@ -66,10 +66,22 @@ git checkout -b fix/your-bug-fix
 
 #### 3.4 测试
 ```bash
-# 运行测试
-python tests/test_integration.py
+# 安装开发依赖
+pip install -e ".[dev]"
 
-# 检查代码风格
+# 文档和路径引用检查
+py -3.12 -m pytest tests\test_docs_utf8.py tests\test_active_path_references.py -q
+
+# 核心 MCP smoke
+py -3.12 -m pytest tests\test_mcp_tools.py tests\test_mcp_server.py -q
+
+# 动态 Godot 契约检查
+py -3.12 -m pytest tests\test_dynamic_godot_robot_generation.py tests\test_workflow_contracts.py -q
+
+# 非 live 收集检查
+py -3.12 -m pytest -m "not live" --collect-only -q
+
+# 可选风格检查
 flake8 agi_walker/ web_panel/ tests/
 black --check agi_walker/ web_panel/ tests/
 ```
@@ -95,7 +107,7 @@ git commit -m "fix: resolve issue #123"
 git push origin feature/your-feature-name
 ```
 
-然后在 GitHub 上创建 Pull Request。
+然后在 GitHub 上创建 Pull Request。PR 描述必须包含 scope/contracts、验证证据、跳过的检查、残余风险和验收结论。
 
 ---
 
@@ -184,7 +196,7 @@ def test_your_function():
 ### 集成测试
 确保不破坏现有功能:
 ```bash
-python tests/test_integration.py
+py -3.12 -m pytest -m "not live" --collect-only -q
 ```
 
 ---
@@ -231,7 +243,6 @@ examples/tasks/your_task/
 ## 🏆 贡献者名单
 
 感谢所有贡献者! 您的名字将出现在:
-- [CONTRIBUTORS.md](CONTRIBUTORS.md)
 - 项目 README
 - Release Notes
 
@@ -240,9 +251,8 @@ examples/tasks/your_task/
 ## 📧 联系方式
 
 - **GitHub Issues**: Bug 报告和功能请求
-- **GitHub Discussions**: 技术讨论
-- **Discord**: [加入我们](https://discord.gg/agi-walker) (即将开放)
-- **Email**: team@agi-walker.org
+- **GitHub Discussions**: 技术讨论（如果仓库启用）
+- **Security Policy**: 安全漏洞和敏感问题请遵循 [SECURITY.md](SECURITY.md)
 
 ---
 

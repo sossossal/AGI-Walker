@@ -4,15 +4,21 @@ extends Node
 # Listens on port 9000
 # Exchanges JSON data with Length Prefix (4 bytes, Little Endian)
 
+const RobotAssemblerScript = preload("res://scripts/robot_assembler.gd")
+
 var server = TCPServer.new()
 var PORT = 9000
 var connection: StreamPeerTCP = null
 var robot_node: Node3D = null
+var robot_assembler = null
+var generated_controller = null
 var last_loaded_robot_config: Dictionary = {}
 var last_instruction_set: Dictionary = {}
 var simulated_circuit_config: Dictionary = {}
 var last_instruction_command_batch: Array = []
 var last_compatibility_params: Dictionary = {}
+var terrain_config: Dictionary = {}
+var terrain_summary: Dictionary = {}
 var current_control_state := {
 	"linear_x": 0.0,
 	"linear_y": 0.0,
@@ -37,9 +43,12 @@ func _ready():
 		
 	# Try to find a robot node in the scene
 	# In headless verification, we might need to spawn a dummy one
-	robot_node = get_tree().root.find_child("*Robot*", true, false)
+	robot_node = get_tree().root.find_child("*Robot*", true, false) as Node3D
 	if not robot_node and get_tree().current_scene:
-		robot_node = get_tree().current_scene.find_child("*Robot*", true, false)
+		robot_node = get_tree().current_scene.find_child("*Robot*", true, false) as Node3D
+	robot_assembler = RobotAssemblerScript.new()
+	robot_assembler.name = "RobotAssembler"
+	add_child(robot_assembler)
 
 func _process(delta):
 	# 1. Accept New Connections
@@ -116,7 +125,9 @@ func _process_command(cmd):
 	
 	if cmd.type == "reset":
 		print("🔄 [TCP] Resetting Simulation")
-		if robot_node != null:
+		if generated_controller != null:
+			generated_controller.reset_pose()
+		elif robot_node != null:
 			if robot_node.has_method("reset_pose"):
 				robot_node.reset_pose()
 			if cmd.has("sim_params") and robot_node.has_method("apply_sim_params"):
@@ -125,6 +136,10 @@ func _process_command(cmd):
 		
 	elif cmd.type == "step":
 		var action = cmd.get("action", [])
+		if generated_controller != null:
+			generated_controller.apply_action(action)
+		elif robot_node != null and robot_node.has_method("apply_action"):
+			robot_node.apply_action(action)
 		response = _get_observation()
 		response["reward"] = 0.0 # Placeholder
 		response["done"] = false
@@ -133,11 +148,21 @@ func _process_command(cmd):
 		print("📦 [TCP] Loading Robot Config")
 		var robot_config = cmd.get("robot_config", {})
 		if robot_node == null:
-			robot_node = get_tree().root.find_child("*Robot*", true, false)
+			robot_node = get_tree().root.find_child("*Robot*", true, false) as Node3D
 			if not robot_node and get_tree().current_scene:
-				robot_node = get_tree().current_scene.find_child("*Robot*", true, false)
+				robot_node = get_tree().current_scene.find_child("*Robot*", true, false) as Node3D
 
-		if robot_node != null and robot_node.has_method("load_from_dict"):
+		if robot_assembler != null and not robot_config.get("parts", []).is_empty():
+			var parent = get_tree().current_scene as Node3D
+			if parent == null:
+				parent = Node3D.new()
+				parent.name = "GeneratedRobotRoot"
+				add_child(parent)
+			robot_node = robot_assembler.build_from_config(robot_config, parent)
+			generated_controller = robot_node.get_node_or_null("GeneratedRobotController")
+			last_loaded_robot_config = robot_config.duplicate(true)
+			response = robot_assembler.last_summary
+		elif robot_node != null and robot_node.has_method("load_from_dict"):
 			robot_node.load_from_dict(robot_config)
 			last_loaded_robot_config = robot_config.duplicate(true)
 			response = {"status": "success"}
@@ -145,9 +170,13 @@ func _process_command(cmd):
 			last_loaded_robot_config = robot_config.duplicate(true)
 			print("ℹ️ [TCP] No robot node available; storing config in fallback mode")
 			response = {"status": "success", "mode": "fallback"}
-			
+	elif cmd.type == "configure_terrain":
+		response = _configure_terrain(cmd.get("terrain", {}))
+
 	elif cmd.type == "get_schema":
-		if robot_node != null and robot_node.has_method("get_schema"):
+		if generated_controller != null:
+			response = _generated_robot_schema()
+		elif robot_node != null and robot_node.has_method("get_schema"):
 			response = robot_node.get_schema()
 		else:
 			# Fallback Dummy Schema
@@ -156,7 +185,8 @@ func _process_command(cmd):
 					"battery": {"type": "float32", "shape": [1]},
 					"vector": {"type": "float32", "shape": [24]},
 					"instruction_runtime": {"type": "dict"},
-					"simulated_circuit": {"type": "dict"}
+					"simulated_circuit": {"type": "dict"},
+					"terrain": {"type": "dict"}
 				},
 				"actuators": {
 					"action": {"type": "float32", "shape": [2], "range": [-10.0, 10.0]},
@@ -168,7 +198,8 @@ func _process_command(cmd):
 					"last_loaded_connections": last_loaded_robot_config.get("connections", []).size(),
 					"last_instruction_step_count": last_instruction_set.get("steps", []).size(),
 					"last_instruction_sequence": last_instruction_set.get("sequence_name", ""),
-					"simulated_circuit_transport": simulated_circuit_config.get("transport", "")
+					"simulated_circuit_transport": simulated_circuit_config.get("transport", ""),
+					"terrain": terrain_summary
 				}
 			}
 	elif cmd.type == "configure_simulated_circuit":
@@ -198,6 +229,8 @@ func _process_command(cmd):
 	_send_response(response)
 
 func _apply_instruction_steps(steps: Array) -> void:
+	if generated_controller != null:
+		generated_controller.apply_instruction_steps(steps)
 	current_control_state["step_count"] = steps.size()
 	for step in steps:
 		var kind = step.get("kind", "")
@@ -215,9 +248,133 @@ func _apply_instruction_steps(steps: Array) -> void:
 				current_control_state["linear_y"] = 0.0
 				current_control_state["angular_z"] = 0.0
 
+func _configure_terrain(config: Dictionary) -> Dictionary:
+	terrain_config = config.duplicate(true)
+	var parent = get_tree().current_scene as Node3D
+	if parent == null:
+		parent = get_parent() as Node3D
+	if parent == null:
+		return {
+			"status": "error",
+			"error": "terrain parent Node3D was not available"
+		}
+	var terrain = parent.get_node_or_null("MountainTerrain")
+	if terrain == null:
+		terrain = StaticBody3D.new()
+		terrain.name = "MountainTerrain"
+		parent.add_child(terrain)
+	var collider = terrain.get_node_or_null("CollisionShape3D")
+	if collider == null:
+		collider = CollisionShape3D.new()
+		collider.name = "CollisionShape3D"
+		terrain.add_child(collider)
+	var mesh_instance = terrain.get_node_or_null("MeshInstance3D")
+	if mesh_instance == null:
+		mesh_instance = MeshInstance3D.new()
+		mesh_instance.name = "MeshInstance3D"
+		terrain.add_child(mesh_instance)
+	var map_size = max(4, int(config.get("map_size", 48)))
+	var cell_size = max(0.05, float(config.get("cell_size_m", 0.35)))
+	var data = _mountain_height_data(config, map_size)
+	var shape = HeightMapShape3D.new()
+	shape.map_width = map_size
+	shape.map_depth = map_size
+	shape.map_data = data
+	collider.shape = shape
+	mesh_instance.mesh = _mountain_mesh(data, map_size, cell_size)
+	terrain.physics_material_override = _terrain_physics_material(config)
+	terrain_summary = _terrain_summary(config, data, map_size, cell_size)
+	print("⛰️ [TCP] Mountain terrain configured: %s" % [terrain_summary])
+	return terrain_summary.duplicate(true)
+
+func _mountain_height_data(config: Dictionary, map_size: int) -> PackedFloat32Array:
+	var seed = float(config.get("seed", 42))
+	var ridge_height = float(config.get("ridge_height_m", 0.55))
+	var roughness = float(config.get("roughness_m", 0.08))
+	var frequency = float(config.get("frequency", 0.16))
+	var data = PackedFloat32Array()
+	for z in range(map_size):
+		for x in range(map_size):
+			var nx = float(x) / max(1.0, float(map_size - 1))
+			var centered_z = float(z) - float(map_size) * 0.5
+			var ridge = ridge_height * nx
+			var wave = sin(float(x) * frequency + seed * 0.01) * roughness
+			var cross = cos(centered_z * frequency * 1.7 + float(x) * 0.11) * roughness * 0.65
+			var rocks = sin(float(x) * 0.41 + float(z) * 0.29 + seed) * roughness * 0.35
+			data.append(ridge + wave + cross + rocks)
+	return data
+
+func _mountain_mesh(data: PackedFloat32Array, map_size: int, cell_size: float) -> ArrayMesh:
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for z in range(map_size):
+		for x in range(map_size):
+			var index = z * map_size + x
+			var vx = (float(x) - float(map_size) * 0.5) * cell_size
+			var vz = (float(z) - float(map_size) * 0.5) * cell_size
+			st.set_uv(Vector2(float(x) / map_size, float(z) / map_size))
+			st.add_vertex(Vector3(vx, data[index], vz))
+	for z in range(map_size - 1):
+		for x in range(map_size - 1):
+			var tl = z * map_size + x
+			var tr = tl + 1
+			var bl = (z + 1) * map_size + x
+			var br = bl + 1
+			st.add_index(tl)
+			st.add_index(tr)
+			st.add_index(bl)
+			st.add_index(tr)
+			st.add_index(br)
+			st.add_index(bl)
+	st.generate_normals()
+	return st.commit()
+
+func _terrain_physics_material(config: Dictionary) -> PhysicsMaterial:
+	var material = PhysicsMaterial.new()
+	material.friction = float(config.get("friction", 1.15))
+	material.rough = true
+	return material
+
+func _terrain_summary(config: Dictionary, data: PackedFloat32Array, map_size: int, cell_size: float) -> Dictionary:
+	var min_height = INF
+	var max_height = -INF
+	var sum_height = 0.0
+	for height in data:
+		min_height = min(min_height, height)
+		max_height = max(max_height, height)
+		sum_height += height
+	return {
+		"status": "success",
+		"terrain_version": str(config.get("terrain_version", "dynamic_godot_mountain_terrain.v1")),
+		"type": str(config.get("type", "mountain")),
+		"seed": int(config.get("seed", 42)),
+		"map_size": map_size,
+		"cell_size_m": cell_size,
+		"height_samples": data.size(),
+		"min_height_m": min_height,
+		"max_height_m": max_height,
+		"height_range_m": max_height - min_height,
+		"average_height_m": sum_height / max(1, data.size()),
+		"friction": float(config.get("friction", 1.15)),
+		"collision_shape": "HeightMapShape3D",
+		"mesh_type": "ArrayMesh"
+	}
+
 func _get_observation():
+	if generated_controller != null:
+		var sensor_data = generated_controller.get_sensor_data()
+		sensor_data["simulated_circuit"] = {
+			"configured": not simulated_circuit_config.is_empty(),
+			"transport": simulated_circuit_config.get("transport", ""),
+			"command_batch_size": last_instruction_command_batch.size()
+		}
+		sensor_data["terrain"] = terrain_summary.duplicate(true)
+		return sensor_data
+
 	if robot_node != null and robot_node.has_method("get_sensor_data"):
-		return robot_node.get_sensor_data()
+		var data = robot_node.get_sensor_data()
+		data["terrain"] = terrain_summary.duplicate(true)
+		return data
 		
 	var vec = []
 	vec.resize(24)
@@ -241,6 +398,33 @@ func _get_observation():
 			"configured": not simulated_circuit_config.is_empty(),
 			"transport": simulated_circuit_config.get("transport", ""),
 			"command_batch_size": last_instruction_command_batch.size()
+		},
+		"terrain": terrain_summary.duplicate(true)
+	}
+
+func _generated_robot_schema() -> Dictionary:
+	return {
+		"sensors": {
+			"body_count": {"type": "int32", "shape": [1]},
+			"joint_count": {"type": "int32", "shape": [1]},
+			"position": {"type": "float32", "shape": [3]},
+			"body_states": {"type": "dict"},
+			"joint_states": {"type": "dict"},
+			"instruction_runtime": {"type": "dict"},
+			"simulated_circuit": {"type": "dict"},
+			"terrain": {"type": "dict"}
+		},
+		"actuators": {
+			"action": {"type": "float32", "shape": [generated_controller.joints.size()]},
+			"instruction_set": {"type": "dict"},
+			"configure_simulated_circuit": {"type": "dict"}
+		},
+		"meta": {
+			"dynamic_robot_generation": true,
+			"last_loaded_parts": last_loaded_robot_config.get("parts", []).size(),
+			"last_loaded_connections": last_loaded_robot_config.get("connections", []).size(),
+			"assembly_summary": robot_assembler.last_summary if robot_assembler else {},
+			"terrain": terrain_summary
 		}
 	}
 

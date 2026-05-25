@@ -1,0 +1,16 @@
+; Engine configuration file.
+; This standalone project is intentionally isolated under biped_robot/.
+
+config_version=5
+
+[application]
+
+config/name="Biped Robot Mountain Demo"
+run/main_scene="res://scenes/biped_mountain_demo.tscn"
+config/features=PackedStringArray("4.2")
+config/icon=""
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

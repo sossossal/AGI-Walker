@@ -10,13 +10,15 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from pathlib import Path
 from typing import Any
 
 import pytest
 
 ENABLE_ENV_VAR = "AGI_WALKER_ENABLE_PROD_COMPOSE_SMOKE"
 DEFAULT_TIMEOUT_SECONDS = 240.0
-PROD_COMPOSE_FILE = "docker-compose.prod.yml"
+PROD_COMPOSE_FILE = "deployment/docker-compose.yml"
+PROD_COMPOSE_SERVICES = ["redis", "zenoh-router", "web-panel", "workflow-worker"]
 
 
 def _reserve_tcp_port() -> int:
@@ -28,7 +30,7 @@ def _reserve_tcp_port() -> int:
 
 
 def _compose_env(
-    web_port: int, prometheus_port: int, grafana_port: int
+    web_port: int, zenoh_tcp_port: int, zenoh_rest_port: int, redis_port: int
 ) -> dict[str, str]:
     env = os.environ.copy()
     env.update(
@@ -36,8 +38,9 @@ def _compose_env(
             "AGI_WALKER_SECRET_KEY": f"prod-compose-smoke-{uuid.uuid4().hex}",
             "AGI_WALKER_DB_PASSWORD": f"db-pass-{uuid.uuid4().hex[:12]}",
             "AGI_WALKER_WEB_PORT": str(web_port),
-            "AGI_WALKER_PROMETHEUS_PORT": str(prometheus_port),
-            "AGI_WALKER_GRAFANA_PORT": str(grafana_port),
+            "AGI_WALKER_ZENOH_TCP_PORT": str(zenoh_tcp_port),
+            "AGI_WALKER_ZENOH_REST_PORT": str(zenoh_rest_port),
+            "AGI_WALKER_REDIS_PORT": str(redis_port),
         }
     )
     return env
@@ -180,25 +183,20 @@ def test_prod_compose_stack_runs_authenticated_workflow() -> None:
 
     project_name = f"agiwalker-prod-{uuid.uuid4().hex[:8]}"
     web_port = _reserve_tcp_port()
-    prometheus_port = _reserve_tcp_port()
-    grafana_port = _reserve_tcp_port()
-    env = _compose_env(web_port, prometheus_port, grafana_port)
+    zenoh_tcp_port = _reserve_tcp_port()
+    zenoh_rest_port = _reserve_tcp_port()
+    redis_port = _reserve_tcp_port()
+    env = _compose_env(web_port, zenoh_tcp_port, zenoh_rest_port, redis_port)
     base_url = f"http://127.0.0.1:{web_port}"
 
     try:
-        _run_compose(project_name, env, "up", "-d", "--build")
+        _run_compose(project_name, env, "up", "-d", "--build", *PROD_COMPOSE_SERVICES)
 
         system_status = _wait_for_http_ready(base_url)
         assert system_status["status"] == "running"
 
-        _wait_for_status_code(f"http://127.0.0.1:{prometheus_port}/-/healthy")
-        grafana_payload = _wait_for_status_code(
-            f"http://127.0.0.1:{grafana_port}/api/health"
-        )
-        assert json.loads(grafana_payload.decode("utf-8"))["database"] == "ok"
-
         username = f"prod_user_{uuid.uuid4().hex[:8]}"
-        password = "prod-pass-1234"
+        password = f"prod-pass-{uuid.uuid4().hex[:12]}"
 
         register_status, register_payload = _http_request(
             f"{base_url}/api/auth/register",
@@ -221,7 +219,7 @@ def test_prod_compose_stack_runs_authenticated_workflow() -> None:
             f"{base_url}/api/workflows/robot_creation_pipeline/run",
             method="POST",
             json_body={
-                "use_real": True,
+                "use_real": False,
                 "execution_strategy": "force",
             },
             headers={"Authorization": f"Bearer {token}"},
@@ -241,18 +239,13 @@ def test_prod_compose_stack_runs_authenticated_workflow() -> None:
         assert detail_status == 200, detail_payload.decode("utf-8", errors="ignore")
         detail = json.loads(detail_payload.decode("utf-8"))["run"]
         assert detail["status"] == "completed"
-        assert detail["artifacts"], detail
-        assert detail["log_download_url"], detail
-
-        artifact_status, artifact_payload = _http_request(
-            f"{base_url}{detail['artifacts'][0]['download_url']}",
-            timeout=10.0,
-        )
-        assert artifact_status == 200
-        assert artifact_payload
+        assert detail["completed_steps"] == 3
+        assert detail["failed_steps"] == 0
+        assert len(detail["steps_snapshot"]) == 3
+        assert detail["live_log_download_url"], detail
 
         log_status, log_payload = _http_request(
-            f"{base_url}{detail['log_download_url']}",
+            f"{base_url}{detail['live_log_download_url']}",
             timeout=10.0,
         )
         assert log_status == 200

@@ -1,0 +1,11 @@
+{
+  "terrain_version": "dynamic_godot_mountain_terrain.v1",
+  "type": "mountain",
+  "seed": 42,
+  "map_size": 48,
+  "cell_size_m": 0.35,
+  "ridge_height_m": 0.55,
+  "roughness_m": 0.08,
+  "frequency": 0.16,
+  "friction": 1.15
+}

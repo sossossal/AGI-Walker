@@ -82,10 +82,40 @@ jobs:
           retention-days: 7
 
   # -----------------------------------------------------------------------------
-  # Job 2a: Security Release Preflight (manual/scheduled)
+  # Job 2a: Static Godot Node-Tree Manifest Gate
+  # -----------------------------------------------------------------------------
+  static-godot-node-tree-manifest:
+    needs: smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Generate Static Godot Node-Tree Manifests
+        run: |
+          python tools/build_static_godot_node_tree_evidence.py tests/fixtures/robot_dynamic_fixed_pair.json tests/fixtures/robot_dynamic_biped.json tests/fixtures/robot_dynamic_quadruped.json --output-root test_env/static_godot_node_tree_manifest_ci --manifest-dir test_env/static_godot_node_tree_manifests
+
+      - name: Upload Static Godot Node-Tree Manifest Artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: static-godot-node-tree-manifest-artifacts
+          path: |
+            test_env/static_godot_node_tree_manifests
+            test_env/static_godot_node_tree_manifest_ci
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # -----------------------------------------------------------------------------
+  # Job 2b: Security Release Preflight (manual/scheduled)
   # -----------------------------------------------------------------------------
   security-preflight:
-    needs: smoke
+    needs: [smoke, static-godot-node-tree-manifest]
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -121,7 +151,7 @@ jobs:
 
       - name: Run Security Release Preflight
         run: |
-          python tools/run_security_release_preflight.py --output-root test_env/release_evidence_ci --run-python-vuln-scan --run-container-vuln-scan --container-image-ref ${{ env.AGI_WALKER_ZENOH_IMAGE }} --container-image-ref deployment-web-panel-distributed
+          python tools/run_security_release_preflight.py --security-only --output-root test_env/release_evidence_ci --run-python-vuln-scan --run-container-vuln-scan --container-image-ref ${{ env.AGI_WALKER_ZENOH_IMAGE }} --container-image-ref deployment-web-panel-distributed
 
       - name: Upload Security Preflight Artifacts
         if: always()
@@ -133,7 +163,7 @@ jobs:
           retention-days: 7
 
   # -----------------------------------------------------------------------------
-  # Job 2b: Distributed Smoke (manual trigger only)
+  # Job 2c: Distributed Smoke (manual trigger only)
   # -----------------------------------------------------------------------------
   distributed-smoke:
     needs: smoke
@@ -174,7 +204,7 @@ jobs:
           retention-days: 7
 
   # -----------------------------------------------------------------------------
-  # Job 2c: Real Godot Headless Smoke (manual trigger only)
+  # Job 2d: Real Godot Headless Smoke (manual trigger only)
   # -----------------------------------------------------------------------------
   godot-headless-smoke:
     needs: smoke
@@ -215,7 +245,60 @@ jobs:
           retention-days: 7
 
   # -----------------------------------------------------------------------------
-  # Job 2d: ROS2 Bridge Smoke (manual trigger only)
+  # Job 2e: Dynamic Godot Live Verification Profile (manual/scheduled)
+  # -----------------------------------------------------------------------------
+  dynamic-godot-live-verification:
+    needs: [smoke, static-godot-node-tree-manifest]
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: windows-latest
+    env:
+      AGI_WALKER_DYNAMIC_GODOT_LIVE_PROFILE: ${{ github.event_name == 'schedule' && 'scheduled_ci' || 'manual_ci' }}
+      AGI_WALKER_DYNAMIC_GODOT_LIVE_ARTIFACT_ROOT: test_env/dynamic_godot_live
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dynamic Godot live verification dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev,training]"
+
+      - name: Run Dynamic Godot Live Discovery
+        shell: pwsh
+        run: |
+          $profile = $env:AGI_WALKER_DYNAMIC_GODOT_LIVE_PROFILE
+          $artifactRoot = Join-Path $env:AGI_WALKER_DYNAMIC_GODOT_LIVE_ARTIFACT_ROOT $profile
+          New-Item -ItemType Directory -Force -Path $artifactRoot | Out-Null
+          python tools/run_dynamic_godot_robot_smoke.py tests/fixtures/robot_dynamic_biped.json --dry-run-discovery --live-profile $profile --live-artifact-root $artifactRoot --output (Join-Path $artifactRoot "discovery.json")
+
+      - name: Run Dynamic Godot Live Verification When Executable Is Provided
+        shell: pwsh
+        run: |
+          $profile = $env:AGI_WALKER_DYNAMIC_GODOT_LIVE_PROFILE
+          $artifactRoot = Join-Path $env:AGI_WALKER_DYNAMIC_GODOT_LIVE_ARTIFACT_ROOT $profile
+          if ($env:GODOT_EXECUTABLE -and (Test-Path $env:GODOT_EXECUTABLE)) {
+            python tools/build_dynamic_robot_generation_report.py tests/fixtures/robot_dynamic_biped.json --full-mechanical-restoration-acceptance --godot-exe $env:GODOT_EXECUTABLE --live-profile $profile --live-artifact-root $artifactRoot --steps 3 --node-tree-tolerance 0.0001 --parameter-tolerance 0.0001 --smoke-output (Join-Path $artifactRoot "dynamic_godot_biped_live_smoke.json") --output (Join-Path $artifactRoot "dynamic_godot_biped_live_report.json") --gate-output (Join-Path $artifactRoot "dynamic_godot_biped_live_gate.json")
+            python tools/build_dynamic_godot_release_readiness.py (Join-Path $artifactRoot "dynamic_godot_biped_live_gate.json") --output (Join-Path $artifactRoot "dynamic_godot_release_readiness_live.json")
+          } else {
+            "GODOT_EXECUTABLE was not provided or does not exist; discovery artifact records missing_godot_executable."
+          }
+
+      - name: Upload Dynamic Godot Live Verification Artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dynamic-godot-live-verification-artifacts
+          path: test_env/dynamic_godot_live
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # -----------------------------------------------------------------------------
+  # Job 2f: ROS2 Bridge Smoke (manual trigger only)
   # -----------------------------------------------------------------------------
   ros2-bridge-smoke:
     needs: smoke

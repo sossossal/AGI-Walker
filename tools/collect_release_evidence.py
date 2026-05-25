@@ -171,6 +171,16 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional existing release_ops_execution_report.json copied into the canonical operations evidence directory.",
     )
+    parser.add_argument(
+        "--security-only",
+        action="store_true",
+        help=(
+            "Collect only security posture evidence: SBOM, vulnerability reports, "
+            "exceptions, review, backup/restore, remediation and security posture. "
+            "Skips broad release gates such as non-live pytest, targeted release "
+            "contracts, clean checkout smoke and operations evidence."
+        ),
+    )
     return parser
 
 
@@ -501,41 +511,45 @@ def main(argv: list[str] | None = None) -> int:
             output_path=security_root / "vulnerability_exception_review_report.json",
         )
 
-    commands.extend([
-        (
-            "non_live_gate",
-            [
-                sys.executable,
-                "tools/write_pytest_evidence_report.py",
-                "--name",
+    if not args.security_only:
+        commands.extend([
+            (
                 "non_live_gate",
-                "--output",
-                str(non_live_report),
-                "--",
-                "-m",
-                "not live",
-                "-q",
-            ],
-        ),
-        (
-            "release_contracts_and_capability_matrix",
-            [
-                sys.executable,
-                "tools/write_pytest_evidence_report.py",
-                "--name",
+                [
+                    sys.executable,
+                    "tools/write_pytest_evidence_report.py",
+                    "--name",
+                    "non_live_gate",
+                    "--output",
+                    str(non_live_report),
+                    "--",
+                    "-m",
+                    "not live",
+                    "-q",
+                ],
+            ),
+            (
                 "release_contracts_and_capability_matrix",
-                "--output",
-                str(targeted_report),
-                "--",
-                "tests/test_release_contracts.py",
-                "tests/test_release_artifact_builder.py",
-                "tests/test_capability_matrix.py",
-                "tests/test_mcp_tools.py",
-                "tests/test_mcp_server.py",
-                "tests/test_web_panel_aux_apis.py",
-                "-q",
-            ],
-        ),
+                [
+                    sys.executable,
+                    "tools/write_pytest_evidence_report.py",
+                    "--name",
+                    "release_contracts_and_capability_matrix",
+                    "--output",
+                    str(targeted_report),
+                    "--",
+                    "tests/test_release_contracts.py",
+                    "tests/test_release_artifact_builder.py",
+                    "tests/test_capability_matrix.py",
+                    "tests/test_mcp_tools.py",
+                    "tests/test_mcp_server.py",
+                    "tests/test_web_panel_aux_apis.py",
+                    "-q",
+                ],
+            ),
+        ])
+
+    commands.extend([
         (
             "backup_restore_rehearsal",
             [
@@ -547,17 +561,6 @@ def main(argv: list[str] | None = None) -> int:
                 str(backup_restore_rehearsal_output_root),
                 "--report-file",
                 str(backup_restore_rehearsal_report),
-            ],
-        ),
-        (
-            "clean_checkout_smoke",
-            [
-                sys.executable,
-                "tools/run_clean_checkout_smoke.py",
-                "--output-root",
-                str(clean_checkout_output_root),
-                "--report-file",
-                str(clean_checkout_report),
             ],
         ),
         (
@@ -602,17 +605,31 @@ def main(argv: list[str] | None = None) -> int:
         ),
     ])
 
-    _append_extension_execution_commands(
-        commands,
-        output_root=output_root,
-        vulnerability_exception_report=vulnerability_exception_report,
-        external_bindings_config_source=args.external_bindings_config_source,
-    )
+    if not args.security_only:
+        commands.append(
+            (
+                "clean_checkout_smoke",
+                [
+                    sys.executable,
+                    "tools/run_clean_checkout_smoke.py",
+                    "--output-root",
+                    str(clean_checkout_output_root),
+                    "--report-file",
+                    str(clean_checkout_report),
+                ],
+            )
+        )
+        _append_extension_execution_commands(
+            commands,
+            output_root=output_root,
+            vulnerability_exception_report=vulnerability_exception_report,
+            external_bindings_config_source=args.external_bindings_config_source,
+        )
 
-    _copy_if_present(
-        args.release_ops_execution_report_source,
-        release_ops_execution_report,
-    )
+        _copy_if_present(
+            args.release_ops_execution_report_source,
+            release_ops_execution_report,
+        )
 
     failures: list[str] = []
     for name, command in commands:

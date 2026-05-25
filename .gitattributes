@@ -1,0 +1,24 @@
+# GitHub repository presentation.
+# These attributes do not remove tracked files; they reduce noise in language
+# statistics, generated-file views and source archives.
+
+# Generated local validation and coverage outputs.
+.coverage linguist-generated=true -diff export-ignore
+coverage.xml linguist-generated=true -diff export-ignore
+coverage_report.txt linguist-generated=true -diff export-ignore
+htmlcov/** linguist-generated=true -diff export-ignore
+
+# Godot editor caches and imported artifacts.
+godot_project/.godot/** linguist-generated=true -diff export-ignore
+godot_project/.import/** linguist-generated=true -diff export-ignore
+
+# Tracked sample/evidence artifacts kept for compatibility and audit context.
+.agi_data/** linguist-generated=true export-ignore
+offline_data/** linguist-generated=true export-ignore
+weights/** linguist-generated=true export-ignore
+test_env/** linguist-generated=true export-ignore
+exports/** linguist-generated=true export-ignore
+.output/** linguist-generated=true export-ignore
+
+# Historical snapshots are useful for audit, but should not dominate archives.
+archive/** linguist-documentation=true export-ignore

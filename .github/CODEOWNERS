@@ -1,0 +1,33 @@
+# Repository-wide default owner.
+* @sossossal
+
+# Core Python package and contracts.
+/agi_walker/ @sossossal
+/tools/ @sossossal
+/tests/ @sossossal
+/pyproject.toml @sossossal
+/pytest.ini @sossossal
+
+# Web, deployment and runtime surfaces.
+/web_panel/ @sossossal
+/deployment/ @sossossal
+/alembic/ @sossossal
+/godot_project/ @sossossal
+/biped_robot/ @sossossal
+
+# Hardware, ROS2 and model/example surfaces.
+/hardware/ @sossossal
+/robot_models/ @sossossal
+/robots/ @sossossal
+/examples/ @sossossal
+
+# Documentation, planning and GitHub governance.
+/docs/ @sossossal
+/plans/ @sossossal
+/PROJECT_PLAN.md @sossossal
+/AGENTS.md @sossossal
+/README.md @sossossal
+/CONTRIBUTING.md @sossossal
+/SUPPORT.md @sossossal
+/SECURITY.md @sossossal
+/.github/ @sossossal

@@ -1,0 +1,51 @@
+{
+  "name": "dynamic_fixed_pair",
+  "schema_version": "1.1",
+  "metadata": {
+    "description": "Minimal fixed-joint pair for Godot dynamic assembly checks."
+  },
+  "parts": [
+    {
+      "id": "base",
+      "type": "body",
+      "shape": "box",
+      "params": {
+        "mass": 2.0,
+        "position": [0.0, 0.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0],
+        "size": [0.3, 0.2, 0.2]
+      }
+    },
+    {
+      "id": "payload",
+      "type": "body",
+      "shape": "box",
+      "params": {
+        "mass": 1.0,
+        "position": [0.35, 0.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0],
+        "size": [0.2, 0.2, 0.2]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "name": "base_payload_fixed",
+      "from": "base",
+      "to": "payload",
+      "joint_type": "fixed",
+      "origin": [0.175, 0.0, 0.0],
+      "axis": [1.0, 0.0, 0.0],
+      "limits": {
+        "lower": 0.0,
+        "upper": 0.0
+      },
+      "motor": {
+        "enabled": false,
+        "target_velocity": 0.0,
+        "max_impulse": 0.0
+      },
+      "dynamics": {}
+    }
+  ]
+}
