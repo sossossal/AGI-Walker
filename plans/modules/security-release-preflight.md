@@ -8,6 +8,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - `tools/collect_release_evidence.py`
 - `tools/run_python_vulnerability_scan.py`
 - `tools/run_container_vulnerability_scan.py`
+- `tools/compare_container_vulnerability_baselines.py`
 - `agi_walker/core/api/security_posture_contracts.py`
 - `deployment/security/vulnerability_exceptions.input.json`
 - `tests/test_security_release_preflight.py`
@@ -39,6 +40,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - 2026-05-23: Added `--security-only` to `collect_release_evidence.py` and `run_security_release_preflight.py`. This preserves default full release evidence behavior but lets CI security-preflight collect only SBOM, vulnerability scans, exception review, backup/restore, remediation and security posture evidence.
 - 2026-05-26: GitHub CI artifact `security-preflight-artifacts` from scheduled run `26435197977` showed one unresolved Python finding: `fastapi 0.136.3`, `MAL-2026-4750`, with no published fix version. Container findings remained covered by active tracked exceptions; stale and expired exception counts were zero. The 32 `review_due` exceptions were surfaced as non-blocking follow-up evidence. The remediation excludes only `fastapi==0.136.3` across project/deployment install surfaces while preserving the existing preflight contract.
 - 2026-05-26: Re-reviewed the active deployment-web-panel-distributed no-fix container exceptions against refreshed security-only preflight evidence. Matching findings remained no-fix, stale and expired exception counts remained zero, and the next exception expiry was renewed to `2026-08-24T00:00:00+01:00`.
+- 2026-05-26: Added a reusable container vulnerability baseline comparison tool so candidate base-image raw Trivy reports can be compared against the current baseline before changing Dockerfiles. The tool is advisory evidence only; it does not alter preflight pass/fail semantics.
 
 # Non-Goals
 
@@ -52,6 +54,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 ```powershell
 py -3.12 -m pytest tests\test_security_release_preflight.py tests\test_security_posture_reports.py tests\test_vulnerability_scan_runners.py -q --tb=short
 py -3.12 tools\run_security_release_preflight.py --output-root test_env\release_evidence_ci --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed
+py -3.12 tools\compare_container_vulnerability_baselines.py --current-raw-report test_env\release_evidence_ci_exception_refresh\security\container_vuln_scan_report_raw\deployment-web-panel-distributed.json --candidate-raw-report <candidate-trivy-raw.json-or-dir> --output test_env\container_baseline_comparison\comparison.json
 ```
 
 # Residual Risks
