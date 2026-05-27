@@ -1,0 +1,40 @@
+{
+  "schema_version": "biped-communication.v1",
+  "name": "local_controller_godot_comm_sim",
+  "transport": {
+    "mode": "simulated_packet_link",
+    "command_channel": "controller_to_godot",
+    "telemetry_channel": "godot_to_controller",
+    "ack_channel": "godot_to_controller_ack",
+    "base_latency_ms": 18.0,
+    "jitter_ms": 6.0,
+    "ack_latency_ms": 7.0,
+    "telemetry_downsample": 2,
+    "deterministic_loss_every_n_telemetry_packets": 17,
+    "deterministic_loss_every_n_command_packets": 0
+  },
+  "message_contracts": {
+    "command": {
+      "required_fields": ["packet_id", "time_s", "command", "speed_scale", "gait_cycle_seconds"]
+    },
+    "ack": {
+      "required_fields": ["packet_id", "ack_for_packet_id", "delivered_time_s", "ack_time_s"]
+    },
+    "telemetry": {
+      "required_fields": ["packet_id", "time_s", "robot_z_m", "speed_scale", "roll_degrees", "pitch_degrees"]
+    }
+  },
+  "acceptance": {
+    "min_command_delivery_ratio": 1.0,
+    "min_ack_ratio": 1.0,
+    "min_telemetry_delivery_ratio": 0.90,
+    "max_command_latency_ms": 35.0,
+    "max_ack_latency_ms": 20.0,
+    "max_telemetry_latency_ms": 45.0,
+    "max_jitter_ms": 12.0
+  },
+  "outputs": {
+    "events_path": "test_env/communication_events.jsonl",
+    "report_path": "test_env/communication_report.json"
+  }
+}

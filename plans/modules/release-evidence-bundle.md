@@ -5,6 +5,7 @@
 # Ownership
 
 - Release/readiness tooling under `tools/`
+- Canonical release evidence collection in `tools/collect_release_evidence.py`
 - Static evidence closeout artifacts
 - Delivery gate and Web delivery records
 - Documentation index generation
@@ -19,6 +20,7 @@ Inputs:
 - Release/readiness summary JSON.
 - Optional live smoke JSON.
 - Optional Web delivery record JSON.
+- Optional Phase 3 control/communication simulation closeout JSON.
 - Documentation paths for operator/developer handoff.
 
 Outputs:
@@ -30,9 +32,11 @@ Outputs:
 # Contract Checklist
 
 - Public surface this module exposes: `tools/build_dynamic_godot_release_evidence_bundle.py`, `tools/validate_dynamic_godot_release_evidence_bundle.py`, bundle index schema, self-validation output.
+- Optional collector surface this module exposes: `tools/collect_release_evidence.py --control-comm-closeout-source`.
 - Inputs this module accepts: evidence artifact paths and docs index inputs.
 - Outputs this module produces: bundle index, copied artifacts, validation report.
 - Shared types/schemas/config touched: release/readiness summary, delivery gate, static closeout.
+- Optional shared artifact touched: `control_comm_simulation_closeout.v1` as `control_comm_closeout`.
 - Backward compatibility requirements: existing evidence tools keep their output formats; bundle consumes them without rewriting.
 - Integration tests required: ready bundle, missing artifact, invalid artifact and optional live/Web evidence cases.
 
@@ -55,6 +59,10 @@ Static closeout and readiness summary already exist. This module packages those 
 - [x] Support static-only bundles and stronger bundles with live/Web evidence.
 - [x] Add tests for ready, incomplete and malformed bundles.
 - [x] Document release handoff workflow.
+- [x] Support optional Phase 3 control/communication closeout evidence without making it required.
+- [x] Let canonical release evidence collection copy an existing Phase 3 control/communication closeout.
+- [x] Document and test the canonical collector output path as a release bundle `--control-comm-closeout` input.
+- [x] Include the Phase 3 control/communication guide as optional bundle documentation when `control_comm_closeout` is bundled.
 
 # Risks and Mitigations
 
@@ -101,6 +109,11 @@ py -3.12 -m pytest -m "not live" --collect-only -q
 - 2026-05-20: Bundle validation now checks index metadata drift for `bundle_root`, timezone-aware `generated_at`, `readiness_status` and `residual_risks`.
 - 2026-05-20: Bundle validation now checks artifact and documentation `required` flags against the canonical required key/role lists.
 - 2026-05-24: PR Ubuntu 3.10 CI exposed that `datetime.UTC` is not available before Python 3.11. Bundle builder and validator now use `timezone.utc` to preserve the documented Python 3.10 compatibility matrix.
+- 2026-05-26: Bundle builder now accepts optional `--control-comm-closeout`; validator checks provided `control_comm_closeout` artifacts for healthy non-live closeout semantics while preserving existing required artifact keys.
+- 2026-05-26: Canonical release evidence collector now accepts `--control-comm-closeout-source` and copies existing closeout evidence under `control_communication/` without generating or upgrading live hardware claims.
+- 2026-05-26: Release handoff docs now show the direct collector output path `test_env/release_evidence/control_communication/control_comm_simulation_closeout.json` as the bundle `--control-comm-closeout` input, guarded by active-path tests.
+- 2026-05-26: Bundles that include `control_comm_closeout` now automatically include optional `control_comm_workflow` documentation from `docs/guides/CONTROL_COMMUNICATION_SIMULATION.md` unless the caller supplies an explicit `--doc` set.
+- 2026-05-26: Added regression coverage that explicit `--doc` entries remain caller-controlled when `control_comm_closeout` is present, preserving compatibility for curated handoff bundles.
 
 # Drift Check
 

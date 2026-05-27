@@ -1,5 +1,7 @@
 from pathlib import Path
 
+PROJECT_PLAN = Path("PROJECT_PLAN.md")
+MODULE_PLANS_DIR = Path("plans/modules")
 DOCKERFILE = Path("Dockerfile")
 CONTRIBUTING = Path("CONTRIBUTING.md")
 URDF_BATCH_CONVERT = Path("agi_walker/skills/urdf-generator/scripts/batch_convert.py")
@@ -11,12 +13,19 @@ QUICK_START_BAT = Path("scripts/quick_start.bat")
 INSTALL_SH = Path("scripts/install.sh")
 INSTALL_BAT = Path("scripts/install.bat")
 ROOT_RELEASE_NOTES = Path("RELEASE_NOTES.md")
+DOCS_README = Path("docs/README.md")
 GITIGNORE = Path(".gitignore")
 API_REFERENCE = Path("docs/API_REFERENCE.md")
 MCP_GUIDE = Path("docs/mcp.md")
 WEB_PANEL_GUIDE = Path("docs/guides/WEB_PANEL_GUIDE.md")
 GODOT_TESTING_GUIDE = Path("docs/guides/GODOT_TESTING_GUIDE.md")
 RELEASE_GUIDE = Path("docs/guides/RELEASE_GUIDE.md")
+CONTROL_COMMUNICATION_SIMULATION_GUIDE = Path(
+    "docs/guides/CONTROL_COMMUNICATION_SIMULATION.md"
+)
+CONTROL_COMMUNICATION_SIMULATION_PLAN = Path(
+    "plans/modules/control-communication-simulation.md"
+)
 DEPLOYMENT_MATRIX_GUIDE = Path("docs/guides/DEPLOYMENT_MATRIX.md")
 CUSTOMER_INSTALLATION_GUIDE = Path("docs/guides/CUSTOMER_INSTALLATION_GUIDE.md")
 SUPPORT_MATRIX_GUIDE = Path("docs/guides/SUPPORT_MATRIX.md")
@@ -74,6 +83,48 @@ WEB_BROWSER_MANUAL_VALIDATION_CHECKLIST = Path(
 )
 
 
+def _project_plan_module_rows() -> list[list[str]]:
+    rows: list[list[str]] = []
+    in_module_index = False
+    for line in PROJECT_PLAN.read_text(encoding="utf-8").splitlines():
+        if line.startswith("| Module |"):
+            in_module_index = True
+            continue
+        if not in_module_index:
+            continue
+        if not line.startswith("|"):
+            break
+        if line.startswith("| ---"):
+            continue
+        rows.append([cell.strip() for cell in line.strip("|").split("|")])
+    return rows
+
+
+def _markdown_headings(path: Path) -> set[str]:
+    headings: set[str] = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("# "):
+            headings.add(line.removeprefix("# ").strip())
+    return headings
+
+
+def _project_plan_ordered_section_numbers(section_heading: str) -> list[int]:
+    numbers: list[int] = []
+    in_section = False
+    for line in PROJECT_PLAN.read_text(encoding="utf-8").splitlines():
+        if line == f"# {section_heading}":
+            in_section = True
+            continue
+        if in_section and line.startswith("# "):
+            break
+        if not in_section or ". " not in line:
+            continue
+        prefix = line.split(". ", 1)[0]
+        if prefix.isdigit():
+            numbers.append(int(prefix))
+    return numbers
+
+
 def test_dockerfile_does_not_reference_removed_source_layout() -> None:
     content = DOCKERFILE.read_text(encoding="utf-8")
 
@@ -84,6 +135,64 @@ def test_dockerfile_does_not_reference_removed_source_layout() -> None:
     assert "COPY agi_walker/ ./agi_walker/" in content
     assert "COPY web_panel/ ./web_panel/" in content
     assert "RUN pip install --no-cache-dir ." in content
+
+
+def test_project_plan_module_index_references_complete_subplans() -> None:
+    module_rows = _project_plan_module_rows()
+
+    assert module_rows
+    seen_modules: set[str] = set()
+    indexed_subplans: set[Path] = set()
+    for row in module_rows:
+        assert len(row) == 5
+        module, subplan_cell, responsibility, dependencies, status = row
+        subplan_path = Path(subplan_cell.strip("`"))
+
+        assert module
+        assert responsibility
+        assert dependencies
+        assert subplan_cell.startswith("`plans/modules/")
+        assert subplan_cell.endswith(".md`")
+        assert module not in seen_modules
+        assert subplan_path not in indexed_subplans
+        assert subplan_path.stem == module
+        assert subplan_path.exists()
+        assert status == "complete"
+
+        subplan = subplan_path.read_text(encoding="utf-8")
+        assert "# Module Goal" in subplan or "# Goal" in subplan
+        assert "- [ ]" not in subplan
+        assert "The next increment should" not in subplan
+        assert "next step" not in subplan
+        seen_modules.add(module)
+        indexed_subplans.add(subplan_path)
+
+    actual_subplans = set(MODULE_PLANS_DIR.glob("*.md"))
+    assert indexed_subplans == actual_subplans
+
+
+def test_project_plan_keeps_required_governance_sections() -> None:
+    content = PROJECT_PLAN.read_text(encoding="utf-8")
+    headings = _markdown_headings(PROJECT_PLAN)
+    integration_plan_numbers = _project_plan_ordered_section_numbers(
+        "Integration Plan"
+    )
+
+    assert "- [ ]" not in content
+    assert integration_plan_numbers
+    assert integration_plan_numbers == list(range(1, len(integration_plan_numbers) + 1))
+    assert {
+        "Goal",
+        "Scope",
+        "Module Index",
+        "Interfaces and Contracts",
+        "Integration Plan",
+        "Tasks",
+        "Validation",
+        "Acceptance Criteria",
+        "Decision Log",
+        "Change Control",
+    }.issubset(headings)
 
 
 def test_contributing_uses_current_source_directories() -> None:
@@ -508,6 +617,27 @@ def test_phase_d_security_docs_and_tools_use_current_runtime_paths() -> None:
     assert "--vulnerability-exception-input-source" in collect_release_evidence
     assert "--external-bindings-config-source" in collect_release_evidence
     assert "--release-ops-execution-report-source" in collect_release_evidence
+    assert "--control-comm-closeout-source" in collect_release_evidence
+    assert (
+        "python tools/collect_release_evidence.py --output-root "
+        "test_env/release_evidence --control-comm-closeout-source "
+        "test_env/control_comm_simulation_ci/control_comm_simulation_closeout.json"
+    ) in release_guide
+    assert (
+        "python tools/build_dynamic_godot_release_evidence_bundle.py "
+        "--static-closeout "
+        "test_env/static_godot_node_tree_manifest_ci/static_godot_node_tree_evidence_closeout.json "
+        "--delivery-gate test_env/static_godot_node_tree_manifest_ci/gate.json "
+        "--readiness-summary test_env/dynamic_godot_release_readiness.json "
+        "--control-comm-closeout "
+        "test_env/release_evidence/control_communication/control_comm_simulation_closeout.json "
+        "--output-root test_env/dynamic_godot_release_evidence_bundle"
+    ) in release_guide
+    assert "control_comm_simulation_closeout.v1" in release_guide
+    assert "control_comm_workflow" in release_guide
+    assert "docs/guides/CONTROL_COMMUNICATION_SIMULATION.md" in release_guide
+    assert "evidence_level=non_live_simulation" in release_guide
+    assert "live hardware release gate 为 `blocked`" in release_guide
     assert "deployment/customer_delivery.external_bindings.json" in release_guide
     assert "--vulnerability-exception-input-source" in security_release_preflight_runner
 
@@ -525,6 +655,60 @@ def test_security_preflight_ci_job_uses_current_runner_and_artifacts() -> None:
     assert "python tools/run_security_release_preflight.py --security-only --output-root test_env/release_evidence_ci --run-python-vuln-scan --run-container-vuln-scan --container-image-ref ${{ env.AGI_WALKER_ZENOH_IMAGE }} --container-image-ref deployment-web-panel-distributed" in content
     assert "name: security-preflight-artifacts" in content
     assert "path: test_env/release_evidence_ci" in content
+
+
+def test_control_communication_simulation_ci_job_retains_non_live_evidence() -> None:
+    content = CI_WORKFLOW.read_text(encoding="utf-8")
+    job = content.split("control-communication-simulation-evidence:", 1)[1].split(
+        "# -----------------------------------------------------------------------------",
+        1,
+    )[0]
+
+    assert "needs: smoke" in job
+    assert (
+        "python tools/run_control_comm_simulation.py "
+        "--output-root test_env/control_comm_simulation_ci"
+    ) in job
+    assert (
+        "python tools/build_control_comm_simulation_closeout.py "
+        "--report test_env/control_comm_simulation_ci/control_comm_simulation_report.json "
+        "--output test_env/control_comm_simulation_ci/control_comm_simulation_closeout.json"
+    ) in job
+    assert "name: control-communication-simulation-artifacts" in job
+    assert "path: test_env/control_comm_simulation_ci" in job
+    assert "tools/run_godot_control_comm_replay.py" not in job
+    assert "GODOT_EXECUTABLE" not in job
+    assert "docker compose" not in job
+
+
+def test_control_communication_simulation_guide_tracks_non_live_contracts() -> None:
+    content = CONTROL_COMMUNICATION_SIMULATION_GUIDE.read_text(encoding="utf-8")
+
+    assert "canonical `control_message_envelope.v1`" in content
+    assert "deterministic `control_comm_simulation_report.v1`" in content
+    assert "retained `godot_control_comm_simulation_log.v1`" in content
+    assert "control_comm_simulation_closeout.v1" in content
+    assert "live_hardware_migration_gate.json" in content
+    assert "tools\\run_control_comm_simulation.py" in content
+    assert "tools\\build_control_comm_simulation_closeout.py" in content
+    assert "tools\\run_godot_control_comm_replay.py" in content
+    assert "--control-comm-closeout" in content
+    assert "evidence_level=non_live_simulation" in content
+    assert "compatibility_claim=simulation_only" in content
+    assert "simulation_substitute_allowed=false" in content
+    assert "It does not claim live Godot execution" in content
+    assert "does not claim real CAN, EtherCAT or TSN transport validation" in content
+
+
+def test_control_communication_simulation_plan_does_not_keep_stale_pending_notes() -> None:
+    content = CONTROL_COMMUNICATION_SIMULATION_PLAN.read_text(encoding="utf-8")
+
+    assert "asyncio bus, Zenoh adapter, EtherCAT model or live Godot runner" not in content
+    assert "Zenoh, EtherCAT and live Godot execution remain pending" not in content
+    assert "Added simulated Zenoh/OpenNeuro-like mapping" in content
+    assert "Added non-live EtherCAT cycle model trace" in content
+    assert "Added non-live motor/joint response trace" in content
+    assert "Remaining live hardware and external simulator execution is not claimed" in content
 
 
 def test_production_runbook_uses_current_compose_entrypoints() -> None:
@@ -678,6 +862,7 @@ def test_customer_deployment_docs_and_compose_defaults_use_current_single_path()
     )
     known_limitations = KNOWN_LIMITATIONS_GUIDE.read_text(encoding="utf-8")
     readme = ROOT_RELEASE_NOTES.parent.joinpath("README.md").read_text(encoding="utf-8")
+    docs_readme = DOCS_README.read_text(encoding="utf-8")
 
     assert "${AGI_WALKER_COMPOSE_WEB_ENV_FILE:-./web_panel.env.example}" in compose
     assert "${AGI_WALKER_WEB_PORT:-8080}:8000" in compose
@@ -829,6 +1014,10 @@ def test_customer_deployment_docs_and_compose_defaults_use_current_single_path()
     assert "2026-05-15" in known_limitations
     assert "CAPACITY_AND_SCALE.md" in known_limitations
     assert "生产部署 Runbook" in readme
+    assert "docs/guides/CONTROL_COMMUNICATION_SIMULATION.md" in readme
+    assert "guides/CONTROL_COMMUNICATION_SIMULATION.md" in docs_readme
+    assert "tools\\run_control_comm_simulation.py" in readme
+    assert "tools\\build_control_comm_simulation_closeout.py" in readme
     assert "客户安装指南" in readme
     assert "部署矩阵" in readme
     assert "支持矩阵" in readme

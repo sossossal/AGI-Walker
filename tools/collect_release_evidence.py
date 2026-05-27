@@ -172,6 +172,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional existing release_ops_execution_report.json copied into the canonical operations evidence directory.",
     )
     parser.add_argument(
+        "--control-comm-closeout-source",
+        default=None,
+        help="Optional existing control_comm_simulation_closeout.json copied into the canonical control communication evidence directory.",
+    )
+    parser.add_argument(
         "--security-only",
         action="store_true",
         help=(
@@ -402,6 +407,11 @@ def main(argv: list[str] | None = None) -> int:
     release_ops_execution_report = (
         output_root / "operations" / Path(default_release_ops_execution_report_path()).name
     )
+    control_comm_closeout_report = (
+        output_root
+        / "control_communication"
+        / "control_comm_simulation_closeout.json"
+    )
 
     commands = [
         (
@@ -629,6 +639,10 @@ def main(argv: list[str] | None = None) -> int:
         _copy_if_present(
             args.release_ops_execution_report_source,
             release_ops_execution_report,
+        )
+        _copy_if_present(
+            args.control_comm_closeout_source,
+            control_comm_closeout_report,
         )
 
     failures: list[str] = []

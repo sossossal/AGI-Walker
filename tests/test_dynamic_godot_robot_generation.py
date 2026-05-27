@@ -4405,6 +4405,214 @@ def test_dynamic_godot_release_evidence_bundle_builds_and_validates_static_only(
     assert json.loads(validate_result.stdout)["status"] == "ready"
 
 
+def test_dynamic_godot_release_evidence_bundle_accepts_control_comm_closeout(
+    tmp_path: Path,
+) -> None:
+    closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
+        tmp_path
+    )
+    control_comm_closeout = tmp_path / "control_comm_simulation_closeout.json"
+    control_comm_closeout.write_text(
+        json.dumps(
+            {
+                "closeout_version": "control_comm_simulation_closeout.v1",
+                "status": "accepted_with_documented_external_blockers",
+                "evidence_level": "non_live_simulation",
+                "artifact_error_count": 0,
+                "closeout_validation_errors": [],
+                "errors": [],
+                "live_hardware_release_gate_status": "blocked",
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_root = tmp_path / "bundle"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_TOOL),
+            "--static-closeout",
+            str(closeout_path),
+            "--delivery-gate",
+            str(gate_path),
+            "--readiness-summary",
+            str(readiness_path),
+            "--control-comm-closeout",
+            str(control_comm_closeout),
+            "--output-root",
+            str(output_root),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    index = json.loads(result.stdout)
+    assert "control_comm_closeout" in {entry["key"] for entry in index["artifacts"]}
+    docs_by_role = {entry["role"]: entry for entry in index["documentation"]}
+    assert "control_comm_workflow" in docs_by_role
+    assert docs_by_role["control_comm_workflow"]["required"] is False
+    assert (
+        docs_by_role["control_comm_workflow"]["source_path"]
+        == str(ROOT / "docs" / "guides" / "CONTROL_COMMUNICATION_SIMULATION.md")
+    )
+    assert index["validation_status"] == "ready"
+
+    validate_result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
+            str(output_root / "bundle_index.json"),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert validate_result.returncode == 0
+    validation = json.loads(validate_result.stdout)
+    assert validation["status"] == "ready"
+    assert validation["documentation_count"] == 5
+
+
+def test_dynamic_godot_release_evidence_bundle_respects_explicit_docs_with_control_comm(
+    tmp_path: Path,
+) -> None:
+    closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
+        tmp_path
+    )
+    control_comm_closeout = tmp_path / "control_comm_simulation_closeout.json"
+    control_comm_closeout.write_text(
+        json.dumps(
+            {
+                "closeout_version": "control_comm_simulation_closeout.v1",
+                "status": "accepted_with_documented_external_blockers",
+                "evidence_level": "non_live_simulation",
+                "artifact_error_count": 0,
+                "closeout_validation_errors": [],
+                "errors": [],
+                "live_hardware_release_gate_status": "blocked",
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_root = tmp_path / "bundle"
+    default_doc = ROOT / "docs" / "guides" / "DYNAMIC_GODOT_ROBOT_GENERATION.md"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_TOOL),
+            "--static-closeout",
+            str(closeout_path),
+            "--delivery-gate",
+            str(gate_path),
+            "--readiness-summary",
+            str(readiness_path),
+            "--control-comm-closeout",
+            str(control_comm_closeout),
+            "--doc",
+            f"static_workflow={default_doc}",
+            "--doc",
+            f"live_workflow={default_doc}",
+            "--doc",
+            f"web_workflow={default_doc}",
+            "--doc",
+            f"readiness_workflow={default_doc}",
+            "--output-root",
+            str(output_root),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    index = json.loads(result.stdout)
+    assert {entry["role"] for entry in index["documentation"]} == {
+        "static_workflow",
+        "live_workflow",
+        "web_workflow",
+        "readiness_workflow",
+    }
+    assert index["validation_status"] == "ready"
+
+    validate_result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
+            str(output_root / "bundle_index.json"),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert validate_result.returncode == 0
+    validation = json.loads(validate_result.stdout)
+    assert validation["status"] == "ready"
+    assert validation["documentation_count"] == 4
+
+
+def test_dynamic_godot_release_evidence_bundle_rejects_bad_control_comm_closeout(
+    tmp_path: Path,
+) -> None:
+    closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
+        tmp_path
+    )
+    control_comm_closeout = tmp_path / "control_comm_simulation_closeout.json"
+    control_comm_closeout.write_text(
+        json.dumps(
+            {
+                "closeout_version": "control_comm_simulation_closeout.v1",
+                "status": "blocked",
+                "evidence_level": "non_live_simulation",
+                "artifact_error_count": 1,
+                "closeout_validation_errors": ["bad artifact"],
+                "errors": ["bad artifact"],
+                "live_hardware_release_gate_status": "passed",
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_root = tmp_path / "bundle"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_TOOL),
+            "--static-closeout",
+            str(closeout_path),
+            "--delivery-gate",
+            str(gate_path),
+            "--readiness-summary",
+            str(readiness_path),
+            "--control-comm-closeout",
+            str(control_comm_closeout),
+            "--output-root",
+            str(output_root),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    assert payload["validation_status"] == "invalid"
+    validation = json.loads(
+        (output_root / "bundle_validation.json").read_text(encoding="utf-8")
+    )
+    assert "control_comm_closeout.status must be 'accepted_with_documented_external_blockers'" in validation["errors"]
+    assert "control_comm_closeout.artifact_error_count must be 0" in validation["errors"]
+    assert "control_comm_closeout.live_hardware_release_gate_status must be 'blocked'" in validation["errors"]
+
+
 def test_dynamic_godot_release_evidence_bundle_validator_checks_validation_report(
     tmp_path: Path,
 ) -> None:
@@ -5252,6 +5460,8 @@ def test_dynamic_godot_acceptance_levels_document_proof_commands() -> None:
     assert "tools/validate_dynamic_godot_release_evidence_bundle.py" in content
     assert "dynamic_godot_release_evidence_bundle.v1" in content
     assert "dynamic_godot_release_evidence_bundle_validation.v1" in content
+    assert "control_comm_workflow" in content
+    assert "docs/guides/CONTROL_COMMUNICATION_SIMULATION.md" in content
 
 
 def test_ci_runs_static_node_tree_manifest_sidecar_gate() -> None:

@@ -112,10 +112,42 @@ jobs:
           retention-days: 7
 
   # -----------------------------------------------------------------------------
-  # Job 2b: Security Release Preflight (manual/scheduled)
+  # Job 2b: Control/Communication Simulation Evidence
+  # -----------------------------------------------------------------------------
+  control-communication-simulation-evidence:
+    needs: smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Generate Control/Communication Simulation Evidence
+        run: |
+          python tools/run_control_comm_simulation.py --output-root test_env/control_comm_simulation_ci
+
+      - name: Build Control/Communication Simulation Closeout
+        run: |
+          python tools/build_control_comm_simulation_closeout.py --report test_env/control_comm_simulation_ci/control_comm_simulation_report.json --output test_env/control_comm_simulation_ci/control_comm_simulation_closeout.json
+
+      - name: Upload Control/Communication Simulation Artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: control-communication-simulation-artifacts
+          path: test_env/control_comm_simulation_ci
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # -----------------------------------------------------------------------------
+  # Job 2c: Security Release Preflight (manual/scheduled)
   # -----------------------------------------------------------------------------
   security-preflight:
-    needs: [smoke, static-godot-node-tree-manifest]
+    needs: [smoke, static-godot-node-tree-manifest, control-communication-simulation-evidence]
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -163,7 +195,7 @@ jobs:
           retention-days: 7
 
   # -----------------------------------------------------------------------------
-  # Job 2c: Distributed Smoke (manual trigger only)
+  # Job 2d: Distributed Smoke (manual trigger only)
   # -----------------------------------------------------------------------------
   distributed-smoke:
     needs: smoke
@@ -204,7 +236,7 @@ jobs:
           retention-days: 7
 
   # -----------------------------------------------------------------------------
-  # Job 2d: Real Godot Headless Smoke (manual trigger only)
+  # Job 2e: Real Godot Headless Smoke (manual trigger only)
   # -----------------------------------------------------------------------------
   godot-headless-smoke:
     needs: smoke
@@ -245,7 +277,7 @@ jobs:
           retention-days: 7
 
   # -----------------------------------------------------------------------------
-  # Job 2e: Dynamic Godot Live Verification Profile (manual/scheduled)
+  # Job 2f: Dynamic Godot Live Verification Profile (manual/scheduled)
   # -----------------------------------------------------------------------------
   dynamic-godot-live-verification:
     needs: [smoke, static-godot-node-tree-manifest]
@@ -298,7 +330,7 @@ jobs:
           retention-days: 14
 
   # -----------------------------------------------------------------------------
-  # Job 2f: ROS2 Bridge Smoke (manual trigger only)
+  # Job 2g: ROS2 Bridge Smoke (manual trigger only)
   # -----------------------------------------------------------------------------
   ros2-bridge-smoke:
     needs: smoke

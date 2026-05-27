@@ -41,6 +41,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - 2026-05-26: GitHub CI artifact `security-preflight-artifacts` from scheduled run `26435197977` showed one unresolved Python finding: `fastapi 0.136.3`, `MAL-2026-4750`, with no published fix version. Container findings remained covered by active tracked exceptions; stale and expired exception counts were zero. The 32 `review_due` exceptions were surfaced as non-blocking follow-up evidence. The remediation excludes only `fastapi==0.136.3` across project/deployment install surfaces while preserving the existing preflight contract.
 - 2026-05-26: Re-reviewed the active deployment-web-panel-distributed no-fix container exceptions against refreshed security-only preflight evidence. Matching findings remained no-fix, stale and expired exception counts remained zero, and the next exception expiry was renewed to `2026-08-24T00:00:00+01:00`.
 - 2026-05-26: Added a reusable container vulnerability baseline comparison tool so candidate base-image raw Trivy reports can be compared against the current baseline before changing Dockerfiles. The tool is advisory evidence only; it does not alter preflight pass/fail semantics.
+- 2026-05-26: Full-suite validation exposed a stale canonical exception test expectation after the no-fix exception renewal. The test now derives `next_exception_expiry` from `deployment/security/vulnerability_exceptions.input.json` so future reviewed renewals do not require duplicating the date in the test.
 
 # Non-Goals
 

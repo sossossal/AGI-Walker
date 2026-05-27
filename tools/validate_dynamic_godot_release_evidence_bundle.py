@@ -43,6 +43,7 @@ LIVE_VERIFICATION_PROFILE_VERSION = "dynamic_godot_live_verification_profile.v1"
 WEB_GODOT_DELIVERY_SOURCE = "web_godot_delivery"
 WEB_GODOT_DELIVERY_SCOPE = "godot_load"
 WEB_GODOT_DELIVERY_PROFILE = "web_godot_load"
+CONTROL_COMM_CLOSEOUT_VERSION = "control_comm_simulation_closeout.v1"
 LEVEL_RANKS = {
     "incomplete": 0,
     "static_only": 1,
@@ -493,6 +494,39 @@ def _validate_web_delivery_record(
             )
 
 
+def _validate_control_comm_closeout(
+    control_comm_closeout: dict[str, Any],
+    errors: list[str],
+) -> None:
+    if control_comm_closeout.get("closeout_version") != CONTROL_COMM_CLOSEOUT_VERSION:
+        errors.append(
+            "control_comm_closeout.closeout_version must be "
+            f"{CONTROL_COMM_CLOSEOUT_VERSION!r}"
+        )
+    if (
+        control_comm_closeout.get("status")
+        != "accepted_with_documented_external_blockers"
+    ):
+        errors.append(
+            "control_comm_closeout.status must be "
+            "'accepted_with_documented_external_blockers'"
+        )
+    if control_comm_closeout.get("evidence_level") != "non_live_simulation":
+        errors.append(
+            "control_comm_closeout.evidence_level must be 'non_live_simulation'"
+        )
+    if control_comm_closeout.get("artifact_error_count") != 0:
+        errors.append("control_comm_closeout.artifact_error_count must be 0")
+    if control_comm_closeout.get("closeout_validation_errors") != []:
+        errors.append("control_comm_closeout.closeout_validation_errors must be []")
+    if control_comm_closeout.get("errors") != []:
+        errors.append("control_comm_closeout.errors must be []")
+    if control_comm_closeout.get("live_hardware_release_gate_status") != "blocked":
+        errors.append(
+            "control_comm_closeout.live_hardware_release_gate_status must be 'blocked'"
+        )
+
+
 def validate_bundle_index(
     index_path: Path,
     *,
@@ -623,6 +657,13 @@ def validate_bundle_index(
             errors.append(f"web_delivery_record: {error}")
         else:
             _validate_web_delivery_record(payload, errors)
+    control_comm_entry = artifact_by_key.get("control_comm_closeout")
+    if control_comm_entry is not None:
+        payload, error = read_json_object(_entry_path(bundle_root, control_comm_entry))
+        if error is not None:
+            errors.append(f"control_comm_closeout: {error}")
+        else:
+            _validate_control_comm_closeout(payload, errors)
     if readiness_payload:
         _validate_readiness(readiness_payload, index, errors)
 

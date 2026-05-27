@@ -32,7 +32,7 @@ Outputs:
 
 # Local Context
 
-Web/session evidence already preserves static manifest output paths through Godot delivery evidence. The next increment should make those fields visible and actionable for operators.
+Web/session evidence preserves static manifest output paths through Godot delivery evidence. This completed module makes those fields visible and actionable for operators.
 
 # Non-Goals
 

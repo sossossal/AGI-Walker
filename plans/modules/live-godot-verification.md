@@ -35,7 +35,7 @@ Outputs:
 
 # Local Context
 
-Current docs already define a manual live smoke checklist and required `godot_verified` fields. The next increment should turn that checklist into a reusable profile while preserving static CI as the mandatory default.
+Current docs define a manual live smoke checklist and required `godot_verified` fields. This completed module turns that checklist into reusable local, manual CI and scheduled CI profiles while preserving static CI as the mandatory default.
 
 # Non-Goals
 

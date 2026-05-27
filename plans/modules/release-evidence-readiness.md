@@ -52,7 +52,7 @@ py -3.12 -m pytest -m "not live" --collect-only -q
 
 # Progress Notes
 
-- 2026-05-18: Created module plan because `PROJECT_PLAN.md` next step is release/readiness summary.
+- 2026-05-18: Created module plan because `PROJECT_PLAN.md` called for a release/readiness summary.
 - 2026-05-18: Added `tools/build_dynamic_godot_release_readiness.py` to summarize existing closeout/gate/Web delivery evidence into the strongest proven level.
 - 2026-05-18: Validated with py_compile, dynamic Godot generation tests, workflow contract tests, and non-live collect-only.
 - 2026-05-19: Updated static evidence defaults and CI command so release/readiness static coverage includes fixed pair, biped, and quadruped.

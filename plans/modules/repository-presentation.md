@@ -67,3 +67,14 @@ py -3.12 -m pytest tests\test_active_path_references.py -q
 # Notes
 
 - 2026-05-24: PR CI showed README optimization had removed active operator/delivery links that are protected by docs contract tests. Root README now keeps a compact active-link block for those canonical tools, templates and guides while preserving the concise GitHub entry structure.
+- 2026-05-26: Root README now exposes the Phase 3 control/communication simulation guide plus non-live report/closeout commands so the completed simulation evidence lane is discoverable from the GitHub entry point.
+- 2026-05-26: Active-path tests now protect the Phase 3 control/communication guide link in both the root README and `docs/README.md` documentation index.
+- 2026-05-26: Active-path tests now verify `PROJECT_PLAN.md` Module Index rows point to existing complete subplans with no unchecked module tasks.
+- 2026-05-26: Active-path tests now also verify every `plans/modules/*.md` subplan is indexed by `PROJECT_PLAN.md` so module plans cannot become orphaned.
+- 2026-05-26: Active-path tests now require each `PROJECT_PLAN.md` Module Index module name to match its subplan filename stem.
+- 2026-05-26: Active-path tests now protect required `PROJECT_PLAN.md` governance sections, including `Decision Log` and `Change Control`.
+- 2026-05-26: Active-path tests now prevent unchecked root `PROJECT_PLAN.md` tasks from reappearing while the Module Index is complete.
+- 2026-05-26: Active-path tests now require Module Index rows to keep non-empty module, responsibility and dependency cells plus canonical backticked `plans/modules/*.md` subplan paths.
+- 2026-05-26: Active-path tests now prevent complete module plans from keeping stale implementation-before wording that implies unfinished increments.
+- 2026-05-26: Active-path tests now prevent complete module plans from keeping stale wording that implies another immediate implementation step after root scope is closed.
+- 2026-05-26: Active-path tests now require `PROJECT_PLAN.md` Integration Plan numbering to remain contiguous.

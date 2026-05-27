@@ -60,6 +60,7 @@ def main() -> int:
                 str(ROOT / "tools" / "build_hardware_gap_report.py"),
                 str(ROOT / "tools" / "simulate_actuator_physics.py"),
                 str(ROOT / "tools" / "build_component_parameter_log.py"),
+                str(ROOT / "tools" / "simulate_communication.py"),
                 str(ROOT / "tools" / "validate_godot_io.py"),
                 str(ROOT / "tools" / "build_retention_manifest.py"),
                 str(ROOT / "tools" / "run_local_acceptance.py"),
@@ -86,6 +87,7 @@ def main() -> int:
     if godot:
         commands.append(("godot_headless_load", godot))
         commands.append(("godot_io_validation", [sys.executable, str(ROOT / "tools" / "validate_godot_io.py")]))
+        commands.append(("communication_simulation", [sys.executable, str(ROOT / "tools" / "simulate_communication.py")]))
     commands.append(("retention_manifest", [sys.executable, str(ROOT / "tools" / "build_retention_manifest.py")]))
 
     results = [run_command(name, command, ROOT.parent) for name, command in commands]

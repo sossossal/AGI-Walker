@@ -25,6 +25,7 @@ from validate_dynamic_godot_release_evidence_bundle import (  # noqa: E402
 )
 
 DEFAULT_DOC_PATH = ROOT / "docs" / "guides" / "DYNAMIC_GODOT_ROBOT_GENERATION.md"
+CONTROL_COMM_DOC_PATH = ROOT / "docs" / "guides" / "CONTROL_COMMUNICATION_SIMULATION.md"
 
 
 def _mtime_iso(path: Path) -> str:
@@ -90,6 +91,12 @@ def _artifact_entries(args: argparse.Namespace, output_root: Path) -> list[dict[
         ("readiness_summary", "readiness_summary", args.readiness_summary, True),
         ("live_smoke", "live_smoke", args.live_smoke, False),
         ("web_delivery_record", "web_delivery_record", args.web_delivery_record, False),
+        (
+            "control_comm_closeout",
+            "control_comm_closeout",
+            args.control_comm_closeout,
+            False,
+        ),
     ]
     return [
         _copy_entry(
@@ -113,8 +120,11 @@ def _parse_doc(value: str) -> tuple[str, Path]:
     return role.strip(), Path(path)
 
 
-def _default_docs() -> list[tuple[str, Path]]:
-    return [(role, DEFAULT_DOC_PATH) for role in REQUIRED_DOC_ROLES]
+def _default_docs(*, include_control_comm: bool = False) -> list[tuple[str, Path]]:
+    docs = [(role, DEFAULT_DOC_PATH) for role in REQUIRED_DOC_ROLES]
+    if include_control_comm:
+        docs.append(("control_comm_workflow", CONTROL_COMM_DOC_PATH))
+    return docs
 
 
 def build_bundle(args: argparse.Namespace) -> dict[str, Any]:
@@ -122,7 +132,11 @@ def build_bundle(args: argparse.Namespace) -> dict[str, Any]:
     output_root.mkdir(parents=True, exist_ok=True)
     readiness = _read_json_object(Path(args.readiness_summary).resolve())
     level = str(readiness.get("proven_level") or "incomplete")
-    docs = [_parse_doc(value) for value in args.doc] if args.doc else _default_docs()
+    docs = (
+        [_parse_doc(value) for value in args.doc]
+        if args.doc
+        else _default_docs(include_control_comm=args.control_comm_closeout is not None)
+    )
     index = {
         "bundle_version": BUNDLE_VERSION,
         "artifact_type": BUNDLE_ARTIFACT_TYPE,
@@ -155,6 +169,7 @@ def main() -> int:
     parser.add_argument("--readiness-summary", required=True, type=Path)
     parser.add_argument("--live-smoke", type=Path)
     parser.add_argument("--web-delivery-record", type=Path)
+    parser.add_argument("--control-comm-closeout", type=Path)
     parser.add_argument(
         "--doc",
         action="append",

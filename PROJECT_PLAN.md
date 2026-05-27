@@ -4,6 +4,8 @@
 
 下一阶段把已完成的静态/运行时还原闭环推进为产品化验收能力：可复用 live Godot 验证 profile、可解释机械行为 evidence、Web 操作闭环、schema 1.5 演进计划，以及面向交付的 evidence bundle。
 
+Phase 3 将在现有 Godot/分布式/硬件验收基础上增加机器人控制与通信模拟主线：从 Python/asyncio 的确定性通信和时序模拟开始，同步提供 Godot 脚本执行与日志 artifact 留存，逐步接入 Zenoh、EtherCAT 周期模型、电机/关节物理模型、外部仿真器适配层，最后以 fail-closed 的方式过渡到真实 CAN/EtherCAT/TSN 硬件。
+
 # Scope
 
 In scope:
@@ -12,6 +14,7 @@ In scope:
 - 与该能力直接相关的 Godot runtime restoration、Web/session evidence preservation 和 release evidence。
 - 项目级计划、模块子计划、跨模块契约和验收标准维护。
 - Phase 2: live Godot 验证产品化、运行时机械完整性增强、Web evidence dashboard、机器人 schema 1.5 规划、发布验收包。
+- Phase 3: 控制/通信/现场总线模拟的分层契约、确定性时序 evidence、Godot 脚本/日志 evidence、Zenoh 通信模拟、EtherCAT 周期模型、电机/关节模型、仿真器适配规划和真实硬件迁移边界。
 
 Out of scope:
 
@@ -19,6 +22,7 @@ Out of scope:
 - 不替换当前 JSON robot config 格式。
 - 不做无关重构、格式 churn 或跨领域发布改造。
 - 不在 schema 1.5 规划阶段强制迁移旧 fixture 或删除旧 schema 兼容。
+- 不在 Phase 3 第一阶段直接接入真实 CAN/EtherCAT/TSN 硬件或要求 Gazebo/MuJoCo/Isaac Sim 可用。
 
 # Existing Context
 
@@ -27,6 +31,7 @@ Out of scope:
 - 当前静态 `godot_node_tree_manifest.v1`、sidecar self-validation、delivery gate strict scan 和 CI static manifest gate 已实现。
 - 当前 `static_only`、`godot_load_verified`、`godot_verified` 验收层级和证明命令已文档化。
 - 根级 `PROJECT_PLAN.md` 和 `plans/modules/` 是本轮按 `AGENTS.md` 新建的计划入口。
+- 当前已有 `agi_walker/core/distributed/`、`agi_walker/core/api/comm/zenoh_interface.py`、`agi_walker/core/api/comm/tcp_zenoh_bridge.py`、控制器模块、硬件文档和 hardwareless acceptance，适合承接控制/通信模拟，但缺少统一时序、消息、现场总线和执行器模型契约。
 
 # Architecture Principles
 
@@ -35,6 +40,7 @@ Out of scope:
 - Evidence over confidence: 每个验收结论必须指向命令、测试、artifact 或明确残余风险。
 - Backward compatible by default: 严格失败只由显式 flag、CI profile 或专用 closeout 工具触发。
 - Minimal change: 每轮只修改实现目标所需的最小文件集合。
+- Simulation before hardware: 控制、通信、现场总线和执行器行为先用可复现本地模拟证明；真实 CAN/EtherCAT/TSN 只能在显式 live profile 与外部 evidence 存在时进入验收。
 
 # Constraints and Non-Goals
 
@@ -60,6 +66,9 @@ Out of scope:
 | hardwareless-acceptance | `plans/modules/hardwareless-acceptance.md` | No-hardware acceptance report that preserves substitute evidence and explicit external blockers | Hardware replay/mock tests, ROS2 fake runtime, live Godot readiness, production compose smoke | complete |
 | repository-presentation | `plans/modules/repository-presentation.md` | GitHub-facing README, docs index and repository tree guidance | Existing docs, plans, source layout | complete |
 | security-release-preflight | `plans/modules/security-release-preflight.md` | Security release preflight scanner execution, vulnerability exception matching and release-blocker classification | Security posture contracts, scanner wrappers, deployment exceptions, CI | complete |
+| control-communication-simulation | `plans/modules/control-communication-simulation.md` | Python/asyncio deterministic control-loop timing, Godot script/log evidence, local bus contracts, Zenoh/OpenNeuro-like simulation, EtherCAT cycle model, motor/joint model and simulator/hardware migration boundaries | Existing distributed runtime, Godot scripts/runtime smoke, Zenoh comm modules, robot schema 1.5, hardwareless acceptance | complete |
+| control-communication-evidence-closeout | `plans/modules/control-communication-evidence-closeout.md` | Reusable closeout artifact for Phase 3 non-live simulation evidence, retained artifact validation and external live hardware blockers | Control/communication simulation artifacts, hardwareless acceptance semantics, release evidence collection | complete |
+| control-communication-ci-evidence | `plans/modules/control-communication-ci-evidence.md` | Default non-live CI evidence profile for Phase 3 simulation artifacts and closeout retention | Control/communication simulation CLI, closeout CLI, GitHub Actions | complete |
 
 # Interfaces and Contracts
 
@@ -85,12 +94,26 @@ Out of scope:
 - Schema 1.5 must be additive by default; actuator, sensor, joint limit, controller tuning and material/physics preset fields remain optional until migration tests prove compatibility.
 - Schema 1.5 optional fields use additive robot JSON keys: connection-level `actuator`, `sensor`/`sensors`, extended `limits.effort`/`limits.velocity`, connection-level `controller`, and part-level `material`/`physics`. Older configs remain valid without these fields.
 - Release evidence bundles use `dynamic_godot_release_evidence_bundle.v1` and self-validation uses `dynamic_godot_release_evidence_bundle_validation.v1`; bundle indexes link static closeout, gate, readiness, optional live smoke, optional Web delivery record, validation report and documentation artifacts with unique artifact keys/documentation roles, correct required flags, bundle-root-relative paths, size, SHA-256 and source/bundle modified timestamp metadata. Bundle validation delegates bundled delivery gate shape checks to the shared `delivery_acceptance_gate.v1` contract and checks that index `bundle_root`, timezone-aware `generated_at`, `readiness_status`, `residual_risks`, `validation_status`, the bundled validation report status, validation report error/status self-consistency, validation report bundle root, required artifact/doc role contract lists, artifact/documentation counts and evidence level match the current validation result. When optional live smoke is supplied, bundle validation checks its live verification profile and wrapper retry metadata consistency. When optional Web delivery record evidence is supplied, bundle validation checks its `web_godot_delivery/godot_load` gate metadata and static manifest evidence consistency.
+- Dynamic Godot release evidence bundles may optionally include Phase 3 `control_comm_simulation_closeout.v1` as artifact key `control_comm_closeout`; if present, validation requires healthy non-live closeout semantics and keeps the live hardware release gate blocked.
+- When the default documentation set is used, release evidence bundles that include `control_comm_closeout` also include optional documentation role `control_comm_workflow` from `docs/guides/CONTROL_COMMUNICATION_SIMULATION.md`.
+- Canonical release evidence collection may copy an existing Phase 3 `control_comm_simulation_closeout.v1` via `collect_release_evidence.py --control-comm-closeout-source` into `control_communication/control_comm_simulation_closeout.json`; collection does not generate the simulation and does not upgrade non-live evidence into hardware validation.
 - No-hardware acceptance reports use `hardwareless_acceptance_report.v1`; they may record mock/replay, fake-runtime, live Godot and compose evidence commands, but must keep real robot hardware, real serial/CAN transport and missing ROS2 runtime as external blockers rather than marking hardware validation as passed.
 - No-hardware acceptance reports include `hardwareless_safety_scenarios` so command limit clamping, watchdog fallback, fault-class recovery, serial protocol replay, Web recovery permission gates and live Godot mountain mechanical evidence are tracked as covered mitigations before any remaining residual risk is accepted.
 - No-hardware acceptance reports expose `required_external_evidence` for real hardware closeout and ROS2 bridge live smoke; missing evidence remains an external blocker, and passed/ready artifacts remove those blockers without changing mock/replay semantics.
 - No-hardware acceptance strict mode uses `--require-external-evidence` and must return `blocked` when real hardware closeout or ROS2 bridge live smoke evidence is missing or not ready.
 - No-hardware acceptance reports must expose `release_gate.status`; release-gate status remains `blocked` while required external evidence is missing, even if the local hardwareless report status is `accepted_with_documented_external_blockers`.
 - No-hardware release readiness is validated by `tools/validate_hardwareless_release_gate.py`, which fails unless `release_gate.status` matches the expected value.
+- Control/communication simulation uses deterministic local evidence before live transport: `control_comm_simulation_report.v1` records virtual clock source, cycle period, jitter budget, deadline misses, message sequence integrity, transport mode, trace path and residual risks.
+- Local asyncio bus, Zenoh transport simulation and future OpenNeuro-like topics must share one canonical message envelope with `schema_version`, `topic`, `sequence`, `timestamp_ns`, `source`, `target`, `payload_type` and typed payload metadata.
+- Godot-side control/communication simulation uses the same canonical envelope and produces retained script/log evidence: `godot_control_comm_simulation_log.v1` records script name, Godot executable/profile metadata when available, simulated cycle/message events, output artifact paths, status and residual risks.
+- `control_comm_simulation_report.v1` may aggregate Python deterministic traces and Godot script/log traces, but must keep evidence source explicit with `evidence_source` values such as `python_virtual_clock`, `godot_script`, `godot_headless` and future live transport modes.
+- EtherCAT simulation remains a cycle/PDO/watchdog/deadline model until real hardware evidence exists; it must not be presented as live EtherCAT validation.
+- Motor and joint simulation must expose position, velocity, torque, limits, command saturation, fault state and step trace fields that can map back to robot schema 1.5 actuator/joint-limit/controller metadata.
+- Gazebo/MuJoCo/Isaac Sim integrations are adapters over the canonical simulation contracts; core control-loop logic must not depend on a specific simulator runtime.
+- Real CAN/EtherCAT/TSN transport stays gated by explicit live profiles, hardware role permissions, operator confirmation and external evidence; no-hardware acceptance remains blocked for real hardware claims.
+- Live hardware migration uses `live_hardware_migration_gate.v1`; it must keep CAN, EtherCAT and TSN `status=blocked`, `release_gate.status=blocked` and `simulation_substitute_allowed=false` until explicit external hardware evidence is supplied.
+- Control/communication simulation closeout uses `control_comm_simulation_closeout.v1`; it summarizes local non-live simulation evidence and validation errors while preserving live hardware blockers as external blockers, self-validates closeout shape before acceptance, and records retained artifact `size_bytes` plus `sha256` integrity metadata.
+- Default CI control/communication evidence uses the `control-communication-simulation-evidence` job to generate `test_env/control_comm_simulation_ci`, build `control_comm_simulation_closeout.json`, and upload `control-communication-simulation-artifacts` without Godot, Zenoh, Docker, external simulators or real hardware.
 
 # Integration Plan
 
@@ -104,6 +127,18 @@ Out of scope:
 8. Add Web operator flow for inspecting evidence levels, mismatches and readiness from generated artifacts.
 9. Plan schema 1.5 as additive optional fields with compatibility and migration tests.
 10. Package release evidence into a self-validating delivery bundle.
+11. Add deterministic Python/asyncio control-loop and message-bus simulation with trace evidence.
+12. Add Godot script/headless execution path that replays the same control/message scenario and retains structured logs.
+13. Layer Zenoh/OpenNeuro-like transport simulation over the same message envelope.
+14. Add EtherCAT cycle/PDO/watchdog model and validate timing/fault evidence without real hardware.
+15. Add motor/joint physical response model and connect it to robot schema actuator/joint-limit metadata.
+16. Add simulator adapter plan for Gazebo/MuJoCo/Isaac Sim while keeping adapters optional.
+17. Define live CAN/EtherCAT/TSN migration gates that require explicit hardware evidence.
+18. Add a reusable closeout artifact for Phase 3 control/communication simulation evidence.
+19. Retain Phase 3 non-live control/communication simulation evidence in default CI.
+20. Allow Phase 3 control/communication closeout evidence to travel with release evidence bundles as an optional validated artifact.
+21. Allow canonical release evidence collection to copy existing Phase 3 control/communication closeout evidence.
+22. Document and validate the canonical collector-to-bundle handoff path for Phase 3 control/communication closeout evidence.
 
 # Tasks
 
@@ -129,6 +164,20 @@ Out of scope:
 - [x] Add self-validating release evidence bundle for delivery artifacts and documentation index.
 - [x] Add local deterministic mountain humanoid biped simulation example and evidence artifacts.
 - [x] Add no-hardware acceptance report and targeted substitute validation evidence.
+- [x] Add Phase 3 control/communication simulation module plan.
+- [x] Define canonical control message envelope and deterministic asyncio timing report.
+- [x] Add local asyncio bus timing simulation before external transport.
+- [x] Add Godot script/headless control communication simulation that emits retained structured logs.
+- [x] Add Zenoh/OpenNeuro-like transport simulation over the canonical envelope.
+- [x] Add EtherCAT cycle/PDO/watchdog model as non-live simulation evidence.
+- [x] Add motor/joint model evidence and map it to robot schema actuator/joint fields.
+- [x] Plan simulator adapters for Gazebo/MuJoCo/Isaac Sim without making them CI requirements.
+- [x] Define real CAN/EtherCAT/TSN live migration gates and no-hardware blockers.
+- [x] Add control/communication simulation evidence closeout artifact.
+- [x] Add default CI profile that generates and uploads Phase 3 non-live control/communication simulation closeout evidence.
+- [x] Add optional Phase 3 control/communication closeout artifact support to release evidence bundles.
+- [x] Add optional Phase 3 control/communication closeout source support to canonical release evidence collection.
+- [x] Document the canonical collector output path as a valid `--control-comm-closeout` bundle input and guard the handoff docs with active-path tests.
 
 # Risks and Mitigations
 
@@ -150,6 +199,18 @@ Out of scope:
 - Risk: Schema 1.5 breaks older JSON configs.
   Mitigation: Make new fields optional by default and require compatibility/migration tests for versions 1.1 through 1.5.
 
+- Risk: Communication simulation is mistaken for live hardware validation.
+  Mitigation: Reports must state transport mode (`asyncio`, `zenoh_simulated`, `ethercat_model`, `live_hardware`) and keep live hardware gates blocked without external evidence.
+
+- Risk: Control-loop tests become flaky because they use wall-clock timing.
+  Mitigation: First implementation must use a deterministic virtual clock and only add real-time smoke as opt-in live evidence.
+
+- Risk: Godot script logs drift from Python simulation contracts.
+  Mitigation: Godot logs must use the same canonical envelope fields and be validated as artifacts before being accepted into the aggregate report.
+
+- Risk: Simulator adapters create hard dependencies on Gazebo/MuJoCo/Isaac Sim.
+  Mitigation: Keep adapters optional and validate core contracts with local Python tests before simulator-specific smoke.
+
 # Validation
 
 ```powershell
@@ -166,6 +227,25 @@ Phase 2 validation expands this set with module-specific checks:
 - Web API/UI tests for evidence display and artifact actions.
 - schema 1.5 compatibility and migration tests across supported schema versions.
 - release evidence bundle self-validation tests.
+- Phase 3 control/communication simulation validation:
+
+```powershell
+py -3.12 -m py_compile agi_walker\core\api\comm\zenoh_interface.py agi_walker\core\api\comm\tcp_zenoh_bridge.py
+py -3.12 -m py_compile agi_walker\core\simulation\control_comm_simulation.py tools\run_control_comm_simulation.py
+py -3.12 -m py_compile tools\run_godot_control_comm_replay.py
+py -3.12 -m py_compile tools\build_control_comm_simulation_closeout.py
+py -3.12 tools\run_control_comm_simulation.py --output-root test_env\control_comm_simulation
+py -3.12 tools\build_control_comm_simulation_closeout.py --report test_env\control_comm_simulation\control_comm_simulation_report.json --output test_env\control_comm_simulation\control_comm_simulation_closeout.json
+py -3.12 tools\run_control_comm_simulation.py --output-root test_env\control_comm_simulation_ci
+py -3.12 tools\build_control_comm_simulation_closeout.py --report test_env\control_comm_simulation_ci\control_comm_simulation_report.json --output test_env\control_comm_simulation_ci\control_comm_simulation_closeout.json
+py -3.12 tools\run_godot_control_comm_replay.py --dry-run-discovery --output-root test_env\godot_control_comm_replay
+py -3.12 -m pytest tests\test_control_communication_simulation.py -q
+py -3.12 -m pytest tests\test_active_path_references.py -q
+py -3.12 -m pytest tests\test_distributed_smoke_runner.py tests\test_hardwareless_acceptance_report.py -q
+```
+
+Phase 3 implementation includes targeted tests for deterministic virtual clock scheduling, message ordering/drop/jitter simulation, Zenoh transport envelope compatibility, EtherCAT cycle deadline/watchdog behavior, motor/joint response traces, simulator adapter boundaries and live hardware migration gates.
+Godot-side Phase 3 validation includes non-live artifact-shape tests for retained Godot simulation logs and an opt-in live/headless Godot replay runner when a Godot executable is available.
 
 # Acceptance Criteria
 
@@ -180,12 +260,43 @@ Phase 2 validation expands this set with module-specific checks:
 - Web users can inspect evidence level, manifest mismatches and residual risk, and can trigger Godot load/readiness actions from artifacts.
 - Schema 1.5 optional fields are planned and tested without breaking older supported schemas.
 - A release evidence bundle can be generated and self-validated for delivery handoff.
+- Phase 3 control/communication simulation has a root plan and module plan before implementation.
+- Local control-loop timing evidence is deterministic and reproducible without hardware.
+- Godot script/headless simulation produces retained structured logs that can be traced back to the same message envelope and report fields.
+- Zenoh/OpenNeuro-like and EtherCAT simulations reuse the same canonical envelope and do not weaken live hardware gates.
+- Motor/joint model traces map back to robot schema actuator and joint-limit metadata.
+- Gazebo/MuJoCo/Isaac Sim adapters remain optional until their runtime-specific evidence exists.
+- Control/communication closeout can summarize generated non-live artifacts while preserving live hardware blockers.
+- Default CI retains Phase 3 non-live control/communication simulation artifacts and closeout without requiring Godot, real Zenoh, external simulators or hardware.
+- Release evidence bundles can carry optional Phase 3 control/communication closeout evidence and reject malformed or hardware-unblocked closeouts.
+- Canonical release evidence collection can retain existing Phase 3 control/communication closeout evidence without rerunning simulation or weakening live hardware gates.
+- The canonical copied Phase 3 closeout path can be fed directly into dynamic Godot release bundle generation as the optional `control_comm_closeout` artifact.
+- Bundled Phase 3 control/communication closeout evidence carries its matching operator/developer guide as optional bundle documentation when default docs are used.
 
 # Decision Log
 
 - 2026-05-18: Project plan introduced at repository root because `AGENTS.md` requires root `PROJECT_PLAN.md` for cross-module work.
 - 2026-05-18: Static Godot node-tree evidence wrapper delegates to existing report builder and sidecar gate validator instead of duplicating validation logic.
 - 2026-05-19: Phase 2 focuses on productized live verification, explainable mechanical behavior, Web evidence operations, additive schema 1.5 planning and delivery evidence bundles.
+- 2026-05-26: Phase 3 planning starts as a new control/communication simulation line, separate from completed dynamic Godot generation work, with deterministic local simulation before live hardware.
+- 2026-05-26: Phase 3 includes Godot-side script/log evidence so control/communication simulation can be replayed in Godot and retained as structured artifacts, not only proven by Python traces.
+- 2026-05-26: Phase 3 implementation starts with canonical message envelope, deterministic local report generation, Godot log contract preview and retained artifact validation before live transports.
+- 2026-05-26: Phase 3 local asyncio bus simulation now records virtual latency, per-cycle jitter, drop, duplicate, delivery order, deadline misses and message integrity before any external transport is used.
+- 2026-05-26: Phase 3 Godot replay runner now discovers a Godot executable, runs `control_comm_replay.gd` when available, archives `godot_control_comm_simulation_log.v1` and validates the retained log artifact.
+- 2026-05-26: Phase 3 Zenoh/OpenNeuro-like simulation now maps the canonical envelope to deterministic key expressions and retained simulated transport traces without opening a real Zenoh session or claiming OpenNeuro compatibility.
+- 2026-05-26: Phase 3 EtherCAT cycle model now records deterministic PDO inputs/outputs, deadline misses, missing frames, watchdog state and fault class as non-live fieldbus evidence.
+- 2026-05-26: Phase 3 motor/joint model now records deterministic position, velocity, torque, saturation, limit state and fault state traces mapped to actuator, joint-limit and controller schema concepts.
+- 2026-05-26: Phase 3 simulator adapter boundary now defines Gazebo, MuJoCo and Isaac Sim as optional adapters over canonical traces without adding runtime dependencies or CI requirements.
+- 2026-05-26: Phase 3 live hardware migration gate now records CAN, EtherCAT and TSN as blocked until external live hardware evidence, hardware role permission and operator confirmation exist.
+- 2026-05-26: Phase 3 control/communication simulation plan is closed as complete for the approved non-live scope; remaining real hardware, external simulator and live transport execution are documented residual risks, not open local implementation tasks.
+- 2026-05-26: Phase 3 evidence closeout now produces a reusable `control_comm_simulation_closeout.v1` artifact over the generated non-live report and retained artifacts.
+- 2026-05-26: Phase 3 closeout artifact now has independent self-validation so malformed closeout JSON cannot be accepted only because the source report was readable.
+- 2026-05-26: Phase 3 closeout artifact now records size and SHA-256 metadata for each retained artifact so evidence bundles can detect silent artifact replacement.
+- 2026-05-26: Phase 3 non-live control/communication simulation evidence is now retained by default CI through a dedicated artifact job, while live/runtime validations remain opt-in.
+- 2026-05-26: Dynamic Godot release evidence bundles can now carry optional Phase 3 control/communication closeout evidence without making it required for older handoffs.
+- 2026-05-26: Canonical release evidence collection can now copy existing Phase 3 control/communication closeout evidence into the release evidence tree.
+- 2026-05-26: The Phase 3 collector-to-bundle handoff is documented as a direct path from `test_env/release_evidence/control_communication/control_comm_simulation_closeout.json` to bundle `--control-comm-closeout`.
+- 2026-05-26: Dynamic Godot release bundles that include Phase 3 control/communication closeout evidence now include the matching optional guide documentation by default.
 
 # Change Control
 
@@ -244,3 +355,19 @@ Phase 2 validation expands this set with module-specific checks:
 - 2026-05-20: Approved release bundle index metadata hardening: bundle validation must verify index `bundle_root`, timezone-aware `generated_at`, `readiness_status` and `residual_risks` against the current bundle and readiness summary.
 - 2026-05-20: Approved release bundle required-flag contract: artifact and documentation index entries must mark only required artifact keys and required documentation roles as `required=true`.
 - 2026-05-20: Approved additive example scope: local mountain humanoid biped simulation may add example config, CLI, docs and tests without changing dynamic Godot release gate contracts or requiring live Godot.
+- 2026-05-26: Approved Phase 3 scope addition: add robot control/communication simulation planning from Python/asyncio timing and Zenoh/OpenNeuro-like transport through EtherCAT cycle, motor/joint model, simulator adapters and eventual real CAN/EtherCAT/TSN hardware gates.
+- 2026-05-26: Approved Phase 3 contract expansion: control/communication simulation must include Godot script or headless replay logs using the canonical envelope, with artifact retention and report aggregation before it can count as Godot-side simulation evidence.
+- 2026-05-26: Approved Phase 3 simulated Zenoh/OpenNeuro evidence contract: topic mappings and traces must use `transport_mode=zenoh_simulated` and `compatibility_claim=simulation_only`; real Zenoh/OpenNeuro validation remains outside non-live evidence.
+- 2026-05-26: Approved Phase 3 EtherCAT model evidence contract: cycle/PDO/watchdog traces must use `transport_mode=ethercat_model` and `compatibility_claim=simulation_only`; real EtherCAT master or fieldbus hardware validation remains outside non-live evidence.
+- 2026-05-26: Approved Phase 3 motor/joint response evidence contract: response traces must expose command, position, velocity, torque, saturation, limit state, fault state and schema mapping while keeping real motor-driver validation outside non-live evidence.
+- 2026-05-26: Approved Phase 3 simulator adapter boundary contract: Gazebo, MuJoCo and Isaac Sim integrations remain adapter-contract artifacts with `runtime_dependency_required=false` and `runtime_status=not_run` until runtime-specific evidence is supplied.
+- 2026-05-26: Approved Phase 3 live hardware migration gate contract: `live_hardware_migration_gate.v1` keeps CAN/EtherCAT/TSN and release readiness blocked by default, and local simulation artifacts are never accepted as live hardware substitutes.
+- 2026-05-26: Approved Phase 3 closeout status update: the approved local simulation scope is complete, while live Godot, real Zenoh/OpenNeuro compatibility, external simulator runtime validation and real CAN/EtherCAT/TSN validation remain explicit opt-in or external-evidence lanes.
+- 2026-05-26: Approved Phase 3 closeout artifact contract: `control_comm_simulation_closeout.v1` may accept local non-live simulation evidence while retaining real hardware and external runtime validation as blockers.
+- 2026-05-26: Approved Phase 3 closeout self-validation contract: closeout artifacts must validate their own version, status, evidence level, artifact error counts and live hardware release gate status.
+- 2026-05-26: Approved Phase 3 closeout artifact integrity metadata: each present artifact result records `size_bytes` and `sha256`; missing artifacts must keep those fields null.
+- 2026-05-26: Approved Phase 3 CI evidence profile contract: default CI may generate and upload non-live control/communication simulation artifacts and closeout, but it must not require Godot, Zenoh, Docker, external simulators or real hardware.
+- 2026-05-26: Approved release bundle optional artifact contract: `control_comm_closeout` may be bundled when Phase 3 evidence exists, and validator must reject malformed closeouts or closeouts that claim live hardware release readiness.
+- 2026-05-26: Approved release collector optional source contract: `--control-comm-closeout-source` may copy existing Phase 3 closeout evidence into canonical release evidence, but it must not run live transport, hardware, or simulator validation.
+- 2026-05-26: Approved collector-to-bundle handoff contract: the canonical copied closeout path may be passed directly to release bundle `--control-comm-closeout`; this remains optional and does not upgrade non-live evidence into live hardware validation.
+- 2026-05-26: Approved optional control/communication bundle documentation contract: default bundle docs include role `control_comm_workflow` when `control_comm_closeout` is present; the role is optional and explicit `--doc` inputs remain caller-controlled.

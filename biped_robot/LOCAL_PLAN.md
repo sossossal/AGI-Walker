@@ -29,7 +29,9 @@ Changing files outside this directory requires explicit user approval.
 - `godot/project.godot` is a standalone Godot project.
 - `godot/scenes/biped_mountain_demo.tscn` is the entry scene.
 - `config/godot_io_input.json` is the Godot-side command/input contract.
+- `config/communication.json` is the local simulated communication contract for command, ACK, and telemetry traffic.
 - `tools/validate_godot_io.py` validates Godot-generated telemetry and summary output.
+- `tools/simulate_communication.py` validates the local communication path over Godot input/output artifacts.
 - `tools/simulate_biped.py` writes deterministic JSON evidence for hardware-free behavior.
 - `tools/validate_biped_workspace.py` checks the local folder contract.
 - `tools/check_contact_stability.py` checks terrain contact and stability margins from the deterministic trace.
@@ -49,6 +51,7 @@ Target checks:
 - Local workspace contract validation.
 - Godot headless launch if a local Godot executable is available.
 - Godot input/output simulation with generated telemetry and summary validation.
+- Simulated communication test with command delivery, ACK, telemetry uplink, latency, jitter, and packet-loss evidence.
 - Folder-scoped acceptance report generation.
 - Hardware gap report generation for unavailable live checks.
 - Actuator physics simulation report and telemetry retention manifest.
@@ -64,6 +67,7 @@ Regression checks:
 - The Godot project opens from `biped_robot/godot` and starts at the mountain biped demo scene.
 - The demo creates a visible mountain terrain, camera, lighting, and animated humanoid biped.
 - The Godot demo reads `config/godot_io_input.json` and writes `test_env/godot_io_telemetry.jsonl` plus `test_env/godot_io_report.json`.
+- The communication test writes `test_env/communication_events.jsonl` and `test_env/communication_report.json`.
 - Local scripts generate acceptance evidence without hardware.
 - Actuator telemetry includes command, measured position, velocity, torque, current, temperature, power, and saturation state per simulated joint.
 - Component parameter logs include segment dimensions, mass, joint limits, actuator model constants, and latest observed actuator metrics.

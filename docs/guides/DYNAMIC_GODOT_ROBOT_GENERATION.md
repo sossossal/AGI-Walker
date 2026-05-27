@@ -1074,16 +1074,23 @@ python tools/validate_dynamic_godot_release_evidence_bundle.py test_env/dynamic_
 
 The bundle index uses `dynamic_godot_release_evidence_bundle.v1`. It copies the
 static closeout, delivery gate, readiness summary, optional live smoke, optional
-Web delivery record, and documentation index entries into one directory. Each
-artifact and documentation entry records its source path, bundle path, byte size,
-SHA-256 checksum, `source_modified_at`, and `bundle_modified_at`. Artifact keys
-and documentation roles must be unique. The `required` flag must match the
-canonical required artifact key and documentation role lists. Bundle paths must
-be non-empty paths relative to the bundle root and may not resolve outside that
-root, so the delivered directory remains self-contained. Static-only bundles are
-valid when the readiness summary proves `static_only`; stronger bundles can add
-`--live-smoke` and `--web-delivery-record` while preserving the same readiness
-semantics. The
+Web delivery record, optional Phase 3 `control_comm_simulation_closeout.v1`, and
+documentation index entries into one directory. Pass Phase 3 evidence with
+`--control-comm-closeout <path>` when control/communication simulation closeout
+should travel with the dynamic Godot handoff. Each artifact and documentation
+entry records its source path, bundle path, byte size, SHA-256 checksum,
+`source_modified_at`, and `bundle_modified_at`. Artifact keys and documentation
+roles must be unique. The `required` flag must match the canonical required
+artifact key and documentation role lists. Bundle paths must be non-empty paths
+relative to the bundle root and may not resolve outside that root, so the
+delivered directory remains self-contained. When the default documentation set
+is used, bundles that include `control_comm_closeout` also include optional
+documentation role `control_comm_workflow` from
+`docs/guides/CONTROL_COMMUNICATION_SIMULATION.md`; callers that pass explicit
+`--doc` entries remain responsible for the full documentation set. Static-only bundles are valid when
+the readiness summary proves `static_only`; stronger bundles can add
+`--live-smoke`, `--web-delivery-record`, and `--control-comm-closeout` while
+preserving the same readiness semantics. The
 self-validator writes
 `dynamic_godot_release_evidence_bundle_validation.v1` and fails if required
 artifacts are missing, checksums drift, readiness status is not `ready`, or the
@@ -1091,7 +1098,10 @@ bundle level does not match `readiness_summary.proven_level`. It also checks
 timestamp shape, verifies `bundle_modified_at` against the bundled file mtime,
 and checks index `bundle_root`, timezone-aware `generated_at`,
 `readiness_status`, and `residual_risks` against the current bundle and
-readiness summary.
+readiness summary. When a `control_comm_closeout` artifact is present, the
+validator also checks that it is accepted non-live simulation evidence, has no
+artifact or closeout validation errors, and keeps the live hardware release gate
+blocked.
 Final bundle validation requires `validation_report` to point to an in-bundle
 validation report and checks that both the index `validation_status` and the
 stored report status match the current validation result. It also checks that

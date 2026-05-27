@@ -65,12 +65,20 @@ The dynamic Godot path converts robot JSON into a Godot mechanical node tree, va
 Primary guide:
 
 - [Dynamic Godot Robot Generation](docs/guides/DYNAMIC_GODOT_ROBOT_GENERATION.md)
+- [Control Communication Simulation](docs/guides/CONTROL_COMMUNICATION_SIMULATION.md)
 
 Useful local checks:
 
 ```powershell
 py -3.12 tools\build_static_godot_node_tree_evidence.py tests\fixtures\robot_dynamic_fixed_pair.json tests\fixtures\robot_dynamic_biped.json tests\fixtures\robot_dynamic_quadruped.json --output-root test_env\static_godot_node_tree_manifest_ci --manifest-dir test_env\static_godot_node_tree_manifests
 py -3.12 -m pytest tests\test_dynamic_godot_robot_generation.py -q
+```
+
+Phase 3 non-live control/communication simulation evidence:
+
+```powershell
+py -3.12 tools\run_control_comm_simulation.py --output-root test_env\control_comm_simulation
+py -3.12 tools\build_control_comm_simulation_closeout.py --report test_env\control_comm_simulation\control_comm_simulation_report.json --output test_env\control_comm_simulation\control_comm_simulation_closeout.json
 ```
 
 Optional live Godot smoke requires a local Godot executable:

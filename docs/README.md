@@ -16,6 +16,7 @@ This index groups the main documentation entry points. The root `README.md` is i
 
 - [Dynamic Godot Robot Generation](guides/DYNAMIC_GODOT_ROBOT_GENERATION.md)
 - [Dynamic Godot Future Plan](guides/DYNAMIC_GODOT_ROBOT_GENERATION_FUTURE_PLAN.md)
+- [Control Communication Simulation](guides/CONTROL_COMMUNICATION_SIMULATION.md)
 - [Godot Testing Guide](guides/GODOT_TESTING_GUIDE.md)
 - [Godot Integration Guide](guides/GODOT_INTEGRATION_GUIDE.md)
 

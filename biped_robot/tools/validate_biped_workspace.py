@@ -12,6 +12,7 @@ REQUIRED_FILES = [
     "README.md",
     "config/robot.json",
     "config/actuators.json",
+    "config/communication.json",
     "config/godot_io_input.json",
     "config/mountain_terrain.json",
     "godot/project.godot",
@@ -22,6 +23,7 @@ REQUIRED_FILES = [
     "tools/build_hardware_gap_report.py",
     "tools/simulate_actuator_physics.py",
     "tools/build_component_parameter_log.py",
+    "tools/simulate_communication.py",
     "tools/validate_godot_io.py",
     "tools/build_retention_manifest.py",
     "tools/run_local_acceptance.py",
@@ -117,6 +119,35 @@ def validate_godot_io_contract() -> None:
         fail("Godot IO input must include at least one command")
 
 
+def validate_communication_contract() -> None:
+    contract = read_json("config/communication.json")
+    if contract.get("schema_version") != "biped-communication.v1":
+        fail("communication schema_version must be biped-communication.v1")
+    transport = contract.get("transport", {})
+    for required in ["command_channel", "telemetry_channel", "ack_channel"]:
+        if not transport.get(required):
+            fail(f"communication transport missing: {required}")
+    for required in ["base_latency_ms", "jitter_ms", "ack_latency_ms"]:
+        if float(transport.get(required, -1.0)) < 0.0:
+            fail(f"communication transport must define non-negative {required}")
+    acceptance = contract.get("acceptance", {})
+    for required in [
+        "min_command_delivery_ratio",
+        "min_ack_ratio",
+        "min_telemetry_delivery_ratio",
+        "max_command_latency_ms",
+        "max_ack_latency_ms",
+        "max_telemetry_latency_ms",
+        "max_jitter_ms",
+    ]:
+        if required not in acceptance:
+            fail(f"communication acceptance missing: {required}")
+    outputs = contract.get("outputs", {})
+    for required in ["events_path", "report_path"]:
+        if not str(outputs.get(required, "")).startswith("test_env/"):
+            fail(f"communication output must stay inside biped_robot/test_env: {required}")
+
+
 def validate_godot_contract() -> None:
     project_text = (ROOT / "godot" / "project.godot").read_text(encoding="utf-8")
     scene_text = (ROOT / "godot" / "scenes" / "biped_mountain_demo.tscn").read_text(encoding="utf-8")
@@ -156,6 +187,7 @@ def validate_python_tools() -> None:
         "tools/build_hardware_gap_report.py",
         "tools/simulate_actuator_physics.py",
         "tools/build_component_parameter_log.py",
+        "tools/simulate_communication.py",
         "tools/validate_godot_io.py",
         "tools/build_retention_manifest.py",
         "tools/run_local_acceptance.py",
@@ -169,6 +201,7 @@ def main() -> int:
     validate_terrain_contract()
     validate_actuator_contract()
     validate_godot_io_contract()
+    validate_communication_contract()
     validate_godot_contract()
     validate_hardware_boundary_contract()
     validate_python_tools()

@@ -71,6 +71,19 @@ Validate output:
 py -3.12 biped_robot\tools\validate_godot_io.py
 ```
 
+## Communication Simulation
+
+The local communication test simulates the controller-to-Godot command path and Godot-to-controller telemetry path.
+
+```powershell
+py -3.12 biped_robot\tools\simulate_communication.py
+```
+
+Outputs:
+
+- `test_env/communication_events.jsonl`: command, ACK, telemetry, latency, and drop events.
+- `test_env/communication_report.json`: delivery, ACK, telemetry, latency, jitter, and loss summary.
+
 ## Hardware Boundary
 
 This folder does not connect to real hardware. It is intended to complete the Godot-side structure first, so real hardware transport and ROS2 integration can be added later after explicit approval to touch the relevant project modules.

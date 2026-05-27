@@ -83,4 +83,4 @@ py -3.12 -m pytest -m "not live" --collect-only -q
 
 # Drift Check
 
-Before and after implementation, verify this module still matches `PROJECT_PLAN.md`: static evidence remains mandatory, runtime restoration comparison is the next step, and Web/session preservation stays out of scope.
+Before and after implementation, verify this module still matches `PROJECT_PLAN.md`: static evidence remains mandatory, runtime restoration comparison remains scoped to this module, and Web/session preservation stays out of scope.
