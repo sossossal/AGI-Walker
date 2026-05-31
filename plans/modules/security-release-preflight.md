@@ -44,6 +44,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - 2026-05-31: Removed the PR skip condition from the `security-preflight` workflow job so security-only `pip-audit`/`trivy` evidence runs on PRs as well as manual and scheduled workflow runs.
 - 2026-05-31: PR #9 security-preflight run `26715450130` surfaced one new unresolved container finding: `deployment-web-panel-distributed` `libbz2-1.0` `CVE-2026-42250`, with Trivy `FixedVersion=null`. Added a temporary `only_without_fix_version` structured exception scoped to that image, component, version and CVE, expiring with the current web panel container exception batch on `2026-08-24T00:00:00+01:00`.
 - 2026-05-31: Tightened `security-preflight` so vulnerability exception review evidence is release-blocking. The preflight now fails closed when the review report is missing/invalid/blocked or when accepted vulnerability exceptions are inside the review-due window and require follow-up.
+- 2026-05-31: Updated smoke and stable release rehearsal fixtures for the stricter review gate: smoke now builds `vulnerability_exception_review_report.json`, and approved rehearsal vulnerability exceptions stay outside the review-due window so release evidence closes with `review_candidate_count=0`.
 
 # Non-Goals
 

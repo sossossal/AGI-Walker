@@ -1072,6 +1072,26 @@ def _build_checks(output_root: Path, env: dict[str, str]) -> list[SmokeCheck]:
             artifact_dir=security_root,
         ),
         SmokeCheck(
+            name="vulnerability exception review report",
+            command=[
+                sys.executable,
+                "tools/build_vulnerability_exception_review_report.py",
+                "--project-root",
+                str(PROJECT_ROOT),
+                "--exception-report",
+                str(security_root / "vulnerability_exception_report.json"),
+                "--output",
+                str(security_root / "vulnerability_exception_review_report.json"),
+            ],
+            expected_tokens=[
+                "vulnerability_exception_review_report_written=",
+                "vulnerability_exception_review_report_status=passed",
+                "vulnerability_exception_review_due=0",
+                "vulnerability_exception_review_follow_up_required=false",
+            ],
+            artifact_dir=security_root,
+        ),
+        SmokeCheck(
             name="vulnerability remediation report",
             command=[
                 sys.executable,

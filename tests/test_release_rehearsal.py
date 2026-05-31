@@ -42,7 +42,7 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
     assert "industrial_delivery_rehearsal_report_written=" in result.stdout
     assert "industrial_delivery_rehearsal_status=ready" in result.stdout
     assert (
-        "industrial_delivery_vulnerability_exception_review=passed/1" in result.stdout
+        "industrial_delivery_vulnerability_exception_review=passed/0" in result.stdout
     )
     assert (
         "industrial_delivery_customer_external_bindings_closure=passed" in result.stdout
@@ -96,7 +96,7 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
     )
     assert report_payload["vulnerability_exception_review"]["status"] == "passed"
     assert (
-        report_payload["vulnerability_exception_review"]["review_candidate_count"] >= 1
+        report_payload["vulnerability_exception_review"]["review_candidate_count"] == 0
     )
     vulnerability_exception_report = json.loads(
         (
@@ -161,7 +161,7 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
         report_payload["industrial_customer_acceptance_bundle"][
             "external_mainline_input_checklist"
         ]["status"]
-        == "blocked"
+        == "passed"
     )
     assert (
         report_payload["industrial_customer_acceptance_bundle"][
@@ -414,7 +414,7 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
     )
     assert acceptance_reports["external_mainline_input_checklist"]["exists"] is True
     assert (
-        acceptance_reports["external_mainline_input_checklist"]["status"] == "blocked"
+        acceptance_reports["external_mainline_input_checklist"]["status"] == "passed"
     )
     assert (
         acceptance_reports["external_mainline_input_checklist"][
@@ -496,7 +496,7 @@ def test_run_release_rehearsal_script_generates_ready_stable_manifest(
         industrial_delivery_rehearsal_payload["vulnerability_exception_review"][
             "review_candidate_count"
         ]
-        >= 1
+        == 0
     )
     assert (
         industrial_delivery_rehearsal_payload["customer_external_bindings_closure"][

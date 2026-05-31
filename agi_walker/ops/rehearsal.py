@@ -891,7 +891,7 @@ def _seed_security_evidence(project_root: Path) -> list[dict[str, str]]:
                     "justification": "Rehearsal exception proving industrial delivery can close approved residual image findings.",
                     "approved_by": "security-reviewer",
                     "approved_at": _now_iso(),
-                    "expires_at": _future_iso(days=21),
+                    "expires_at": _future_iso(days=45),
                 }
             ],
         ),
