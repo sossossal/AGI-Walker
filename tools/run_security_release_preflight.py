@@ -318,6 +318,56 @@ def _load_vulnerability_exception_review_report(path: Path) -> dict[str, object]
     }
 
 
+def _coerce_non_negative_int(value: object) -> int:
+    if isinstance(value, bool):
+        return 0
+    if isinstance(value, int) and value >= 0:
+        return value
+    return 0
+
+
+def _review_gate_blocker(
+    posture_metrics: dict[str, object],
+    review_report_metrics: dict[str, object],
+) -> str:
+    if not review_report_metrics:
+        return (
+            "security release preflight failed because "
+            "vulnerability_exception_review_report.json is missing."
+        )
+
+    review_report_status = review_report_metrics.get(
+        "vulnerability_exception_review_report_status"
+    )
+    if review_report_status != "passed":
+        return (
+            "security release preflight failed because "
+            "vulnerability_exception_review_report status is "
+            f"{review_report_status or 'missing'}."
+        )
+
+    posture_review_due = _coerce_non_negative_int(
+        posture_metrics.get("vulnerability_exception_review_due")
+    )
+    review_candidate_count = _coerce_non_negative_int(
+        review_report_metrics.get("vulnerability_exception_review_candidate_count")
+    )
+    follow_up_required = bool(
+        review_report_metrics.get(
+            "vulnerability_exception_review_follow_up_required"
+        )
+    )
+    if posture_review_due or review_candidate_count or follow_up_required:
+        return (
+            "security release preflight failed because vulnerability exceptions "
+            "require review before release: "
+            f"review_due={posture_review_due}, "
+            f"review_candidates={review_candidate_count}."
+        )
+
+    return ""
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -347,6 +397,11 @@ def main(argv: list[str] | None = None) -> int:
             "security release preflight failed because collect_release_evidence returned a non-zero exit code. "
             + collect_summary
         )
+    elif status == "passed":
+        review_blocker = _review_gate_blocker(posture_metrics, review_report_metrics)
+        if review_blocker:
+            status = "blocked"
+            summary = review_blocker
 
     payload = build_release_evidence_report(
         evidence_name="security_release_preflight",
