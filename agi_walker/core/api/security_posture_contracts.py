@@ -880,6 +880,15 @@ def validate_vulnerability_exception_report(payload: Any) -> list[str]:
                     )
         if not isinstance(item.get("only_without_fix_version"), bool):
             errors.append(f"{prefix}.only_without_fix_version must be a boolean")
+        if (
+            item.get("scope") == "container_images"
+            and item.get("only_without_fix_version") is True
+            and not _non_empty_strings(item.get("vulnerability_ids", []))
+        ):
+            errors.append(
+                f"{prefix}.vulnerability_ids must include at least one id for "
+                "container no-fix exceptions"
+            )
         ticket = item.get("ticket")
         if ticket is not None and not _is_non_empty_string(ticket):
             errors.append(f"{prefix}.ticket must be null or a non-empty string")

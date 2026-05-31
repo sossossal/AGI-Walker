@@ -45,6 +45,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - 2026-05-31: PR #9 security-preflight run `26715450130` surfaced one new unresolved container finding: `deployment-web-panel-distributed` `libbz2-1.0` `CVE-2026-42250`, with Trivy `FixedVersion=null`. Added a temporary `only_without_fix_version` structured exception scoped to that image, component, version and CVE, expiring with the current web panel container exception batch on `2026-08-24T00:00:00+01:00`.
 - 2026-05-31: Tightened `security-preflight` so vulnerability exception review evidence is release-blocking. The preflight now fails closed when the review report is missing/invalid/blocked or when accepted vulnerability exceptions are inside the review-due window and require follow-up.
 - 2026-05-31: Updated smoke and stable release rehearsal fixtures for the stricter review gate: smoke now builds `vulnerability_exception_review_report.json`, and approved rehearsal vulnerability exceptions stay outside the review-due window so release evidence closes with `review_candidate_count=0`.
+- 2026-05-31: Tightened container no-fix exception scope. All active deployment-web-panel-distributed no-fix exceptions now carry explicit `vulnerability_ids`/`severities` from current Trivy evidence, and one unmatched `libcap2` exception was removed. Validation now rejects container no-fix exceptions without at least one vulnerability id.
 
 # Non-Goals
 
@@ -53,6 +54,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - Do not change Docker images, dependency versions or deployment behavior unless the blocker requires real remediation and tests support it.
 - Do not make live/container scanning mandatory for regular non-live test suites.
 - Do not allow `review_due` vulnerability exceptions through the formal security release preflight; refresh or re-approve those exceptions first.
+- Do not allow broad component-only container no-fix exceptions; every accepted no-fix container finding must be scoped to explicit vulnerability ids.
 
 # Validation
 
@@ -65,5 +67,5 @@ py -3.12 tools\compare_container_vulnerability_baselines.py --current-raw-report
 # Residual Risks
 
 - Real `pip-audit` / `trivy` / Docker behavior depends on external scanner databases and local or CI image availability; the current local Docker path is available and scanned successfully.
-- Accepted no-fix exceptions remain temporary release risk and must be reviewed before expiry; current generated evidence must show zero review-due, stale or expired exceptions and next expiry at `2026-08-24T00:00:00+01:00`.
+- Accepted no-fix exceptions remain temporary release risk and must be reviewed before expiry; current generated evidence must show zero broad component-only, review-due, stale or expired exceptions and next expiry at `2026-08-24T00:00:00+01:00`.
 - Full release evidence collection still includes broad non-live gates by default; security CI uses the security-only preflight profile to keep vulnerability posture validation independent from that longer release gate.
