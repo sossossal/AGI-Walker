@@ -112,11 +112,10 @@ jobs:
           retention-days: 7
 
   # -----------------------------------------------------------------------------
-  # Job 2b: Security Release Preflight (manual/scheduled)
+  # Job 2b: Security Release Preflight
   # -----------------------------------------------------------------------------
   security-preflight:
     needs: [smoke, static-godot-node-tree-manifest]
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:

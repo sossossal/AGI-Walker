@@ -514,8 +514,16 @@ def test_phase_d_security_docs_and_tools_use_current_runtime_paths() -> None:
 
 def test_security_preflight_ci_job_uses_current_runner_and_artifacts() -> None:
     content = CI_WORKFLOW.read_text(encoding="utf-8")
+    security_job = content.split("  security-preflight:", 1)[1].split(
+        "  # -----------------------------------------------------------------------------",
+        1,
+    )[0]
 
     assert "security-preflight:" in content
+    assert (
+        "if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'"
+        not in security_job
+    )
     assert "pip install pip-audit" in content
     assert "trivy" in content
     assert 'AGI_WALKER_ZENOH_BASE_IMAGE: "eclipse/zenoh:1.9.0"' in content

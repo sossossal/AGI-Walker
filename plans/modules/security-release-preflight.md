@@ -41,6 +41,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - 2026-05-26: GitHub CI artifact `security-preflight-artifacts` from scheduled run `26435197977` showed one unresolved Python finding: `fastapi 0.136.3`, `MAL-2026-4750`, with no published fix version. Container findings remained covered by active tracked exceptions; stale and expired exception counts were zero. The 32 `review_due` exceptions were surfaced as non-blocking follow-up evidence. The remediation excludes only `fastapi==0.136.3` across project/deployment install surfaces while preserving the existing preflight contract.
 - 2026-05-26: Re-reviewed the active deployment-web-panel-distributed no-fix container exceptions against refreshed security-only preflight evidence. Matching findings remained no-fix, stale and expired exception counts remained zero, and the next exception expiry was renewed to `2026-08-24T00:00:00+01:00`.
 - 2026-05-26: Added a reusable container vulnerability baseline comparison tool so candidate base-image raw Trivy reports can be compared against the current baseline before changing Dockerfiles. The tool is advisory evidence only; it does not alter preflight pass/fail semantics.
+- 2026-05-31: Removed the PR skip condition from the `security-preflight` workflow job so security-only `pip-audit`/`trivy` evidence runs on PRs as well as manual and scheduled workflow runs.
 
 # Non-Goals
 
@@ -61,4 +62,4 @@ py -3.12 tools\compare_container_vulnerability_baselines.py --current-raw-report
 
 - Real `pip-audit` / `trivy` / Docker behavior depends on external scanner databases and local or CI image availability; the current local Docker path is available and scanned successfully.
 - Accepted no-fix exceptions remain temporary release risk and must be reviewed before expiry; current generated evidence shows zero stale or expired exceptions and next expiry at `2026-08-24T00:00:00+01:00`.
-- Full release evidence collection still includes broad non-live gates by default; security CI now uses the security-only preflight profile to keep vulnerability posture validation independent from that longer release gate.
+- Full release evidence collection still includes broad non-live gates by default; security CI uses the security-only preflight profile to keep vulnerability posture validation independent from that longer release gate.

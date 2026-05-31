@@ -244,3 +244,4 @@ Phase 2 validation expands this set with module-specific checks:
 - 2026-05-20: Approved release bundle index metadata hardening: bundle validation must verify index `bundle_root`, timezone-aware `generated_at`, `readiness_status` and `residual_risks` against the current bundle and readiness summary.
 - 2026-05-20: Approved release bundle required-flag contract: artifact and documentation index entries must mark only required artifact keys and required documentation roles as `required=true`.
 - 2026-05-20: Approved additive example scope: local mountain humanoid biped simulation may add example config, CLI, docs and tests without changing dynamic Godot release gate contracts or requiring live Godot.
+- 2026-05-31: Approved security-preflight CI enforcement update: `security-preflight` runs on PRs as well as manual and scheduled workflows, using the existing security-only profile so vulnerability posture evidence is not skipped on release-fix PRs.
