@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import yaml
+
 DOCKERFILE = Path("Dockerfile")
 CONTRIBUTING = Path("CONTRIBUTING.md")
 URDF_BATCH_CONVERT = Path("agi_walker/skills/urdf-generator/scripts/batch_convert.py")
@@ -72,6 +74,86 @@ OPERATOR_HISTORY_TIMELINE = Path("web_panel/static/operator-history-timeline.htm
 WEB_BROWSER_MANUAL_VALIDATION_CHECKLIST = Path(
     "docs/guides/WEB_BROWSER_MANUAL_VALIDATION_CHECKLIST_20260426.md"
 )
+
+OPT_IN_CI_TRIGGER = (
+    "github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'"
+)
+OPT_IN_LIVE_CI_JOB_CONTRACTS = {
+    "distributed-smoke": {
+        "artifact_name": "distributed-smoke-artifacts",
+        "artifact_path": "test_env/distributed_smoke",
+        "retention_days": 7,
+        "required_fragments": [
+            "docker version",
+            "docker compose version",
+            "tests/run_distributed_smoke.py --build --stop-after",
+            "test_env/distributed_smoke/distributed_smoke_report.json",
+        ],
+    },
+    "godot-headless-smoke": {
+        "artifact_name": "godot-headless-smoke-artifacts",
+        "artifact_path": "test_env/godot_headless_smoke",
+        "retention_days": 7,
+        "env": {
+            "AGI_WALKER_ENABLE_GODOT_HEADLESS_SMOKE": "1",
+            "AGI_WALKER_GODOT_HEADLESS_ARTIFACT_DIR": "test_env/godot_headless_smoke",
+        },
+        "required_fragments": [
+            "tests/test_godot_headless_smoke.py",
+            '"integration and live"',
+        ],
+    },
+    "dynamic-godot-live-verification": {
+        "artifact_name": "dynamic-godot-live-verification-artifacts",
+        "artifact_path": "test_env/dynamic_godot_live",
+        "retention_days": 14,
+        "env": {
+            "AGI_WALKER_DYNAMIC_GODOT_LIVE_ARTIFACT_ROOT": "test_env/dynamic_godot_live",
+        },
+        "required_fragments": [
+            "--dry-run-discovery",
+            "--live-profile $profile",
+            "GODOT_EXECUTABLE",
+            "tools/build_dynamic_godot_release_readiness.py",
+        ],
+    },
+    "ros2-bridge-smoke": {
+        "artifact_name": "ros2-bridge-smoke-artifacts",
+        "artifact_path": "test_env/ros2_bridge_smoke",
+        "retention_days": 7,
+        "env": {
+            "AGI_WALKER_ENABLE_ROS2_BRIDGE_SMOKE": "1",
+            "AGI_WALKER_ROS2_BRIDGE_SMOKE_ARTIFACT_DIR": "test_env/ros2_bridge_smoke",
+        },
+        "required_fragments": [
+            "ros-humble-ros-base",
+            "tests/test_ros2_bridge_smoke.py",
+            '"integration and live"',
+        ],
+    },
+}
+
+
+def _workflow_jobs() -> dict:
+    return yaml.safe_load(CI_WORKFLOW.read_text(encoding="utf-8"))["jobs"]
+
+
+def _joined_step_runs(job: dict) -> str:
+    return "\n".join(
+        str(step.get("run", ""))
+        for step in job.get("steps", [])
+        if isinstance(step, dict)
+    )
+
+
+def _artifact_upload_step(job: dict, artifact_name: str) -> dict:
+    for step in job.get("steps", []):
+        if not isinstance(step, dict):
+            continue
+        step_with = step.get("with", {})
+        if isinstance(step_with, dict) and step_with.get("name") == artifact_name:
+            return step
+    raise AssertionError(f"missing artifact upload step: {artifact_name}")
 
 
 def test_dockerfile_does_not_reference_removed_source_layout() -> None:
@@ -290,6 +372,27 @@ def test_ros2_bridge_smoke_ci_job_uploads_structured_report() -> None:
     )
     assert "name: ros2-bridge-smoke-artifacts" in content
     assert "path: test_env/ros2_bridge_smoke" in content
+
+
+def test_opt_in_live_external_ci_jobs_keep_auditable_contracts() -> None:
+    jobs = _workflow_jobs()
+
+    for job_name, contract in OPT_IN_LIVE_CI_JOB_CONTRACTS.items():
+        job = jobs[job_name]
+        assert job["if"] == OPT_IN_CI_TRIGGER
+
+        for key, value in contract.get("env", {}).items():
+            assert job.get("env", {}).get(key) == value
+
+        step_runs = _joined_step_runs(job)
+        for fragment in contract["required_fragments"]:
+            assert fragment in step_runs
+
+        upload_step = _artifact_upload_step(job, contract["artifact_name"])
+        upload_with = upload_step["with"]
+        assert upload_with["path"] == contract["artifact_path"]
+        assert upload_with["if-no-files-found"] == "ignore"
+        assert upload_with["retention-days"] == contract["retention_days"]
 
 
 def test_capability_matrix_is_exposed_through_current_docs_and_routes() -> None:

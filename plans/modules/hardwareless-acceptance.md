@@ -85,3 +85,4 @@ py -3.12 -m pytest tests\test_real_robot_driver.py tests\test_hardware_controlle
 - 2026-05-21: Added `release_gate.status` and `enterprise_acceptance_verdict`. Ordinary hardwareless reports may remain useful local evidence, but release-gate status stays `blocked` while external evidence is missing.
 - 2026-05-21: Added `tools/validate_hardwareless_release_gate.py` so CI/release scripts can fail closed on `release_gate.status != ready` without hand-rolled JSON parsing.
 - 2026-05-21: Added `--output` to the validator so failed release gate checks can be archived as structured evidence instead of only appearing in job logs.
+- 2026-05-31: Added workflow-contract regression coverage for opt-in external-environment CI jobs, including ROS2 bridge smoke. This keeps ROS2 live validation opt-in while making trigger conditions, enablement env, artifact output path and retention policy auditable.

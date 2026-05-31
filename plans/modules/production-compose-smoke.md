@@ -58,3 +58,4 @@ $env:AGI_WALKER_ENABLE_PROD_COMPOSE_SMOKE='1'; py -3.12 -m pytest tests\test_pro
 
 - 2026-05-21: The live compose smoke now starts the supported compose entrypoint, registers and logs in a Web user, starts `robot_creation_pipeline` in mock mode, waits for `completed`, verifies three completed steps and downloads the live log.
 - 2026-05-21: Remaining full-suite skips after enabling Godot and production compose are expected to be limited to real hardware and real ROS2 runtime prerequisites.
+- 2026-05-31: Added workflow-contract regression coverage for opt-in distributed smoke so its manual/scheduled trigger, Docker preflight commands, structured report path, uploaded artifact and retention policy remain explicit.
