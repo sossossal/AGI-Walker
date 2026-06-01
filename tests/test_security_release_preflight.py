@@ -33,7 +33,12 @@ def _load_security_preflight_module():
     return module
 
 
-def _seed_ready_security_posture_report(report_path: Path) -> None:
+def _seed_ready_security_posture_report(
+    report_path: Path,
+    *,
+    review_due_count: int = 0,
+    review_status: str = "tracked",
+) -> None:
     payload = build_security_posture_report(project_root=PROJECT_ROOT)
     payload["posture_status"] = "ready"
     payload["summary"] = "Security posture is ready."
@@ -82,9 +87,9 @@ def _seed_ready_security_posture_report(report_path: Path) -> None:
         "stale_exception_count": 0,
         "stale_exception_ids": [],
         "review_window_days": 30,
-        "review_due_exception_count": 31,
+        "review_due_exception_count": review_due_count,
         "next_exception_expiry": "2026-05-15T00:00:00+00:00",
-        "review_status": "review_due",
+        "review_status": review_status,
     }
     payload["accepted_vulnerability_findings"] = 104
     payload["unresolved_vulnerability_findings"] = 0
@@ -103,7 +108,12 @@ def _seed_blocked_security_posture_report(report_path: Path) -> None:
     write_security_posture_report(payload, report_path)
 
 
-def _seed_exception_review_report(report_path: Path, *, status: str = "passed") -> None:
+def _seed_exception_review_report(
+    report_path: Path,
+    *,
+    status: str = "passed",
+    review_candidate_count: int = 0,
+) -> None:
     write_release_evidence_report(
         build_release_evidence_report(
             evidence_name="vulnerability_exception_review",
@@ -121,22 +131,28 @@ def _seed_exception_review_report(report_path: Path, *, status: str = "passed") 
                 "vulnerability_exception_review_report.json"
             ),
             metrics={
-                "review_due_exception_count": 31 if status == "passed" else 0,
+                "review_due_exception_count": (
+                    review_candidate_count if status == "passed" else 0
+                ),
                 "review_due_exception_ids": [
                     "webpanel-distributed-libsystemd0-no-fix",
                     "webpanel-distributed-libudev1-no-fix",
                 ]
-                if status == "passed"
+                if status == "passed" and review_candidate_count
                 else [],
-                "review_due_exception_tickets": ["SEC-201"] if status == "passed" else [],
+                "review_due_exception_tickets": (
+                    ["SEC-201"] if status == "passed" and review_candidate_count else []
+                ),
                 "expired_exception_ids": []
                 if status == "passed"
                 else [
                     "webpanel-distributed-libsystemd0-no-fix",
                     "webpanel-distributed-libudev1-no-fix",
                 ],
-                "review_follow_up_required": True,
-                "review_candidate_count": 31 if status == "passed" else 2,
+                "review_follow_up_required": bool(review_candidate_count),
+                "review_candidate_count": review_candidate_count
+                if status == "passed"
+                else 2,
             },
         ),
         report_path,
@@ -177,23 +193,66 @@ def test_security_release_preflight_passes_with_ready_security_posture(
     assert result.returncode == 0, result.stderr
     assert "security_release_preflight_status=passed" in result.stdout
     assert "security_release_preflight_stale_exceptions=0" in result.stdout
-    assert "security_release_preflight_exception_review_status=review_due" in result.stdout
+    assert "security_release_preflight_exception_review_status=tracked" in result.stdout
     assert "security_release_preflight_review_report_status=passed" in result.stdout
     payload = json.loads(evidence_report_path.read_text(encoding="utf-8"))
     assert payload["status"] == "passed"
     assert payload["evidence_name"] == "security_release_preflight"
     assert payload["metrics"]["stale_vulnerability_exceptions"] == 0
-    assert payload["metrics"]["vulnerability_exception_review_status"] == "review_due"
-    assert payload["metrics"]["vulnerability_exception_review_due"] == 31
+    assert payload["metrics"]["vulnerability_exception_review_status"] == "tracked"
+    assert payload["metrics"]["vulnerability_exception_review_due"] == 0
     assert payload["metrics"]["vulnerability_exception_review_report_status"] == "passed"
-    assert payload["metrics"]["review_due_vulnerability_exception_ids"] == [
-        "webpanel-distributed-libsystemd0-no-fix",
-        "webpanel-distributed-libudev1-no-fix",
-    ]
+    assert payload["metrics"]["review_due_vulnerability_exception_ids"] == []
     assert (
         payload["metrics"]["vulnerability_exception_next_expiry"]
         == "2026-05-15T00:00:00+00:00"
     )
+
+
+def test_security_release_preflight_blocks_when_exception_review_is_due(
+    tmp_path: Path,
+) -> None:
+    report_path = tmp_path / "release_evidence" / "security" / "security_posture_report.json"
+    evidence_report_path = tmp_path / "release_evidence" / "security_release_preflight_report.json"
+    _seed_ready_security_posture_report(
+        report_path,
+        review_due_count=31,
+        review_status="review_due",
+    )
+    _seed_exception_review_report(
+        tmp_path
+        / "release_evidence"
+        / "security"
+        / "vulnerability_exception_review_report.json",
+        review_candidate_count=31,
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "tools/run_security_release_preflight.py",
+            "--skip-collect",
+            "--security-posture-report",
+            str(report_path),
+            "--report-file",
+            str(evidence_report_path),
+        ],
+        cwd=str(PROJECT_ROOT),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "security_release_preflight_status=blocked" in result.stdout
+    assert "review_due=31" in result.stdout
+    payload = json.loads(evidence_report_path.read_text(encoding="utf-8"))
+    assert payload["status"] == "blocked"
+    assert payload["metrics"]["vulnerability_exception_review_status"] == "review_due"
+    assert payload["metrics"]["vulnerability_exception_review_due"] == 31
+    assert payload["metrics"]["vulnerability_exception_review_candidate_count"] == 31
 
 
 def test_security_release_preflight_forwards_security_only_collect_profile(

@@ -193,6 +193,7 @@ def _seed_vulnerability_exception_report(project_root: Path) -> Path:
                 "scope": "container_images",
                 "component": "libsystemd0",
                 "image_refs": ["deployment-web-panel-distributed"],
+                "vulnerability_ids": ["CVE-1"],
                 "only_without_fix_version": True,
                 "justification": "Upstream vendor has not published a fixed package yet.",
                 "approved_by": "security-reviewer",
