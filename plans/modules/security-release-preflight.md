@@ -46,6 +46,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - 2026-05-31: Tightened `security-preflight` so vulnerability exception review evidence is release-blocking. The preflight now fails closed when the review report is missing/invalid/blocked or when accepted vulnerability exceptions are inside the review-due window and require follow-up.
 - 2026-05-31: Updated smoke and stable release rehearsal fixtures for the stricter review gate: smoke now builds `vulnerability_exception_review_report.json`, and approved rehearsal vulnerability exceptions stay outside the review-due window so release evidence closes with `review_candidate_count=0`.
 - 2026-05-31: Tightened container no-fix exception scope. All active deployment-web-panel-distributed no-fix exceptions now carry explicit `vulnerability_ids`/`severities` from current Trivy evidence, and one unmatched `libcap2` exception was removed. Validation now rejects container no-fix exceptions without at least one vulnerability id.
+- 2026-06-05: Scheduled main run `26998884678` surfaced one new unresolved container finding: `deployment-web-panel-distributed` `perl-base` `CVE-2026-7010`, with Trivy `FixedVersion=null`. Added it to the existing scoped `perl-base` no-fix exception under the current web panel container review ticket, expiring on `2026-08-24T00:00:00+01:00`.
 
 # Non-Goals
 
