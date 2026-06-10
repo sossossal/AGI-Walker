@@ -154,6 +154,8 @@ python tools/build_container_vulnerability_remediation_closeout.py --inventory t
 
 `container_vulnerability_remediation_closeout.v1` 只有在生产 findings、active accepted findings 和 strict preflight blocker 都清零后才能进入 ready。scheduled/manual security CI 会在 raw scanner evidence 存在时上传 `test_env/container_vulnerability_remediation`，但默认 security preflight 的 pass/fail 语义仍保持向后兼容。
 
+`deployment/Dockerfile.web_panel` 会在 Python 依赖安装完成后从最终镜像移除 `apt` 和 `bash`，对应 reduction plan 中的 package-manager/diagnostic removal candidates。移除这些包后，必须通过 Docker/Trivy 重新生成 inventory、strict preflight 和 closeout artifact；只有远端或本地 Docker 证据确认 matching findings 消失后，才能退休对应 exception。
+
 如果 scanner 已经执行完，并且你要把修复顺序固定成结构化报告，而不是只看原始 JSON，可直接生成 remediation report：
 
 ```bash
@@ -161,14 +163,14 @@ python tools/build_vulnerability_exception_report.py --input deployment/security
 python tools/build_vulnerability_remediation_report.py --python-vuln-report test_env/release_evidence/security/python_vuln_scan_report.json --container-vuln-report test_env/release_evidence/security/container_vuln_scan_report.json --vulnerability-exception-report test_env/release_evidence/security/vulnerability_exception_report.json --output test_env/release_evidence/security/vulnerability_remediation_report.json
 ```
 
-当前 canonical 口径下，security posture 与 preflight 已从“缺少漏洞报告或剩余 findings 未闭合”推进到“报告完整、risk 已解释且已通过”。当前基线为：
+当前 canonical 口径下，security posture 与 preflight 已从“缺少漏洞报告”推进到“报告完整、risk 已解释，但生产发布仍 blocked”。当前基线为：
 
 - Python 依赖：当前已 `passed`，`finding_count=0`
-- 容器镜像：当前 canonical findings 以 `deployment-zenoh-router` 和 `deployment-web-panel-distributed` 为准；其中 `deployment-web-panel-distributed` 的 `104 findings / 31 affected components` 当前已由 `31` 条 active no-fix exceptions 进入 accepted residual risk
-- `vulnerability_remediation_report`: `ready`，`accepted_finding_count=104`、`unresolved_finding_count=0`、`matched_exception_count=31`
+- 容器镜像：当前 canonical findings 以 `deployment-zenoh-router` 和 `deployment-web-panel-distributed` 为准；最新远端 security-preflight artifact 显示 production findings 集中在 `deployment-web-panel-distributed`
+- `vulnerability_remediation_report`: 当前仍为 `blocked`，已确认 `accepted_finding_count=106`、`unresolved_finding_count=1`；unresolved 项为 `libbz2-1.0` / `CVE-2026-42250`，需要通过 safer base image、final image 减面或供应商修复继续消除
   - 若某条 `only_without_fix_version=true` 的 active exception 对应 findings 开始携带 fix version，report 现在会额外挂出 `stale_exception_count` / `stale_exceptions`，明确标记哪些 no-fix exceptions 已失效，需要从审批输入里移除或替换
-- `security_posture_status=ready`
-- `security_release_preflight_status=passed`
+- `security_posture_status=blocked`
+- `security_release_preflight_status=blocked`；默认 managed-exception profile 仍可用于跟踪有效例外，但完整生产修复以 strict zero-exception closeout 为准
 
 dockerized Trivy fallback 的 `/scan/image.tar` 镜像标识问题也已修复，因此镜像级 exceptions 现在会按真实交付镜像名匹配 canonical findings，而不是误匹配到归档路径。
 
