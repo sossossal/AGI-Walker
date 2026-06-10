@@ -62,9 +62,7 @@ def validate_control_message_envelope(payload: Any) -> list[str]:
 
     errors: list[str] = []
     if payload.get("schema_version") != CONTROL_MESSAGE_ENVELOPE_VERSION:
-        errors.append(
-            f"schema_version must be {CONTROL_MESSAGE_ENVELOPE_VERSION!r}"
-        )
+        errors.append(f"schema_version must be {CONTROL_MESSAGE_ENVELOPE_VERSION!r}")
     for field in ["topic", "source", "target", "payload_type"]:
         if not _is_non_empty_string(payload.get(field)):
             errors.append(f"{field} must be a non-empty string")
@@ -158,7 +156,10 @@ def run_deterministic_control_comm_simulation(
             target=scenario["target"],
             payload_type=scenario["payload_type"],
             payload=scenario["command"],
-            metadata={"scenario_id": scenario["scenario_id"], "cycle_index": cycle_index},
+            metadata={
+                "scenario_id": scenario["scenario_id"],
+                "cycle_index": cycle_index,
+            },
         )
         envelopes.append(envelope)
     bus_result = run_local_asyncio_bus(
@@ -292,9 +293,9 @@ def run_deterministic_control_comm_simulation(
                 "zenoh_openneuro_topic_mapping"
             ),
             "trace_artifact_path": artifact_paths.get("zenoh_simulated_trace"),
-            "event_count": len(zenoh_trace["events"])
-            if include_zenoh_openneuro_simulation
-            else 0,
+            "event_count": (
+                len(zenoh_trace["events"]) if include_zenoh_openneuro_simulation else 0
+            ),
             "compatibility_claim": "simulation_only",
             "residual_risks": [
                 "real_zenoh_session_not_run",
@@ -307,15 +308,19 @@ def run_deterministic_control_comm_simulation(
             "transport_mode": TRANSPORT_MODE_ETHERCAT_MODEL,
             "trace_version": ETHERCAT_MODEL_TRACE_VERSION,
             "trace_artifact_path": artifact_paths.get("ethercat_model_trace"),
-            "cycle_count": ethercat_trace["cycle_count"]
-            if include_ethercat_cycle_model
-            else 0,
-            "deadline_miss_count": ethercat_trace["summary"]["deadline_miss_count"]
-            if include_ethercat_cycle_model
-            else 0,
-            "watchdog_trip_count": ethercat_trace["summary"]["watchdog_trip_count"]
-            if include_ethercat_cycle_model
-            else 0,
+            "cycle_count": (
+                ethercat_trace["cycle_count"] if include_ethercat_cycle_model else 0
+            ),
+            "deadline_miss_count": (
+                ethercat_trace["summary"]["deadline_miss_count"]
+                if include_ethercat_cycle_model
+                else 0
+            ),
+            "watchdog_trip_count": (
+                ethercat_trace["summary"]["watchdog_trip_count"]
+                if include_ethercat_cycle_model
+                else 0
+            ),
             "compatibility_claim": "simulation_only",
             "residual_risks": [
                 "real_ethercat_master_not_run",
@@ -327,20 +332,24 @@ def run_deterministic_control_comm_simulation(
             "status": "simulated" if include_motor_joint_model else "not_run",
             "trace_version": MOTOR_JOINT_RESPONSE_TRACE_VERSION,
             "trace_artifact_path": artifact_paths.get("motor_joint_response_trace"),
-            "step_count": motor_joint_trace["step_count"]
-            if include_motor_joint_model
-            else 0,
-            "saturation_count": motor_joint_trace["summary"]["saturation_count"]
-            if include_motor_joint_model
-            else 0,
-            "limit_violation_count": motor_joint_trace["summary"][
-                "limit_violation_count"
-            ]
-            if include_motor_joint_model
-            else 0,
-            "fault_count": motor_joint_trace["summary"]["fault_count"]
-            if include_motor_joint_model
-            else 0,
+            "step_count": (
+                motor_joint_trace["step_count"] if include_motor_joint_model else 0
+            ),
+            "saturation_count": (
+                motor_joint_trace["summary"]["saturation_count"]
+                if include_motor_joint_model
+                else 0
+            ),
+            "limit_violation_count": (
+                motor_joint_trace["summary"]["limit_violation_count"]
+                if include_motor_joint_model
+                else 0
+            ),
+            "fault_count": (
+                motor_joint_trace["summary"]["fault_count"]
+                if include_motor_joint_model
+                else 0
+            ),
             "compatibility_claim": "simulation_only",
             "residual_risks": [
                 "real_motor_driver_not_run",
@@ -363,9 +372,7 @@ def run_deterministic_control_comm_simulation(
         },
         "live_hardware_migration_gate": {
             "available": include_live_hardware_migration_gate,
-            "status": "blocked"
-            if include_live_hardware_migration_gate
-            else "not_run",
+            "status": "blocked" if include_live_hardware_migration_gate else "not_run",
             "gate_version": LIVE_HARDWARE_MIGRATION_GATE_VERSION,
             "artifact_path": artifact_paths.get("live_hardware_migration_gate"),
             "required_transports": list(SUPPORTED_LIVE_HARDWARE_TRANSPORTS),
@@ -565,7 +572,9 @@ def build_ethercat_model_trace(
         )
 
     deadline_miss_count = sum(1 for cycle in cycles if cycle["deadline_missed"])
-    frame_missing_count = sum(1 for cycle in cycles if cycle["frame_status"] == "missing")
+    frame_missing_count = sum(
+        1 for cycle in cycles if cycle["frame_status"] == "missing"
+    )
     return {
         "trace_version": ETHERCAT_MODEL_TRACE_VERSION,
         "transport_mode": TRANSPORT_MODE_ETHERCAT_MODEL,
@@ -644,9 +653,7 @@ def validate_ethercat_model_trace(payload: Any) -> list[str]:
             if not _is_non_empty_string(cycle.get(field)):
                 errors.append(f"cycles[{index}].{field} must be a non-empty string")
         envelope_errors = validate_control_message_envelope(cycle.get("envelope"))
-        errors.extend(
-            f"cycles[{index}].envelope.{error}" for error in envelope_errors
-        )
+        errors.extend(f"cycles[{index}].envelope.{error}" for error in envelope_errors)
     if isinstance(payload.get("summary"), dict):
         for field in [
             "deadline_miss_count",
@@ -690,12 +697,16 @@ def validate_motor_joint_model_config(payload: Any) -> list[str]:
         "friction_nm",
         "backlash_rad",
     ]:
-        if not _is_number(payload.get(field, _default_motor_joint_model_config()[field])):
+        if not _is_number(
+            payload.get(field, _default_motor_joint_model_config()[field])
+        ):
             errors.append(f"motor_joint.{field} must be a number")
     lower = payload.get("position_lower_rad", -1.0)
     upper = payload.get("position_upper_rad", 1.0)
     if _is_number(lower) and _is_number(upper) and float(lower) >= float(upper):
-        errors.append("motor_joint.position_lower_rad must be less than position_upper_rad")
+        errors.append(
+            "motor_joint.position_lower_rad must be less than position_upper_rad"
+        )
     for field in ["velocity_limit_rad_s", "torque_limit_nm"]:
         value = payload.get(field, _default_motor_joint_model_config()[field])
         if _is_number(value) and float(value) <= 0:
@@ -707,7 +718,9 @@ def validate_motor_joint_model_config(payload: Any) -> list[str]:
     return errors
 
 
-def normalize_motor_joint_model_config(payload: dict[str, Any] | None) -> dict[str, Any]:
+def normalize_motor_joint_model_config(
+    payload: dict[str, Any] | None,
+) -> dict[str, Any]:
     config = _default_motor_joint_model_config()
     if payload:
         config.update(payload)
@@ -859,7 +872,13 @@ def validate_motor_joint_response_trace(payload: Any) -> list[str]:
         for field in ["command", "limits"]:
             if not isinstance(step.get(field), dict):
                 errors.append(f"steps[{index}].{field} must be an object")
-        for field in ["position_rad", "velocity_rad_s", "torque_nm", "friction_nm", "backlash_rad"]:
+        for field in [
+            "position_rad",
+            "velocity_rad_s",
+            "torque_nm",
+            "friction_nm",
+            "backlash_rad",
+        ]:
             if not _is_number(step.get(field)):
                 errors.append(f"steps[{index}].{field} must be a number")
         for field in ["saturation", "limit_violation"]:
@@ -889,7 +908,10 @@ def build_simulator_adapter_boundary(
             "runtime_status": "not_run",
             "runtime_dependency_required": False,
             "input_contracts": _simulator_adapter_input_contracts(artifact_paths),
-            "output_contracts": ["simulator_step_trace.v1", "simulator_contact_trace.v1"],
+            "output_contracts": [
+                "simulator_step_trace.v1",
+                "simulator_contact_trace.v1",
+            ],
             "launch_profile": None,
             "residual_risks": ["gazebo_runtime_not_run"],
         },
@@ -898,7 +920,10 @@ def build_simulator_adapter_boundary(
             "runtime_status": "not_run",
             "runtime_dependency_required": False,
             "input_contracts": _simulator_adapter_input_contracts(artifact_paths),
-            "output_contracts": ["simulator_step_trace.v1", "simulator_contact_trace.v1"],
+            "output_contracts": [
+                "simulator_step_trace.v1",
+                "simulator_contact_trace.v1",
+            ],
             "launch_profile": None,
             "residual_risks": ["mujoco_runtime_not_run"],
         },
@@ -907,7 +932,10 @@ def build_simulator_adapter_boundary(
             "runtime_status": "not_run",
             "runtime_dependency_required": False,
             "input_contracts": _simulator_adapter_input_contracts(artifact_paths),
-            "output_contracts": ["simulator_step_trace.v1", "simulator_contact_trace.v1"],
+            "output_contracts": [
+                "simulator_step_trace.v1",
+                "simulator_contact_trace.v1",
+            ],
             "launch_profile": None,
             "residual_risks": ["isaac_sim_runtime_not_run"],
         },
@@ -944,7 +972,12 @@ def validate_simulator_adapter_boundary(payload: Any) -> list[str]:
         errors.append(
             f"boundary_version must be {SIMULATOR_ADAPTER_BOUNDARY_VERSION!r}"
         )
-    for field in ["scenario_id", "status", "core_runtime_dependency", "compatibility_claim"]:
+    for field in [
+        "scenario_id",
+        "status",
+        "core_runtime_dependency",
+        "compatibility_claim",
+    ]:
         if not _is_non_empty_string(payload.get(field)):
             errors.append(f"{field} must be a non-empty string")
     if payload.get("status") != "planned":
@@ -956,7 +989,9 @@ def validate_simulator_adapter_boundary(payload: Any) -> list[str]:
     if not isinstance(payload.get("runtime_dependency_required"), bool):
         errors.append("runtime_dependency_required must be a boolean")
     elif payload["runtime_dependency_required"]:
-        errors.append("runtime_dependency_required must be false for boundary-only evidence")
+        errors.append(
+            "runtime_dependency_required must be false for boundary-only evidence"
+        )
     for field in ["supported_adapters", "canonical_contracts", "residual_risks"]:
         if not isinstance(payload.get(field), list):
             errors.append(f"{field} must be a list")
@@ -1080,9 +1115,7 @@ def validate_live_hardware_migration_gate(payload: Any) -> list[str]:
 
     errors: list[str] = []
     if payload.get("gate_version") != LIVE_HARDWARE_MIGRATION_GATE_VERSION:
-        errors.append(
-            f"gate_version must be {LIVE_HARDWARE_MIGRATION_GATE_VERSION!r}"
-        )
+        errors.append(f"gate_version must be {LIVE_HARDWARE_MIGRATION_GATE_VERSION!r}")
     for field in ["scenario_id", "status", "compatibility_claim"]:
         if not _is_non_empty_string(payload.get(field)):
             errors.append(f"{field} must be a non-empty string")
@@ -1158,7 +1191,9 @@ def validate_live_hardware_migration_gate(payload: Any) -> list[str]:
                     errors.append(
                         f"transport_gates[{index}].{field} must be a list of non-empty strings"
                     )
-        missing_gate_transports = set(SUPPORTED_LIVE_HARDWARE_TRANSPORTS) - seen_transports
+        missing_gate_transports = (
+            set(SUPPORTED_LIVE_HARDWARE_TRANSPORTS) - seen_transports
+        )
         if missing_gate_transports:
             errors.append(
                 "transport_gates must include "
@@ -1370,9 +1405,7 @@ def validate_zenoh_simulated_trace(payload: Any) -> list[str]:
         if not isinstance(event.get("duplicate"), bool):
             errors.append(f"events[{index}].duplicate must be a boolean")
         envelope_errors = validate_control_message_envelope(event.get("envelope"))
-        errors.extend(
-            f"events[{index}].envelope.{error}" for error in envelope_errors
-        )
+        errors.extend(f"events[{index}].envelope.{error}" for error in envelope_errors)
     return errors
 
 
@@ -1476,7 +1509,9 @@ async def simulate_local_asyncio_bus(
         key=lambda item: (int(item["delivery_timestamp_ns"]), int(item["sequence"]))
     )
     delivered_sequences = [int(item["sequence"]) for item in delivery_events]
-    dropped_count = sum(1 for entry in message_trace if entry["delivery_outcome"] == "dropped")
+    dropped_count = sum(
+        1 for entry in message_trace if entry["delivery_outcome"] == "dropped"
+    )
     duplicated_count = sum(
         1 for entry in message_trace if entry["delivery_outcome"] == "duplicated"
     )
@@ -1508,7 +1543,9 @@ async def simulate_local_asyncio_bus(
     }
 
 
-def normalize_local_asyncio_bus_config(payload: dict[str, Any] | None) -> dict[str, Any]:
+def normalize_local_asyncio_bus_config(
+    payload: dict[str, Any] | None,
+) -> dict[str, Any]:
     config = {
         "mode": LOCAL_ASYNCIO_BUS_MODE,
         "latency_ns": 0,
@@ -1613,9 +1650,7 @@ def validate_godot_control_comm_simulation_log(payload: Any) -> list[str]:
                 "or 'godot_headless'"
             )
         envelope_errors = validate_control_message_envelope(event.get("envelope"))
-        errors.extend(
-            f"events[{index}].envelope.{error}" for error in envelope_errors
-        )
+        errors.extend(f"events[{index}].envelope.{error}" for error in envelope_errors)
     return errors
 
 
@@ -1698,9 +1733,7 @@ def _fault_injection_label(
 def _topic_to_zenoh_keyexpr_suffix(topic: str) -> str:
     segments = [
         "".join(
-            character
-            if character.isalnum() or character in {"_", "-"}
-            else "_"
+            character if character.isalnum() or character in {"_", "-"} else "_"
             for character in segment.strip()
         )
         for segment in topic.strip("/").split("/")
@@ -1764,7 +1797,10 @@ def _first_message_by_cycle(
         if not isinstance(message, dict):
             continue
         cycle_index = message.get("cycle_index")
-        if _is_non_negative_int(cycle_index) and int(cycle_index) not in messages_by_cycle:
+        if (
+            _is_non_negative_int(cycle_index)
+            and int(cycle_index) not in messages_by_cycle
+        ):
             messages_by_cycle[int(cycle_index)] = message
     return messages_by_cycle
 
@@ -1774,10 +1810,7 @@ def _build_pdo_inputs(
     pdo_input_map: list[str],
 ) -> dict[str, Any]:
     payload = envelope.get("payload", {})
-    return {
-        name: payload.get(name)
-        for name in pdo_input_map
-    }
+    return {name: payload.get(name) for name in pdo_input_map}
 
 
 def _build_pdo_outputs(
