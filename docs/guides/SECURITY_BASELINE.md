@@ -154,7 +154,7 @@ python tools/build_container_vulnerability_remediation_closeout.py --inventory t
 
 `container_vulnerability_remediation_closeout.v1` 只有在生产 findings、active accepted findings 和 strict preflight blocker 都清零后才能进入 ready。scheduled/manual security CI 会在 raw scanner evidence 存在时上传 `test_env/container_vulnerability_remediation`，但默认 security preflight 的 pass/fail 语义仍保持向后兼容。
 
-`deployment/Dockerfile.web_panel` 会在 Python 依赖安装完成后从最终镜像移除 `apt` 和 `bash`，对应 reduction plan 中的 package-manager/diagnostic removal candidates。移除这些包后，必须通过 Docker/Trivy 重新生成 inventory、strict preflight 和 closeout artifact；只有远端或本地 Docker 证据确认 matching findings 消失后，才能退休对应 exception。
+`deployment/Dockerfile.web_panel` 会在 Python 依赖安装完成后从最终镜像移除 `apt`、`bash` 和 `libbz2-1.0`，对应 reduction plan 中的 package-manager/diagnostic removal candidates 以及 `CVE-2026-42250` 的 final-image reduction path。移除这些包后，Dockerfile 会执行一次 Web server/worker import smoke；仍必须通过 Docker/Trivy 重新生成 inventory、strict preflight 和 closeout artifact，只有远端或本地 Docker 证据确认 matching findings 消失后，才能退休对应 exception。
 
 如果 scanner 已经执行完，并且你要把修复顺序固定成结构化报告，而不是只看原始 JSON，可直接生成 remediation report：
 
@@ -167,7 +167,7 @@ python tools/build_vulnerability_remediation_report.py --python-vuln-report test
 
 - Python 依赖：当前已 `passed`，`finding_count=0`
 - 容器镜像：当前 canonical findings 以 `deployment-zenoh-router` 和 `deployment-web-panel-distributed` 为准；最新远端 security-preflight artifact 显示 production findings 集中在 `deployment-web-panel-distributed`
-- `vulnerability_remediation_report`: 当前仍为 `blocked`，已确认 `accepted_finding_count=106`、`unresolved_finding_count=1`；unresolved 项为 `libbz2-1.0` / `CVE-2026-42250`，需要通过 safer base image、final image 减面或供应商修复继续消除
+- `vulnerability_remediation_report`: 当前仍为 `blocked`，已确认 `accepted_finding_count=106`、`unresolved_finding_count=1`；unresolved 项为 `libbz2-1.0` / `CVE-2026-42250`，本仓库已增加 final-image removal candidate，等待远端 Docker/Trivy 证明确认
   - 若某条 `only_without_fix_version=true` 的 active exception 对应 findings 开始携带 fix version，report 现在会额外挂出 `stale_exception_count` / `stale_exceptions`，明确标记哪些 no-fix exceptions 已失效，需要从审批输入里移除或替换
 - `security_posture_status=blocked`
 - `security_release_preflight_status=blocked`；默认 managed-exception profile 仍可用于跟踪有效例外，但完整生产修复以 strict zero-exception closeout 为准
