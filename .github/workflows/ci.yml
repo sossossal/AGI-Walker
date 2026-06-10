@@ -185,12 +185,67 @@ jobs:
         run: |
           python tools/run_security_release_preflight.py --security-only --output-root test_env/release_evidence_ci --run-python-vuln-scan --run-container-vuln-scan --container-image-ref ${{ env.AGI_WALKER_ZENOH_IMAGE }} --container-image-ref deployment-web-panel-distributed
 
+      - name: Build Container Vulnerability Inventory
+        if: always()
+        run: |
+          if [ -d test_env/release_evidence_ci/security/container_vuln_scan_report_raw ]; then
+            python tools/build_container_vulnerability_inventory.py \
+              --raw-report test_env/release_evidence_ci/security/container_vuln_scan_report_raw \
+              --production-image-ref ${{ env.AGI_WALKER_ZENOH_IMAGE }} \
+              --production-image-ref deployment-web-panel-distributed \
+              --output test_env/container_vulnerability_remediation/inventory.json
+          else
+            echo "container_vuln_scan_report_raw was not produced; skipping inventory."
+          fi
+
+      - name: Build Container Vulnerability Reduction Plan
+        if: always()
+        run: |
+          if [ -f test_env/container_vulnerability_remediation/inventory.json ]; then
+            python tools/build_container_vulnerability_reduction_plan.py \
+              --inventory test_env/container_vulnerability_remediation/inventory.json \
+              --dockerfile deployment-web-panel-distributed=deployment/Dockerfile.web_panel \
+              --dockerfile ${{ env.AGI_WALKER_ZENOH_IMAGE }}=deployment/Dockerfile.zenoh_router \
+              --output test_env/container_vulnerability_remediation/reduction_plan.json
+          else
+            echo "inventory.json was not produced; skipping reduction plan."
+          fi
+
+      - name: Run Strict Zero-Exception Security Preflight
+        if: always()
+        run: |
+          if [ -f test_env/release_evidence_ci/security/security_posture_report.json ]; then
+            python tools/run_security_release_preflight.py \
+              --skip-collect \
+              --fail-on-accepted-vulnerability-findings \
+              --security-posture-report test_env/release_evidence_ci/security/security_posture_report.json \
+              --vulnerability-exception-review-report test_env/release_evidence_ci/security/vulnerability_exception_review_report.json \
+              --report-file test_env/container_vulnerability_remediation/strict_security_preflight_report.json || true
+          else
+            echo "security_posture_report.json was not produced; skipping strict preflight."
+          fi
+
+      - name: Build Container Vulnerability Remediation Closeout
+        if: always()
+        run: |
+          if [ -f test_env/container_vulnerability_remediation/inventory.json ] && [ -f test_env/container_vulnerability_remediation/reduction_plan.json ] && [ -f test_env/container_vulnerability_remediation/strict_security_preflight_report.json ]; then
+            python tools/build_container_vulnerability_remediation_closeout.py \
+              --inventory test_env/container_vulnerability_remediation/inventory.json \
+              --reduction-plan test_env/container_vulnerability_remediation/reduction_plan.json \
+              --strict-preflight-report test_env/container_vulnerability_remediation/strict_security_preflight_report.json \
+              --output test_env/container_vulnerability_remediation/closeout.json || true
+          else
+            echo "container vulnerability remediation inputs are incomplete; skipping closeout."
+          fi
+
       - name: Upload Security Preflight Artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: security-preflight-artifacts
-          path: test_env/release_evidence_ci
+          path: |
+            test_env/release_evidence_ci
+            test_env/container_vulnerability_remediation
           if-no-files-found: ignore
           retention-days: 7
 

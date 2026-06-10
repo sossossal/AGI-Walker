@@ -194,6 +194,49 @@ def test_security_release_preflight_passes_with_ready_security_posture(
         payload["metrics"]["vulnerability_exception_next_expiry"]
         == "2026-05-15T00:00:00+00:00"
     )
+    assert payload["metrics"]["strict_zero_exception_profile"] is False
+
+
+def test_security_release_preflight_strict_profile_blocks_accepted_findings(
+    tmp_path: Path,
+) -> None:
+    report_path = tmp_path / "release_evidence" / "security" / "security_posture_report.json"
+    evidence_report_path = tmp_path / "release_evidence" / "security_release_preflight_report.json"
+    _seed_ready_security_posture_report(report_path)
+    _seed_exception_review_report(
+        tmp_path
+        / "release_evidence"
+        / "security"
+        / "vulnerability_exception_review_report.json"
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "tools/run_security_release_preflight.py",
+            "--skip-collect",
+            "--fail-on-accepted-vulnerability-findings",
+            "--security-posture-report",
+            str(report_path),
+            "--report-file",
+            str(evidence_report_path),
+        ],
+        cwd=str(PROJECT_ROOT),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "security_release_preflight_status=blocked" in result.stdout
+    assert "strict zero-exception profile failed" in result.stdout
+    payload = json.loads(evidence_report_path.read_text(encoding="utf-8"))
+    assert payload["status"] == "blocked"
+    assert payload["metrics"]["strict_zero_exception_profile"] is True
+    assert payload["metrics"]["accepted_vulnerability_findings"] == 104
+    assert "104 vulnerability finding(s)" in payload["summary"]
 
 
 def test_security_release_preflight_forwards_security_only_collect_profile(

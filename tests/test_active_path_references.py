@@ -565,6 +565,11 @@ def test_phase_d_security_docs_and_tools_use_current_runtime_paths() -> None:
     assert "python tools/build_vulnerability_exception_report.py" in security_baseline
     assert "python tools/build_vulnerability_remediation_report.py" in security_baseline
     assert "python tools/run_security_release_preflight.py" in security_baseline
+    assert "python tools/build_container_vulnerability_inventory.py" in security_baseline
+    assert "python tools/build_container_vulnerability_reduction_plan.py" in security_baseline
+    assert "--fail-on-accepted-vulnerability-findings" in security_baseline
+    assert "python tools/build_container_vulnerability_remediation_closeout.py" in security_baseline
+    assert "container_vulnerability_remediation_closeout.v1" in security_baseline
 
     assert "release_approval" in audit_policy
     assert "release_source" in audit_policy
@@ -653,8 +658,13 @@ def test_security_preflight_ci_job_uses_current_runner_and_artifacts() -> None:
     assert "docker compose -f deployment/docker-compose.yml --profile distributed build zenoh-router web-panel-distributed" in content
     assert "docker pull ${{ env.AGI_WALKER_ZENOH_BASE_IMAGE }}" in content
     assert "python tools/run_security_release_preflight.py --security-only --output-root test_env/release_evidence_ci --run-python-vuln-scan --run-container-vuln-scan --container-image-ref ${{ env.AGI_WALKER_ZENOH_IMAGE }} --container-image-ref deployment-web-panel-distributed" in content
+    assert "python tools/build_container_vulnerability_inventory.py" in content
+    assert "python tools/build_container_vulnerability_reduction_plan.py" in content
+    assert "--fail-on-accepted-vulnerability-findings" in content
+    assert "python tools/build_container_vulnerability_remediation_closeout.py" in content
+    assert "test_env/container_vulnerability_remediation" in content
     assert "name: security-preflight-artifacts" in content
-    assert "path: test_env/release_evidence_ci" in content
+    assert "test_env/release_evidence_ci" in content
 
 
 def test_control_communication_simulation_ci_job_retains_non_live_evidence() -> None:

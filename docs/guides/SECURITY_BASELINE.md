@@ -143,6 +143,17 @@ python tools/run_security_release_preflight.py --security-only --output-root tes
 
 该命令当前是阶段 D 的正式 preflight 入口，CI 也应复用它，而不是各自拼 scanner 命令。
 
+默认 preflight 允许被有效、未过期 exception 覆盖的 no-fix findings 作为 tracked residual risk 通过。完整生产修复不能停在这个状态；容器 remediation 线的最终目标是生产镜像 `accepted_vulnerability_findings=0`。当需要生成可审计的修复闭环 evidence 时，按以下顺序保留产物：
+
+```bash
+python tools/build_container_vulnerability_inventory.py --raw-report test_env/release_evidence/security/container_vuln_scan_report_raw --production-image-ref deployment-zenoh-router --production-image-ref deployment-web-panel-distributed --output test_env/container_vulnerability_remediation/inventory.json
+python tools/build_container_vulnerability_reduction_plan.py --inventory test_env/container_vulnerability_remediation/inventory.json --dockerfile deployment-web-panel-distributed=deployment/Dockerfile.web_panel --dockerfile deployment-zenoh-router=deployment/Dockerfile.zenoh_router --output test_env/container_vulnerability_remediation/reduction_plan.json
+python tools/run_security_release_preflight.py --skip-collect --fail-on-accepted-vulnerability-findings --security-posture-report test_env/release_evidence/security/security_posture_report.json --vulnerability-exception-review-report test_env/release_evidence/security/vulnerability_exception_review_report.json --report-file test_env/container_vulnerability_remediation/strict_security_preflight_report.json
+python tools/build_container_vulnerability_remediation_closeout.py --inventory test_env/container_vulnerability_remediation/inventory.json --reduction-plan test_env/container_vulnerability_remediation/reduction_plan.json --strict-preflight-report test_env/container_vulnerability_remediation/strict_security_preflight_report.json --output test_env/container_vulnerability_remediation/closeout.json
+```
+
+`container_vulnerability_remediation_closeout.v1` 只有在生产 findings、active accepted findings 和 strict preflight blocker 都清零后才能进入 ready。scheduled/manual security CI 会在 raw scanner evidence 存在时上传 `test_env/container_vulnerability_remediation`，但默认 security preflight 的 pass/fail 语义仍保持向后兼容。
+
 如果 scanner 已经执行完，并且你要把修复顺序固定成结构化报告，而不是只看原始 JSON，可直接生成 remediation report：
 
 ```bash

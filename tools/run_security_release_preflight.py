@@ -114,6 +114,15 @@ def build_parser() -> argparse.ArgumentParser:
             / "vulnerability_exceptions.input.json"
         ),
     )
+    parser.add_argument(
+        "--fail-on-accepted-vulnerability-findings",
+        action="store_true",
+        help=(
+            "Strict production release profile: fail even when posture is ready "
+            "if remaining vulnerability findings are covered only by active "
+            "exceptions. Default behavior remains managed-exception compatible."
+        ),
+    )
     return parser
 
 
@@ -347,6 +356,23 @@ def main(argv: list[str] | None = None) -> int:
             "security release preflight failed because collect_release_evidence returned a non-zero exit code. "
             + collect_summary
         )
+    accepted_vulnerability_findings = int(
+        posture_metrics.get("accepted_vulnerability_findings", 0) or 0
+    )
+    strict_zero_exception_profile = bool(
+        args.fail_on_accepted_vulnerability_findings
+    )
+    if (
+        strict_zero_exception_profile
+        and status == "passed"
+        and accepted_vulnerability_findings > 0
+    ):
+        status = "blocked"
+        summary = (
+            "security release preflight strict zero-exception profile failed: "
+            f"{accepted_vulnerability_findings} vulnerability finding(s) are still "
+            "covered by active exceptions."
+        )
 
     payload = build_release_evidence_report(
         evidence_name="security_release_preflight",
@@ -356,6 +382,7 @@ def main(argv: list[str] | None = None) -> int:
         metrics={
             "collect_exit_code": collect_exit_code,
             "security_posture_report_path": str(security_posture_report_path),
+            "strict_zero_exception_profile": strict_zero_exception_profile,
             **posture_metrics,
             **review_report_metrics,
         },
