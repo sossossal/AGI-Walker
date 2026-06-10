@@ -6,6 +6,8 @@
 
 Phase 3 将在现有 Godot/分布式/硬件验收基础上增加机器人控制与通信模拟主线：从 Python/asyncio 的确定性通信和时序模拟开始，同步提供 Godot 脚本执行与日志 artifact 留存，逐步接入 Zenoh、EtherCAT 周期模型、电机/关节物理模型、外部仿真器适配层，最后以 fail-closed 的方式过渡到真实 CAN/EtherCAT/TSN 硬件。
 
+Security remediation track 将把当前临时接受的 no-fix 容器漏洞风险推进到可关闭状态：生产镜像最终不得依赖 active vulnerability exceptions 作为通过条件，而应通过包升级、基线镜像替换、最终镜像减包、运行时边界拆分或非生产范围隔离，把 `accepted_vulnerability_findings` 清零或移出生产发布面。
+
 # Scope
 
 In scope:
@@ -15,6 +17,7 @@ In scope:
 - 项目级计划、模块子计划、跨模块契约和验收标准维护。
 - Phase 2: live Godot 验证产品化、运行时机械完整性增强、Web evidence dashboard、机器人 schema 1.5 规划、发布验收包。
 - Phase 3: 控制/通信/现场总线模拟的分层契约、确定性时序 evidence、Godot 脚本/日志 evidence、Zenoh 通信模拟、EtherCAT 周期模型、电机/关节模型、仿真器适配规划和真实硬件迁移边界。
+- Security remediation track: 容器漏洞完整修复路线、生产镜像依赖减面、候选基线镜像对比、strict zero-exception release profile、exception retirement 和可审计 evidence bundle。
 
 Out of scope:
 
@@ -23,6 +26,7 @@ Out of scope:
 - 不做无关重构、格式 churn 或跨领域发布改造。
 - 不在 schema 1.5 规划阶段强制迁移旧 fixture 或删除旧 schema 兼容。
 - 不在 Phase 3 第一阶段直接接入真实 CAN/EtherCAT/TSN 硬件或要求 Gazebo/MuJoCo/Isaac Sim 可用。
+- 不用永久 exception、scanner suppression、禁用 Trivy、忽略 fixed version 或手工编译不可维护的系统库来宣称安全风险“全部修复”。
 
 # Existing Context
 
@@ -66,6 +70,7 @@ Out of scope:
 | hardwareless-acceptance | `plans/modules/hardwareless-acceptance.md` | No-hardware acceptance report that preserves substitute evidence and explicit external blockers | Hardware replay/mock tests, ROS2 fake runtime, live Godot readiness, production compose smoke | complete |
 | repository-presentation | `plans/modules/repository-presentation.md` | GitHub-facing README, docs index and repository tree guidance | Existing docs, plans, source layout | complete |
 | security-release-preflight | `plans/modules/security-release-preflight.md` | Security release preflight scanner execution, vulnerability exception matching and release-blocker classification | Security posture contracts, scanner wrappers, deployment exceptions, CI | complete |
+| container-vulnerability-full-remediation | `plans/modules/container-vulnerability-full-remediation.md` | Full-remediation roadmap for production container vulnerability findings, zero-exception acceptance and evidence retention | Security preflight, deployment Dockerfiles, scanner reports, vulnerability exceptions, CI | complete |
 | control-communication-simulation | `plans/modules/control-communication-simulation.md` | Python/asyncio deterministic control-loop timing, Godot script/log evidence, local bus contracts, Zenoh/OpenNeuro-like simulation, EtherCAT cycle model, motor/joint model and simulator/hardware migration boundaries | Existing distributed runtime, Godot scripts/runtime smoke, Zenoh comm modules, robot schema 1.5, hardwareless acceptance | complete |
 | control-communication-evidence-closeout | `plans/modules/control-communication-evidence-closeout.md` | Reusable closeout artifact for Phase 3 non-live simulation evidence, retained artifact validation and external live hardware blockers | Control/communication simulation artifacts, hardwareless acceptance semantics, release evidence collection | complete |
 | control-communication-ci-evidence | `plans/modules/control-communication-ci-evidence.md` | Default non-live CI evidence profile for Phase 3 simulation artifacts and closeout retention | Control/communication simulation CLI, closeout CLI, GitHub Actions | complete |
@@ -114,6 +119,10 @@ Out of scope:
 - Live hardware migration uses `live_hardware_migration_gate.v1`; it must keep CAN, EtherCAT and TSN `status=blocked`, `release_gate.status=blocked` and `simulation_substitute_allowed=false` until explicit external hardware evidence is supplied.
 - Control/communication simulation closeout uses `control_comm_simulation_closeout.v1`; it summarizes local non-live simulation evidence and validation errors while preserving live hardware blockers as external blockers, self-validates closeout shape before acceptance, and records retained artifact `size_bytes` plus `sha256` integrity metadata.
 - Default CI control/communication evidence uses the `control-communication-simulation-evidence` job to generate `test_env/control_comm_simulation_ci`, build `control_comm_simulation_closeout.json`, and upload `control-communication-simulation-artifacts` without Godot, Zenoh, Docker, external simulators or real hardware.
+- Production container vulnerability full-remediation is stronger than the current managed-exception gate: production release evidence must eventually show `unresolved_findings=0`, `stale_exceptions=0`, `expired_exceptions=0`, `review_due=0`, and `accepted_vulnerability_findings=0` for production image refs.
+- Strict container vulnerability release acceptance uses `run_security_release_preflight.py --fail-on-accepted-vulnerability-findings`; this profile remains opt-in until candidate images prove zero accepted vulnerability findings.
+- Container vulnerability remediation closeout uses `container_vulnerability_remediation_closeout.v1` to combine inventory, reduction-plan and strict-preflight evidence into one blocked/ready verdict.
+- Scheduled/manual security CI retains `test_env/container_vulnerability_remediation` artifacts when scanner outputs exist, but default security-preflight pass/fail semantics remain managed-exception compatible unless strict flags are explicitly used.
 
 # Integration Plan
 
@@ -139,6 +148,10 @@ Out of scope:
 20. Allow Phase 3 control/communication closeout evidence to travel with release evidence bundles as an optional validated artifact.
 21. Allow canonical release evidence collection to copy existing Phase 3 control/communication closeout evidence.
 22. Document and validate the canonical collector-to-bundle handoff path for Phase 3 control/communication closeout evidence.
+23. Establish the container vulnerability full-remediation roadmap without weakening the existing security preflight gate.
+24. Build current production image vulnerability inventory from security-preflight artifacts and classify findings by fixability, package necessity and production applicability.
+25. Evaluate minimal final-image package removals and candidate base images with raw Trivy comparison evidence before changing Dockerfile defaults.
+26. Introduce a strict zero-exception release profile only after candidate images pass runtime and security evidence gates.
 
 # Tasks
 
@@ -178,6 +191,7 @@ Out of scope:
 - [x] Add optional Phase 3 control/communication closeout artifact support to release evidence bundles.
 - [x] Add optional Phase 3 control/communication closeout source support to canonical release evidence collection.
 - [x] Document the canonical collector output path as a valid `--control-comm-closeout` bundle input and guard the handoff docs with active-path tests.
+- [x] Add a container vulnerability full-remediation plan that defines how temporary no-fix exceptions can be retired rather than renewed indefinitely.
 
 # Risks and Mitigations
 
@@ -210,6 +224,12 @@ Out of scope:
 
 - Risk: Simulator adapters create hard dependencies on Gazebo/MuJoCo/Isaac Sim.
   Mitigation: Keep adapters optional and validate core contracts with local Python tests before simulator-specific smoke.
+
+- Risk: no-fix container findings remain unresolved upstream and cannot be upgraded immediately.
+  Mitigation: Treat active exceptions as temporary only; prioritize final-image package removal, safer base image candidates and production-scope reduction before renewing exceptions.
+
+- Risk: base-image replacement fixes scanner findings but breaks runtime behavior.
+  Mitigation: Require Docker/Trivy comparison evidence plus compose/Web smoke evidence before changing production image defaults.
 
 # Validation
 
@@ -247,6 +267,15 @@ py -3.12 -m pytest tests\test_distributed_smoke_runner.py tests\test_hardwareles
 Phase 3 implementation includes targeted tests for deterministic virtual clock scheduling, message ordering/drop/jitter simulation, Zenoh transport envelope compatibility, EtherCAT cycle deadline/watchdog behavior, motor/joint response traces, simulator adapter boundaries and live hardware migration gates.
 Godot-side Phase 3 validation includes non-live artifact-shape tests for retained Godot simulation logs and an opt-in live/headless Godot replay runner when a Godot executable is available.
 
+Container vulnerability full-remediation validation:
+
+```powershell
+py -3.12 tools\run_security_release_preflight.py --security-only --output-root test_env\release_evidence_ci --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed
+py -3.12 tools\compare_container_vulnerability_baselines.py --current-raw-report <current-trivy-raw-json-or-dir> --candidate-raw-report <candidate-trivy-raw-json-or-dir> --output test_env\container_vulnerability_remediation\comparison.json
+py -3.12 -m pytest tests\test_security_release_preflight.py tests\test_security_posture_reports.py tests\test_vulnerability_exception_report.py tests\test_vulnerability_remediation_report.py tests\test_vulnerability_scan_runners.py -q --tb=short
+py -3.12 -m pytest tests\test_active_path_references.py -q
+```
+
 # Acceptance Criteria
 
 - A single command produces static report, delivery gate, sidecar manifests, validation summary and closeout JSON.
@@ -272,6 +301,9 @@ Godot-side Phase 3 validation includes non-live artifact-shape tests for retaine
 - Canonical release evidence collection can retain existing Phase 3 control/communication closeout evidence without rerunning simulation or weakening live hardware gates.
 - The canonical copied Phase 3 closeout path can be fed directly into dynamic Godot release bundle generation as the optional `control_comm_closeout` artifact.
 - Bundled Phase 3 control/communication closeout evidence carries its matching operator/developer guide as optional bundle documentation when default docs are used.
+- Container vulnerability full-remediation has an executable plan that defines zero active production vulnerability exceptions as the final acceptance state.
+- Production container vulnerability remediation cannot be marked complete while `accepted_vulnerability_findings > 0` for production image refs, even if the current managed-exception preflight passes.
+- Candidate production images must prove both vulnerability reduction and runtime compatibility before replacing Dockerfile defaults.
 
 # Decision Log
 
@@ -297,6 +329,8 @@ Godot-side Phase 3 validation includes non-live artifact-shape tests for retaine
 - 2026-05-26: Canonical release evidence collection can now copy existing Phase 3 control/communication closeout evidence into the release evidence tree.
 - 2026-05-26: The Phase 3 collector-to-bundle handoff is documented as a direct path from `test_env/release_evidence/control_communication/control_comm_simulation_closeout.json` to bundle `--control-comm-closeout`.
 - 2026-05-26: Dynamic Godot release bundles that include Phase 3 control/communication closeout evidence now include the matching optional guide documentation by default.
+- 2026-06-10: Container vulnerability full-remediation is tracked as a separate security delivery track because passing with active time-bounded no-fix exceptions is release-risk management, not complete remediation.
+- 2026-06-10: The final production security acceptance target is zero accepted vulnerability findings for production image refs; managed exceptions remain a compatibility gate only until package removal, package upgrades or safer base images remove the findings.
 
 # Change Control
 
@@ -371,3 +405,4 @@ Godot-side Phase 3 validation includes non-live artifact-shape tests for retaine
 - 2026-05-26: Approved release collector optional source contract: `--control-comm-closeout-source` may copy existing Phase 3 closeout evidence into canonical release evidence, but it must not run live transport, hardware, or simulator validation.
 - 2026-05-26: Approved collector-to-bundle handoff contract: the canonical copied closeout path may be passed directly to release bundle `--control-comm-closeout`; this remains optional and does not upgrade non-live evidence into live hardware validation.
 - 2026-05-26: Approved optional control/communication bundle documentation contract: default bundle docs include role `control_comm_workflow` when `control_comm_closeout` is present; the role is optional and explicit `--doc` inputs remain caller-controlled.
+- 2026-06-10: Approved security remediation scope addition: add a container vulnerability full-remediation roadmap whose completion target is production `accepted_vulnerability_findings=0`, not repeated renewal of temporary no-fix exceptions.
