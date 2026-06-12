@@ -1,0 +1,16 @@
+{
+  "schema_version": "biped-ros2-topic-contract.v1",
+  "runtime_mode": "software_contract_simulation",
+  "topics": [
+    {"name": "/joint_states", "message_type": "sensor_msgs/msg/JointState", "required_fields": ["name", "position", "velocity", "effort", "header.stamp"]},
+    {"name": "/imu", "message_type": "sensor_msgs/msg/Imu", "required_fields": ["orientation", "angular_velocity", "linear_acceleration", "header.stamp"]},
+    {"name": "/cmd_joint_targets", "message_type": "trajectory_msgs/msg/JointTrajectory", "required_fields": ["joint_names", "points", "header.stamp"]},
+    {"name": "/clock", "message_type": "rosgraph_msgs/msg/Clock", "required_fields": ["clock"]},
+    {"name": "/tf", "message_type": "tf2_msgs/msg/TFMessage", "required_fields": ["transforms"]}
+  ],
+  "acceptance": {
+    "min_events": 30,
+    "require_all_topics": true,
+    "max_topic_gap_s": 0.25
+  }
+}

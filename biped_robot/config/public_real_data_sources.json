@@ -1,0 +1,48 @@
+{
+  "schema_version": "public_real_data_sources.v1",
+  "default_mode": "offline_fixture_only",
+  "network_download_default": false,
+  "sources": [
+    {
+      "source_id": "leg_kilo",
+      "name": "Leg-KILO dataset",
+      "url": "https://github.com/ouguangjun/legkilo-dataset",
+      "role": "legged_robot_kinematics_imu_contact_reference",
+      "replay_domains": ["actuator", "contact", "godot_io"],
+      "offline_sample_included": true,
+      "citation_note": "Public legged robot localization dataset metadata; local validation uses normalized offline samples only."
+    },
+    {
+      "source_id": "arco_ros2",
+      "name": "ARCO ROS2 dataset",
+      "url": "https://robotics.upo.es/datasets/ArcoDataset/main.html",
+      "role": "ros2_navigation_odometry_imu_reference",
+      "replay_domains": ["godot_io", "communication"],
+      "offline_sample_included": true,
+      "citation_note": "Public ROS2 dataset metadata; local validation uses normalized offline samples only."
+    },
+    {
+      "source_id": "candid_vehiclesec",
+      "name": "CANdid VehicleSec 2025",
+      "url": "https://www.usenix.org/conference/vehiclesec25/presentation/howson",
+      "role": "can_traffic_reference",
+      "replay_domains": ["communication"],
+      "offline_sample_included": true,
+      "citation_note": "Public CAN traffic research reference; local validation uses normalized offline samples only."
+    },
+    {
+      "source_id": "aegis_can",
+      "name": "AEGIS CAN dataset",
+      "url": "https://zenodo.org/records/820576",
+      "role": "can_timeseries_reference",
+      "replay_domains": ["communication"],
+      "offline_sample_included": true,
+      "citation_note": "Public CAN dataset metadata; local validation uses normalized offline samples only."
+    }
+  ],
+  "limitations": [
+    "Default validation does not download public datasets.",
+    "Offline samples are normalized replay fixtures, not measurements from this biped robot.",
+    "Replay evidence cannot satisfy real hardware, serial/CAN, or ROS2 live runtime gates."
+  ]
+}

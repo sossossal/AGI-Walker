@@ -1,0 +1,117 @@
+{
+  "schema_version": "biped-coverage-requirements.v1",
+  "scope": "biped_robot",
+  "software_domains": [
+    {
+      "name": "godot_io",
+      "report": "test_env/godot_io_report.json",
+      "required_status": "passed",
+      "required_retention_artifacts": ["test_env/godot_io_report.json", "test_env/godot_io_telemetry.jsonl"]
+    },
+    {
+      "name": "communication",
+      "report": "test_env/communication_report.json",
+      "required_status": "passed",
+      "required_retention_artifacts": ["test_env/communication_report.json", "test_env/communication_events.jsonl"]
+    },
+    {
+      "name": "actuator_physics",
+      "report": "test_env/actuator_physics_report.json",
+      "required_status": "passed",
+      "required_retention_artifacts": ["test_env/actuator_physics_report.json", "test_env/actuator_telemetry.jsonl"]
+    },
+    {
+      "name": "contact_stability",
+      "report": "test_env/contact_stability_report.json",
+      "required_status": "passed",
+      "required_retention_artifacts": ["test_env/contact_stability_report.json"]
+    },
+    {
+      "name": "component_parameters",
+      "report": "test_env/component_parameter_log.json",
+      "required_schema_version": "biped-component-parameter-log.v1",
+      "required_retention_artifacts": ["test_env/component_parameter_log.json"]
+    },
+    {
+      "name": "public_real_data_replay",
+      "report": "test_env/public_real_data_replay_report.json",
+      "required_status": "passed",
+      "required_schema_version": "public_real_data_replay_report.v1",
+      "required_retention_artifacts": [
+        "test_env/public_real_data_replay_report.json",
+        "test_env/public_real_data_replay_trace.jsonl"
+      ]
+    },
+    {
+      "name": "part_driven_system_simulation",
+      "report": "test_env/part_driven_system_simulation_report.json",
+      "required_status": "passed",
+      "required_schema_version": "part_driven_system_simulation_report.v1",
+      "required_retention_artifacts": [
+        "test_env/part_driven_system_simulation_report.json",
+        "test_env/part_driven_system_simulation_trace.jsonl"
+      ]
+    },
+    {
+      "name": "sensor_simulation",
+      "report": "test_env/sensor_simulation_report.json",
+      "required_status": "passed",
+      "required_schema_version": "sensor_simulation_report.v1",
+      "required_retention_artifacts": ["test_env/sensor_simulation_report.json", "test_env/sensor_simulation_trace.jsonl"]
+    },
+    {
+      "name": "scenario_matrix",
+      "report": "test_env/scenario_matrix_report.json",
+      "required_status": "passed",
+      "required_schema_version": "scenario_matrix_report.v1",
+      "required_retention_artifacts": ["test_env/scenario_matrix_report.json", "test_env/scenario_matrix_trace.jsonl"]
+    },
+    {
+      "name": "robot_description_mapping",
+      "report": "test_env/robot_description_mapping_report.json",
+      "required_status": "passed",
+      "required_schema_version": "robot_description_mapping_report.v1",
+      "required_retention_artifacts": ["test_env/robot_description_mapping_report.json", "test_env/robot_description_mapping_preview.json"]
+    },
+    {
+      "name": "fault_injection",
+      "report": "test_env/fault_injection_report.json",
+      "required_status": "passed",
+      "required_schema_version": "fault_injection_report.v1",
+      "required_retention_artifacts": ["test_env/fault_injection_report.json", "test_env/fault_injection_trace.jsonl"]
+    },
+    {
+      "name": "ros2_topic_contract_simulation",
+      "report": "test_env/ros2_topic_contract_simulation_report.json",
+      "required_status": "passed",
+      "required_schema_version": "ros2_topic_contract_simulation_report.v1",
+      "required_retention_artifacts": ["test_env/ros2_topic_contract_simulation_report.json", "test_env/ros2_topic_contract_events.jsonl"]
+    },
+    {
+      "name": "godot_visual_acceptance",
+      "report": "test_env/godot_visual_acceptance_report.json",
+      "required_status": "passed",
+      "required_schema_version": "godot_visual_acceptance_report.v1",
+      "required_retention_artifacts": ["test_env/godot_visual_acceptance_report.json", "test_env/godot_visual_frame_summary.jsonl"]
+    },
+    {
+      "name": "simulation_capability_upgrade",
+      "report": "test_env/simulation_capability_upgrade_report.json",
+      "required_status": "passed",
+      "required_schema_version": "simulation_capability_upgrade_report.v1",
+      "required_retention_artifacts": ["test_env/simulation_capability_upgrade_report.json"]
+    }
+  ],
+  "retention": {
+    "manifest": "test_env/retention_manifest.json",
+    "required_schema_version": "biped-retention-manifest.v1",
+    "min_artifact_count": 29
+  },
+  "hardware_gap_report": "test_env/hardware_gap_report.json",
+  "external_domains": [
+    "real_hardware_motor_transport",
+    "real_joint_state_feedback",
+    "real_imu_feedback",
+    "real_ros2_bridge"
+  ]
+}

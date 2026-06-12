@@ -1,0 +1,22 @@
+{
+  "schema_version": "biped-scenario-matrix.v1",
+  "scenarios": [
+    {"name": "baseline_walk", "speed_scale": 1.0, "slope_multiplier": 1.0, "friction": 0.82, "latency_multiplier": 1.0, "actuator_load_multiplier": 1.0, "sensor_noise_multiplier": 1.0},
+    {"name": "slow_rough_walk", "speed_scale": 0.72, "slope_multiplier": 1.15, "friction": 0.74, "latency_multiplier": 1.1, "actuator_load_multiplier": 0.92, "sensor_noise_multiplier": 1.15},
+    {"name": "fast_walk", "speed_scale": 1.18, "slope_multiplier": 1.0, "friction": 0.8, "latency_multiplier": 1.15, "actuator_load_multiplier": 1.12, "sensor_noise_multiplier": 1.0},
+    {"name": "steep_dry_slope", "speed_scale": 0.86, "slope_multiplier": 1.55, "friction": 0.84, "latency_multiplier": 1.0, "actuator_load_multiplier": 1.18, "sensor_noise_multiplier": 1.05},
+    {"name": "low_friction_walk", "speed_scale": 0.78, "slope_multiplier": 1.1, "friction": 0.56, "latency_multiplier": 1.0, "actuator_load_multiplier": 1.08, "sensor_noise_multiplier": 1.1},
+    {"name": "high_latency_control", "speed_scale": 0.94, "slope_multiplier": 1.0, "friction": 0.8, "latency_multiplier": 1.8, "actuator_load_multiplier": 1.0, "sensor_noise_multiplier": 1.0},
+    {"name": "loaded_climb", "speed_scale": 0.82, "slope_multiplier": 1.35, "friction": 0.78, "latency_multiplier": 1.05, "actuator_load_multiplier": 1.32, "sensor_noise_multiplier": 1.05},
+    {"name": "noisy_sensors", "speed_scale": 0.9, "slope_multiplier": 1.0, "friction": 0.8, "latency_multiplier": 1.0, "actuator_load_multiplier": 1.0, "sensor_noise_multiplier": 2.0}
+  ],
+  "acceptance": {
+    "min_pass_ratio": 0.75,
+    "max_slope_degrees": 30.0,
+    "min_clearance_m": 0.028,
+    "min_stability_margin": 0.08,
+    "max_latency_ms": 55.0,
+    "max_tracking_error_degrees": 12.5,
+    "min_friction": 0.52
+  }
+}

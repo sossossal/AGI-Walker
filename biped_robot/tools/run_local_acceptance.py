@@ -31,7 +31,19 @@ def maybe_godot_command() -> list[str] | None:
     candidates.extend([r"D:\迅雷下载\Godot\Godot.exe"])
     for candidate in candidates:
         if candidate and Path(candidate).is_file():
-            return [candidate, "--headless", "--path", str(ROOT / "godot"), "--quit-after", "240"]
+            godot_user_data = ROOT / "test_env" / "godot_user_data"
+            godot_log_file = godot_user_data / "logs" / "godot_headless.log"
+            godot_log_file.parent.mkdir(parents=True, exist_ok=True)
+            return [
+                candidate,
+                "--headless",
+                "--log-file",
+                str(godot_log_file),
+                "--path",
+                str(ROOT / "godot"),
+                "--quit-after",
+                "240",
+            ]
     return None
 
 
@@ -60,6 +72,19 @@ def main() -> int:
                 str(ROOT / "tools" / "build_hardware_gap_report.py"),
                 str(ROOT / "tools" / "simulate_actuator_physics.py"),
                 str(ROOT / "tools" / "build_component_parameter_log.py"),
+                str(ROOT / "tools" / "simulate_communication.py"),
+                str(ROOT / "tools" / "run_public_real_data_replay.py"),
+                str(ROOT / "tools" / "run_part_driven_system_simulation.py"),
+                str(ROOT / "tools" / "validate_part_driven_system_simulation.py"),
+                str(ROOT / "tools" / "run_sensor_simulation.py"),
+                str(ROOT / "tools" / "run_scenario_matrix.py"),
+                str(ROOT / "tools" / "export_robot_description_mapping.py"),
+                str(ROOT / "tools" / "run_fault_injection.py"),
+                str(ROOT / "tools" / "run_ros2_topic_contract_simulation.py"),
+                str(ROOT / "tools" / "run_godot_visual_acceptance.py"),
+                str(ROOT / "tools" / "build_simulation_capability_upgrade_report.py"),
+                str(ROOT / "tools" / "validate_simulation_capability_upgrade.py"),
+                str(ROOT / "tools" / "build_full_coverage_report.py"),
                 str(ROOT / "tools" / "validate_godot_io.py"),
                 str(ROOT / "tools" / "build_retention_manifest.py"),
                 str(ROOT / "tools" / "run_local_acceptance.py"),
@@ -80,13 +105,27 @@ def main() -> int:
         ("contact_stability", [sys.executable, str(ROOT / "tools" / "check_contact_stability.py")]),
         ("actuator_physics", [sys.executable, str(ROOT / "tools" / "simulate_actuator_physics.py")]),
         ("component_parameter_log", [sys.executable, str(ROOT / "tools" / "build_component_parameter_log.py")]),
+        ("public_real_data_replay", [sys.executable, str(ROOT / "tools" / "run_public_real_data_replay.py")]),
         ("hardware_gap_report", [sys.executable, str(ROOT / "tools" / "build_hardware_gap_report.py")]),
     ]
     godot = maybe_godot_command()
     if godot:
         commands.append(("godot_headless_load", godot))
         commands.append(("godot_io_validation", [sys.executable, str(ROOT / "tools" / "validate_godot_io.py")]))
+        commands.append(("communication_simulation", [sys.executable, str(ROOT / "tools" / "simulate_communication.py")]))
+        commands.append(("part_driven_system_simulation", [sys.executable, str(ROOT / "tools" / "run_part_driven_system_simulation.py")]))
+        commands.append(("part_driven_system_validation", [sys.executable, str(ROOT / "tools" / "validate_part_driven_system_simulation.py")]))
+        commands.append(("sensor_simulation", [sys.executable, str(ROOT / "tools" / "run_sensor_simulation.py")]))
+        commands.append(("scenario_matrix", [sys.executable, str(ROOT / "tools" / "run_scenario_matrix.py")]))
+        commands.append(("robot_description_mapping", [sys.executable, str(ROOT / "tools" / "export_robot_description_mapping.py")]))
+        commands.append(("fault_injection", [sys.executable, str(ROOT / "tools" / "run_fault_injection.py")]))
+        commands.append(("ros2_topic_contract_simulation", [sys.executable, str(ROOT / "tools" / "run_ros2_topic_contract_simulation.py")]))
+        commands.append(("godot_visual_acceptance", [sys.executable, str(ROOT / "tools" / "run_godot_visual_acceptance.py")]))
+        commands.append(("simulation_capability_upgrade", [sys.executable, str(ROOT / "tools" / "build_simulation_capability_upgrade_report.py")]))
+        commands.append(("simulation_capability_upgrade_validation", [sys.executable, str(ROOT / "tools" / "validate_simulation_capability_upgrade.py")]))
     commands.append(("retention_manifest", [sys.executable, str(ROOT / "tools" / "build_retention_manifest.py")]))
+    commands.append(("full_coverage_report", [sys.executable, str(ROOT / "tools" / "build_full_coverage_report.py")]))
+    commands.append(("retention_manifest_after_coverage", [sys.executable, str(ROOT / "tools" / "build_retention_manifest.py")]))
 
     results = [run_command(name, command, ROOT.parent) for name, command in commands]
     if not godot:

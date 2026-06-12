@@ -1,0 +1,38 @@
+{
+  "schema_version": "biped-sensor-model.v1",
+  "sampling": {
+    "imu_hz": 100,
+    "encoder_hz": 120,
+    "contact_hz": 100,
+    "visual_summary_hz": 20
+  },
+  "imu": {
+    "roll_noise_degrees": 0.08,
+    "pitch_noise_degrees": 0.08,
+    "yaw_rate_noise_degrees_per_second": 0.12,
+    "accel_noise_mps2": 0.04,
+    "max_abs_roll_degrees": 6.0,
+    "max_abs_pitch_degrees": 5.0
+  },
+  "joint_encoder": {
+    "position_noise_degrees": 0.05,
+    "velocity_noise_degrees_per_second": 0.2,
+    "max_position_error_degrees": 0.25
+  },
+  "foot_contact": {
+    "contact_clearance_threshold_m": 0.04,
+    "nominal_stance_force_n": 310.0,
+    "max_force_n": 520.0
+  },
+  "visual": {
+    "camera_name": "software_frame_summary",
+    "depth_range_m": [0.2, 20.0],
+    "required_frame_summaries": 8
+  },
+  "acceptance": {
+    "min_imu_samples": 20,
+    "min_encoder_samples": 80,
+    "min_contact_samples": 20,
+    "min_visual_frame_summaries": 8
+  }
+}

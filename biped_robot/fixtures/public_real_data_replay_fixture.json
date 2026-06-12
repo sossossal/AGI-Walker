@@ -1,0 +1,158 @@
+{
+  "schema_version": "public_real_data_replay_fixture.v1",
+  "normalization": {
+    "timestamp_unit": "seconds",
+    "payload_encoding": "json",
+    "samples_are_offline_subset": true
+  },
+  "samples": [
+    {
+      "timestamp_s": 0.0,
+      "source_domain": "legged_robot",
+      "payload_type": "joint_state",
+      "source_dataset": "leg_kilo",
+      "payload": {
+        "joint": "left_hip_pitch",
+        "position_degrees": 6.2,
+        "velocity_degrees_per_second": 18.0,
+        "torque_nm": 1.15
+      }
+    },
+    {
+      "timestamp_s": 0.02,
+      "source_domain": "legged_robot",
+      "payload_type": "joint_state",
+      "source_dataset": "leg_kilo",
+      "payload": {
+        "joint": "left_knee_pitch",
+        "position_degrees": 13.8,
+        "velocity_degrees_per_second": 24.0,
+        "torque_nm": 1.62
+      }
+    },
+    {
+      "timestamp_s": 0.04,
+      "source_domain": "legged_robot",
+      "payload_type": "foot_contact",
+      "source_dataset": "leg_kilo",
+      "payload": {
+        "foot": "left",
+        "contact": true,
+        "normal_force_n": 42.5,
+        "slope_degrees": 12.4,
+        "clearance_m": 0.061
+      }
+    },
+    {
+      "timestamp_s": 0.06,
+      "source_domain": "legged_robot",
+      "payload_type": "imu",
+      "source_dataset": "leg_kilo",
+      "payload": {
+        "roll_degrees": 2.1,
+        "pitch_degrees": -3.4,
+        "yaw_rate_degrees_per_second": 4.8,
+        "linear_accel_mps2": [0.08, -0.12, 9.78]
+      }
+    },
+    {
+      "timestamp_s": 0.1,
+      "source_domain": "ros2",
+      "payload_type": "odom",
+      "source_dataset": "arco_ros2",
+      "payload": {
+        "frame_id": "odom",
+        "x_m": 0.18,
+        "y_m": 0.01,
+        "z_m": 0.91,
+        "yaw_degrees": 1.7
+      }
+    },
+    {
+      "timestamp_s": 0.12,
+      "source_domain": "ros2",
+      "payload_type": "twist",
+      "source_dataset": "arco_ros2",
+      "payload": {
+        "linear_x_mps": 0.43,
+        "linear_y_mps": 0.01,
+        "angular_z_degrees_per_second": 5.5
+      }
+    },
+    {
+      "timestamp_s": 0.14,
+      "source_domain": "ros2",
+      "payload_type": "imu",
+      "source_dataset": "arco_ros2",
+      "payload": {
+        "roll_degrees": 1.8,
+        "pitch_degrees": -2.9,
+        "yaw_rate_degrees_per_second": 5.3,
+        "linear_accel_mps2": [0.11, -0.08, 9.81]
+      }
+    },
+    {
+      "timestamp_s": 0.16,
+      "source_domain": "can",
+      "payload_type": "can_frame",
+      "source_dataset": "candid_vehiclesec",
+      "payload": {
+        "bus": "sim_can0",
+        "arbitration_id": "0x181",
+        "dlc": 8,
+        "data_hex": "0A1001F40000012C",
+        "decoded_signal": "left_leg_motor_feedback"
+      }
+    },
+    {
+      "timestamp_s": 0.18,
+      "source_domain": "can",
+      "payload_type": "can_frame",
+      "source_dataset": "aegis_can",
+      "payload": {
+        "bus": "sim_can0",
+        "arbitration_id": "0x182",
+        "dlc": 8,
+        "data_hex": "0A2801E000000118",
+        "decoded_signal": "right_leg_motor_feedback"
+      }
+    },
+    {
+      "timestamp_s": 0.2,
+      "source_domain": "legged_robot",
+      "payload_type": "joint_state",
+      "source_dataset": "leg_kilo",
+      "payload": {
+        "joint": "right_hip_pitch",
+        "position_degrees": -5.7,
+        "velocity_degrees_per_second": -17.5,
+        "torque_nm": -1.08
+      }
+    },
+    {
+      "timestamp_s": 0.22,
+      "source_domain": "legged_robot",
+      "payload_type": "joint_state",
+      "source_dataset": "leg_kilo",
+      "payload": {
+        "joint": "right_knee_pitch",
+        "position_degrees": 12.9,
+        "velocity_degrees_per_second": 22.8,
+        "torque_nm": 1.51
+      }
+    },
+    {
+      "timestamp_s": 0.24,
+      "source_domain": "legged_robot",
+      "payload_type": "foot_contact",
+      "source_dataset": "leg_kilo",
+      "payload": {
+        "foot": "right",
+        "contact": true,
+        "normal_force_n": 39.7,
+        "slope_degrees": 14.1,
+        "clearance_m": 0.057
+      }
+    }
+  ]
+}
