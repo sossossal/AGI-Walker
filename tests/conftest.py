@@ -106,12 +106,12 @@ def pytest_sessionstart(session):
 
 
 # 3. 强制忽略非测试脚本的收集
-def pytest_ignore_collect(path, config):
+def pytest_ignore_collect(collection_path, config):
     """
     根据路径忽略特定的测试文件。
     彻底杜绝 verify_*, validate_*, benchmark_* 等脚本在扫描时产生副作用。
     """
-    base_name = os.path.basename(str(path))
+    base_name = os.path.basename(str(collection_path))
 
     # 排除所有不以 test_ 开头的 Python 脚本（除了 conftest.py）
     if (
