@@ -1,10 +1,18 @@
-from fastapi.testclient import TestClient
 from unittest.mock import patch
 
-from web_panel.server import app
+from fastapi.testclient import TestClient
+from prometheus_fastapi_instrumentator import routing as prometheus_routing
+from starlette.routing import Match, Route
+
 from web_panel.distributed_monitor import DistributedMonitor, _payload_to_bytes
+from web_panel.server import app
 
 client = TestClient(app)
+
+
+class _PathlessIncludedRoute:
+    def matches(self, scope):
+        return Match.PARTIAL, {}
 
 
 class FakeZenohPayload:
@@ -13,6 +21,18 @@ class FakeZenohPayload:
 
     def to_bytes(self) -> bytes:
         return self.value
+
+
+def test_prometheus_route_name_patch_skips_pathless_routes():
+    route_name = prometheus_routing._get_route_name(
+        {"type": "http", "path": "/api/system/status", "method": "GET"},
+        [
+            _PathlessIncludedRoute(),
+            Route("/api/system/status", lambda request: None, methods=["GET"]),
+        ],
+    )
+
+    assert route_name == "/api/system/status"
 
 
 class FakeGodotAgentBackend:
@@ -349,10 +369,15 @@ def test_core_panel_routes_smoke():
     assert 'id="export-history-json-button"' in response.text
     assert 'id="export-history-csv-button"' in response.text
     assert "/static/operator-history-timeline.html" in response.text
-    assert "/api/godot/${encodeURIComponent(currentSessionId())}/history" in response.text
+    assert (
+        "/api/godot/${encodeURIComponent(currentSessionId())}/history" in response.text
+    )
     assert "/api/godot/history" in response.text
     assert "/api/godot/history/summary" in response.text
-    assert "/api/godot/${encodeURIComponent(currentSessionId())}/history/replay" in response.text
+    assert (
+        "/api/godot/${encodeURIComponent(currentSessionId())}/history/replay"
+        in response.text
+    )
     assert "/api/godot/history/export?format=" in response.text
 
     response = client.get("/static/operator-history-timeline.html")
@@ -446,15 +471,30 @@ def test_core_panel_routes_smoke():
     assert data["release_next"]["primary_portal_route"].startswith("/static/")
     assert data["release_next"]["primary_api_route"].startswith("/api/release/")
     assert data["release_next"]["primary_next_route"].startswith("/api/release/")
-    assert data["release_next"]["primary_follow_up_kind"] in {"command", "request_file", "json"}
+    assert data["release_next"]["primary_follow_up_kind"] in {
+        "command",
+        "request_file",
+        "json",
+    }
     assert data["release_next"]["primary_follow_up_label"]
-    assert data["release_next"]["primary_follow_up_payload_route"] == "/api/release/next/follow-up"
+    assert (
+        data["release_next"]["primary_follow_up_payload_route"]
+        == "/api/release/next/follow-up"
+    )
     assert data["release_next"]["primary_follow_up_text"]
     assert "primary_follow_up_download_route" in data["release_next"]
-    assert data["release_next"]["request_file_route"] == "/api/release/next/request-file"
-    assert data["release_next"]["request_file_payload_route"] == "/api/release/next/request-file"
+    assert (
+        data["release_next"]["request_file_route"] == "/api/release/next/request-file"
+    )
+    assert (
+        data["release_next"]["request_file_payload_route"]
+        == "/api/release/next/request-file"
+    )
     assert data["release_next"]["request_file_status"] in {"success", "missing"}
-    assert "request_file_name" in data["release_next"] or data["release_next"]["request_file_status"] == "missing"
+    assert (
+        "request_file_name" in data["release_next"]
+        or data["release_next"]["request_file_status"] == "missing"
+    )
     assert "request_file_download_route" in data["release_next"]
     assert data["release_closeout"]["route"] == "/api/release/closeout"
     assert data["release_closeout"]["status"] in {
@@ -522,8 +562,7 @@ def test_core_panel_routes_smoke():
     )
     assert data["next_action_request_file_name"].startswith("release_ops.")
     assert any(
-        item.get("action") == "external_mainline_execution"
-        for item in data["actions"]
+        item.get("action") == "external_mainline_execution" for item in data["actions"]
     )
     assert any(
         item.get("action") == "external_mainline_execution"
@@ -549,7 +588,10 @@ def test_core_panel_routes_smoke():
     assert data["primary_payload"]["route"] == "/api/release/next/primary"
     assert data["follow_up_payload"]["route"] == "/api/release/next/follow-up"
     assert data["request_file_payload"]["route"] == "/api/release/next/request-file"
-    assert data["request_file_payload"]["release_next_follow_up_route"] == "/api/release/next/follow-up"
+    assert (
+        data["request_file_payload"]["release_next_follow_up_route"]
+        == "/api/release/next/follow-up"
+    )
     assert data["control_plane_next"]["route"] == "/api/release/control-plane/next"
     assert data["release_closeout_next"]["route"] == "/api/release/closeout/next"
     assert data["primary_kind"] in {"closeout_component", "control_plane_action"}
@@ -609,7 +651,7 @@ def test_core_panel_routes_smoke():
     assert response.headers["content-type"].startswith("application/json")
     assert (
         response.headers["content-disposition"]
-        == 'attachment; filename=release_ops.release_readiness.request.json'
+        == "attachment; filename=release_ops.release_readiness.request.json"
     )
     assert '"action": "release_readiness"' in response.text
 
@@ -626,9 +668,9 @@ def test_core_panel_routes_smoke():
     assert data["release_closeout"]["action_items"][0]["component_route"].startswith(
         "/static/release-closeout.html?component="
     )
-    assert data["release_closeout"]["action_items"][0]["component_api_route"].startswith(
-        "/api/release/closeout/component?component="
-    )
+    assert data["release_closeout"]["action_items"][0][
+        "component_api_route"
+    ].startswith("/api/release/closeout/component?component=")
     assert data["release_closeout"]["next_component_next_route"] == (
         "/api/release/closeout/next"
     )
@@ -641,13 +683,21 @@ def test_core_panel_routes_smoke():
     assert data["portal_route"] == "/static/release-closeout-plan.html"
     assert data["plan_status"] in {"action_required", "blocked", "ready"}
     assert data["next_route"] == "/api/release/closeout/plan/next"
-    assert data["next_stage_route"].startswith("/static/release-closeout-plan.html?stage=")
-    assert data["next_stage_api_route"].startswith("/api/release/closeout/plan/stage?stage=")
+    assert data["next_stage_route"].startswith(
+        "/static/release-closeout-plan.html?stage="
+    )
+    assert data["next_stage_api_route"].startswith(
+        "/api/release/closeout/plan/stage?stage="
+    )
     assert data["next_stage_next_route"] == "/api/release/closeout/plan/next"
     assert isinstance(data["stages"], list)
     assert len(data["stages"]) >= 1
-    assert data["stages"][0]["stage_route"].startswith("/static/release-closeout-plan.html?stage=")
-    assert data["stages"][0]["stage_api_route"].startswith("/api/release/closeout/plan/stage?stage=")
+    assert data["stages"][0]["stage_route"].startswith(
+        "/static/release-closeout-plan.html?stage="
+    )
+    assert data["stages"][0]["stage_api_route"].startswith(
+        "/api/release/closeout/plan/stage?stage="
+    )
 
     response = client.get(
         "/api/release/closeout/plan/stage",
@@ -669,7 +719,9 @@ def test_core_panel_routes_smoke():
     assert data["status"] == "success"
     assert data["route"] == "/api/release/closeout/plan/next"
     assert data["next_stage_id"]
-    assert data["next_stage_api_route"].startswith("/api/release/closeout/plan/stage?stage=")
+    assert data["next_stage_api_route"].startswith(
+        "/api/release/closeout/plan/stage?stage="
+    )
     assert data["stage_payload"]["id"] == data["next_stage_id"]
 
     response = client.get("/api/release/closeout/next")
@@ -791,7 +843,9 @@ def test_core_panel_routes_smoke():
     assert data["request_file_download_route"].endswith(
         f"/api/release/control-plane/request-file?action={data['next_action']}&download=1"
     )
-    assert data["request_file_payload"]["request_file_name"] == data["request_file_name"]
+    assert (
+        data["request_file_payload"]["request_file_name"] == data["request_file_name"]
+    )
 
     response = client.get(
         "/api/release/control-plane/request-file",

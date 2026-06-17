@@ -79,13 +79,50 @@ from agi_walker.core.api.release_control_plane import (
 
 from web_panel.logging_config import setup_logging
 from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_fastapi_instrumentator import routing as prometheus_routing
+from starlette.routing import Match, Mount
 
 # Initialize structured logging
 setup_logging()
 
 app = FastAPI(title="AGI-Walker Control Panel", version="1.0.0")
 
+
+def _patch_prometheus_route_names_for_pathless_routes() -> None:
+    original = getattr(prometheus_routing, "_get_route_name", None)
+    if original is None or getattr(original, "_agi_walker_pathless_safe", False):
+        return
+
+    def _get_route_name(scope, routes, route_name=None):
+        for route in routes:
+            path = getattr(route, "path", None)
+            matches = getattr(route, "matches", None)
+            if path is None or matches is None:
+                continue
+
+            match, child_scope = matches(scope)
+            if match == Match.FULL:
+                current_route_name = path
+                child_scope = {**scope, **child_scope}
+                if isinstance(route, Mount) and route.routes:
+                    child_route_name = _get_route_name(
+                        child_scope, route.routes, current_route_name
+                    )
+                    if child_route_name is None:
+                        current_route_name = None
+                    else:
+                        current_route_name += child_route_name
+                return current_route_name
+            if match == Match.PARTIAL and route_name is None:
+                route_name = path
+        return None
+
+    _get_route_name._agi_walker_pathless_safe = True
+    prometheus_routing._get_route_name = _get_route_name
+
+
 # Initialize Prometheus metrics
+_patch_prometheus_route_names_for_pathless_routes()
 Instrumentator().instrument(app).expose(app)
 
 # Mount Static Files
@@ -94,7 +131,9 @@ os.makedirs("robots", exist_ok=True)
 app.mount("/robots", StaticFiles(directory="robots"), name="robots")
 _docs_build_dir = Path("docs/build/html")
 if _docs_build_dir.exists():
-    app.mount("/docs", StaticFiles(directory=str(_docs_build_dir), html=True), name="docs")
+    app.mount(
+        "/docs", StaticFiles(directory=str(_docs_build_dir), html=True), name="docs"
+    )
 
 # 存储活跃的 WebSocket 连接（按 session_id 隔离封装）
 active_connections: Dict[str, List[WebSocket]] = {}
