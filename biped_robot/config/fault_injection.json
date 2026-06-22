@@ -1,0 +1,18 @@
+{
+  "schema_version": "biped-fault-injection.v1",
+  "faults": [
+    {"name": "left_knee_derate", "type": "actuator_derate", "joint": "left_knee_pitch", "torque_scale": 0.68},
+    {"name": "right_ankle_stiction", "type": "joint_stiction", "joint": "right_ankle_pitch", "tracking_error_add_degrees": 1.4},
+    {"name": "imu_pitch_drift", "type": "sensor_drift", "sensor": "imu", "pitch_drift_degrees": 1.2},
+    {"name": "telemetry_jitter_spike", "type": "communication_jitter", "latency_multiplier": 1.65},
+    {"name": "left_foot_slip", "type": "foot_slip", "friction_scale": 0.72},
+    {"name": "operator_estop", "type": "emergency_stop", "trigger_time_s": 1.4}
+  ],
+  "acceptance": {
+    "min_faults_classified": 6,
+    "require_estop_safe_state": true,
+    "max_derated_tracking_error_degrees": 14.0,
+    "max_jitter_latency_ms": 60.0,
+    "min_slip_stability_margin": 0.07
+  }
+}

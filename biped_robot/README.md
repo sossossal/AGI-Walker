@@ -8,6 +8,11 @@ This folder is an isolated Godot and hardware-free simulation workspace for a bi
 - `config/mountain_terrain.json`: mountain terrain generation parameters.
 - `godot/`: standalone Godot 4 project.
 - `tools/simulate_biped.py`: deterministic local simulation evidence generator.
+- `tools/run_public_real_data_replay.py`: offline public dataset-shaped replay evidence generator.
+- `tools/run_part_driven_system_simulation.py`: system-level software simulation closeout over retained component and runtime evidence.
+- `tools/validate_part_driven_system_simulation.py`: system report and trace contract validator.
+- `tools/build_simulation_capability_upgrade_report.py`: aggregate simulator-grade capability report.
+- `tools/validate_simulation_capability_upgrade.py`: aggregate capability report validator.
 - `tools/validate_biped_workspace.py`: local contract validator.
 - `test_env/`: generated local acceptance artifacts.
 
@@ -70,6 +75,72 @@ Validate output:
 ```powershell
 py -3.12 biped_robot\tools\validate_godot_io.py
 ```
+
+## Communication Simulation
+
+The local communication test simulates the controller-to-Godot command path and Godot-to-controller telemetry path.
+
+```powershell
+py -3.12 biped_robot\tools\simulate_communication.py
+```
+
+Outputs:
+
+- `test_env/communication_events.jsonl`: command, ACK, telemetry, latency, and drop events.
+- `test_env/communication_report.json`: delivery, ACK, telemetry, latency, jitter, and loss summary.
+
+## Public Real Data Replay
+
+The replay path uses public dataset metadata plus a small offline normalized fixture. It strengthens software simulation evidence without downloading large datasets or claiming real hardware validation.
+
+```powershell
+py -3.12 biped_robot\tools\run_public_real_data_replay.py
+```
+
+Outputs:
+
+- `test_env/public_real_data_replay_report.json`: source, mapping, coverage and limitation summary.
+- `test_env/public_real_data_replay_trace.jsonl`: retained per-row replay trace.
+
+The report explicitly marks the evidence as `public_dataset_replay`, communication as `simulated_transport`, and hardware validation as `real_hardware_not_run`.
+
+## Part-Driven System Simulation
+
+The system closeout aggregates part parameters, actuator response, mountain/contact metrics, Godot IO, communication, public replay, and hardware validation options into one software-only readiness report.
+
+```powershell
+py -3.12 biped_robot\tools\run_part_driven_system_simulation.py
+```
+
+Outputs:
+
+- `test_env/part_driven_system_simulation_report.json`: system-level software simulation verdict and summaries.
+- `test_env/part_driven_system_simulation_trace.jsonl`: retained source-artifact and check trace.
+
+Validate the report:
+
+```powershell
+py -3.12 biped_robot\tools\validate_part_driven_system_simulation.py
+```
+
+Hardware integration remains a separate optional validation lane after this software report passes.
+
+## Simulation Capability Upgrade
+
+These checks add simulator-grade software evidence without requiring Gazebo, MuJoCo, Isaac Sim, Webots, ROS2 runtime, or real hardware.
+
+```powershell
+py -3.12 biped_robot\tools\run_sensor_simulation.py
+py -3.12 biped_robot\tools\run_scenario_matrix.py
+py -3.12 biped_robot\tools\export_robot_description_mapping.py
+py -3.12 biped_robot\tools\run_fault_injection.py
+py -3.12 biped_robot\tools\run_ros2_topic_contract_simulation.py
+py -3.12 biped_robot\tools\run_godot_visual_acceptance.py
+py -3.12 biped_robot\tools\build_simulation_capability_upgrade_report.py
+py -3.12 biped_robot\tools\validate_simulation_capability_upgrade.py
+```
+
+Outputs include sensor, scenario matrix, URDF/SDF/MJCF mapping preview, fault injection, ROS2 topic contract simulation, Godot visual frame-summary, and aggregate capability reports under `test_env/`.
 
 ## Hardware Boundary
 

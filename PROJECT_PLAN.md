@@ -60,6 +60,10 @@ Out of scope:
 | hardwareless-acceptance | `plans/modules/hardwareless-acceptance.md` | No-hardware acceptance report that preserves substitute evidence and explicit external blockers | Hardware replay/mock tests, ROS2 fake runtime, live Godot readiness, production compose smoke | complete |
 | repository-presentation | `plans/modules/repository-presentation.md` | GitHub-facing README, docs index and repository tree guidance | Existing docs, plans, source layout | complete |
 | security-release-preflight | `plans/modules/security-release-preflight.md` | Security release preflight scanner execution, vulnerability exception matching and release-blocker classification | Security posture contracts, scanner wrappers, deployment exceptions, CI | complete |
+| frontend-godot-project-acceptance | `plans/modules/frontend-godot-project-acceptance.md` | Project-level WebUI-to-Godot software acceptance evidence and retained report | Web workflow artifacts, biped Godot project, Godot executable when available | complete |
+| public-real-data-replay | `plans/modules/public-real-data-replay.md` | Offline public dataset-shaped replay evidence for Godot IO, communication, actuator/contact mapping and limitations | biped local acceptance, public source metadata, replay fixture | complete |
+| part-driven-system-simulation | `plans/modules/part-driven-system-simulation.md` | Part-parameter-driven software system closeout across robot, terrain, actuators, communication, replay and hardware boundary | biped configs, local acceptance artifacts, public replay | complete |
+| simulation-capability-upgrade | `plans/modules/simulation-capability-upgrade.md` | Simulator-grade software capability evidence for sensors, scenario matrix, robot-description mapping, faults, ROS2-like contracts and Godot visual acceptance | biped system simulation, Godot IO, communication, public replay | complete |
 
 # Interfaces and Contracts
 
@@ -92,6 +96,10 @@ Out of scope:
 - No-hardware acceptance strict mode uses `--require-external-evidence` and must return `blocked` when real hardware closeout or ROS2 bridge live smoke evidence is missing or not ready.
 - No-hardware acceptance reports must expose `release_gate.status`; release-gate status remains `blocked` while required external evidence is missing, even if the local hardwareless report status is `accepted_with_documented_external_blockers`.
 - No-hardware release readiness is validated by `tools/validate_hardwareless_release_gate.py`, which fails unless `release_gate.status` matches the expected value.
+- Frontend-to-Godot project acceptance uses `frontend_godot_project_acceptance_report.v1` to retain WebUI case input, biped local acceptance output, optional Godot execution evidence and residual hardware/runtime blockers without mutating hardware modules.
+- Public real-data replay uses `public_real_data_sources.v1`, `public_real_data_replay_fixture.v1`, `public_real_data_replay_report.v1` and `public_real_data_replay_trace.jsonl`; default runs are offline and must label evidence as public dataset replay, simulated transport and real hardware not run.
+- Part-driven system simulation uses `part_driven_system_simulation_report.v1` plus optional JSONL trace to aggregate part inventory, mass/geometry, actuator load, terrain/contact, Godot IO, communication, public replay and hardware validation options from retained software evidence.
+- Simulation capability upgrade evidence is additive software validation only: sensor, scenario, robot-description mapping, fault-injection, ROS2-like topic contract and Godot visual acceptance outputs count toward software coverage while `real_world_coverage_status` remains externally blocked until real hardware, serial/CAN and ROS2 runtime are available.
 
 # Integration Plan
 
@@ -187,6 +195,8 @@ Phase 2 validation expands this set with module-specific checks:
 - 2026-05-18: Project plan introduced at repository root because `AGENTS.md` requires root `PROJECT_PLAN.md` for cross-module work.
 - 2026-05-18: Static Godot node-tree evidence wrapper delegates to existing report builder and sidecar gate validator instead of duplicating validation logic.
 - 2026-05-19: Phase 2 focuses on productized live verification, explainable mechanical behavior, Web evidence operations, additive schema 1.5 planning and delivery evidence bundles.
+- 2026-06-12: Public real-data replay and part-parameter-driven system simulation are accepted as software evidence layers only; they must not be used to claim real hardware, serial/CAN or ROS2 live validation.
+- 2026-06-12: Simulator-grade capability upgrades are implemented inside `biped_robot/` and retained as local evidence, with hardware integration left as a separate optional validation lane.
 
 # Change Control
 
@@ -251,3 +261,7 @@ Phase 2 validation expands this set with module-specific checks:
 - 2026-05-31: Approved opt-in live/external CI auditability contract: manual/scheduled live and external-environment jobs remain opt-in, but workflow tests now fail if their trigger conditions, enablement signals, artifact names/paths or retention policies drift.
 - 2026-06-05: Approved security exception scope update: scheduled main run `26998884678` found `deployment-web-panel-distributed` `perl-base` `CVE-2026-7010` with no Trivy fixed version; the existing temporary no-fix exception is extended only to that explicit CVE while keeping the current `2026-08-24T00:00:00+01:00` expiry and security-preflight fail-closed behavior.
 - 2026-06-10: Approved security exception scope update: scheduled main run `27257251046` found no-fix OpenSSL findings for `deployment-web-panel-distributed` components `openssl`, `libssl3t64`, and `openssl-provider-legacy`, and severity drift on existing `perl-base`/`libbz2-1.0` no-fix findings. Exceptions remain explicit CVE-scoped, keep the `2026-08-24T00:00:00+01:00` expiry, and do not change security-preflight fail-closed behavior.
+- 2026-06-12: Approved frontend-to-Godot project acceptance scope: WebUI case construction, biped local acceptance, optional Godot execution evidence and retained project-level report may be added without changing hardware, ROS2 or serial/CAN modules.
+- 2026-06-12: Approved public real-data replay scope: public dataset metadata and a small offline normalized fixture may feed Godot IO, communication, actuator/contact and coverage evidence while preserving real hardware blockers.
+- 2026-06-12: Approved part-driven system simulation scope: biped part parameters become the software simulation source of truth for system-level closeout, and hardware connection remains a later optional verification item.
+- 2026-06-12: Approved simulation capability upgrade scope: sensor simulation, scenario matrix, robot-description mapping preview, fault injection, ROS2-like topic contract simulation and Godot visual acceptance may be added under `biped_robot/` as software-only evidence.

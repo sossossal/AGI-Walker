@@ -12,8 +12,16 @@ REQUIRED_FILES = [
     "README.md",
     "config/robot.json",
     "config/actuators.json",
+    "config/communication.json",
+    "config/coverage_requirements.json",
     "config/godot_io_input.json",
     "config/mountain_terrain.json",
+    "config/public_real_data_sources.json",
+    "config/sensor_model.json",
+    "config/scenario_matrix.json",
+    "config/fault_injection.json",
+    "config/ros2_topic_contract.json",
+    "fixtures/public_real_data_replay_fixture.json",
     "godot/project.godot",
     "godot/scenes/biped_mountain_demo.tscn",
     "godot/scripts/biped_mountain_demo.gd",
@@ -22,6 +30,19 @@ REQUIRED_FILES = [
     "tools/build_hardware_gap_report.py",
     "tools/simulate_actuator_physics.py",
     "tools/build_component_parameter_log.py",
+    "tools/run_public_real_data_replay.py",
+    "tools/run_part_driven_system_simulation.py",
+    "tools/validate_part_driven_system_simulation.py",
+    "tools/run_sensor_simulation.py",
+    "tools/run_scenario_matrix.py",
+    "tools/export_robot_description_mapping.py",
+    "tools/run_fault_injection.py",
+    "tools/run_ros2_topic_contract_simulation.py",
+    "tools/run_godot_visual_acceptance.py",
+    "tools/build_simulation_capability_upgrade_report.py",
+    "tools/validate_simulation_capability_upgrade.py",
+    "tools/simulate_communication.py",
+    "tools/build_full_coverage_report.py",
     "tools/validate_godot_io.py",
     "tools/build_retention_manifest.py",
     "tools/run_local_acceptance.py",
@@ -117,6 +138,117 @@ def validate_godot_io_contract() -> None:
         fail("Godot IO input must include at least one command")
 
 
+def validate_communication_contract() -> None:
+    contract = read_json("config/communication.json")
+    if contract.get("schema_version") != "biped-communication.v1":
+        fail("communication schema_version must be biped-communication.v1")
+    transport = contract.get("transport", {})
+    for required in ["command_channel", "telemetry_channel", "ack_channel"]:
+        if not transport.get(required):
+            fail(f"communication transport missing: {required}")
+    for required in ["base_latency_ms", "jitter_ms", "ack_latency_ms"]:
+        if float(transport.get(required, -1.0)) < 0.0:
+            fail(f"communication transport must define non-negative {required}")
+    acceptance = contract.get("acceptance", {})
+    for required in [
+        "min_command_delivery_ratio",
+        "min_ack_ratio",
+        "min_telemetry_delivery_ratio",
+        "max_command_latency_ms",
+        "max_ack_latency_ms",
+        "max_telemetry_latency_ms",
+        "max_jitter_ms",
+    ]:
+        if required not in acceptance:
+            fail(f"communication acceptance missing: {required}")
+    outputs = contract.get("outputs", {})
+    for required in ["events_path", "report_path"]:
+        if not str(outputs.get(required, "")).startswith("test_env/"):
+            fail(f"communication output must stay inside biped_robot/test_env: {required}")
+
+
+def validate_coverage_contract() -> None:
+    contract = read_json("config/coverage_requirements.json")
+    if contract.get("schema_version") != "biped-coverage-requirements.v1":
+        fail("coverage schema_version must be biped-coverage-requirements.v1")
+    if contract.get("scope") != "biped_robot":
+        fail("coverage scope must be biped_robot")
+    if not contract.get("software_domains"):
+        fail("coverage must define software domains")
+    if not str(contract.get("hardware_gap_report", "")).startswith("test_env/"):
+        fail("coverage hardware_gap_report must stay in test_env")
+    domain_names = {domain.get("name") for domain in contract.get("software_domains", [])}
+    if "public_real_data_replay" not in domain_names:
+        fail("coverage must include public_real_data_replay domain")
+    if "part_driven_system_simulation" not in domain_names:
+        fail("coverage must include part_driven_system_simulation domain")
+    for required in {
+        "sensor_simulation",
+        "scenario_matrix",
+        "robot_description_mapping",
+        "fault_injection",
+        "ros2_topic_contract_simulation",
+        "godot_visual_acceptance",
+        "simulation_capability_upgrade",
+    }:
+        if required not in domain_names:
+            fail(f"coverage must include {required} domain")
+
+
+def validate_public_real_data_replay_contract() -> None:
+    sources = read_json("config/public_real_data_sources.json")
+    if sources.get("schema_version") != "public_real_data_sources.v1":
+        fail("public real data sources schema_version must be public_real_data_sources.v1")
+    if sources.get("network_download_default") is not False:
+        fail("public real data replay must default to offline mode")
+    source_ids = {source.get("source_id") for source in sources.get("sources", [])}
+    for required in {"leg_kilo", "arco_ros2", "candid_vehiclesec", "aegis_can"}:
+        if required not in source_ids:
+            fail(f"public real data sources missing: {required}")
+
+    fixture = read_json("fixtures/public_real_data_replay_fixture.json")
+    if fixture.get("schema_version") != "public_real_data_replay_fixture.v1":
+        fail("public replay fixture schema_version must be public_real_data_replay_fixture.v1")
+    samples = fixture.get("samples", [])
+    if len(samples) < 10:
+        fail("public replay fixture must include at least 10 samples")
+    payload_types = {sample.get("payload_type") for sample in samples}
+    for required in {"joint_state", "foot_contact", "imu", "odom", "twist", "can_frame"}:
+        if required not in payload_types:
+            fail(f"public replay fixture missing payload_type: {required}")
+    if not {sample.get("source_dataset") for sample in samples}.issubset(source_ids):
+        fail("public replay fixture references an unknown source_dataset")
+
+
+def validate_simulation_capability_contracts() -> None:
+    sensor = read_json("config/sensor_model.json")
+    if sensor.get("schema_version") != "biped-sensor-model.v1":
+        fail("sensor model schema_version must be biped-sensor-model.v1")
+    for required in ["imu", "joint_encoder", "foot_contact", "visual", "acceptance"]:
+        if required not in sensor:
+            fail(f"sensor model missing: {required}")
+
+    matrix = read_json("config/scenario_matrix.json")
+    if matrix.get("schema_version") != "biped-scenario-matrix.v1":
+        fail("scenario matrix schema_version must be biped-scenario-matrix.v1")
+    if len(matrix.get("scenarios", [])) < 6:
+        fail("scenario matrix must include at least 6 scenarios")
+
+    faults = read_json("config/fault_injection.json")
+    if faults.get("schema_version") != "biped-fault-injection.v1":
+        fail("fault injection schema_version must be biped-fault-injection.v1")
+    if len(faults.get("faults", [])) < 6:
+        fail("fault injection must include at least 6 faults")
+
+    ros2 = read_json("config/ros2_topic_contract.json")
+    if ros2.get("schema_version") != "biped-ros2-topic-contract.v1":
+        fail("ROS2 topic contract schema_version must be biped-ros2-topic-contract.v1")
+    topics = {topic.get("name") for topic in ros2.get("topics", [])}
+    for required in {"/joint_states", "/imu", "/cmd_joint_targets", "/clock", "/tf"}:
+        if required not in topics:
+            fail(f"ROS2 topic contract missing topic: {required}")
+
+
 def validate_godot_contract() -> None:
     project_text = (ROOT / "godot" / "project.godot").read_text(encoding="utf-8")
     scene_text = (ROOT / "godot" / "scenes" / "biped_mountain_demo.tscn").read_text(encoding="utf-8")
@@ -156,6 +288,19 @@ def validate_python_tools() -> None:
         "tools/build_hardware_gap_report.py",
         "tools/simulate_actuator_physics.py",
         "tools/build_component_parameter_log.py",
+        "tools/run_public_real_data_replay.py",
+        "tools/run_part_driven_system_simulation.py",
+        "tools/validate_part_driven_system_simulation.py",
+        "tools/run_sensor_simulation.py",
+        "tools/run_scenario_matrix.py",
+        "tools/export_robot_description_mapping.py",
+        "tools/run_fault_injection.py",
+        "tools/run_ros2_topic_contract_simulation.py",
+        "tools/run_godot_visual_acceptance.py",
+        "tools/build_simulation_capability_upgrade_report.py",
+        "tools/validate_simulation_capability_upgrade.py",
+        "tools/simulate_communication.py",
+        "tools/build_full_coverage_report.py",
         "tools/validate_godot_io.py",
         "tools/build_retention_manifest.py",
         "tools/run_local_acceptance.py",
@@ -169,6 +314,10 @@ def main() -> int:
     validate_terrain_contract()
     validate_actuator_contract()
     validate_godot_io_contract()
+    validate_communication_contract()
+    validate_coverage_contract()
+    validate_public_real_data_replay_contract()
+    validate_simulation_capability_contracts()
     validate_godot_contract()
     validate_hardware_boundary_contract()
     validate_python_tools()
