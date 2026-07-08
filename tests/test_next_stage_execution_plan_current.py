@@ -104,6 +104,9 @@ def test_next_stage_plan_has_blocker_resolution_table() -> None:
     assert "`next_stage_readiness_report` 当前会输出 `action_plan`、`blocker_details`、`generated_at`、`git` 和 `validation_errors`" in content
     assert "`next_stage_readiness_report.generated_at`" in content
     assert "`next_stage_readiness_report.git`" in content
+    assert "`GITHUB_HEAD_REF`" in content
+    assert "`GITHUB_REF_NAME`" in content
+    assert "`GITHUB_SHA`" in content
     assert "`validation_errors` 固定校验 summary 计数" in content
     assert "当前 typed surface blocker 已收敛，仅保留真实 cutover 输入" in content
     assert "剩余 action 应全部归类为 `external_input`" in content

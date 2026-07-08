@@ -1,6 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
+import tools.build_next_stage_readiness_report as readiness
 from tools.build_next_stage_readiness_report import (
     DEFAULT_ARTIFACTS,
     build_next_stage_readiness_report,
@@ -36,6 +37,25 @@ def test_next_stage_readiness_report_tracks_all_route_closeouts() -> None:
     assert report["validation_errors"] == []
     assert {item["id"] for item in report["artifacts"]} == expected
     assert report["summary"]["artifact_count"] == len(expected)
+
+
+def test_next_stage_readiness_git_metadata_uses_github_detached_head_fallback(
+    monkeypatch,
+) -> None:
+    def fake_git_value(args):
+        if args == ["status", "--porcelain"]:
+            return ""
+        return None
+
+    monkeypatch.setattr(readiness, "_git_value", fake_git_value)
+    monkeypatch.setenv("GITHUB_SHA", "abc123")
+    monkeypatch.setenv("GITHUB_HEAD_REF", "codex/example-branch")
+
+    assert readiness._git_metadata() == {
+        "commit_sha": "abc123",
+        "branch": "codex/example-branch",
+        "is_dirty": False,
+    }
 
 
 def test_next_stage_readiness_report_fails_closed_with_current_missing_evidence(

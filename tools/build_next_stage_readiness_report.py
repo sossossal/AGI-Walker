@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -203,8 +204,12 @@ def _git_value(args: Sequence[str]) -> str | None:
 
 def _git_metadata() -> dict[str, Any]:
     return {
-        "commit_sha": _git_value(["rev-parse", "HEAD"]),
-        "branch": _git_value(["branch", "--show-current"]),
+        "commit_sha": _git_value(["rev-parse", "HEAD"]) or os.environ.get("GITHUB_SHA"),
+        "branch": (
+            _git_value(["branch", "--show-current"])
+            or os.environ.get("GITHUB_HEAD_REF")
+            or os.environ.get("GITHUB_REF_NAME")
+        ),
         "is_dirty": bool(_git_value(["status", "--porcelain"])),
     }
 
