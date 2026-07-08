@@ -82,6 +82,15 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         description="Build an aggregate readiness report for the next-stage execution plan."
     )
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--expected-status",
+        choices=("blocked", "ready"),
+        default=None,
+        help=(
+            "Return success when the generated report has this status and "
+            "self-validation passes. Omit to require ready."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -381,15 +390,36 @@ def main(argv: Sequence[str] | None = None) -> int:
         json.dumps(report, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    _print_summary(report=report, output_path=output_path)
-    return 0 if report["status"] == "ready" and not report["validation_errors"] else 1
+    exit_code = _exit_code(report=report, expected_status=args.expected_status)
+    _print_summary(
+        report=report,
+        output_path=output_path,
+        expected_status=args.expected_status,
+        exit_code=exit_code,
+    )
+    return exit_code
 
 
-def _print_summary(*, report: dict[str, Any], output_path: Path) -> None:
+def _exit_code(*, report: dict[str, Any], expected_status: str | None) -> int:
+    if report["validation_errors"]:
+        return 1
+    required_status = expected_status or "ready"
+    return 0 if report["status"] == required_status else 1
+
+
+def _print_summary(
+    *,
+    report: dict[str, Any],
+    output_path: Path,
+    expected_status: str | None,
+    exit_code: int,
+) -> None:
     summary = report["summary"]
     git = report["git"]
     print(f"next_stage_readiness_written={output_path.as_posix()}")
     print(f"next_stage_readiness_status={report['status']}")
+    print(f"next_stage_readiness_expected_status={expected_status or 'ready'}")
+    print(f"next_stage_readiness_exit_code={exit_code}")
     print(f"next_stage_readiness_validation_errors={len(report['validation_errors'])}")
     print(
         "next_stage_readiness_actions="

@@ -56,9 +56,44 @@ def test_next_stage_readiness_report_fails_closed_with_current_missing_evidence(
     stdout = capsys.readouterr().out
     assert "next_stage_readiness_written=" in stdout
     assert "next_stage_readiness_status=blocked" in stdout
+    assert "next_stage_readiness_expected_status=ready" in stdout
+    assert "next_stage_readiness_exit_code=1" in stdout
     assert "next_stage_readiness_validation_errors=0" in stdout
     assert "next_stage_readiness_actions=external_input:" in stdout
     assert "next_stage_readiness_git=branch:" in stdout
+
+
+def test_next_stage_readiness_report_can_archive_expected_blocked_state(
+    tmp_path: Path, capsys,
+) -> None:
+    output = tmp_path / "next_stage_readiness_report.json"
+
+    exit_code = main(
+        ["--output", str(output), "--expected-status", "blocked"]
+    )
+
+    assert exit_code == 0
+    content = output.read_text(encoding="utf-8")
+    assert '"status": "blocked"' in content
+    assert '"validation_errors": []' in content
+    stdout = capsys.readouterr().out
+    assert "next_stage_readiness_status=blocked" in stdout
+    assert "next_stage_readiness_expected_status=blocked" in stdout
+    assert "next_stage_readiness_exit_code=0" in stdout
+
+
+def test_next_stage_readiness_report_expected_ready_still_fails_when_blocked(
+    tmp_path: Path, capsys,
+) -> None:
+    output = tmp_path / "next_stage_readiness_report.json"
+
+    exit_code = main(["--output", str(output), "--expected-status", "ready"])
+
+    assert exit_code == 1
+    stdout = capsys.readouterr().out
+    assert "next_stage_readiness_status=blocked" in stdout
+    assert "next_stage_readiness_expected_status=ready" in stdout
+    assert "next_stage_readiness_exit_code=1" in stdout
 
 
 def test_next_stage_readiness_report_includes_actionable_blocker_details() -> None:
