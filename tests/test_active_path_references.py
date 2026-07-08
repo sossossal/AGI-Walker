@@ -658,6 +658,27 @@ def test_security_preflight_ci_job_uses_current_runner_and_artifacts() -> None:
     assert "path: test_env/release_evidence_ci" in content
 
 
+def test_next_stage_readiness_ci_job_archives_blocked_or_ready_evidence() -> None:
+    jobs = _workflow_jobs()
+    job = jobs["next-stage-readiness"]
+
+    assert job["needs"] == "smoke"
+    step_runs = _joined_step_runs(job)
+    default_command = (
+        "python tools/build_next_stage_readiness_report.py "
+        "--output test_env/next_stage/next_stage_readiness_report.json"
+    )
+    assert default_command in step_runs
+    assert f"{default_command} --expected-status blocked" in step_runs
+    assert "||" in step_runs
+
+    upload_step = _artifact_upload_step(job, "next-stage-readiness-artifacts")
+    upload_with = upload_step["with"]
+    assert upload_with["path"] == "test_env/next_stage"
+    assert upload_with["if-no-files-found"] == "ignore"
+    assert upload_with["retention-days"] == 14
+
+
 def test_production_runbook_uses_current_compose_entrypoints() -> None:
     runbook = PRODUCTION_RUNBOOK.read_text(encoding="utf-8")
 

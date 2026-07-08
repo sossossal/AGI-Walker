@@ -20,6 +20,8 @@ python tools/build_next_stage_readiness_report.py --output test_env/next_stage/n
 
 该模式只在报告自校验通过且状态确实为 `blocked` 时返回 0，便于保留 artifact；最终验收仍必须使用默认命令或 `--expected-status ready`，并要求 `next_stage_readiness_report.status=ready`。
 
+GitHub Actions 的 `next-stage-readiness` job 会先运行默认命令；如果当前仍缺真实外部 evidence，再用 `--expected-status blocked` 生成并上传 `next-stage-readiness-artifacts`。这只是 evidence retention，不是 release readiness 通过条件。
+
 当前已经具备：
 
 - 本地最小部署

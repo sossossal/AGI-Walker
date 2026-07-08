@@ -45,6 +45,8 @@ def test_next_stage_plan_has_command_index_for_closeout_tools() -> None:
     assert "`next_stage_readiness_validation_errors`" in content
     assert "--expected-status blocked" in content
     assert "最终验收仍必须使用默认命令或 `--expected-status ready`" in content
+    assert "`next-stage-readiness` job" in content
+    assert "`next-stage-readiness-artifacts`" in content
     assert "python tools/build_hardware_live_closeout_report.py --output test_env/hardware_live/hardware_live_closeout_report.json" in content
     assert "python tools/build_vendor_fault_sample_closeout.py --output test_env/hardware_live/vendor_fault_sample_closeout.json" in content
     assert "python tools/build_vendor_fault_data_review.py --telemetry-report test_env/hardware_live/hardware_fault_telemetry_report.json --output test_env/hardware_live/vendor_fault_data_review.json" in content
