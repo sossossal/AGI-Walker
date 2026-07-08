@@ -58,7 +58,7 @@ DEFAULT_SECURITY_RELEASE_PREFLIGHT_REPORT_PATH = (
     "test_env/release_evidence/security_release_preflight_report.json"
 )
 DEFAULT_WORKTREE_RELEASE_BLOCKER_REPORT_PATH = (
-    "test_env/worktree_release_blocker/worktree_release_blocker_report.json"
+    "test_env/worktree_cleanup/worktree_release_blocker_report.json"
 )
 
 

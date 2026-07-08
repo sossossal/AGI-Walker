@@ -87,7 +87,7 @@ python tools/build_extension_execution_evidence.py --output-root test_env/releas
 python tools/build_extension_execution_instance.py --output test_env/release_evidence/operations/extension_execution_instance.json --vulnerability-exception-report test_env/release_evidence/security/vulnerability_exception_report.json
 python tools/build_extension_execution_schedule.py --output test_env/release_evidence/operations/extension_execution_schedule.json --instance-artifact test_env/release_evidence/operations/extension_execution_instance.json
 python tools/build_extension_execution_actuals.py --output test_env/release_evidence/operations/extension_execution_actuals.json --schedule-artifact test_env/release_evidence/operations/extension_execution_schedule.json --external-bindings-config deployment/customer_delivery.external_bindings.json
-python tools/build_release_artifact.py --version 2026.04.15-rc-evidence --channel rc --build-id build-20260415-security-preflight --release-summary "Phase D security preflight closed with canonical no-fix exceptions for deployment-web-panel-distributed." --output test_env/release/release_manifest_rc_evidence.json
+python tools/build_release_artifact.py --version 2026.04.15-rc-evidence --channel rc --build-id build-20260415-security-preflight --release-summary "Phase D security preflight closed with zero deployment-web-panel-distributed findings." --output test_env/release/release_manifest_rc_evidence.json
 python tools/build_customer_acceptance_bundle.py --manifest test_env/release/release_manifest_rc_evidence.json --output test_env/release/customer_acceptance_bundle_rc_evidence.json
 ```
 

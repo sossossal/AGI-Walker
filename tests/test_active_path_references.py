@@ -960,7 +960,11 @@ def test_customer_deployment_docs_and_compose_defaults_use_current_single_path()
     assert "SQLite" in known_limitations
     assert "stdio" in known_limitations
     assert "deployment-web-panel-distributed" in known_limitations
-    assert "2026-05-15" in known_limitations
+    assert "0 findings" in known_limitations
+    assert "0 active exceptions" in known_limitations
+    assert "security-preflight` 会 fail closed" in known_limitations
+    assert "104" not in known_limitations
+    assert "31 条 active no-fix exceptions" not in known_limitations
     assert "CAPACITY_AND_SCALE.md" in known_limitations
     assert "生产部署 Runbook" in readme
     assert "客户安装指南" in readme
