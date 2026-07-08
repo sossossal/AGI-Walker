@@ -37,6 +37,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - [x] Replace `python-jose[cryptography]` with `PyJWT` for HS256 Web Panel tokens so the no-fix transitive `ecdsa` Python vulnerability is removed instead of accepted by exception.
 - [ ] Validate `python:3.11-alpine` as the Web Panel default candidate through remote Docker/Trivy evidence before accepting it as a real container finding burn-down.
 - [ ] Re-run the Alpine candidate after adding the minimal `libgcc` apk dependency needed by the `eclipse-zenoh` Rust metadata path.
+- [ ] Re-run the Alpine candidate after adding temporary `build-base` apk build dependencies for the `eclipse-zenoh` native wheel build path, ensuring build deps are removed from the final image.
 
 # Notes
 
@@ -64,6 +65,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - 2026-07-08: Main security artifact still showed one Python finding: transitive `ecdsa` from `python-jose[cryptography]`, `PYSEC-2026-1325`, with no fix version. Web Panel auth only uses HS256 encode/decode, so the dependency was replaced with `PyJWT` while preserving token semantics and `decode_access_token` returning `None` on invalid tokens.
 - 2026-07-08: Remaining production security risk is concentrated in the `deployment-web-panel-distributed` OS package layer. The next candidate switches the Web Panel default base to `python:3.11-alpine` and adds `apk` package-manager support. This is not accepted as remediation until GitHub security-preflight confirms image build success, lower findings and no unresolved/stale exception drift.
 - 2026-07-08: PR #20 security-preflight failed before Trivy because the Alpine `eclipse-zenoh` install path downloaded a musl Rust toolchain whose `cargo` needed `libgcc_s.so.1`. The candidate now installs the minimal `libgcc` apk package by default and keeps it overrideable through `AGI_WALKER_WEB_PANEL_APK_PACKAGES`.
+- 2026-07-08: PR #20 security-preflight then progressed to native `eclipse-zenoh` compilation and failed because Alpine lacked linker `cc`. The candidate now installs `build-base` as a virtual apk build dependency and removes `.web-panel-build-deps` after pip install so compiler packages are not retained in the final filesystem.
 
 # Non-Goals
 

@@ -15,6 +15,7 @@ COPY deployment/requirements.web_panel.distributed.txt /app/deployment/requireme
 
 ARG WEB_PANEL_APT_PACKAGES=""
 ARG WEB_PANEL_APK_PACKAGES="libgcc"
+ARG WEB_PANEL_APK_BUILD_PACKAGES="build-base"
 ARG WEB_PANEL_REQUIREMENTS_FILE=/app/deployment/requirements.web_panel.txt
 
 RUN if command -v apt-get >/dev/null 2>&1; then \
@@ -29,6 +30,9 @@ RUN if command -v apt-get >/dev/null 2>&1; then \
         apk upgrade --no-cache && \
         if [ -n "$WEB_PANEL_APK_PACKAGES" ]; then \
             apk add --no-cache $WEB_PANEL_APK_PACKAGES; \
+        fi && \
+        if [ -n "$WEB_PANEL_APK_BUILD_PACKAGES" ]; then \
+            apk add --no-cache --virtual .web-panel-build-deps $WEB_PANEL_APK_BUILD_PACKAGES; \
         fi; \
     else \
         echo "unsupported base image package manager" >&2; \
@@ -37,7 +41,10 @@ RUN if command -v apt-get >/dev/null 2>&1; then \
     rm -rf /tmp/*
 
 RUN python -m pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r "$WEB_PANEL_REQUIREMENTS_FILE"
+    pip install --no-cache-dir -r "$WEB_PANEL_REQUIREMENTS_FILE" && \
+    if command -v apk >/dev/null 2>&1 && apk info -e .web-panel-build-deps >/dev/null 2>&1; then \
+        apk del .web-panel-build-deps; \
+    fi
 
 COPY . /app
 
