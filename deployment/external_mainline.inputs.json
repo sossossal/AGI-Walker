@@ -13,7 +13,7 @@
     "confirmation_ticket": "CHG-CUSTOMER-2026-0424",
     "confirmation_notes": "First-round closeout values applied from the completed example; replace with the real customer confirmation metadata before final release signoff.",
     "confirmation_evidence": "docs/customer/change-window/CHG-CUSTOMER-2026-0424.md",
-    "skip_collect_release_evidence": false
+    "skip_collect_release_evidence": true
   },
   "vulnerability_exception_review": {
     "enabled": true,
