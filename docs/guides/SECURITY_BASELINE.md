@@ -144,6 +144,13 @@ python tools/run_security_release_preflight.py --security-only --output-root tes
 
 该命令当前是阶段 D 的正式 preflight 入口，CI 也应复用它，而不是各自拼 scanner 命令。
 
+`security-preflight` 的 stdout 会区分两类常见失败：
+
+- `security_release_preflight_blocked_vulnerability_execution_reports>0`：scanner 没有成功产出结构化报告，例如本机 Docker daemon 未运行、Trivy 运行失败或镜像不可访问。此时 `finding_count` 可能仍为 `0`，但 release gate 必须保持 blocked。
+- `security_release_preflight_blocked_vulnerability_finding_reports>0`：scanner 成功执行，但发现了未修复或未被有效 exception 覆盖的漏洞 finding。
+
+同时输出的 `security_release_preflight_blocked_vulnerability_report_names` 会列出受影响扫描面，例如 `container_images`。这些字段只用于诊断，不改变 fail-closed 门禁。
+
 如果 scanner 已经执行完，并且你要把修复顺序固定成结构化报告，而不是只看原始 JSON，可直接生成 remediation report：
 
 ```bash

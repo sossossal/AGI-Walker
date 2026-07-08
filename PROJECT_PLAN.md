@@ -93,6 +93,7 @@ Out of scope:
 - No-hardware acceptance reports must expose `release_gate.status`; release-gate status remains `blocked` while required external evidence is missing, even if the local hardwareless report status is `accepted_with_documented_external_blockers`.
 - No-hardware release readiness is validated by `tools/validate_hardwareless_release_gate.py`, which fails unless `release_gate.status` matches the expected value.
 - Security residual-risk tracking uses `vulnerability_exception_burndown_report.v1` as a non-gating artifact that summarizes active temporary exceptions by expiry, ticket, component, image ref and highest severity; security evidence collection preserves it and security preflight may surface its metrics, but it must not change `security-preflight` pass/fail behavior.
+- Security preflight CLI output must distinguish missing scan reports, scanner execution blockers, vulnerability finding blockers and blocked scan names so CI logs can separate environment/tooling failures from real vulnerability posture failures without weakening fail-closed behavior.
 
 # Integration Plan
 
@@ -267,3 +268,4 @@ Phase 2 validation expands this set with module-specific checks:
 - 2026-07-08: Approved next-stage readiness provenance hardening: `next_stage_readiness_report.v1` includes Git commit, branch and dirty-state metadata so branch/main and clean/dirty evidence snapshots are distinguishable.
 - 2026-07-08: Approved next-stage readiness self-validation contract: `next_stage_readiness_report.v1` includes `validation_errors` and validates summary counts, blocker/detail/action ordering, generated timestamp and Git metadata shape before a ready report can exit successfully.
 - 2026-07-08: Approved next-stage readiness CLI observability: `tools/build_next_stage_readiness_report.py` prints status, validation error count, action scope counts and Git provenance summary to stdout so CI logs expose the blocker class without opening the JSON artifact.
+- 2026-07-08: Approved security-preflight scan-blocker observability: `tools/run_security_release_preflight.py` now prints missing, blocked, execution-blocked and finding-blocked vulnerability report counts plus blocked scan names, while preserving the same fail-closed release gate.
