@@ -260,7 +260,7 @@ python -m pytest -m "not live" -q
 - `tools/build_vulnerability_exception_report.py` 与 `vulnerability_exception_report` contract 当前已落地。tracked canonical input 现已收口到 `deployment/security/vulnerability_exceptions.input.json`，`tools/collect_release_evidence.py` 与 `tools/run_security_release_preflight.py` 默认会从该路径生成结构化 exception report；当前还会追加独立的 `vulnerability_exception_review_report`，把 review-due / expired exception 列表与 follow-up 信号固化成 release evidence。
 - `check_release_readiness.py`、`build_stable_promotion_checklist.py` 与 `build_industrial_promotion_checklist.py` 当前也已切到这条独立 review artifact：在 residual-risk 仍需复核时，它们会先推荐 `build_vulnerability_exception_review_report.py`，再提示更新 `deployment/security/vulnerability_exceptions.input.json` 并重跑 security release preflight。
 - `tools/build_vulnerability_remediation_report.py` 当前已可消费 `vulnerability_exception_report`，并把 accepted findings 与 unresolved findings 分开输出；`tools/build_security_posture_report.py` 也已直接感知这条 residual risk contract。dockerized Trivy fallback 的 `/scan/image.tar` 镜像标识问题也已修复，因此镜像级 exception 现在能稳定匹配 canonical findings。
-- 当前阶段 D 已完成一次 checkpoint 收口：Zenoh router 交付镜像 `deployment-zenoh-router` 当前已复绿，`deployment-web-panel-distributed` 的 `104 findings / 31 affected components` 当前已通过 `31` 条 active no-fix exceptions 进入 canonical remediation；`accepted_finding_count=104`、`unresolved_finding_count=0`、`security_posture_status=ready`、`security_release_preflight_status=passed`，并且最新 canonical review surface 已显式写出 `vulnerability_exception_review_report_status=passed` / `vulnerability_exception_review_candidate_count=31`。
+- 当前阶段 D 已完成一次 checkpoint 收口：Zenoh router 交付镜像 `deployment-zenoh-router` 当前已复绿，Web Panel Alpine 候选使 `deployment-web-panel-distributed` 也达到 `0 findings`；`accepted_finding_count=0`、`unresolved_finding_count=0`、`security_posture_status=ready`、`security_release_preflight_status=passed`，旧 no-fix exceptions 已从受管输入退休。
 
 阶段六不再继续扩功能面，而是收口以下五类差距：
 
@@ -274,7 +274,7 @@ python -m pytest -m "not live" -q
 
 - 阶段六当前已完成从 Phase D 的 preflight 复绿到 Phase E 文档接线、再到 Phase F rehearsal bridge 和 industrial channel gate 的推进。当前保存的下一步顺序为：
   1. 把 `extension_execution_actuals` 从当前默认 `customer_ticket_registry` / `customer_archive_destination` / `customer_due_trigger_schedule` binding 参考值，继续推进到客户真实审批系统、真实 archive target 和真实调度触发适配，而不是只停留在 repo 内默认 reference string
-  2. 持续复跑 canonical security evidence，并在 `2026-05-15` 前用真实修复替换现有 no-fix exceptions
+  2. 持续复跑 canonical security evidence；当前 no-fix exceptions 已退休，后续若 scanner DB 刷新重新出现 findings，应由 security-preflight fail closed 后再处理
   3. 在独立 industrial readiness / promotion flow 稳定后，推进阶段 F 的完整工业交付演练
   4. 持续把 Phase E 文档和支持边界声明压进后续 industrial release surface
 

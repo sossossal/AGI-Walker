@@ -154,8 +154,8 @@ python tools/build_vulnerability_remediation_report.py --python-vuln-report test
 当前 canonical 口径下，security posture 与 preflight 已从“缺少漏洞报告或剩余 findings 未闭合”推进到“报告完整、risk 已解释且已通过”。当前基线为：
 
 - Python 依赖：当前已 `passed`，`finding_count=0`
-- 容器镜像：当前 canonical findings 以 `deployment-zenoh-router` 和 `deployment-web-panel-distributed` 为准；其中 `deployment-web-panel-distributed` 的 `104 findings / 31 affected components` 当前已由 `31` 条 active no-fix exceptions 进入 accepted residual risk
-- `vulnerability_remediation_report`: `ready`，`accepted_finding_count=104`、`unresolved_finding_count=0`、`matched_exception_count=31`
+- 容器镜像：当前 canonical findings 以 `deployment-zenoh-router` 和 `deployment-web-panel-distributed` 为准；PR #20 / GitHub Actions run `28962518720` 证明两者当前均为 `0 findings`
+- `vulnerability_remediation_report`: `ready`，`accepted_finding_count=0`、`unresolved_finding_count=0`、`matched_exception_count=0`
   - 若某条 `only_without_fix_version=true` 的 active exception 对应 findings 开始携带 fix version，report 现在会额外挂出 `stale_exception_count` / `stale_exceptions`，明确标记哪些 no-fix exceptions 已失效，需要从审批输入里移除或替换
 - `security_posture_status=ready`
 - `security_release_preflight_status=passed`
@@ -171,7 +171,7 @@ dockerized Trivy fallback 的 `/scan/image.tar` 镜像标识问题也已修复�
 - `vulnerability_remediation_report`
   - 当前会在 `vulnerability_exception_report` 段补充 `stale_exception_count`、`stale_exception_ids` 与 `stale_exceptions`，用于标记“原先只允许 no-fix 的 exception 现在已经看到 fix version”
 - `security_posture_report`
-  - 当前会在 `vulnerability_exception_report` 摘要段继续透传 review-window 指标和 `stale_exception_count` / `stale_exception_ids`；`tools/run_security_release_preflight.py` 也会把它们写进结构化 evidence metrics，便于持续追踪 `2026-05-15` 前的 residual risk 消化状态
+  - 当前会在 `vulnerability_exception_report` 摘要段继续透传 review-window 指标和 `stale_exception_count` / `stale_exception_ids`；`tools/run_security_release_preflight.py` 也会把它们写进结构化 evidence metrics。最新受管输入已无 active exceptions，后续 findings 重新出现时应由 security-preflight fail closed 后再处理
 
 只有在 SBOM、两份漏洞扫描报告、恢复演练报告和本页列出的基线文档都齐全时，`security_posture_report.posture_status` 才会进入 ready 判定。若剩余 findings 已被有效 `vulnerability_exception_report` 覆盖，security posture 可以带着显式 residual risk 进入 `ready`；否则仍保持 `blocked`。
 
