@@ -34,6 +34,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - [x] Add a non-gating vulnerability exception burn-down report so active temporary exceptions can be reviewed by expiry, ticket, component, image and severity without changing preflight pass/fail behavior.
 - [x] Preserve the vulnerability exception burn-down report in collected security evidence and surface its status/counts in security preflight metrics without adding a new release blocker.
 - [x] Pin the web panel production Dockerfile to a reproducible Debian suite base image and expose a compose override so remote Docker/Trivy evidence can test alternate candidates before promotion.
+- [x] Replace `python-jose[cryptography]` with `PyJWT` for HS256 Web Panel tokens so the no-fix transitive `ecdsa` Python vulnerability is removed instead of accepted by exception.
 
 # Notes
 
@@ -58,6 +59,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - 2026-07-08: PR #16 run `28938765573` reduced the blocker to 9 unresolved `deployment-web-panel-distributed` findings: existing util-linux package-family `CVE-2026-53615` entries across `bsdutils`, `libblkid1`, `liblastlog2-2`, `libmount1`, `libsmartcols1`, `libuuid1`, `login`, `mount`, and `util-linux` drifted to `HIGH` severity while still reporting `FixedVersion=null`. Updated those existing scoped no-fix exception severity lists and kept the fail-closed behavior for future CVE, severity or fix-version drift.
 - 2026-07-08: Added `vulnerability_exception_burndown_report` as a read-only residual-risk artifact. It summarizes active, review-due and expired temporary exceptions by scope, ticket, component, image ref and highest severity, emits action items for ongoing no-fix burn-down, is collected into security evidence artifacts, and is surfaced in security preflight metrics without becoming a release gate.
 - 2026-07-08: Latest main security artifact showed `deployment-web-panel-distributed` built from floating `python:3.11-slim`, which resolved to Debian 13.5 and carried 165 no-fix container findings covered by temporary exceptions. A remote PR scan proved `python:3.11-slim-bookworm` is not an acceptable default because it increased findings to 186 and left 185 unresolved against current exceptions. The web panel Dockerfile now defaults to the equivalent reproducible `python:3.11-slim-trixie` through `WEB_PANEL_BASE_IMAGE`, and `deployment/docker-compose.yml` exposes `AGI_WALKER_WEB_PANEL_BASE_IMAGE` for controlled candidate scans before any future promotion.
+- 2026-07-08: Main security artifact still showed one Python finding: transitive `ecdsa` from `python-jose[cryptography]`, `PYSEC-2026-1325`, with no fix version. Web Panel auth only uses HS256 encode/decode, so the dependency was replaced with `PyJWT` while preserving token semantics and `decode_access_token` returning `None` on invalid tokens.
 
 # Non-Goals
 

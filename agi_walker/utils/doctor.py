@@ -28,7 +28,7 @@ CORE_DEPENDENCIES = {
     "celery": "celery",
     "redis": "redis",
     "passlib": "passlib",
-    "python-jose": "jose",
+    "PyJWT": "jwt",
     "python-multipart": "multipart",
     "prometheus-fastapi-instrumentator": "prometheus_fastapi_instrumentator",
     "python-json-logger": "pythonjsonlogger",

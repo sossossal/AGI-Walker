@@ -275,6 +275,8 @@ def test_doctor_checks_current_runtime_dependencies_and_ports() -> None:
     assert '"mcp": "mcp"' in content
     assert '"sqlalchemy": "sqlalchemy"' in content
     assert '"aiosqlite": "aiosqlite"' in content
+    assert '"PyJWT": "jwt"' in content
+    assert '"python-jose": "jose"' not in content
     assert (
         '"prometheus-fastapi-instrumentator": "prometheus_fastapi_instrumentator"'
         in content

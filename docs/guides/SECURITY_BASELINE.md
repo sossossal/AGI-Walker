@@ -28,6 +28,7 @@
 2. 真实 `deployment/web_panel.env` 不入库。
 3. 真实 `AGI_WALKER_SECRET_KEY` 通过客户环境的 secrets 管理方式注入，不通过聊天、邮件或 issue 明文分发。
 4. 发布前必须确认 `AGI_WALKER_SECRET_KEY` 不等于 `change-me-before-production` 或代码默认值。
+5. Web Panel JWT 只使用 HS256 token encode/decode，由 `PyJWT` 提供；不得重新引入会拉入 no-fix `ecdsa` finding 的 `python-jose[cryptography]`。
 
 ## 配置分层
 
