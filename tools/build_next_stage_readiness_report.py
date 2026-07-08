@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -214,6 +215,7 @@ def build_next_stage_readiness_report() -> dict[str, Any]:
     action_plan = _action_plan(blocker_details)
     return {
         "schema_version": SCHEMA_VERSION,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "status": status,
         "summary": {
             "artifact_count": len(artifacts),
