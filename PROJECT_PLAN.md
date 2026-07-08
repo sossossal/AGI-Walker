@@ -92,6 +92,7 @@ Out of scope:
 - No-hardware acceptance strict mode uses `--require-external-evidence` and must return `blocked` when real hardware closeout or ROS2 bridge live smoke evidence is missing or not ready.
 - No-hardware acceptance reports must expose `release_gate.status`; release-gate status remains `blocked` while required external evidence is missing, even if the local hardwareless report status is `accepted_with_documented_external_blockers`.
 - No-hardware release readiness is validated by `tools/validate_hardwareless_release_gate.py`, which fails unless `release_gate.status` matches the expected value.
+- Security residual-risk tracking uses `vulnerability_exception_burndown_report.v1` as a non-gating artifact that summarizes active temporary exceptions by expiry, ticket, component, image ref and highest severity; security evidence collection preserves it and security preflight may surface its metrics, but it must not change `security-preflight` pass/fail behavior.
 
 # Integration Plan
 
@@ -251,3 +252,4 @@ Phase 2 validation expands this set with module-specific checks:
 - 2026-05-31: Approved opt-in live/external CI auditability contract: manual/scheduled live and external-environment jobs remain opt-in, but workflow tests now fail if their trigger conditions, enablement signals, artifact names/paths or retention policies drift.
 - 2026-06-05: Approved security exception scope update: scheduled main run `26998884678` found `deployment-web-panel-distributed` `perl-base` `CVE-2026-7010` with no Trivy fixed version; the existing temporary no-fix exception is extended only to that explicit CVE while keeping the current `2026-08-24T00:00:00+01:00` expiry and security-preflight fail-closed behavior.
 - 2026-06-10: Approved security exception scope update: scheduled main run `27257251046` found no-fix OpenSSL findings for `deployment-web-panel-distributed` components `openssl`, `libssl3t64`, and `openssl-provider-legacy`, and severity drift on existing `perl-base`/`libbz2-1.0` no-fix findings. Exceptions remain explicit CVE-scoped, keep the `2026-08-24T00:00:00+01:00` expiry, and do not change security-preflight fail-closed behavior.
+- 2026-07-08: Approved security exception burn-down artifact: active temporary no-fix exceptions may be summarized into `vulnerability_exception_burndown_report.v1` for residual-risk review and remediation planning, preserved in security evidence artifacts and surfaced in preflight metrics, but the artifact remains advisory and does not weaken the existing security-preflight gate.

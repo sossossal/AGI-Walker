@@ -12,7 +12,10 @@ from agi_walker.core.api.release_contracts import (
     write_release_evidence_report,
 )
 from agi_walker.core.api.security_posture_contracts import (
+    build_vulnerability_exception_burndown_report,
+    build_vulnerability_exception_report,
     build_security_posture_report,
+    write_vulnerability_exception_burndown_report,
     write_security_posture_report,
 )
 
@@ -159,6 +162,37 @@ def _seed_exception_review_report(
     )
 
 
+def _seed_exception_burndown_report(report_path: Path) -> None:
+    exception_report = build_vulnerability_exception_report(
+        project_root=PROJECT_ROOT,
+        generated_at="2026-04-15T12:00:00+00:00",
+        exceptions=[
+            {
+                "id": "webpanel-libsystemd0-no-fix",
+                "scope": "container_images",
+                "component": "libsystemd0",
+                "image_refs": ["deployment-web-panel-distributed"],
+                "vulnerability_ids": ["CVE-DEMO-NO-FIX"],
+                "severities": ["LOW"],
+                "only_without_fix_version": True,
+                "justification": "Temporary exception while upstream fix is unavailable.",
+                "approved_by": "security-reviewer",
+                "approved_at": "2026-04-15T11:00:00+00:00",
+                "expires_at": "2026-06-30T00:00:00+00:00",
+                "ticket": "SEC-301",
+            }
+        ],
+    )
+    write_vulnerability_exception_burndown_report(
+        build_vulnerability_exception_burndown_report(
+            project_root=PROJECT_ROOT,
+            exception_report=exception_report,
+            generated_at="2026-04-15T12:00:00+00:00",
+        ),
+        report_path,
+    )
+
+
 def test_security_release_preflight_passes_with_ready_security_posture(
     tmp_path: Path,
 ) -> None:
@@ -170,6 +204,12 @@ def test_security_release_preflight_passes_with_ready_security_posture(
         / "release_evidence"
         / "security"
         / "vulnerability_exception_review_report.json"
+    )
+    _seed_exception_burndown_report(
+        tmp_path
+        / "release_evidence"
+        / "security"
+        / "vulnerability_exception_burndown_report.json"
     )
 
     result = subprocess.run(
@@ -195,6 +235,8 @@ def test_security_release_preflight_passes_with_ready_security_posture(
     assert "security_release_preflight_stale_exceptions=0" in result.stdout
     assert "security_release_preflight_exception_review_status=tracked" in result.stdout
     assert "security_release_preflight_review_report_status=passed" in result.stdout
+    assert "security_release_preflight_burndown_status=tracked" in result.stdout
+    assert "security_release_preflight_burndown_active=1" in result.stdout
     payload = json.loads(evidence_report_path.read_text(encoding="utf-8"))
     assert payload["status"] == "passed"
     assert payload["evidence_name"] == "security_release_preflight"
@@ -207,6 +249,8 @@ def test_security_release_preflight_passes_with_ready_security_posture(
         payload["metrics"]["vulnerability_exception_next_expiry"]
         == "2026-05-15T00:00:00+00:00"
     )
+    assert payload["metrics"]["vulnerability_exception_burndown_report_status"] == "tracked"
+    assert payload["metrics"]["vulnerability_exception_burndown_active"] == 1
 
 
 def test_security_release_preflight_blocks_when_exception_review_is_due(
