@@ -46,8 +46,14 @@ def test_next_stage_plan_has_command_index_for_closeout_tools() -> None:
     assert "python tools/build_ros2_typed_idl_cutover_report.py --output test_env/ros2_typed_idl_cutover/ros2_typed_idl_cutover_report.json" in content
     assert "python tools/build_ros2_typed_inventory.py --output test_env/ros2_typed_idl_cutover/typed_inventory.json" in content
     assert "python tools/build_operator_delivery_checklist.py --output test_env/operator_delivery/operator_delivery_checklist.json" in content
-    assert "python tools/build_industrial_live_evidence_archive_report.py --output test_env/industrial_live_evidence/industrial_live_evidence_archive_report.json" in content
     assert "python tools/build_customer_site_live_smoke_report.py --output test_env/customer_site_live_smoke/customer_site_live_smoke_report.json" in content
+    assert (
+        "python tools/build_industrial_live_evidence_archive_report.py "
+        "--customer-site-smoke test_env/customer_site_live_smoke/customer_site_live_smoke_report.json "
+        "--require-customer-site-smoke "
+        "--output test_env/industrial_live_evidence/industrial_live_evidence_archive_report.json"
+        in content
+    )
     assert "python tools/build_web_browser_manual_validation_report.py --output test_env/web_browser_manual_validation/web_browser_manual_validation_report.json" in content
     assert "python tools/build_web_browser_validation_closeout.py --output test_env/web_browser_manual_validation/web_browser_validation_closeout.json" in content
     assert "python tools/build_web_browser_validation_evidence_pack.py --output test_env/web_browser_manual_validation/web_browser_validation_evidence_pack.json" in content
@@ -74,7 +80,7 @@ def test_next_stage_plan_has_blocker_resolution_table() -> None:
     assert "| `hardware_live_closeout_blocked` | 真实硬件 closeout 尚未 ready |" in content
     assert "| `vendor_fault_sample_closeout_blocked` | 缺真实 raw fault 样本或版本绑定 |" in content
     assert "| `ros2_typed_idl_cutover_blocked` | 目标 Humble typed cutover 证据不足 |" in content
-    assert "| `industrial_live_evidence_archive_blocked` | industrial live evidence 或 external-mainline 缺失 |" in content
+    assert "| `industrial_live_evidence_archive_blocked` | industrial live evidence、external-mainline 或 strict customer-site smoke 缺失 |" in content
     assert "| `manual_report_missing` | 浏览器手工验证报告不存在 |" in content
     assert "| `screenshots_missing` | 浏览器验证缺截图证据 |" in content
     assert "| `validation_closeout_blocked` | manual report / closeout / evidence pack 未全通过 |" in content
@@ -84,7 +90,8 @@ def test_next_stage_plan_has_blocker_resolution_table() -> None:
     assert "`vendor_data_promotion` 不应以模板或占位样本强制置 `ready`" in content
     assert "`vendor_fault_data_review` 当前缺 `test_env/hardware_live/hardware_fault_telemetry_report.json`" in content
     assert "`vendor_data_promotion_checklist` 当前应保持 `blocked`，明确卡在 `change_request` 占位值和 `vendor_review` 未通过" in content
-    assert "`industrial_live_evidence_archive_report` 当前已接入本地 hardware diagnostics 与 browser closeout" in content
+    assert "`industrial_live_evidence_archive_report` 当前已支持 strict customer-site smoke 绑定" in content
+    assert "`--require-customer-site-smoke` 会把缺失或未通过的 `customer_site_smoke` 升级为 blocker" in content
     assert "`next_stage_readiness_report` 当前会输出 `action_plan` 和 `blocker_details`" in content
     assert "当前 typed surface blocker 已收敛，仅保留真实 cutover 输入" in content
     assert "剩余 action 应全部归类为 `external_input`" in content
@@ -99,7 +106,7 @@ def test_next_stage_plan_has_live_environment_preflight() -> None:
     assert "| 安全边界 | 限幅、watchdog、急停、回滚入口已由现场负责人确认 |" in content
     assert "| ROS2 环境 | 目标节点为 ROS2 Humble，typed IDL package 可构建且 source 后可见 |" in content
     assert "| 浏览器环境 | Chromium 或等价浏览器可打开 Web console，DevTools console 可导出 |" in content
-    assert "| industrial live 输入 | `industrial_live_evidence.*` 字段已由现场负责人确认 |" in content
+    assert "| industrial live 输入 | `industrial_live_evidence.*` 字段已由现场负责人确认，且 `customer_site_live_smoke_report.status=passed` |" in content
     assert "| vendor 数据 | raw error 样本包含设备、时间戳、raw code、fault class、恢复结果 |" in content
     assert "不能把 live evidence 标成 ready" in content
 
