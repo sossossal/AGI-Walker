@@ -301,9 +301,12 @@ def test_distributed_runtime_uses_current_package_entrypoints() -> None:
     assert "--godot-port" in compose_content
     assert "WEB_PANEL_APT_PACKAGES: build-essential" not in compose_content
     web_panel_dockerfile = WEB_PANEL_DOCKERFILE.read_text(encoding="utf-8")
-    assert "ARG WEB_PANEL_BASE_IMAGE=python:3.11-slim-trixie" in web_panel_dockerfile
+    assert "ARG WEB_PANEL_BASE_IMAGE=python:3.11-alpine" in web_panel_dockerfile
     assert "FROM ${WEB_PANEL_BASE_IMAGE}" in web_panel_dockerfile
-    assert "AGI_WALKER_WEB_PANEL_BASE_IMAGE:-python:3.11-slim-trixie" in compose_content
+    assert "command -v apt-get" in web_panel_dockerfile
+    assert "command -v apk" in web_panel_dockerfile
+    assert "WEB_PANEL_APK_PACKAGES" in web_panel_dockerfile
+    assert "AGI_WALKER_WEB_PANEL_BASE_IMAGE:-python:3.11-alpine" in compose_content
 
     assert "distributed/run_learner.py" not in runtime_dockerfile
     assert "distributed/run_learner.py" not in distributed_dockerfile

@@ -89,8 +89,9 @@ services:
       context: ..
       dockerfile: deployment/Dockerfile.web_panel
       args:
-        WEB_PANEL_BASE_IMAGE: ${AGI_WALKER_WEB_PANEL_BASE_IMAGE:-python:3.11-slim-trixie}
+        WEB_PANEL_BASE_IMAGE: ${AGI_WALKER_WEB_PANEL_BASE_IMAGE:-python:3.11-alpine}
         WEB_PANEL_APT_PACKAGES: ""
+        WEB_PANEL_APK_PACKAGES: ""
         WEB_PANEL_REQUIREMENTS_FILE: /app/deployment/requirements.web_panel.txt
     command: ["sh", "-c", "alembic upgrade head && python -m uvicorn web_panel.server:app --host 0.0.0.0 --port 8000"]
     depends_on:
@@ -126,8 +127,9 @@ services:
       context: ..
       dockerfile: deployment/Dockerfile.web_panel
       args:
-        WEB_PANEL_BASE_IMAGE: ${AGI_WALKER_WEB_PANEL_BASE_IMAGE:-python:3.11-slim-trixie}
+        WEB_PANEL_BASE_IMAGE: ${AGI_WALKER_WEB_PANEL_BASE_IMAGE:-python:3.11-alpine}
         WEB_PANEL_APT_PACKAGES: ""
+        WEB_PANEL_APK_PACKAGES: ""
         WEB_PANEL_REQUIREMENTS_FILE: /app/deployment/requirements.web_panel.txt
     command: ["celery", "-A", "web_panel.celery_app", "worker", "--loglevel=INFO", "--concurrency=1"]
     depends_on:
@@ -157,8 +159,9 @@ services:
       context: ..
       dockerfile: deployment/Dockerfile.web_panel
       args:
-        WEB_PANEL_BASE_IMAGE: ${AGI_WALKER_WEB_PANEL_BASE_IMAGE:-python:3.11-slim-trixie}
+        WEB_PANEL_BASE_IMAGE: ${AGI_WALKER_WEB_PANEL_BASE_IMAGE:-python:3.11-alpine}
         WEB_PANEL_APT_PACKAGES: ""
+        WEB_PANEL_APK_PACKAGES: ""
         WEB_PANEL_REQUIREMENTS_FILE: /app/deployment/requirements.web_panel.distributed.txt
     image: deployment-web-panel-distributed
     command: ["python", "-m", "uvicorn", "web_panel.server:app", "--host", "0.0.0.0", "--port", "8000"]
