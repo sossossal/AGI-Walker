@@ -93,3 +93,4 @@ py -3.12 -m pytest tests\test_real_robot_driver.py tests\test_hardware_controlle
 - 2026-07-08: Corrected next-stage browser evidence status drift. The plan now matches the canonical blocked `web_browser_validation_evidence_pack.json`: Playwright support evidence is present, but manual report, screenshots, exports, console summary and validation closeout still require real browser evidence.
 - 2026-07-08: Clarified `docs/CURRENT_STATUS.md` so release/stable readiness is not confused with next-stage live evidence completion; current next-stage blockers remain external input only.
 - 2026-07-08: Added timezone-aware `generated_at` to `next_stage_readiness_report.v1` and documented it in the next-stage execution plan so stale local/CI evidence can be identified during residual-risk closeout.
+- 2026-07-08: Added Git provenance metadata to `next_stage_readiness_report.v1` so branch/main and clean/dirty evidence snapshots can be distinguished during residual-risk review.

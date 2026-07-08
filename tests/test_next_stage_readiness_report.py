@@ -30,6 +30,8 @@ def test_next_stage_readiness_report_tracks_all_route_closeouts() -> None:
     assert report["schema_version"] == "1.0"
     generated_at = datetime.fromisoformat(report["generated_at"])
     assert generated_at.tzinfo is not None
+    assert set(report["git"]) == {"commit_sha", "branch", "is_dirty"}
+    assert isinstance(report["git"]["is_dirty"], bool)
     assert {item["id"] for item in report["artifacts"]} == expected
     assert report["summary"]["artifact_count"] == len(expected)
 
@@ -45,6 +47,7 @@ def test_next_stage_readiness_report_fails_closed_with_current_missing_evidence(
     content = output.read_text(encoding="utf-8")
     assert '"status": "blocked"' in content
     assert '"generated_at":' in content
+    assert '"git":' in content
     assert "hardware_live_closeout" in content
     assert "web_browser_evidence_pack" in content
 

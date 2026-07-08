@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
@@ -176,6 +177,29 @@ def _action_plan(blocker_details: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return actions
 
 
+def _git_value(args: Sequence[str]) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            check=False,
+            capture_output=True,
+            encoding="utf-8",
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    value = result.stdout.strip()
+    return value if result.returncode == 0 and value else None
+
+
+def _git_metadata() -> dict[str, Any]:
+    return {
+        "commit_sha": _git_value(["rev-parse", "HEAD"]),
+        "branch": _git_value(["branch", "--show-current"]),
+        "is_dirty": bool(_git_value(["status", "--porcelain"])),
+    }
+
+
 def build_next_stage_readiness_report() -> dict[str, Any]:
     artifacts: list[dict[str, Any]] = []
     blockers: list[str] = []
@@ -216,6 +240,7 @@ def build_next_stage_readiness_report() -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "git": _git_metadata(),
         "status": status,
         "summary": {
             "artifact_count": len(artifacts),
