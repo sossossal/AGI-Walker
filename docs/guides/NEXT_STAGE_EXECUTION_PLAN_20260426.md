@@ -123,7 +123,7 @@ python tools/build_next_stage_readiness_report.py --output test_env/next_stage/n
 
 当前本地加强后的已知状态：
 
-- `web_browser_evidence_pack` 已闭合为 `ready`，可作为本地 Web 操作面浏览器证据。
+- `web_browser_evidence_pack` 当前按 canonical artifact 仍为 `blocked`：Playwright 支持证据已通过，但 manual report、screenshots、exports、console summary 与 validation closeout 仍需真实浏览器验收输入后重建。
 - `operator_delivery_checklist` 已补齐 `system_status`、`workflow_status`、`operator_history_export`、`browser_validation_closeout` 与 `hardware_live_diagnostics`。
 - `operator_delivery_checklist` 当前已无 warning，仅剩必需 blocker：`vendor_data_promotion`。
 - `vendor_data_promotion` 不应以模板或占位样本强制置 `ready`，必须等待真实 vendor fault sample、review 与 promotion 条件闭合。
@@ -425,10 +425,8 @@ python tools/build_next_stage_readiness_report.py --output test_env/next_stage/n
 ### 当前状态
 
 - 仓内静态、模板、报告生成器、Playwright smoke、closeout 判定和 evidence pack 汇总已具备。
-- 本地浏览器验收已闭合：`web_browser_manual_validation_report.json` 为 `status=passed`。
-- 本地 closeout 已闭合：`web_browser_validation_closeout.json` 为 `status=passed`。
-- 本地 evidence pack 已闭合：`web_browser_validation_evidence_pack.json` 为 `status=ready`。
-- 客户现场仍可按同一清单复核；现场复核结果应作为增量 evidence 归档，不应覆盖本地已通过证据。
+- 当前 canonical `web_browser_validation_evidence_pack.json` 仍为 `status=blocked`：`playwright_status=passed`，但 manual report、screenshots、exports、console summary 与 validation closeout 尚未归档。
+- 客户现场或本地桌面浏览器必须按同一清单复核；现场复核结果应作为增量 evidence 归档，不应用占位值覆盖 blocker。
 
 ### 剩余外部执行
 

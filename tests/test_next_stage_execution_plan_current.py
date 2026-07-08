@@ -85,7 +85,8 @@ def test_next_stage_plan_has_blocker_resolution_table() -> None:
     assert "| `screenshots_missing` | 浏览器验证缺截图证据 |" in content
     assert "| `validation_closeout_blocked` | manual report / closeout / evidence pack 未全通过 |" in content
     assert "没有真实证据时保留 blocker 是正确状态" in content
-    assert "`web_browser_evidence_pack` 已闭合为 `ready`" in content
+    assert "`web_browser_evidence_pack` 当前按 canonical artifact 仍为 `blocked`" in content
+    assert "manual report、screenshots、exports、console summary 与 validation closeout 仍需真实浏览器验收输入后重建" in content
     assert "`operator_delivery_checklist` 当前已无 warning，仅剩必需 blocker：`vendor_data_promotion`" in content
     assert "`vendor_data_promotion` 不应以模板或占位样本强制置 `ready`" in content
     assert "`vendor_fault_data_review` 当前缺 `test_env/hardware_live/hardware_fault_telemetry_report.json`" in content
@@ -120,8 +121,8 @@ def test_next_stage_plan_marks_remaining_work_as_external_execution() -> None:
     assert "仓内 typed IDL cutover closeout 已具备" in content
     assert "仓内 sample closeout / review / promotion 已具备" in content
     assert "若需要在线增删角色，后续应接入正式组织级 IAM / RBAC" in content
-    assert "本地 evidence pack 已闭合：`web_browser_validation_evidence_pack.json` 为 `status=ready`" in content
-    assert "当前 `web_browser_validation_evidence_pack.json` 也应保持 `blocked`" not in content
+    assert "当前 canonical `web_browser_validation_evidence_pack.json` 仍为 `status=blocked`" in content
+    assert "`playwright_status=passed`" in content
 
 
 def test_next_stage_plan_no_longer_claims_feature_iteration_as_next_step() -> None:
