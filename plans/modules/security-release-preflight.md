@@ -35,6 +35,11 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - [x] Preserve the vulnerability exception burn-down report in collected security evidence and surface its status/counts in security preflight metrics without adding a new release blocker.
 - [x] Pin the web panel production Dockerfile to a reproducible Debian suite base image and expose a compose override so remote Docker/Trivy evidence can test alternate candidates before promotion.
 - [x] Replace `python-jose[cryptography]` with `PyJWT` for HS256 Web Panel tokens so the no-fix transitive `ecdsa` Python vulnerability is removed instead of accepted by exception.
+- [x] Validate `python:3.11-alpine` as the Web Panel default candidate through remote Docker/Trivy evidence before accepting it as a real container finding burn-down.
+- [x] Re-run the Alpine candidate after adding the minimal `libgcc` apk dependency needed by the `eclipse-zenoh` Rust metadata path.
+- [x] Re-run the Alpine candidate after adding temporary `build-base` apk build dependencies for the `eclipse-zenoh` native wheel build path, ensuring build deps are removed from the final image.
+- [x] Re-run the Alpine candidate after clearing Rust/Cargo build caches from the final image so Trivy does not report transient native-build components.
+- [x] Retire obsolete deployment-web-panel-distributed no-fix exceptions after remote evidence proves zero Python/container vulnerability findings.
 
 # Notes
 
@@ -60,6 +65,11 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - 2026-07-08: Added `vulnerability_exception_burndown_report` as a read-only residual-risk artifact. It summarizes active, review-due and expired temporary exceptions by scope, ticket, component, image ref and highest severity, emits action items for ongoing no-fix burn-down, is collected into security evidence artifacts, and is surfaced in security preflight metrics without becoming a release gate.
 - 2026-07-08: Latest main security artifact showed `deployment-web-panel-distributed` built from floating `python:3.11-slim`, which resolved to Debian 13.5 and carried 165 no-fix container findings covered by temporary exceptions. A remote PR scan proved `python:3.11-slim-bookworm` is not an acceptable default because it increased findings to 186 and left 185 unresolved against current exceptions. The web panel Dockerfile now defaults to the equivalent reproducible `python:3.11-slim-trixie` through `WEB_PANEL_BASE_IMAGE`, and `deployment/docker-compose.yml` exposes `AGI_WALKER_WEB_PANEL_BASE_IMAGE` for controlled candidate scans before any future promotion.
 - 2026-07-08: Main security artifact still showed one Python finding: transitive `ecdsa` from `python-jose[cryptography]`, `PYSEC-2026-1325`, with no fix version. Web Panel auth only uses HS256 encode/decode, so the dependency was replaced with `PyJWT` while preserving token semantics and `decode_access_token` returning `None` on invalid tokens.
+- 2026-07-08: Remaining production security risk is concentrated in the `deployment-web-panel-distributed` OS package layer. The next candidate switches the Web Panel default base to `python:3.11-alpine` and adds `apk` package-manager support. This is not accepted as remediation until GitHub security-preflight confirms image build success, lower findings and no unresolved/stale exception drift.
+- 2026-07-08: PR #20 security-preflight failed before Trivy because the Alpine `eclipse-zenoh` install path downloaded a musl Rust toolchain whose `cargo` needed `libgcc_s.so.1`. The candidate now installs the minimal `libgcc` apk package by default and keeps it overrideable through `AGI_WALKER_WEB_PANEL_APK_PACKAGES`.
+- 2026-07-08: PR #20 security-preflight then progressed to native `eclipse-zenoh` compilation and failed because Alpine lacked linker `cc`. The candidate now installs `build-base` as a virtual apk build dependency and removes `.web-panel-build-deps` after pip install so compiler packages are not retained in the final filesystem.
+- 2026-07-08: PR #20 then built successfully and reached Trivy, but the Alpine candidate reported 234 unresolved findings concentrated in Rust build-cache components such as `rustls-webpki`, `aws-lc-sys`, `rand`, and `cargo`. The Dockerfile now clears `/root/.cache` and `/tmp/*` after pip install/build-dep removal before accepting another scan result.
+- 2026-07-08: PR #20 run `28962518720` passed `security-preflight` after build-cache cleanup. Downloaded artifact `test_env/gh_run_28962518720_security_artifacts` shows Python findings `0`, container findings `0`, unresolved findings `0`, accepted findings `0`, and security posture `ready`. The previous active no-fix exceptions are now obsolete and have been retired from the managed exception input.
 
 # Non-Goals
 
@@ -81,7 +91,7 @@ py -3.12 tools\compare_container_vulnerability_baselines.py --current-raw-report
 
 # Residual Risks
 
-- Real `pip-audit` / `trivy` / Docker behavior depends on external scanner databases and local or CI image availability; the current local Docker path is available and scanned successfully.
-- Accepted no-fix exceptions remain temporary release risk and must be reviewed before expiry; current generated evidence must show zero broad component-only, review-due, stale or expired exceptions and next expiry at `2026-08-24T00:00:00+01:00`.
-- The web panel base-image pin improves reproducibility but does not itself eliminate accepted no-fix findings; any alternate base-image promotion must first show lower production findings and no new unresolved findings in remote Docker/Trivy evidence.
+- Real `pip-audit` / `trivy` / Docker behavior depends on external scanner databases and local or CI image availability; latest authoritative remote evidence is PR #20 run `28964949780`, where security-preflight passed with Python findings `0`, container findings `0`, active exceptions `0`, review-due exceptions `0`, and expired exceptions `0`.
+- Accepted no-fix exceptions are no longer part of the current security posture; the managed exception input is intentionally empty. If scanner databases later surface new findings, security-preflight must fail closed until those findings are fixed or explicitly re-approved.
+- The Web Panel Alpine path depends on native `eclipse-zenoh` wheel builds. Build deps are removed from the final image and build caches are cleaned, but CI duration remains higher than the Debian slim path and should be monitored.
 - Full release evidence collection still includes broad non-live gates by default; security CI uses the security-only preflight profile to keep vulnerability posture validation independent from that longer release gate.

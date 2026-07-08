@@ -543,8 +543,8 @@ canonical release evidence 采集后，对应路径为：
 
 - `python_vuln_scan_report.json`: `passed`，`finding_count=0`
 - `zenoh-router` 当前交付镜像：`deployment-zenoh-router`，上游基础镜像默认来自 `eclipse/zenoh:1.9.0`
-- `container_vuln_scan_report.json`: 当前 canonical 以 `deployment-zenoh-router` 和 `deployment-web-panel-distributed` 为准；后者的 `104 findings / 31 affected components` 当前已由 `31` 条 active no-fix exceptions 进入 accepted residual risk
-- `vulnerability_remediation_report.json`: `ready`，`accepted_finding_count=104`，`unresolved_finding_count=0`，`matched_exception_count=31`
+- `container_vuln_scan_report.json`: 当前 canonical 以 `deployment-zenoh-router` 和 `deployment-web-panel-distributed` 为准；PR #20 / GitHub Actions run `28962518720` 证明两者当前均为 `0 findings`
+- `vulnerability_remediation_report.json`: `ready`，`accepted_finding_count=0`，`unresolved_finding_count=0`，`matched_exception_count=0`
 - `security_posture_report.json`: `ready`
 - `security_release_preflight_report.json`: `passed`
 
