@@ -200,6 +200,90 @@ def _git_metadata() -> dict[str, Any]:
     }
 
 
+def _is_non_negative_int(value: Any) -> bool:
+    return isinstance(value, int) and value >= 0
+
+
+def validate_next_stage_readiness_report(report: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if report.get("schema_version") != SCHEMA_VERSION:
+        errors.append("schema_version must be 1.0")
+    try:
+        generated_at = datetime.fromisoformat(str(report.get("generated_at")))
+    except ValueError:
+        generated_at = None
+    if generated_at is None or generated_at.tzinfo is None:
+        errors.append("generated_at must be a timezone-aware ISO timestamp")
+    git = report.get("git")
+    if not isinstance(git, dict) or not isinstance(git.get("is_dirty"), bool):
+        errors.append("git must include boolean is_dirty metadata")
+    artifacts = report.get("artifacts")
+    blockers = report.get("blockers")
+    blocker_details = report.get("blocker_details")
+    action_plan = report.get("action_plan")
+    warnings = report.get("warnings")
+    summary = report.get("summary")
+    if not all(
+        isinstance(value, list)
+        for value in (artifacts, blockers, blocker_details, action_plan, warnings)
+    ) or not isinstance(summary, dict):
+        return [*errors, "report collections and summary must use canonical shapes"]
+    errors.extend(
+        _validate_next_stage_counts(
+            artifacts=artifacts,
+            blockers=blockers,
+            blocker_details=blocker_details,
+            action_plan=action_plan,
+            warnings=warnings,
+            summary=summary,
+        )
+    )
+    return errors
+
+
+def _validate_next_stage_counts(
+    *,
+    artifacts: list[Any],
+    blockers: list[Any],
+    blocker_details: list[Any],
+    action_plan: list[Any],
+    warnings: list[Any],
+    summary: dict[str, Any],
+) -> list[str]:
+    errors: list[str] = []
+    expected = {
+        "artifact_count": len(artifacts),
+        "ready_artifact_count": _count_dicts(artifacts, "status", "ready"),
+        "blocked_artifact_count": len(blockers),
+        "warning_artifact_count": len(warnings),
+        "blocker_detail_count": len(blocker_details),
+        "external_input_action_count": _count_dicts(
+            action_plan, "execution_scope", "external_input"
+        ),
+        "code_or_config_action_count": _count_dicts(
+            action_plan, "execution_scope", "code_or_config"
+        ),
+    }
+    for field, expected_value in expected.items():
+        if not _is_non_negative_int(summary.get(field)):
+            errors.append(f"summary.{field} must be a non-negative integer")
+        elif summary[field] != expected_value:
+            errors.append(f"summary.{field} must equal {expected_value}")
+    detail_ids = [item.get("id") for item in blocker_details if isinstance(item, dict)]
+    action_ids = [item.get("artifact_id") for item in action_plan if isinstance(item, dict)]
+    if list(blockers) != detail_ids:
+        errors.append("blocker_details ids must match blockers in order")
+    if list(blockers) != action_ids:
+        errors.append("action_plan artifact_ids must match blockers in order")
+    return errors
+
+
+def _count_dicts(items: list[Any], field: str, value: str) -> int:
+    return sum(
+        1 for item in items if isinstance(item, dict) and item.get(field) == value
+    )
+
+
 def build_next_stage_readiness_report() -> dict[str, Any]:
     artifacts: list[dict[str, Any]] = []
     blockers: list[str] = []
@@ -237,7 +321,7 @@ def build_next_stage_readiness_report() -> dict[str, Any]:
         )
     status = "ready" if not blockers else "blocked"
     action_plan = _action_plan(blocker_details)
-    return {
+    report = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "git": _git_metadata(),
@@ -266,6 +350,8 @@ def build_next_stage_readiness_report() -> dict[str, Any]:
             action_plan=action_plan,
         ),
     }
+    report["validation_errors"] = validate_next_stage_readiness_report(report)
+    return report
 
 
 def _next_actions(
@@ -295,7 +381,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         json.dumps(report, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    return 0 if report["status"] == "ready" else 1
+    return 0 if report["status"] == "ready" and not report["validation_errors"] else 1
 
 
 if __name__ == "__main__":

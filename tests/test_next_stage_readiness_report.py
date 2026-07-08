@@ -5,6 +5,7 @@ from tools.build_next_stage_readiness_report import (
     DEFAULT_ARTIFACTS,
     build_next_stage_readiness_report,
     main,
+    validate_next_stage_readiness_report,
 )
 
 
@@ -32,6 +33,7 @@ def test_next_stage_readiness_report_tracks_all_route_closeouts() -> None:
     assert generated_at.tzinfo is not None
     assert set(report["git"]) == {"commit_sha", "branch", "is_dirty"}
     assert isinstance(report["git"]["is_dirty"], bool)
+    assert report["validation_errors"] == []
     assert {item["id"] for item in report["artifacts"]} == expected
     assert report["summary"]["artifact_count"] == len(expected)
 
@@ -48,6 +50,7 @@ def test_next_stage_readiness_report_fails_closed_with_current_missing_evidence(
     assert '"status": "blocked"' in content
     assert '"generated_at":' in content
     assert '"git":' in content
+    assert '"validation_errors": []' in content
     assert "hardware_live_closeout" in content
     assert "web_browser_evidence_pack" in content
 
@@ -106,3 +109,30 @@ def test_next_stage_readiness_report_is_documented() -> None:
     assert tool in README.read_text(encoding="utf-8")
     assert tool in NEXT_STAGE_PLAN.read_text(encoding="utf-8")
     assert report in NEXT_STAGE_PLAN.read_text(encoding="utf-8")
+
+
+def test_next_stage_readiness_report_validation_rejects_count_drift() -> None:
+    report = build_next_stage_readiness_report()
+    report["summary"]["artifact_count"] += 1
+
+    errors = validate_next_stage_readiness_report(report)
+
+    assert "summary.artifact_count must equal" in errors[0]
+
+
+def test_next_stage_readiness_report_validation_rejects_blocker_order_drift() -> None:
+    report = build_next_stage_readiness_report()
+    report["action_plan"] = list(reversed(report["action_plan"]))
+
+    errors = validate_next_stage_readiness_report(report)
+
+    assert "action_plan artifact_ids must match blockers in order" in errors
+
+
+def test_next_stage_readiness_report_validation_rejects_missing_timestamp() -> None:
+    report = build_next_stage_readiness_report()
+    report["generated_at"] = "not-a-date"
+
+    errors = validate_next_stage_readiness_report(report)
+
+    assert "generated_at must be a timezone-aware ISO timestamp" in errors

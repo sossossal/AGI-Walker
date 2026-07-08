@@ -94,9 +94,10 @@ def test_next_stage_plan_has_blocker_resolution_table() -> None:
     assert "`vendor_data_promotion_checklist` 当前应保持 `blocked`，明确卡在 `change_request` 占位值和 `vendor_review` 未通过" in content
     assert "`industrial_live_evidence_archive_report` 当前已支持 strict customer-site smoke 绑定" in content
     assert "`--require-customer-site-smoke` 会把缺失或未通过的 `customer_site_smoke` 升级为 blocker" in content
-    assert "`next_stage_readiness_report` 当前会输出 `action_plan`、`blocker_details`、`generated_at` 和 `git`" in content
+    assert "`next_stage_readiness_report` 当前会输出 `action_plan`、`blocker_details`、`generated_at`、`git` 和 `validation_errors`" in content
     assert "`next_stage_readiness_report.generated_at`" in content
     assert "`next_stage_readiness_report.git`" in content
+    assert "`validation_errors` 固定校验 summary 计数" in content
     assert "当前 typed surface blocker 已收敛，仅保留真实 cutover 输入" in content
     assert "剩余 action 应全部归类为 `external_input`" in content
 
