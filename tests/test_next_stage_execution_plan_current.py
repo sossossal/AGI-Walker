@@ -11,6 +11,8 @@ def test_next_stage_plan_uses_evidence_driven_iteration_order() -> None:
     assert "## 1. 总证据矩阵" in content
     assert "不再按“新增仓内功能”排序，而按总 readiness blockers 排序" in content
     assert "python tools/build_next_stage_readiness_report.py" in content
+    assert "python tools/build_next_stage_external_evidence_checklist.py" in content
+    assert "next_stage_external_evidence_checklist.v1" in content
     assert "hardware_live_closeout_report.status=ready" in content
     assert "web_browser_validation_evidence_pack.status=ready" in content
     assert "ros2_typed_idl_cutover_report.status=ready" in content
@@ -40,6 +42,8 @@ def test_next_stage_plan_has_command_index_for_closeout_tools() -> None:
 
     assert "## 2. 执行命令索引" in content
     assert "优先按 `action_plan` 执行" in content
+    assert "external evidence checklist" in content
+    assert "`items[].acceptance_evidence` 只描述目标 evidence，不是通过证明" in content
     assert "`next_stage_readiness_expected_status`" in content
     assert "`next_stage_readiness_exit_code`" in content
     assert "`next_stage_readiness_validation_errors`" in content
@@ -65,6 +69,7 @@ def test_next_stage_plan_has_command_index_for_closeout_tools() -> None:
     assert "python tools/build_web_browser_manual_validation_report.py --output test_env/web_browser_manual_validation/web_browser_manual_validation_report.json" in content
     assert "python tools/build_web_browser_validation_closeout.py --output test_env/web_browser_manual_validation/web_browser_validation_closeout.json" in content
     assert "python tools/build_web_browser_validation_evidence_pack.py --output test_env/web_browser_manual_validation/web_browser_validation_evidence_pack.json" in content
+    assert "python tools/build_next_stage_external_evidence_checklist.py --readiness-report test_env/next_stage/next_stage_readiness_report.json --output test_env/next_stage/next_stage_external_evidence_checklist.json" in content
     assert "不用占位值把 `blocked` 改成 `ready`" in content
 
 
@@ -110,6 +115,8 @@ def test_next_stage_plan_has_blocker_resolution_table() -> None:
     assert "`validation_errors` 固定校验 summary 计数" in content
     assert "当前 typed surface blocker 已收敛，仅保留真实 cutover 输入" in content
     assert "剩余 action 应全部归类为 `external_input`" in content
+    assert "`next_stage_external_evidence_checklist.json` 当前可从 readiness report 生成" in content
+    assert "最终仍以 `next_stage_readiness_report.status=ready` 为准" in content
 
 
 def test_next_stage_plan_has_live_environment_preflight() -> None:
