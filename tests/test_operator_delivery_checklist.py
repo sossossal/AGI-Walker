@@ -130,10 +130,13 @@ def test_operator_delivery_checklist_docs_and_template_are_linked() -> None:
     assert "tools/build_operator_delivery_checklist.py" in template_content
     assert "deployment/operator_delivery_checklist.template.json" in guide_content
     assert "tools/build_operator_delivery_checklist.py" in guide_content
+    assert "tools/build_customer_site_live_smoke_report.py" in guide_content
+    assert "--require-customer-site-smoke" in guide_content
     assert path in NEXT_STAGE_PLAN.read_text(encoding="utf-8")
     assert "deployment/operator_delivery_checklist.template.json" in README.read_text(
         encoding="utf-8"
     )
-    assert "tools/build_operator_delivery_checklist.py" in SLO_VIEW.read_text(
-        encoding="utf-8"
-    )
+    slo_content = SLO_VIEW.read_text(encoding="utf-8")
+    assert "tools/build_operator_delivery_checklist.py" in slo_content
+    assert "tools/build_customer_site_live_smoke_report.py" in slo_content
+    assert "--require-customer-site-smoke" in slo_content
