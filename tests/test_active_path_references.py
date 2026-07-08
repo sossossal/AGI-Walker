@@ -305,7 +305,8 @@ def test_distributed_runtime_uses_current_package_entrypoints() -> None:
     assert "FROM ${WEB_PANEL_BASE_IMAGE}" in web_panel_dockerfile
     assert "command -v apt-get" in web_panel_dockerfile
     assert "command -v apk" in web_panel_dockerfile
-    assert "WEB_PANEL_APK_PACKAGES" in web_panel_dockerfile
+    assert 'ARG WEB_PANEL_APK_PACKAGES="libgcc"' in web_panel_dockerfile
+    assert "WEB_PANEL_APK_PACKAGES: ${AGI_WALKER_WEB_PANEL_APK_PACKAGES:-libgcc}" in compose_content
     assert "AGI_WALKER_WEB_PANEL_BASE_IMAGE:-python:3.11-alpine" in compose_content
 
     assert "distributed/run_learner.py" not in runtime_dockerfile
@@ -827,6 +828,8 @@ def test_customer_deployment_docs_and_compose_defaults_use_current_single_path()
     assert "AGI_WALKER_ZENOH_REST_PORT=8000" in compose_env
     assert "AGI_WALKER_ZENOH_BASE_IMAGE=eclipse/zenoh:1.9.0" in compose_env
     assert "AGI_WALKER_ZENOH_IMAGE=deployment-zenoh-router" in compose_env
+    assert "AGI_WALKER_WEB_PANEL_BASE_IMAGE=python:3.11-alpine" in compose_env
+    assert "AGI_WALKER_WEB_PANEL_APK_PACKAGES=libgcc" in compose_env
 
     assert "AGI_WALKER_DATABASE_URL=sqlite+aiosqlite:////var/lib/agi_walker/db/agi_walker.db" in compose_env
     assert "AGI_WALKER_WEB_OUTPUT_ROOT=/var/lib/agi_walker/workflow_runs" in compose_env

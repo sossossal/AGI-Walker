@@ -36,6 +36,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - [x] Pin the web panel production Dockerfile to a reproducible Debian suite base image and expose a compose override so remote Docker/Trivy evidence can test alternate candidates before promotion.
 - [x] Replace `python-jose[cryptography]` with `PyJWT` for HS256 Web Panel tokens so the no-fix transitive `ecdsa` Python vulnerability is removed instead of accepted by exception.
 - [ ] Validate `python:3.11-alpine` as the Web Panel default candidate through remote Docker/Trivy evidence before accepting it as a real container finding burn-down.
+- [ ] Re-run the Alpine candidate after adding the minimal `libgcc` apk dependency needed by the `eclipse-zenoh` Rust metadata path.
 
 # Notes
 
@@ -62,6 +63,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - 2026-07-08: Latest main security artifact showed `deployment-web-panel-distributed` built from floating `python:3.11-slim`, which resolved to Debian 13.5 and carried 165 no-fix container findings covered by temporary exceptions. A remote PR scan proved `python:3.11-slim-bookworm` is not an acceptable default because it increased findings to 186 and left 185 unresolved against current exceptions. The web panel Dockerfile now defaults to the equivalent reproducible `python:3.11-slim-trixie` through `WEB_PANEL_BASE_IMAGE`, and `deployment/docker-compose.yml` exposes `AGI_WALKER_WEB_PANEL_BASE_IMAGE` for controlled candidate scans before any future promotion.
 - 2026-07-08: Main security artifact still showed one Python finding: transitive `ecdsa` from `python-jose[cryptography]`, `PYSEC-2026-1325`, with no fix version. Web Panel auth only uses HS256 encode/decode, so the dependency was replaced with `PyJWT` while preserving token semantics and `decode_access_token` returning `None` on invalid tokens.
 - 2026-07-08: Remaining production security risk is concentrated in the `deployment-web-panel-distributed` OS package layer. The next candidate switches the Web Panel default base to `python:3.11-alpine` and adds `apk` package-manager support. This is not accepted as remediation until GitHub security-preflight confirms image build success, lower findings and no unresolved/stale exception drift.
+- 2026-07-08: PR #20 security-preflight failed before Trivy because the Alpine `eclipse-zenoh` install path downloaded a musl Rust toolchain whose `cargo` needed `libgcc_s.so.1`. The candidate now installs the minimal `libgcc` apk package by default and keeps it overrideable through `AGI_WALKER_WEB_PANEL_APK_PACKAGES`.
 
 # Non-Goals
 

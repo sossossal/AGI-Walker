@@ -14,7 +14,7 @@ COPY deployment/requirements.web_panel.txt /app/deployment/requirements.web_pane
 COPY deployment/requirements.web_panel.distributed.txt /app/deployment/requirements.web_panel.distributed.txt
 
 ARG WEB_PANEL_APT_PACKAGES=""
-ARG WEB_PANEL_APK_PACKAGES=""
+ARG WEB_PANEL_APK_PACKAGES="libgcc"
 ARG WEB_PANEL_REQUIREMENTS_FILE=/app/deployment/requirements.web_panel.txt
 
 RUN if command -v apt-get >/dev/null 2>&1; then \
