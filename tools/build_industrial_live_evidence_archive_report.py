@@ -36,6 +36,14 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--vendor-promotion")
     parser.add_argument("--browser-closeout")
     parser.add_argument("--customer-site-smoke")
+    parser.add_argument(
+        "--require-customer-site-smoke",
+        action="store_true",
+        help=(
+            "Require --customer-site-smoke to point to a passed customer-site "
+            "real device smoke report."
+        ),
+    )
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
     return parser.parse_args(argv)
 
@@ -126,6 +134,7 @@ def build_industrial_live_evidence_archive_report(
     vendor_promotion: dict[str, Any] | None,
     browser_closeout: dict[str, Any] | None,
     customer_site_smoke: dict[str, Any] | None,
+    require_customer_site_smoke: bool = False,
 ) -> dict[str, Any]:
     live_inputs = inputs_payload.get("industrial_live_evidence")
     if not isinstance(live_inputs, dict):
@@ -181,7 +190,7 @@ def build_industrial_live_evidence_archive_report(
             sources.get("customer_site_smoke"),
             customer_site_smoke,
             expected_statuses={"passed"},
-            required=False,
+            required=require_customer_site_smoke,
         ),
     ]
 
@@ -219,6 +228,7 @@ def build_industrial_live_evidence_archive_report(
             "optional_evidence_warning_count": len(warnings),
             "external_mainline_industrial_step_status": industrial_step_status,
             "external_mainline_managed_inputs_ready": managed_inputs_ready,
+            "require_customer_site_smoke": require_customer_site_smoke,
         },
         "missing_fields": missing_fields,
         "blockers": blockers,
@@ -263,6 +273,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         vendor_promotion=_load_json_if_exists(args.vendor_promotion),
         browser_closeout=_load_json_if_exists(args.browser_closeout),
         customer_site_smoke=_load_json_if_exists(args.customer_site_smoke),
+        require_customer_site_smoke=args.require_customer_site_smoke,
     )
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)

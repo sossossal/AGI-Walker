@@ -63,3 +63,11 @@ python tools/build_customer_site_live_smoke_report.py --require-evidence-files
 - vendor review / promotion checklist
 - hardware diagnostics / telemetry report
 - operator history export
+
+用于工业签收时，重新生成 archive report 时必须启用 strict 绑定：
+
+```bash
+python tools/build_industrial_live_evidence_archive_report.py \
+  --customer-site-smoke test_env/customer_site_live_smoke/customer_site_live_smoke_report.json \
+  --require-customer-site-smoke
+```
