@@ -309,6 +309,7 @@ def test_distributed_runtime_uses_current_package_entrypoints() -> None:
     assert 'ARG WEB_PANEL_APK_BUILD_PACKAGES="build-base"' in web_panel_dockerfile
     assert "apk add --no-cache --virtual .web-panel-build-deps" in web_panel_dockerfile
     assert "apk del .web-panel-build-deps" in web_panel_dockerfile
+    assert "rm -rf /root/.cache /tmp/*" in web_panel_dockerfile
     assert "WEB_PANEL_APK_PACKAGES: ${AGI_WALKER_WEB_PANEL_APK_PACKAGES:-libgcc}" in compose_content
     assert (
         "WEB_PANEL_APK_BUILD_PACKAGES: ${AGI_WALKER_WEB_PANEL_APK_BUILD_PACKAGES:-build-base}"

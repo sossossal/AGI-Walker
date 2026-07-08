@@ -38,6 +38,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - [ ] Validate `python:3.11-alpine` as the Web Panel default candidate through remote Docker/Trivy evidence before accepting it as a real container finding burn-down.
 - [ ] Re-run the Alpine candidate after adding the minimal `libgcc` apk dependency needed by the `eclipse-zenoh` Rust metadata path.
 - [ ] Re-run the Alpine candidate after adding temporary `build-base` apk build dependencies for the `eclipse-zenoh` native wheel build path, ensuring build deps are removed from the final image.
+- [ ] Re-run the Alpine candidate after clearing Rust/Cargo build caches from the final image so Trivy does not report transient native-build components.
 
 # Notes
 
@@ -66,6 +67,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - 2026-07-08: Remaining production security risk is concentrated in the `deployment-web-panel-distributed` OS package layer. The next candidate switches the Web Panel default base to `python:3.11-alpine` and adds `apk` package-manager support. This is not accepted as remediation until GitHub security-preflight confirms image build success, lower findings and no unresolved/stale exception drift.
 - 2026-07-08: PR #20 security-preflight failed before Trivy because the Alpine `eclipse-zenoh` install path downloaded a musl Rust toolchain whose `cargo` needed `libgcc_s.so.1`. The candidate now installs the minimal `libgcc` apk package by default and keeps it overrideable through `AGI_WALKER_WEB_PANEL_APK_PACKAGES`.
 - 2026-07-08: PR #20 security-preflight then progressed to native `eclipse-zenoh` compilation and failed because Alpine lacked linker `cc`. The candidate now installs `build-base` as a virtual apk build dependency and removes `.web-panel-build-deps` after pip install so compiler packages are not retained in the final filesystem.
+- 2026-07-08: PR #20 then built successfully and reached Trivy, but the Alpine candidate reported 234 unresolved findings concentrated in Rust build-cache components such as `rustls-webpki`, `aws-lc-sys`, `rand`, and `cargo`. The Dockerfile now clears `/root/.cache` and `/tmp/*` after pip install/build-dep removal before accepting another scan result.
 
 # Non-Goals
 

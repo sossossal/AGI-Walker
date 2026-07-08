@@ -44,7 +44,8 @@ RUN python -m pip install --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r "$WEB_PANEL_REQUIREMENTS_FILE" && \
     if command -v apk >/dev/null 2>&1 && apk info -e .web-panel-build-deps >/dev/null 2>&1; then \
         apk del .web-panel-build-deps; \
-    fi
+    fi && \
+    rm -rf /root/.cache /tmp/*
 
 COPY . /app
 
