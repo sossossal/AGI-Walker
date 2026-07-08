@@ -91,7 +91,7 @@ py -3.12 tools\compare_container_vulnerability_baselines.py --current-raw-report
 
 # Residual Risks
 
-- Real `pip-audit` / `trivy` / Docker behavior depends on external scanner databases and local or CI image availability; the current local Docker path is available and scanned successfully.
-- Accepted no-fix exceptions remain temporary release risk and must be reviewed before expiry; current generated evidence must show zero broad component-only, review-due, stale or expired exceptions and next expiry at `2026-08-24T00:00:00+01:00`.
-- The web panel base-image pin improves reproducibility but does not itself eliminate accepted no-fix findings; any alternate base-image promotion must first show lower production findings and no new unresolved findings in remote Docker/Trivy evidence.
+- Real `pip-audit` / `trivy` / Docker behavior depends on external scanner databases and local or CI image availability; latest authoritative remote evidence is PR #20 run `28964949780`, where security-preflight passed with Python findings `0`, container findings `0`, active exceptions `0`, review-due exceptions `0`, and expired exceptions `0`.
+- Accepted no-fix exceptions are no longer part of the current security posture; the managed exception input is intentionally empty. If scanner databases later surface new findings, security-preflight must fail closed until those findings are fixed or explicitly re-approved.
+- The Web Panel Alpine path depends on native `eclipse-zenoh` wheel builds. Build deps are removed from the final image and build caches are cleaned, but CI duration remains higher than the Debian slim path and should be monitored.
 - Full release evidence collection still includes broad non-live gates by default; security CI uses the security-only preflight profile to keep vulnerability posture validation independent from that longer release gate.
