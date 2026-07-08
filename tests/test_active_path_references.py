@@ -550,7 +550,9 @@ def test_phase_d_security_docs_and_tools_use_current_runtime_paths() -> None:
     assert "python tools/run_security_release_preflight.py" in release_guide
     assert "deployment-zenoh-router" in release_guide
     assert "eclipse/zenoh:1.9.0" in release_guide
-    assert "真实容器漏洞修复顺序" in release_guide
+    assert "持续监控真实 `pip-audit` / `trivy` 数据库漂移" in release_guide
+    assert "当前受管 no-fix exceptions 为空" in release_guide
+    assert "security-preflight` 会 fail closed" in release_guide
     assert "python tools/run_backup_restore_rehearsal.py" in release_guide
     assert "python tools/build_security_posture_report.py" in release_guide
     assert "--python-vuln-raw-report" in release_guide

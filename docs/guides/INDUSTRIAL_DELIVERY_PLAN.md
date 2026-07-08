@@ -154,14 +154,14 @@
 
 - Python dependency scan：已复绿，当前 canonical 状态为 `passed`，`finding_count=0`。
 - Zenoh router 交付镜像：已复绿，当前 canonical 状态为 `0 findings`。
-- Web panel distributed 镜像：当前 canonical container 扫描结果仍为 `104 findings / 31 affected components`，但已通过 `31` 条 active no-fix exceptions 进入 canonical remediation；当前 `accepted_finding_count=104`、`unresolved_finding_count=0`、`matched_exception_count=31`、`stale_exception_count=0`。
+- Web panel distributed 镜像：当前 canonical container 扫描结果已通过 Web Panel Alpine 候选与 build-cache 清理降为 `0 findings`；当前 `accepted_finding_count=0`、`unresolved_finding_count=0`、`matched_exception_count=0`、`stale_exception_count=0`。
 - tracked canonical exception 输入已收口到 `deployment/security/vulnerability_exceptions.input.json`；`tools/collect_release_evidence.py` 与 `tools/run_security_release_preflight.py` 默认会从该路径生成 structured `vulnerability_exception_report.json`。
 - dockerized Trivy fallback 的 `/scan/image.tar` 镜像标识问题已修复，因此镜像级 exception 现在能稳定匹配 `deployment-web-panel-distributed` 的 canonical findings。
-- `security_posture_report` 当前为 `ready`，`security_release_preflight_report` 当前为 `passed`；最新 canonical preflight 当前已显式写出 `stale_vulnerability_exceptions=0`、`vulnerability_exception_review_due=31`、`vulnerability_exception_review_status=review_due` 与 `vulnerability_exception_review_report_status=passed`；当前 readiness / stable / industrial promotion surface 也已优先指向独立 `vulnerability_exception_review_report.json`，不再只暴露 aggregate preflight metrics。最新 rc manifest 与 customer acceptance bundle 当前都已为 `ready`。
+- `security_posture_report` 当前为 `ready`，`security_release_preflight_report` 当前为 `passed`；最新合并后 main preflight 当前已显式写出 active exceptions `0`、review-due exceptions `0`、expired exceptions `0` 与 `vulnerability_exception_review_report_status=passed`；当前 readiness / stable / industrial promotion surface 也已优先指向独立 `vulnerability_exception_review_report.json`，不再只暴露 aggregate preflight metrics。最新 rc manifest 与 customer acceptance bundle 当前都已为 `ready`。
 
 ### 当前保存计划
 
-1. 保持 `deployment/security/vulnerability_exceptions.input.json` 作为受管输入，持续复核 `31` 条 active no-fix exceptions，并在 `2026-05-15` 到期前优先用真实上游修复替换；最新 canonical 重算结果当前为 `stale_exception_count=0`，说明风险仍集中在 review window，而不是“已有 fix 仍保留 no-fix exception”。
+1. 保持 `deployment/security/vulnerability_exceptions.input.json` 作为受管输入；当前受管 no-fix exceptions 为空，后续若 scanner DB 刷新重新出现 findings，应由 `security-preflight` fail closed 后再通过真实修复或新的显式审批处理。
 2. `industrial_delivery_gate` 当前已进入 `release_manifest`、`release_readiness_report.json`、`stable_promotion_checklist.json` 以及独立的 `industrial_release_readiness_report.json` / `industrial_promotion_checklist.json`，并已正式收口 `deployment_package_status`、`evidence_attested`、`sbom_attached`、`vuln_scan_status`、`backup_restore_verified` 与 Phase E 文档挂载状态。
 3. 最新 canonical rc manifest 上，`industrial_delivery_gate.status=ready`；容器扫描 residual findings 现已通过 `vulnerability_remediation_report.status=ready` / `security_posture_report.status=ready` 收口，不再单纯卡在原始 `container_vuln_scan_report.status=blocked`。
 4. `tools/run_release_rehearsal.py` 当前已实跑通过，并会显式 seed customer delivery / security / remediation 产物，要求 `industrial_delivery_gate.status=ready`；相对或绝对 `--output-root` 路径都已验证可闭环。最新 runner 还会直接生成 `security_release_preflight_report.json`、`release_manifest_industrial.json`、`industrial_release_readiness_report.json`、`industrial_promotion_checklist.json`、`customer_acceptance_bundle_industrial.json` 与独立 `industrial_delivery_rehearsal_report.json`，并把 `new_environment_install`、`smoke`、`live_evidence`、`upgrade`、`rollback`、`backup_restore` 六个阶段写入结构化 rehearsal report。当前 `industrial_release_readiness_report` 与独立 `industrial_delivery_rehearsal_report` 也都会显式带出 `vulnerability_exception_review.status` / `review_candidate_count`，使 residual-risk review 不再只停留在 security preflight metrics。canonical industrial rehearsal 现在默认复制携带 synthetic confirmation metadata 的 `deployment/customer_delivery.external_bindings.rehearsal.json`，使演练产物中的 `extension_execution_actuals.external_bindings_status=ready`，同时保留 `deployment/customer_delivery.external_bindings.json` 作为客户实例化时的 placeholder 输入。
@@ -329,7 +329,7 @@ P0：
 1. 把 `execution_template` 继续细化到真实值班演练 evidence、exception 到期排程、升级 closure artifact 收集以及外部 binding reference。
    - 当前状态：已完成到 default binding reference 层，canonical 留痕报告现已由 `tools/build_extension_execution_evidence.py` 生成，并进入 manifest / bundle / readiness / checklist / rehearsal；客户实例化窗口已由 `tools/build_extension_execution_instance.py` 落盘，窗口触发 / signoff / closure archive 目标已由 `tools/build_extension_execution_schedule.py` 落盘，客户审批来源 / 归档目标 / 到期触发则已由 `tools/build_extension_execution_actuals.py` 以 `customer_ticket_registry`、`customer_archive_destination` 和 `customer_due_trigger_schedule` 形式写入机器字段。
 2. 持续保持 canonical release manifest、release evidence 与 security preflight 的闭环复算，并同步当前状态文档口径。
-3. 在 `2026-05-15` 前优先用真实修复替换当前 `31` 条 no-fix exceptions，避免 residual risk 变成长尾常态。
+3. 持续复跑 canonical security evidence；当前 no-fix exceptions 已退休，后续若 scanner DB 刷新重新出现 findings，应由 security-preflight fail closed 后再处理，避免 residual risk 重新变成长尾常态。
 
 P1：
 

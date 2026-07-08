@@ -154,7 +154,7 @@ python tools/build_vulnerability_remediation_report.py --python-vuln-report test
 当前 canonical 口径下，security posture 与 preflight 已从“缺少漏洞报告或剩余 findings 未闭合”推进到“报告完整、risk 已解释且已通过”。当前基线为：
 
 - Python 依赖：当前已 `passed`，`finding_count=0`
-- 容器镜像：当前 canonical findings 以 `deployment-zenoh-router` 和 `deployment-web-panel-distributed` 为准；PR #20 / GitHub Actions run `28962518720` 证明两者当前均为 `0 findings`
+- 容器镜像：当前 canonical findings 以 `deployment-zenoh-router` 和 `deployment-web-panel-distributed` 为准；合并后 main GitHub Actions run `28967203208` 证明两者当前均为 `0 findings`
 - `vulnerability_remediation_report`: `ready`，`accepted_finding_count=0`、`unresolved_finding_count=0`、`matched_exception_count=0`
   - 若某条 `only_without_fix_version=true` 的 active exception 对应 findings 开始携带 fix version，report 现在会额外挂出 `stale_exception_count` / `stale_exceptions`，明确标记哪些 no-fix exceptions 已失效，需要从审批输入里移除或替换
 - `security_posture_status=ready`

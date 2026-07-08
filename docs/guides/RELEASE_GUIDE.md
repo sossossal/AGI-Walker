@@ -543,12 +543,12 @@ canonical release evidence 采集后，对应路径为：
 
 - `python_vuln_scan_report.json`: `passed`，`finding_count=0`
 - `zenoh-router` 当前交付镜像：`deployment-zenoh-router`，上游基础镜像默认来自 `eclipse/zenoh:1.9.0`
-- `container_vuln_scan_report.json`: 当前 canonical 以 `deployment-zenoh-router` 和 `deployment-web-panel-distributed` 为准；PR #20 / GitHub Actions run `28962518720` 证明两者当前均为 `0 findings`
+- `container_vuln_scan_report.json`: 当前 canonical 以 `deployment-zenoh-router` 和 `deployment-web-panel-distributed` 为准；合并后 main GitHub Actions run `28967203208` 证明两者当前均为 `0 findings`
 - `vulnerability_remediation_report.json`: `ready`，`accepted_finding_count=0`，`unresolved_finding_count=0`，`matched_exception_count=0`
 - `security_posture_report.json`: `ready`
 - `security_release_preflight_report.json`: `passed`
 
-因此，阶段 D 当前已从“让 preflight 过线”切换为“围绕 `deployment-web-panel-distributed` 的真实容器漏洞修复顺序，逐步用真实上游修复替换当前 `31` 条 no-fix exceptions”。
+因此，阶段 D 当前已从“让 preflight 过线”切换为“持续监控真实 `pip-audit` / `trivy` 数据库漂移”：当前受管 no-fix exceptions 为空，后续若 scanner DB 刷新重新发现漏洞，`security-preflight` 会 fail closed，直到真实修复或新的显式审批进入受管输入。
 
 ## release channel policy
 
