@@ -39,7 +39,7 @@ def test_next_stage_readiness_report_tracks_all_route_closeouts() -> None:
 
 
 def test_next_stage_readiness_report_fails_closed_with_current_missing_evidence(
-    tmp_path: Path,
+    tmp_path: Path, capsys,
 ) -> None:
     output = tmp_path / "next_stage_readiness_report.json"
 
@@ -53,6 +53,12 @@ def test_next_stage_readiness_report_fails_closed_with_current_missing_evidence(
     assert '"validation_errors": []' in content
     assert "hardware_live_closeout" in content
     assert "web_browser_evidence_pack" in content
+    stdout = capsys.readouterr().out
+    assert "next_stage_readiness_written=" in stdout
+    assert "next_stage_readiness_status=blocked" in stdout
+    assert "next_stage_readiness_validation_errors=0" in stdout
+    assert "next_stage_readiness_actions=external_input:" in stdout
+    assert "next_stage_readiness_git=branch:" in stdout
 
 
 def test_next_stage_readiness_report_includes_actionable_blocker_details() -> None:

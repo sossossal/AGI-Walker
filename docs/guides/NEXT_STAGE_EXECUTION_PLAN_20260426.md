@@ -81,6 +81,7 @@ python tools/build_next_stage_readiness_report.py --output test_env/next_stage/n
 执行原则：
 
 - 先跑总 readiness，优先按 `action_plan` 执行；需要展开原因时再看 `blocker_details[].blockers / blocked_steps / next_actions`。
+- 总 readiness CLI 会在 stdout 打印 `next_stage_readiness_status`、`next_stage_readiness_validation_errors`、`next_stage_readiness_actions` 和 `next_stage_readiness_git`，CI 日志可先看这些摘要，再打开 JSON artifact。
 - 每次补完外部 evidence 后，只重跑对应路线命令和最后的总 readiness。
 - 不用占位值把 `blocked` 改成 `ready`；缺真实输入时保留 fail-closed 状态。
 - Route B 的 Web 权限策略已经仓内闭合；若客户要求在线授权管理，单独走组织级 IAM / RBAC 集成，不在现场控制台写策略。

@@ -95,3 +95,4 @@ py -3.12 -m pytest tests\test_real_robot_driver.py tests\test_hardware_controlle
 - 2026-07-08: Added timezone-aware `generated_at` to `next_stage_readiness_report.v1` and documented it in the next-stage execution plan so stale local/CI evidence can be identified during residual-risk closeout.
 - 2026-07-08: Added Git provenance metadata to `next_stage_readiness_report.v1` so branch/main and clean/dirty evidence snapshots can be distinguished during residual-risk review.
 - 2026-07-08: Added self-validation for `next_stage_readiness_report.v1`; malformed summary counts or blocker/action ordering now appear in `validation_errors` and prevent a ready report from exiting successfully.
+- 2026-07-08: Added stdout summary lines for `build_next_stage_readiness_report.py` so operators can distinguish external-input blockers from report validation errors directly in CI/terminal logs.

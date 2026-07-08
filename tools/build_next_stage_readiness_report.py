@@ -381,7 +381,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         json.dumps(report, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    _print_summary(report=report, output_path=output_path)
     return 0 if report["status"] == "ready" and not report["validation_errors"] else 1
+
+
+def _print_summary(*, report: dict[str, Any], output_path: Path) -> None:
+    summary = report["summary"]
+    git = report["git"]
+    print(f"next_stage_readiness_written={output_path.as_posix()}")
+    print(f"next_stage_readiness_status={report['status']}")
+    print(f"next_stage_readiness_validation_errors={len(report['validation_errors'])}")
+    print(
+        "next_stage_readiness_actions="
+        f"external_input:{summary['external_input_action_count']},"
+        f"code_or_config:{summary['code_or_config_action_count']}"
+    )
+    print(
+        "next_stage_readiness_git="
+        f"branch:{git.get('branch')},commit:{git.get('commit_sha')},dirty:{git.get('is_dirty')}"
+    )
 
 
 if __name__ == "__main__":
