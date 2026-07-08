@@ -54,8 +54,8 @@ AGI-Walker 当前可用的主入口已经恢复到可读、可执行、可验证
 
 ## 当前进度确认
 
-- 发布主链已闭合：stable manifest、readiness、promotion checklist、distributed / Godot / ROS2 live evidence 都已完成并可追溯。
-- 工业化执行计划已完成阶段 A、B、C，阶段 D 的本轮退出门禁也已闭合；当前焦点已从 security preflight 复绿切换到阶段 E/F 的工业预检链收口与扩展支持边界细化。
+- 发布主链已闭合：stable manifest、readiness、promotion checklist、distributed / Godot / ROS2 live evidence 都已完成并可追溯；这不等同于下一阶段真实客户现场 evidence 已完成。
+- next-stage readiness 当前仍为 `blocked`：`test_env/next_stage/next_stage_readiness_report.json` 汇总 8 个 blocker，`external_input_action_count=8`、`code_or_config_action_count=0`。剩余项是 hardware live closeout、ROS2 Humble typed cutover、operator/vendor 现场 evidence、strict industrial live archive 和 Web browser manual evidence，不应在缺真实现场输入时标成 ready。
 - 安全线当前已具备完整 contract：`sbom_artifact`、`vulnerability_scan_report`、`vulnerability_exception_report`、`vulnerability_exception_review_report`、`vulnerability_remediation_report`、`backup_restore_rehearsal_report`、`security_posture_report`、`security_release_preflight_report`。
 - Zenoh router 交付镜像 `deployment-zenoh-router` 当前已复绿，`0 findings`。
 - `deployment-web-panel-distributed` 的 canonical container findings 已通过 Web Panel Alpine 候选与 build-cache 清理降为 `0 findings`；当前 `accepted_finding_count=0`、`unresolved_finding_count=0`、`matched_exception_count=0`，旧 no-fix exceptions 已从受管输入退休。

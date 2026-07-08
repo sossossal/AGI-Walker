@@ -2,6 +2,7 @@ from pathlib import Path
 
 
 PLAN = Path("docs/guides/NEXT_STAGE_EXECUTION_PLAN_20260426.md")
+CURRENT_STATUS = Path("docs/CURRENT_STATUS.md")
 
 
 def test_next_stage_plan_uses_evidence_driven_iteration_order() -> None:
@@ -133,3 +134,11 @@ def test_next_stage_plan_no_longer_claims_feature_iteration_as_next_step() -> No
     assert "先做 `真实硬件联调`" not in content
     assert "如果 Web 恢复操作没有确认和权限约束" not in content
     assert "如果 ROS2 长期保持 JSON string bridge 形态" not in content
+
+
+def test_current_status_separates_release_ready_from_next_stage_blocked() -> None:
+    content = CURRENT_STATUS.read_text(encoding="utf-8")
+
+    assert "这不等同于下一阶段真实客户现场 evidence 已完成" in content
+    assert "next-stage readiness 当前仍为 `blocked`" in content
+    assert "`external_input_action_count=8`、`code_or_config_action_count=0`" in content
