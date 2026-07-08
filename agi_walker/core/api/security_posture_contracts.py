@@ -22,6 +22,10 @@ VULNERABILITY_SCAN_REPORT_VERSION = "1.0"
 VULNERABILITY_SCAN_REPORT_ARTIFACT_TYPE = "vulnerability_scan_report"
 VULNERABILITY_EXCEPTION_REPORT_VERSION = "1.0"
 VULNERABILITY_EXCEPTION_REPORT_ARTIFACT_TYPE = "vulnerability_exception_report"
+VULNERABILITY_EXCEPTION_BURNDOWN_REPORT_VERSION = "1.0"
+VULNERABILITY_EXCEPTION_BURNDOWN_REPORT_ARTIFACT_TYPE = (
+    "vulnerability_exception_burndown_report"
+)
 VULNERABILITY_REMEDIATION_REPORT_VERSION = "1.0"
 VULNERABILITY_REMEDIATION_REPORT_ARTIFACT_TYPE = "vulnerability_remediation_report"
 BACKUP_RESTORE_REHEARSAL_REPORT_VERSION = "1.0"
@@ -35,6 +39,12 @@ VULNERABILITY_EXCEPTION_SCOPES = {"python_dependencies", "container_images"}
 VULNERABILITY_EXCEPTION_STATUSES = {"active", "expired"}
 VULNERABILITY_EXCEPTION_REVIEW_STATUSES = {
     "no_active_exceptions",
+    "tracked",
+    "review_due",
+    "expired",
+}
+VULNERABILITY_EXCEPTION_BURNDOWN_STATUSES = {
+    "no_exceptions",
     "tracked",
     "review_due",
     "expired",
@@ -950,6 +960,368 @@ def write_vulnerability_exception_report(
     errors = validate_vulnerability_exception_report(payload)
     if errors:
         raise ValueError(f"invalid vulnerability exception report: {'; '.join(errors)}")
+
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(to_jsonable(dict(payload)), ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return output_path
+
+
+def _count_by_non_empty_value(
+    items: Sequence[Mapping[str, Any]], field: str
+) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for item in items:
+        value = item.get(field)
+        if _is_non_empty_string(value):
+            normalized = str(value).strip()
+            counts[normalized] = counts.get(normalized, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _count_by_list_value(
+    items: Sequence[Mapping[str, Any]], field: str
+) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for item in items:
+        values = item.get(field, [])
+        if not isinstance(values, list):
+            continue
+        for value in values:
+            if _is_non_empty_string(value):
+                normalized = str(value).strip()
+                counts[normalized] = counts.get(normalized, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _exception_highest_severity(item: Mapping[str, Any]) -> str:
+    severities = item.get("severities", [])
+    if not isinstance(severities, list) or not severities:
+        return "UNKNOWN"
+    return max((str(value) for value in severities), key=_severity_score)
+
+
+def _build_exception_action_items(
+    *,
+    active_exceptions: Sequence[Mapping[str, Any]],
+    expired_exceptions: Sequence[Mapping[str, Any]],
+    review_due_exceptions: Sequence[Mapping[str, Any]],
+    next_exception_expiry: str | None,
+) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    if expired_exceptions:
+        items.append(
+            {
+                "priority": "blocker",
+                "action": "refresh_or_remove_expired_exceptions",
+                "exception_count": len(expired_exceptions),
+                "exception_ids": [
+                    str(item.get("id"))
+                    for item in expired_exceptions
+                    if _is_non_empty_string(item.get("id"))
+                ],
+            }
+        )
+    if review_due_exceptions:
+        items.append(
+            {
+                "priority": "high",
+                "action": "complete_review_due_exceptions",
+                "exception_count": len(review_due_exceptions),
+                "exception_ids": [
+                    str(item.get("id"))
+                    for item in review_due_exceptions
+                    if _is_non_empty_string(item.get("id"))
+                ],
+            }
+        )
+    if active_exceptions:
+        items.append(
+            {
+                "priority": "normal",
+                "action": "continue_no_fix_burndown_before_expiry",
+                "exception_count": len(active_exceptions),
+                "next_exception_expiry": next_exception_expiry,
+            }
+        )
+    return items
+
+
+def build_vulnerability_exception_burndown_report(
+    *,
+    project_root: str | Path | None = None,
+    exception_report: Mapping[str, Any],
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    errors = validate_vulnerability_exception_report(exception_report)
+    if errors:
+        raise ValueError("invalid vulnerability exception report: " + "; ".join(errors))
+
+    root = _resolve_project_root(project_root or exception_report.get("project_root"))
+    generated_timestamp = generated_at or _now_iso()
+    generated_datetime = _parse_iso_datetime(generated_timestamp) or datetime.now()
+    exceptions = [
+        dict(item)
+        for item in exception_report.get("exceptions", [])
+        if isinstance(item, Mapping)
+    ]
+    active_exceptions = [item for item in exceptions if item.get("status") == "active"]
+    expired_exceptions = [
+        item for item in exceptions if item.get("status") == "expired"
+    ]
+    review_due_ids = set(exception_report.get("review_due_exception_ids") or [])
+    review_due_exceptions = [
+        item for item in active_exceptions if item.get("id") in review_due_ids
+    ]
+
+    source_generated_at = str(exception_report.get("generated_at") or "")
+    next_exception_expiry = exception_report.get("next_exception_expiry")
+    next_expiry_datetime = _parse_iso_datetime(str(next_exception_expiry or ""))
+    days_until_next_expiry = _days_until_datetime(
+        next_expiry_datetime, generated_datetime
+    )
+
+    prioritized = sorted(
+        active_exceptions,
+        key=lambda item: (
+            -_severity_score(_exception_highest_severity(item)),
+            str(item.get("expires_at") or ""),
+            str(item.get("component") or ""),
+            str(item.get("id") or ""),
+        ),
+    )
+    prioritized_exceptions = [
+        {
+            "id": item.get("id"),
+            "scope": item.get("scope"),
+            "component": item.get("component"),
+            "image_refs": item.get("image_refs", []),
+            "ticket": item.get("ticket"),
+            "expires_at": item.get("expires_at"),
+            "highest_severity": _exception_highest_severity(item),
+            "vulnerability_count": len(item.get("vulnerability_ids") or []),
+            "only_without_fix_version": item.get("only_without_fix_version"),
+        }
+        for item in prioritized[:20]
+    ]
+
+    if expired_exceptions:
+        status = "expired"
+    elif review_due_exceptions:
+        status = "review_due"
+    elif active_exceptions:
+        status = "tracked"
+    else:
+        status = "no_exceptions"
+
+    summary = (
+        "No active vulnerability exceptions remain."
+        if status == "no_exceptions"
+        else "Vulnerability exception burn-down tracks "
+        f"{len(active_exceptions)} active exception(s), "
+        f"{len(review_due_exceptions)} review-due exception(s), and "
+        f"{len(expired_exceptions)} expired exception(s)."
+    )
+
+    return {
+        "schema_version": VULNERABILITY_EXCEPTION_BURNDOWN_REPORT_VERSION,
+        "artifact_type": VULNERABILITY_EXCEPTION_BURNDOWN_REPORT_ARTIFACT_TYPE,
+        "generated_at": generated_timestamp,
+        "project_root": str(root),
+        "source_exception_report_generated_at": source_generated_at,
+        "summary": summary,
+        "status": status,
+        "active_exception_count": len(active_exceptions),
+        "expired_exception_count": len(expired_exceptions),
+        "review_due_exception_count": len(review_due_exceptions),
+        "next_exception_expiry": next_exception_expiry,
+        "days_until_next_exception_expiry": (
+            round(days_until_next_expiry, 2)
+            if days_until_next_expiry is not None
+            else None
+        ),
+        "exceptions_by_scope": _count_by_non_empty_value(active_exceptions, "scope"),
+        "exceptions_by_ticket": _count_by_non_empty_value(active_exceptions, "ticket"),
+        "exceptions_by_component": _count_by_non_empty_value(
+            active_exceptions, "component"
+        ),
+        "exceptions_by_image_ref": _count_by_list_value(
+            active_exceptions, "image_refs"
+        ),
+        "exceptions_by_highest_severity": _count_by_non_empty_value(
+            [
+                {
+                    "highest_severity": _exception_highest_severity(item),
+                }
+                for item in active_exceptions
+            ],
+            "highest_severity",
+        ),
+        "prioritized_exceptions": to_jsonable(prioritized_exceptions),
+        "action_items": to_jsonable(
+            _build_exception_action_items(
+                active_exceptions=active_exceptions,
+                expired_exceptions=expired_exceptions,
+                review_due_exceptions=review_due_exceptions,
+                next_exception_expiry=(
+                    str(next_exception_expiry)
+                    if _is_non_empty_string(next_exception_expiry)
+                    else None
+                ),
+            )
+        ),
+    }
+
+
+def validate_vulnerability_exception_burndown_report(payload: Any) -> list[str]:
+    if not isinstance(payload, Mapping):
+        return ["vulnerability exception burndown report must be an object"]
+
+    errors: list[str] = []
+    for field in [
+        "schema_version",
+        "artifact_type",
+        "generated_at",
+        "project_root",
+        "summary",
+        "status",
+        "active_exception_count",
+        "expired_exception_count",
+        "review_due_exception_count",
+        "exceptions_by_scope",
+        "exceptions_by_ticket",
+        "exceptions_by_component",
+        "exceptions_by_image_ref",
+        "exceptions_by_highest_severity",
+        "prioritized_exceptions",
+        "action_items",
+    ]:
+        if field not in payload:
+            errors.append(f"missing required field: {field}")
+
+    if payload.get("schema_version") != VULNERABILITY_EXCEPTION_BURNDOWN_REPORT_VERSION:
+        errors.append(
+            "schema_version must be "
+            f"{VULNERABILITY_EXCEPTION_BURNDOWN_REPORT_VERSION!r}"
+        )
+    if (
+        payload.get("artifact_type")
+        != VULNERABILITY_EXCEPTION_BURNDOWN_REPORT_ARTIFACT_TYPE
+    ):
+        errors.append(
+            "artifact_type must be "
+            f"{VULNERABILITY_EXCEPTION_BURNDOWN_REPORT_ARTIFACT_TYPE!r}"
+        )
+    if payload.get("status") not in VULNERABILITY_EXCEPTION_BURNDOWN_STATUSES:
+        errors.append(
+            "status must be one of "
+            f"{sorted(VULNERABILITY_EXCEPTION_BURNDOWN_STATUSES)}"
+        )
+    for field in ["generated_at", "project_root", "summary"]:
+        if field in payload and not _is_non_empty_string(payload.get(field)):
+            errors.append(f"{field} must be a non-empty string")
+    if _parse_iso_datetime(payload.get("generated_at")) is None:
+        errors.append("generated_at must be a valid ISO 8601 datetime string")
+
+    for field in [
+        "active_exception_count",
+        "expired_exception_count",
+        "review_due_exception_count",
+    ]:
+        value = payload.get(field)
+        if not isinstance(value, int) or value < 0:
+            errors.append(f"{field} must be a non-negative integer")
+    days_until_next_expiry = payload.get("days_until_next_exception_expiry")
+    if days_until_next_expiry is not None and not isinstance(
+        days_until_next_expiry, (int, float)
+    ):
+        errors.append("days_until_next_exception_expiry must be null or a number")
+
+    next_exception_expiry = payload.get("next_exception_expiry")
+    if (
+        next_exception_expiry is not None
+        and next_exception_expiry != ""
+        and _parse_iso_datetime(str(next_exception_expiry)) is None
+    ):
+        errors.append(
+            "next_exception_expiry must be null or a valid ISO 8601 datetime string"
+        )
+
+    for field in [
+        "exceptions_by_scope",
+        "exceptions_by_ticket",
+        "exceptions_by_component",
+        "exceptions_by_image_ref",
+        "exceptions_by_highest_severity",
+    ]:
+        value = payload.get(field)
+        if not isinstance(value, Mapping):
+            errors.append(f"{field} must be an object")
+            continue
+        for key, count in value.items():
+            if not _is_non_empty_string(key):
+                errors.append(f"{field} keys must be non-empty strings")
+            if not isinstance(count, int) or count < 0:
+                errors.append(f"{field}.{key} must be a non-negative integer")
+
+    prioritized = payload.get("prioritized_exceptions")
+    if not isinstance(prioritized, list):
+        errors.append("prioritized_exceptions must be a list")
+    else:
+        for index, item in enumerate(prioritized, start=1):
+            prefix = f"prioritized_exceptions[{index}]"
+            if not isinstance(item, Mapping):
+                errors.append(f"{prefix} must be an object")
+                continue
+            for field in [
+                "id",
+                "scope",
+                "component",
+                "ticket",
+                "expires_at",
+                "highest_severity",
+            ]:
+                if not _is_non_empty_string(item.get(field)):
+                    errors.append(f"{prefix}.{field} must be a non-empty string")
+            if (
+                not isinstance(item.get("vulnerability_count"), int)
+                or item.get("vulnerability_count") < 0
+            ):
+                errors.append(
+                    f"{prefix}.vulnerability_count must be a non-negative integer"
+                )
+
+    action_items = payload.get("action_items")
+    if not isinstance(action_items, list):
+        errors.append("action_items must be a list")
+    else:
+        for index, item in enumerate(action_items, start=1):
+            prefix = f"action_items[{index}]"
+            if not isinstance(item, Mapping):
+                errors.append(f"{prefix} must be an object")
+                continue
+            for field in ["priority", "action"]:
+                if not _is_non_empty_string(item.get(field)):
+                    errors.append(f"{prefix}.{field} must be a non-empty string")
+            exception_count = item.get("exception_count")
+            if not isinstance(exception_count, int) or exception_count < 0:
+                errors.append(
+                    f"{prefix}.exception_count must be a non-negative integer"
+                )
+    return errors
+
+
+def write_vulnerability_exception_burndown_report(
+    payload: Mapping[str, Any], path: str | Path
+) -> Path:
+    errors = validate_vulnerability_exception_burndown_report(payload)
+    if errors:
+        raise ValueError(
+            "invalid vulnerability exception burndown report: " + "; ".join(errors)
+        )
 
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)

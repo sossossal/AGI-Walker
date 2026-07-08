@@ -295,6 +295,30 @@ def _append_vulnerability_exception_review_command(
     )
 
 
+def _append_vulnerability_exception_burndown_command(
+    commands: list[tuple[str, list[str]]],
+    *,
+    project_root: Path,
+    exception_report_output_path: Path,
+    output_path: Path,
+) -> None:
+    commands.append(
+        (
+            "vulnerability_exception_burndown",
+            [
+                sys.executable,
+                "tools/build_vulnerability_exception_burndown_report.py",
+                "--project-root",
+                str(project_root),
+                "--exception-report",
+                str(exception_report_output_path),
+                "--output",
+                str(output_path),
+            ],
+        )
+    )
+
+
 def _append_extension_execution_commands(
     commands: list[tuple[str, list[str]]],
     *,
@@ -393,6 +417,9 @@ def main(argv: list[str] | None = None) -> int:
     python_vuln_report = security_root / "python_vuln_scan_report.json"
     container_vuln_report = security_root / "container_vuln_scan_report.json"
     vulnerability_exception_report = security_root / "vulnerability_exception_report.json"
+    vulnerability_exception_burndown_report = (
+        security_root / "vulnerability_exception_burndown_report.json"
+    )
     vulnerability_remediation_report = security_root / "vulnerability_remediation_report.json"
     backup_restore_rehearsal_output_root = security_root / "backup_restore_rehearsal"
     backup_restore_rehearsal_report = (
@@ -509,6 +536,12 @@ def main(argv: list[str] | None = None) -> int:
             project_root=PROJECT_ROOT,
             exception_report_output_path=vulnerability_exception_report,
             output_path=security_root / "vulnerability_exception_review_report.json",
+        )
+        _append_vulnerability_exception_burndown_command(
+            commands,
+            project_root=PROJECT_ROOT,
+            exception_report_output_path=vulnerability_exception_report,
+            output_path=vulnerability_exception_burndown_report,
         )
 
     if not args.security_only:

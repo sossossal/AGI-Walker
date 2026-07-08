@@ -36,6 +36,7 @@ from agi_walker.core.api.release_contracts import (  # noqa: E402
     write_release_evidence_report,
 )
 from agi_walker.core.api.security_posture_contracts import (  # noqa: E402
+    validate_vulnerability_exception_burndown_report,
     validate_security_posture_report,
 )
 
@@ -63,6 +64,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--vulnerability-exception-review-report",
         default=None,
         help="Optional explicit vulnerability_exception_review_report.json path. Defaults to <output-root>/security/vulnerability_exception_review_report.json.",
+    )
+    parser.add_argument(
+        "--vulnerability-exception-burndown-report",
+        default=None,
+        help="Optional explicit vulnerability_exception_burndown_report.json path. Defaults to <output-root>/security/vulnerability_exception_burndown_report.json.",
     )
     parser.add_argument(
         "--skip-collect",
@@ -133,6 +139,18 @@ def _resolve_exception_review_report_path(
             "vulnerability_exception_review_report.json"
         )
     return output_root / "security" / "vulnerability_exception_review_report.json"
+
+
+def _resolve_exception_burndown_report_path(
+    args: argparse.Namespace, output_root: Path
+) -> Path:
+    if args.vulnerability_exception_burndown_report:
+        return Path(args.vulnerability_exception_burndown_report)
+    if args.security_posture_report:
+        return Path(args.security_posture_report).parent / (
+            "vulnerability_exception_burndown_report.json"
+        )
+    return output_root / "security" / "vulnerability_exception_burndown_report.json"
 
 
 def _resolve_evidence_report_path(args: argparse.Namespace, output_root: Path) -> Path:
@@ -318,6 +336,54 @@ def _load_vulnerability_exception_review_report(path: Path) -> dict[str, object]
     }
 
 
+def _load_vulnerability_exception_burndown_report(path: Path) -> dict[str, object]:
+    if not path.is_file():
+        return {
+            "vulnerability_exception_burndown_report_path": str(path),
+            "vulnerability_exception_burndown_report_exists": False,
+        }
+
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {
+            "vulnerability_exception_burndown_report_path": str(path),
+            "vulnerability_exception_burndown_report_exists": True,
+            "vulnerability_exception_burndown_report_status": "invalid",
+            "vulnerability_exception_burndown_report_summary": (
+                f"vulnerability exception burn-down report is unreadable: {exc}"
+            ),
+        }
+
+    errors = validate_vulnerability_exception_burndown_report(payload)
+    if errors:
+        return {
+            "vulnerability_exception_burndown_report_path": str(path),
+            "vulnerability_exception_burndown_report_exists": True,
+            "vulnerability_exception_burndown_report_status": "invalid",
+            "vulnerability_exception_burndown_report_summary": "; ".join(errors),
+        }
+
+    return {
+        "vulnerability_exception_burndown_report_path": str(path),
+        "vulnerability_exception_burndown_report_exists": True,
+        "vulnerability_exception_burndown_report_status": payload.get("status"),
+        "vulnerability_exception_burndown_report_summary": payload.get("summary"),
+        "vulnerability_exception_burndown_active": payload.get(
+            "active_exception_count", 0
+        ),
+        "vulnerability_exception_burndown_review_due": payload.get(
+            "review_due_exception_count", 0
+        ),
+        "vulnerability_exception_burndown_expired": payload.get(
+            "expired_exception_count", 0
+        ),
+        "vulnerability_exception_burndown_next_expiry": payload.get(
+            "next_exception_expiry"
+        ),
+    }
+
+
 def _coerce_non_negative_int(value: object) -> int:
     if isinstance(value, bool):
         return 0
@@ -378,6 +444,9 @@ def main(argv: list[str] | None = None) -> int:
         args,
         output_root,
     )
+    vulnerability_exception_burndown_report_path = (
+        _resolve_exception_burndown_report_path(args, output_root)
+    )
     evidence_report_path = _resolve_evidence_report_path(args, output_root)
 
     collect_exit_code = 0
@@ -390,6 +459,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     review_report_metrics = _load_vulnerability_exception_review_report(
         vulnerability_exception_review_report_path
+    )
+    burndown_report_metrics = _load_vulnerability_exception_burndown_report(
+        vulnerability_exception_burndown_report_path
     )
     if collect_exit_code != 0:
         status = "blocked"
@@ -413,6 +485,7 @@ def main(argv: list[str] | None = None) -> int:
             "security_posture_report_path": str(security_posture_report_path),
             **posture_metrics,
             **review_report_metrics,
+            **burndown_report_metrics,
         },
     )
     written_report = write_release_evidence_report(payload, evidence_report_path)
@@ -440,6 +513,15 @@ def main(argv: list[str] | None = None) -> int:
         print(
             "security_release_preflight_review_candidates="
             f"{review_report_metrics.get('vulnerability_exception_review_candidate_count', 0)}"
+        )
+    if burndown_report_metrics.get("vulnerability_exception_burndown_report_exists"):
+        print(
+            "security_release_preflight_burndown_status="
+            f"{burndown_report_metrics.get('vulnerability_exception_burndown_report_status') or ''}"
+        )
+        print(
+            "security_release_preflight_burndown_active="
+            f"{burndown_report_metrics.get('vulnerability_exception_burndown_active', 0)}"
         )
     return 0 if payload["status"] == "passed" else 1
 

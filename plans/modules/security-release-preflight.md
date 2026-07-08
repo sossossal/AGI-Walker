@@ -9,6 +9,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - `tools/run_python_vulnerability_scan.py`
 - `tools/run_container_vulnerability_scan.py`
 - `tools/compare_container_vulnerability_baselines.py`
+- `tools/build_vulnerability_exception_burndown_report.py`
 - `agi_walker/core/api/security_posture_contracts.py`
 - `deployment/security/vulnerability_exceptions.input.json`
 - `tests/test_security_release_preflight.py`
@@ -20,7 +21,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 
 - Public surface this module exposes: `security_release_preflight_report`, `security_posture_report`, vulnerability scan/remediation/exception reports, and CI `security-preflight` stdout.
 - Inputs this module accepts: real `pip-audit` output, real `trivy` output, structured vulnerability reports, approved exception input, backup/restore report and security baseline docs.
-- Outputs this module produces: machine-readable preflight status, summary, blocked reason metrics, stale/expired/review exception metrics and remediation guidance.
+- Outputs this module produces: machine-readable preflight status, summary, blocked reason metrics, stale/expired/review exception metrics, exception burn-down summaries and remediation guidance.
 - Compatibility requirements: do not mark security posture passed unless unresolved findings are remediated or covered by active matching exceptions; do not hide scanner execution failures.
 - Validation required: targeted security preflight/posture/scan tests plus local preflight reproduction when available.
 
@@ -30,6 +31,8 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - [x] Identify whether the blocker is scanner execution, uncovered findings, stale exceptions, expired exceptions or missing evidence.
 - [x] Apply the smallest safe fix: update managed exceptions only when findings are still no-fix and intentionally accepted, or update code/tests when classification is wrong.
 - [x] Run targeted validation and document residual risk.
+- [x] Add a non-gating vulnerability exception burn-down report so active temporary exceptions can be reviewed by expiry, ticket, component, image and severity without changing preflight pass/fail behavior.
+- [x] Preserve the vulnerability exception burn-down report in collected security evidence and surface its status/counts in security preflight metrics without adding a new release blocker.
 
 # Notes
 
@@ -52,6 +55,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - 2026-06-18: Scheduled main run `27741873038` surfaced 40 unresolved container findings after scanner database refresh. The actionable delta was the util-linux package-family UNKNOWN no-fix CVE group `CVE-2026-53612` through `CVE-2026-53615` across `bsdutils`, `libblkid1`, `liblastlog2-2`, `libmount1`, `libsmartcols1`, `libuuid1`, `login`, `mount`, and `util-linux`, plus Linux-PAM `CVE-2026-54411` severity drift from `UNKNOWN` to `MEDIUM`; raw Trivy evidence reported `FixedVersion=null`. Updated existing scoped no-fix exceptions for those components, preserved the shared `2026-08-24T00:00:00+01:00` expiry, and kept security-preflight fail-closed for future unmatched CVEs or fixed-version drift.
 - 2026-07-08: Scheduled main run `28919293675` surfaced 18 unresolved findings after scanner database refresh: Python `ecdsa` `PYSEC-2026-1325`; container `gzip` `CVE-2026-41991`/`CVE-2026-41992`, `libacl1` `CVE-2026-54369`/`CVE-2026-54370`, `libattr1` `CVE-2026-54371`, SQLite `CVE-2026-11822`/`CVE-2026-11824` severity drift to `MEDIUM`, util-linux package-family `CVE-2026-13595` across `bsdutils`, `libblkid1`, `liblastlog2-2`, `libmount1`, `libsmartcols1`, `libuuid1`, `login`, `mount`, and `util-linux`, plus `perl-base` `CVE-2026-7017`. Raw pip-audit/Trivy evidence reported no fix versions for all 18; added scoped supplemental no-fix exceptions, preserved the shared `2026-08-24T00:00:00+01:00` expiry, and replayed the downloaded CI artifact to `security_release_preflight_status=passed`.
 - 2026-07-08: PR #16 run `28938765573` reduced the blocker to 9 unresolved `deployment-web-panel-distributed` findings: existing util-linux package-family `CVE-2026-53615` entries across `bsdutils`, `libblkid1`, `liblastlog2-2`, `libmount1`, `libsmartcols1`, `libuuid1`, `login`, `mount`, and `util-linux` drifted to `HIGH` severity while still reporting `FixedVersion=null`. Updated those existing scoped no-fix exception severity lists and kept the fail-closed behavior for future CVE, severity or fix-version drift.
+- 2026-07-08: Added `vulnerability_exception_burndown_report` as a read-only residual-risk artifact. It summarizes active, review-due and expired temporary exceptions by scope, ticket, component, image ref and highest severity, emits action items for ongoing no-fix burn-down, is collected into security evidence artifacts, and is surfaced in security preflight metrics without becoming a release gate.
 
 # Non-Goals
 
@@ -66,6 +70,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 
 ```powershell
 py -3.12 -m pytest tests\test_security_release_preflight.py tests\test_security_posture_reports.py tests\test_vulnerability_scan_runners.py -q --tb=short
+py -3.12 -m pytest tests\test_vulnerability_exception_burndown_report.py -q
 py -3.12 tools\run_security_release_preflight.py --output-root test_env\release_evidence_ci --run-python-vuln-scan --run-container-vuln-scan --container-image-ref deployment-zenoh-router --container-image-ref deployment-web-panel-distributed
 py -3.12 tools\compare_container_vulnerability_baselines.py --current-raw-report test_env\release_evidence_ci_exception_refresh\security\container_vuln_scan_report_raw\deployment-web-panel-distributed.json --candidate-raw-report <candidate-trivy-raw.json-or-dir> --output test_env\container_baseline_comparison\comparison.json
 ```
