@@ -4,6 +4,7 @@ from pathlib import Path
 
 from agi_walker.core.api.mcp_tools import MCPToolProvider
 from agi_walker.core.api.release_control_plane import (
+    build_release_closeout_payload,
     build_release_next_request_file_payload,
 )
 from agi_walker.core.api.release_contracts import (
@@ -740,6 +741,108 @@ def test_release_closeout_query_aggregates_remaining_blockers(tmp_path: Path) ->
         == "waiting_external_input"
     )
     assert payload["release_closeout"]["vulnerability_exception_review"]["command"]
+
+
+def test_release_closeout_reads_worktree_runner_default_report_path(
+    tmp_path: Path,
+) -> None:
+    plan_path = (
+        tmp_path
+        / "test_env"
+        / "release_evidence"
+        / "operations"
+        / "external_mainline_execution_plan.json"
+    )
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+    plan_path.write_text(
+        json.dumps(
+            {
+                "status": "ready",
+                "summary": "External mainline execution completed.",
+                "completed_steps": 1,
+                "ready_to_run_steps": 0,
+                "waiting_external_input_steps": 0,
+                "blocked_steps": 0,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    preflight_path = (
+        tmp_path
+        / "test_env"
+        / "release_evidence"
+        / "security_release_preflight_report.json"
+    )
+    preflight_path.parent.mkdir(parents=True, exist_ok=True)
+    write_release_evidence_report(
+        build_release_evidence_report(
+            evidence_name="security_release_preflight",
+            status="passed",
+            summary="Security posture is ready.",
+            command="python tools/run_security_release_preflight.py",
+            metrics={
+                "vulnerability_exception_review_status": "no_active_exceptions",
+                "vulnerability_exception_review_due": 0,
+                "vulnerability_exception_review_candidate_count": 0,
+            },
+        ),
+        preflight_path,
+    )
+    review_path = (
+        tmp_path
+        / "test_env"
+        / "release_evidence"
+        / "security"
+        / "vulnerability_exception_review_report.json"
+    )
+    write_release_evidence_report(
+        build_release_evidence_report(
+            evidence_name="vulnerability_exception_review",
+            status="passed",
+            summary="No active vulnerability exceptions require review.",
+            command="python tools/build_vulnerability_exception_review_report.py",
+            metrics={
+                "review_candidate_count": 0,
+                "review_due_exception_count": 0,
+                "review_follow_up_required": False,
+            },
+        ),
+        review_path,
+    )
+    worktree_path = (
+        tmp_path
+        / "test_env"
+        / "worktree_cleanup"
+        / "worktree_release_blocker_report.json"
+    )
+    worktree_path.parent.mkdir(parents=True, exist_ok=True)
+    worktree_path.write_text(
+        json.dumps(
+            {
+                "artifact_type": "worktree_release_blocker_report",
+                "status": "ready",
+                "summary": "clean_worktree=true, total_paths=0.",
+                "clean_worktree": True,
+                "total_paths": 0,
+                "tracked_review_candidate_count": 0,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    payload = build_release_closeout_payload(project_root=tmp_path)
+
+    closeout = payload["release_closeout"]
+    assert closeout["status"] == "ready"
+    assert closeout["missing_components"] == 0
+    assert closeout["worktree_release_blocker"]["status"] == "ready"
+    assert closeout["worktree_release_blocker"]["path"] == str(worktree_path)
 
 
 def test_release_closeout_next_query_exposes_recommended_component(tmp_path: Path) -> None:

@@ -40,6 +40,7 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - [x] Re-run the Alpine candidate after adding temporary `build-base` apk build dependencies for the `eclipse-zenoh` native wheel build path, ensuring build deps are removed from the final image.
 - [x] Re-run the Alpine candidate after clearing Rust/Cargo build caches from the final image so Trivy does not report transient native-build components.
 - [x] Retire obsolete deployment-web-panel-distributed no-fix exceptions after remote evidence proves zero Python/container vulnerability findings.
+- [x] Surface missing, blocked, execution-blocked and finding-blocked scan counts in `security-preflight` stdout and evidence metrics.
 
 # Notes
 
@@ -70,6 +71,8 @@ Keep the security release preflight actionable and release-safe: scanner executi
 - 2026-07-08: PR #20 security-preflight then progressed to native `eclipse-zenoh` compilation and failed because Alpine lacked linker `cc`. The candidate now installs `build-base` as a virtual apk build dependency and removes `.web-panel-build-deps` after pip install so compiler packages are not retained in the final filesystem.
 - 2026-07-08: PR #20 then built successfully and reached Trivy, but the Alpine candidate reported 234 unresolved findings concentrated in Rust build-cache components such as `rustls-webpki`, `aws-lc-sys`, `rand`, and `cargo`. The Dockerfile now clears `/root/.cache` and `/tmp/*` after pip install/build-dep removal before accepting another scan result.
 - 2026-07-08: PR #20 run `28962518720` passed `security-preflight` after build-cache cleanup. Downloaded artifact `test_env/gh_run_28962518720_security_artifacts` shows Python findings `0`, container findings `0`, unresolved findings `0`, accepted findings `0`, and security posture `ready`. The previous active no-fix exceptions are now obsolete and have been retired from the managed exception input.
+- 2026-07-08: Merged main confirmation run `28967203208` remains the current authoritative proof for security-preflight `passed` with Python findings `0`, container findings `0`, active exceptions `0`, review-due exceptions `0`, and expired exceptions `0`. This pass also refreshed the ignored local default preflight artifact and removed stale active documentation that still described the old `104 findings` / `31 active no-fix exceptions` posture.
+- 2026-07-08: Local preflight with Docker Desktop unavailable correctly remained blocked with `blocked_vulnerability_execution_reports=1` and `blocked_vulnerability_report_names=container_images`. Added stdout/metrics fields so this environment failure is visible directly in CI logs without treating it as unresolved vulnerability findings.
 
 # Non-Goals
 
@@ -91,7 +94,7 @@ py -3.12 tools\compare_container_vulnerability_baselines.py --current-raw-report
 
 # Residual Risks
 
-- Real `pip-audit` / `trivy` / Docker behavior depends on external scanner databases and local or CI image availability; latest authoritative remote evidence is PR #20 run `28964949780`, where security-preflight passed with Python findings `0`, container findings `0`, active exceptions `0`, review-due exceptions `0`, and expired exceptions `0`.
+- Real `pip-audit` / `trivy` / Docker behavior depends on external scanner databases and local or CI image availability; latest authoritative remote evidence is the merged `main` confirmation run `28967203208`, whose downloaded `security-preflight-artifacts` show security-preflight `passed`, Python findings `0`, container findings `0`, unresolved findings `0`, accepted findings `0`, active exceptions `0`, review-due exceptions `0`, expired exceptions `0`, and burndown status `no_exceptions`.
 - Accepted no-fix exceptions are no longer part of the current security posture; the managed exception input is intentionally empty. If scanner databases later surface new findings, security-preflight must fail closed until those findings are fixed or explicitly re-approved.
 - The Web Panel Alpine path depends on native `eclipse-zenoh` wheel builds. Build deps are removed from the final image and build caches are cleaned, but CI duration remains higher than the Debian slim path and should be monitored.
 - Full release evidence collection still includes broad non-live gates by default; security CI uses the security-only preflight profile to keep vulnerability posture validation independent from that longer release gate.

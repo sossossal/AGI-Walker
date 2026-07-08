@@ -43,8 +43,8 @@
 7. 如涉及 ROS2：对应 launch profile、smoke 或 bag replay 结果
 
 可使用 `tools/build_operator_delivery_checklist.py` 基于 `deployment/operator_delivery_checklist.template.json` 汇总上述 evidence，操作说明见 `docs/guides/OPERATOR_DELIVERY_CHECKLIST_AUTOMATION_20260427.md`。
-涉及 industrial live evidence 时，再使用 `tools/build_industrial_live_evidence_archive_report.py` 生成 `test_env/industrial_live_evidence/industrial_live_evidence_archive_report.json`，操作说明见 `docs/guides/INDUSTRIAL_LIVE_EVIDENCE_ARCHIVE_20260427.md`。
-涉及客户现场真实设备时，还必须使用 `tools/build_customer_site_live_smoke_report.py` 生成 `test_env/customer_site_live_smoke/customer_site_live_smoke_report.json`，操作说明见 `docs/guides/CUSTOMER_SITE_REAL_DEVICE_SMOKE_20260427.md`。
+涉及客户现场真实设备时，必须先使用 `tools/build_customer_site_live_smoke_report.py` 生成 `test_env/customer_site_live_smoke/customer_site_live_smoke_report.json`，操作说明见 `docs/guides/CUSTOMER_SITE_REAL_DEVICE_SMOKE_20260427.md`。
+涉及 industrial live evidence 或工业签收时，再使用 `tools/build_industrial_live_evidence_archive_report.py --customer-site-smoke test_env/customer_site_live_smoke/customer_site_live_smoke_report.json --require-customer-site-smoke` 生成 `test_env/industrial_live_evidence/industrial_live_evidence_archive_report.json`，操作说明见 `docs/guides/INDUSTRIAL_LIVE_EVIDENCE_ARCHIVE_20260427.md`。
 
 ## 后续升级条件
 

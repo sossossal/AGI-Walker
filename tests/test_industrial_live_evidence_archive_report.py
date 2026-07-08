@@ -85,6 +85,72 @@ def test_industrial_live_evidence_archive_report_ready(tmp_path: Path) -> None:
     assert payload["blockers"] == []
     assert payload["summary"]["target_environment"] == "customer-prod-line-1"
     assert payload["summary"]["external_mainline_managed_inputs_ready"] is True
+    assert payload["summary"]["require_customer_site_smoke"] is False
+
+
+def test_industrial_live_evidence_archive_strict_customer_site_smoke_blocks_missing(
+    tmp_path: Path,
+) -> None:
+    paths = _write_ready_required_evidence(tmp_path)
+
+    exit_code = main(
+        [
+            "--inputs-file",
+            str(paths["inputs"]),
+            "--operator-checklist",
+            str(paths["operator_checklist"]),
+            "--external-mainline-plan",
+            str(paths["external_mainline_plan"]),
+            "--require-customer-site-smoke",
+            "--output",
+            str(paths["output"]),
+        ]
+    )
+
+    assert exit_code == 1
+    payload = json.loads(paths["output"].read_text(encoding="utf-8"))
+    assert payload["status"] == "blocked"
+    assert "customer_site_smoke" in payload["blockers"]
+    assert payload["summary"]["require_customer_site_smoke"] is True
+    customer_site_evidence = [
+        item for item in payload["evidence"] if item["id"] == "customer_site_smoke"
+    ][0]
+    assert customer_site_evidence["required"] is True
+    assert customer_site_evidence["reason"] == "evidence_missing"
+
+
+def test_industrial_live_evidence_archive_strict_customer_site_smoke_passes(
+    tmp_path: Path,
+) -> None:
+    paths = _write_ready_required_evidence(tmp_path)
+    customer_site_smoke = tmp_path / "customer_site_live_smoke_report.json"
+    _write_json(customer_site_smoke, {"schema_version": "1.0", "status": "passed"})
+
+    exit_code = main(
+        [
+            "--inputs-file",
+            str(paths["inputs"]),
+            "--operator-checklist",
+            str(paths["operator_checklist"]),
+            "--external-mainline-plan",
+            str(paths["external_mainline_plan"]),
+            "--customer-site-smoke",
+            str(customer_site_smoke),
+            "--require-customer-site-smoke",
+            "--output",
+            str(paths["output"]),
+        ]
+    )
+
+    assert exit_code == 0
+    payload = json.loads(paths["output"].read_text(encoding="utf-8"))
+    assert payload["status"] == "ready"
+    assert payload["blockers"] == []
+    customer_site_evidence = [
+        item for item in payload["evidence"] if item["id"] == "customer_site_smoke"
+    ][0]
+    assert customer_site_evidence["required"] is True
+    assert customer_site_evidence["status"] == "ready"
 
 
 def test_industrial_live_evidence_archive_blocks_placeholder_fields(

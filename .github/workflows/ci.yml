@@ -162,7 +162,35 @@ jobs:
           retention-days: 7
 
   # -----------------------------------------------------------------------------
-  # Job 2c: Distributed Smoke (manual trigger only)
+  # Job 2c: Next-Stage Readiness Evidence
+  # -----------------------------------------------------------------------------
+  next-stage-readiness:
+    needs: smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Build Next-Stage Readiness Evidence
+        run: |
+          python tools/build_next_stage_readiness_report.py --output test_env/next_stage/next_stage_readiness_report.json || python tools/build_next_stage_readiness_report.py --output test_env/next_stage/next_stage_readiness_report.json --expected-status blocked
+
+      - name: Upload Next-Stage Readiness Artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: next-stage-readiness-artifacts
+          path: test_env/next_stage
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # -----------------------------------------------------------------------------
+  # Job 2d: Distributed Smoke (manual trigger only)
   # -----------------------------------------------------------------------------
   distributed-smoke:
     needs: smoke
@@ -203,7 +231,7 @@ jobs:
           retention-days: 7
 
   # -----------------------------------------------------------------------------
-  # Job 2d: Real Godot Headless Smoke (manual trigger only)
+  # Job 2e: Real Godot Headless Smoke (manual trigger only)
   # -----------------------------------------------------------------------------
   godot-headless-smoke:
     needs: smoke
@@ -244,7 +272,7 @@ jobs:
           retention-days: 7
 
   # -----------------------------------------------------------------------------
-  # Job 2e: Dynamic Godot Live Verification Profile (manual/scheduled)
+  # Job 2f: Dynamic Godot Live Verification Profile (manual/scheduled)
   # -----------------------------------------------------------------------------
   dynamic-godot-live-verification:
     needs: [smoke, static-godot-node-tree-manifest]
@@ -297,7 +325,7 @@ jobs:
           retention-days: 14
 
   # -----------------------------------------------------------------------------
-  # Job 2f: ROS2 Bridge Smoke (manual trigger only)
+  # Job 2g: ROS2 Bridge Smoke (manual trigger only)
   # -----------------------------------------------------------------------------
   ros2-bridge-smoke:
     needs: smoke

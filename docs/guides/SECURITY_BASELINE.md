@@ -144,6 +144,13 @@ python tools/run_security_release_preflight.py --security-only --output-root tes
 
 该命令当前是阶段 D 的正式 preflight 入口，CI 也应复用它，而不是各自拼 scanner 命令。
 
+`security-preflight` 的 stdout 会区分两类常见失败：
+
+- `security_release_preflight_blocked_vulnerability_execution_reports>0`：scanner 没有成功产出结构化报告，例如本机 Docker daemon 未运行、Trivy 运行失败或镜像不可访问。此时 `finding_count` 可能仍为 `0`，但 release gate 必须保持 blocked。
+- `security_release_preflight_blocked_vulnerability_finding_reports>0`：scanner 成功执行，但发现了未修复或未被有效 exception 覆盖的漏洞 finding。
+
+同时输出的 `security_release_preflight_blocked_vulnerability_report_names` 会列出受影响扫描面，例如 `container_images`。这些字段只用于诊断，不改变 fail-closed 门禁。
+
 如果 scanner 已经执行完，并且你要把修复顺序固定成结构化报告，而不是只看原始 JSON，可直接生成 remediation report：
 
 ```bash
@@ -154,7 +161,7 @@ python tools/build_vulnerability_remediation_report.py --python-vuln-report test
 当前 canonical 口径下，security posture 与 preflight 已从“缺少漏洞报告或剩余 findings 未闭合”推进到“报告完整、risk 已解释且已通过”。当前基线为：
 
 - Python 依赖：当前已 `passed`，`finding_count=0`
-- 容器镜像：当前 canonical findings 以 `deployment-zenoh-router` 和 `deployment-web-panel-distributed` 为准；PR #20 / GitHub Actions run `28962518720` 证明两者当前均为 `0 findings`
+- 容器镜像：当前 canonical findings 以 `deployment-zenoh-router` 和 `deployment-web-panel-distributed` 为准；合并后 main GitHub Actions run `28967203208` 证明两者当前均为 `0 findings`
 - `vulnerability_remediation_report`: `ready`，`accepted_finding_count=0`、`unresolved_finding_count=0`、`matched_exception_count=0`
   - 若某条 `only_without_fix_version=true` 的 active exception 对应 findings 开始携带 fix version，report 现在会额外挂出 `stale_exception_count` / `stale_exceptions`，明确标记哪些 no-fix exceptions 已失效，需要从审批输入里移除或替换
 - `security_posture_status=ready`

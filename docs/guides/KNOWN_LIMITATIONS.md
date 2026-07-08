@@ -1,6 +1,6 @@
 # AGI-Walker Known Limitations
 
-更新日期：`2026-04-15`
+更新日期：`2026-07-08`
 
 本页汇总当前客户交付包需要显式声明的已知限制和不支持项。它不是变更日志，而是当前可支持边界的正式补充说明。
 
@@ -29,7 +29,7 @@
 - 当前不声明托管 secrets manager 集成。
 - 当前不声明第三方 SIEM / 审计平台对接。
 - 当前不声明 Kubernetes secret / vault 模板。
-- `deployment-web-panel-distributed` 的 canonical `104` 条 findings 当前通过 `31` 条 active no-fix exceptions 进入 accepted residual risk，当前到期时间为 `2026-05-15`，在到期前应优先用真实上游修复替换。
+- `deployment-web-panel-distributed` 当前 canonical remote security-preflight evidence 为 `0 findings`、`0 active exceptions`。后续若 scanner DB 或上游包刷新重新引入 findings，`security-preflight` 会 fail closed，直到通过真实修复或新的显式审批重新闭环。
 
 ## 5. 当前不支持项
 

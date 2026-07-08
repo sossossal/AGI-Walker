@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -10,18 +13,24 @@ DEFAULT_OUTPUT = "test_env/next_stage/next_stage_readiness_report.json"
 SCHEMA_VERSION = "1.0"
 EXTERNAL_INPUT_ISSUES = {
     "change_request",
+    "console_error_summary",
     "customer_site_smoke",
     "evidence_missing",
+    "exports",
     "external_mainline_industrial_live_evidence_waiting",
     "fault_telemetry",
     "hardware_transport_diagnostics",
     "json_writers_disabled",
+    "live_diagnostics_checklist",
+    "manual_report",
     "operator",
     "operator_delivery_checklist",
     "rollback_owner",
+    "screenshots",
     "target_environment",
     "telemetry_entries_missing",
     "telemetry_report_missing",
+    "validation_closeout",
     "vendor_data_promotion",
     "vendor_review",
 }
@@ -74,6 +83,15 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         description="Build an aggregate readiness report for the next-stage execution plan."
     )
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--expected-status",
+        choices=("blocked", "ready"),
+        default=None,
+        help=(
+            "Return success when the generated report has this status and "
+            "self-validation passes. Omit to require ready."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -169,6 +187,117 @@ def _action_plan(blocker_details: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return actions
 
 
+def _git_value(args: Sequence[str]) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            check=False,
+            capture_output=True,
+            encoding="utf-8",
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    value = result.stdout.strip()
+    return value if result.returncode == 0 and value else None
+
+
+def _git_metadata() -> dict[str, Any]:
+    return {
+        "commit_sha": _git_value(["rev-parse", "HEAD"]) or os.environ.get("GITHUB_SHA"),
+        "branch": (
+            _git_value(["branch", "--show-current"])
+            or os.environ.get("GITHUB_HEAD_REF")
+            or os.environ.get("GITHUB_REF_NAME")
+        ),
+        "is_dirty": bool(_git_value(["status", "--porcelain"])),
+    }
+
+
+def _is_non_negative_int(value: Any) -> bool:
+    return isinstance(value, int) and value >= 0
+
+
+def validate_next_stage_readiness_report(report: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if report.get("schema_version") != SCHEMA_VERSION:
+        errors.append("schema_version must be 1.0")
+    try:
+        generated_at = datetime.fromisoformat(str(report.get("generated_at")))
+    except ValueError:
+        generated_at = None
+    if generated_at is None or generated_at.tzinfo is None:
+        errors.append("generated_at must be a timezone-aware ISO timestamp")
+    git = report.get("git")
+    if not isinstance(git, dict) or not isinstance(git.get("is_dirty"), bool):
+        errors.append("git must include boolean is_dirty metadata")
+    artifacts = report.get("artifacts")
+    blockers = report.get("blockers")
+    blocker_details = report.get("blocker_details")
+    action_plan = report.get("action_plan")
+    warnings = report.get("warnings")
+    summary = report.get("summary")
+    if not all(
+        isinstance(value, list)
+        for value in (artifacts, blockers, blocker_details, action_plan, warnings)
+    ) or not isinstance(summary, dict):
+        return [*errors, "report collections and summary must use canonical shapes"]
+    errors.extend(
+        _validate_next_stage_counts(
+            artifacts=artifacts,
+            blockers=blockers,
+            blocker_details=blocker_details,
+            action_plan=action_plan,
+            warnings=warnings,
+            summary=summary,
+        )
+    )
+    return errors
+
+
+def _validate_next_stage_counts(
+    *,
+    artifacts: list[Any],
+    blockers: list[Any],
+    blocker_details: list[Any],
+    action_plan: list[Any],
+    warnings: list[Any],
+    summary: dict[str, Any],
+) -> list[str]:
+    errors: list[str] = []
+    expected = {
+        "artifact_count": len(artifacts),
+        "ready_artifact_count": _count_dicts(artifacts, "status", "ready"),
+        "blocked_artifact_count": len(blockers),
+        "warning_artifact_count": len(warnings),
+        "blocker_detail_count": len(blocker_details),
+        "external_input_action_count": _count_dicts(
+            action_plan, "execution_scope", "external_input"
+        ),
+        "code_or_config_action_count": _count_dicts(
+            action_plan, "execution_scope", "code_or_config"
+        ),
+    }
+    for field, expected_value in expected.items():
+        if not _is_non_negative_int(summary.get(field)):
+            errors.append(f"summary.{field} must be a non-negative integer")
+        elif summary[field] != expected_value:
+            errors.append(f"summary.{field} must equal {expected_value}")
+    detail_ids = [item.get("id") for item in blocker_details if isinstance(item, dict)]
+    action_ids = [item.get("artifact_id") for item in action_plan if isinstance(item, dict)]
+    if list(blockers) != detail_ids:
+        errors.append("blocker_details ids must match blockers in order")
+    if list(blockers) != action_ids:
+        errors.append("action_plan artifact_ids must match blockers in order")
+    return errors
+
+
+def _count_dicts(items: list[Any], field: str, value: str) -> int:
+    return sum(
+        1 for item in items if isinstance(item, dict) and item.get(field) == value
+    )
+
+
 def build_next_stage_readiness_report() -> dict[str, Any]:
     artifacts: list[dict[str, Any]] = []
     blockers: list[str] = []
@@ -206,8 +335,10 @@ def build_next_stage_readiness_report() -> dict[str, Any]:
         )
     status = "ready" if not blockers else "blocked"
     action_plan = _action_plan(blocker_details)
-    return {
+    report = {
         "schema_version": SCHEMA_VERSION,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "git": _git_metadata(),
         "status": status,
         "summary": {
             "artifact_count": len(artifacts),
@@ -233,6 +364,8 @@ def build_next_stage_readiness_report() -> dict[str, Any]:
             action_plan=action_plan,
         ),
     }
+    report["validation_errors"] = validate_next_stage_readiness_report(report)
+    return report
 
 
 def _next_actions(
@@ -262,7 +395,46 @@ def main(argv: Sequence[str] | None = None) -> int:
         json.dumps(report, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    return 0 if report["status"] == "ready" else 1
+    exit_code = _exit_code(report=report, expected_status=args.expected_status)
+    _print_summary(
+        report=report,
+        output_path=output_path,
+        expected_status=args.expected_status,
+        exit_code=exit_code,
+    )
+    return exit_code
+
+
+def _exit_code(*, report: dict[str, Any], expected_status: str | None) -> int:
+    if report["validation_errors"]:
+        return 1
+    required_status = expected_status or "ready"
+    return 0 if report["status"] == required_status else 1
+
+
+def _print_summary(
+    *,
+    report: dict[str, Any],
+    output_path: Path,
+    expected_status: str | None,
+    exit_code: int,
+) -> None:
+    summary = report["summary"]
+    git = report["git"]
+    print(f"next_stage_readiness_written={output_path.as_posix()}")
+    print(f"next_stage_readiness_status={report['status']}")
+    print(f"next_stage_readiness_expected_status={expected_status or 'ready'}")
+    print(f"next_stage_readiness_exit_code={exit_code}")
+    print(f"next_stage_readiness_validation_errors={len(report['validation_errors'])}")
+    print(
+        "next_stage_readiness_actions="
+        f"external_input:{summary['external_input_action_count']},"
+        f"code_or_config:{summary['code_or_config_action_count']}"
+    )
+    print(
+        "next_stage_readiness_git="
+        f"branch:{git.get('branch')},commit:{git.get('commit_sha')},dirty:{git.get('is_dirty')}"
+    )
 
 
 if __name__ == "__main__":

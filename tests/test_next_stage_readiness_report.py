@@ -1,9 +1,12 @@
+from datetime import datetime
 from pathlib import Path
 
+import tools.build_next_stage_readiness_report as readiness
 from tools.build_next_stage_readiness_report import (
     DEFAULT_ARTIFACTS,
     build_next_stage_readiness_report,
     main,
+    validate_next_stage_readiness_report,
 )
 
 
@@ -27,12 +30,36 @@ def test_next_stage_readiness_report_tracks_all_route_closeouts() -> None:
     assert set(DEFAULT_ARTIFACTS) == expected
     report = build_next_stage_readiness_report()
     assert report["schema_version"] == "1.0"
+    generated_at = datetime.fromisoformat(report["generated_at"])
+    assert generated_at.tzinfo is not None
+    assert set(report["git"]) == {"commit_sha", "branch", "is_dirty"}
+    assert isinstance(report["git"]["is_dirty"], bool)
+    assert report["validation_errors"] == []
     assert {item["id"] for item in report["artifacts"]} == expected
     assert report["summary"]["artifact_count"] == len(expected)
 
 
+def test_next_stage_readiness_git_metadata_uses_github_detached_head_fallback(
+    monkeypatch,
+) -> None:
+    def fake_git_value(args):
+        if args == ["status", "--porcelain"]:
+            return ""
+        return None
+
+    monkeypatch.setattr(readiness, "_git_value", fake_git_value)
+    monkeypatch.setenv("GITHUB_SHA", "abc123")
+    monkeypatch.setenv("GITHUB_HEAD_REF", "codex/example-branch")
+
+    assert readiness._git_metadata() == {
+        "commit_sha": "abc123",
+        "branch": "codex/example-branch",
+        "is_dirty": False,
+    }
+
+
 def test_next_stage_readiness_report_fails_closed_with_current_missing_evidence(
-    tmp_path: Path,
+    tmp_path: Path, capsys,
 ) -> None:
     output = tmp_path / "next_stage_readiness_report.json"
 
@@ -41,8 +68,52 @@ def test_next_stage_readiness_report_fails_closed_with_current_missing_evidence(
     assert exit_code == 1
     content = output.read_text(encoding="utf-8")
     assert '"status": "blocked"' in content
+    assert '"generated_at":' in content
+    assert '"git":' in content
+    assert '"validation_errors": []' in content
     assert "hardware_live_closeout" in content
     assert "web_browser_evidence_pack" in content
+    stdout = capsys.readouterr().out
+    assert "next_stage_readiness_written=" in stdout
+    assert "next_stage_readiness_status=blocked" in stdout
+    assert "next_stage_readiness_expected_status=ready" in stdout
+    assert "next_stage_readiness_exit_code=1" in stdout
+    assert "next_stage_readiness_validation_errors=0" in stdout
+    assert "next_stage_readiness_actions=external_input:" in stdout
+    assert "next_stage_readiness_git=branch:" in stdout
+
+
+def test_next_stage_readiness_report_can_archive_expected_blocked_state(
+    tmp_path: Path, capsys,
+) -> None:
+    output = tmp_path / "next_stage_readiness_report.json"
+
+    exit_code = main(
+        ["--output", str(output), "--expected-status", "blocked"]
+    )
+
+    assert exit_code == 0
+    content = output.read_text(encoding="utf-8")
+    assert '"status": "blocked"' in content
+    assert '"validation_errors": []' in content
+    stdout = capsys.readouterr().out
+    assert "next_stage_readiness_status=blocked" in stdout
+    assert "next_stage_readiness_expected_status=blocked" in stdout
+    assert "next_stage_readiness_exit_code=0" in stdout
+
+
+def test_next_stage_readiness_report_expected_ready_still_fails_when_blocked(
+    tmp_path: Path, capsys,
+) -> None:
+    output = tmp_path / "next_stage_readiness_report.json"
+
+    exit_code = main(["--output", str(output), "--expected-status", "ready"])
+
+    assert exit_code == 1
+    stdout = capsys.readouterr().out
+    assert "next_stage_readiness_status=blocked" in stdout
+    assert "next_stage_readiness_expected_status=ready" in stdout
+    assert "next_stage_readiness_exit_code=1" in stdout
 
 
 def test_next_stage_readiness_report_includes_actionable_blocker_details() -> None:
@@ -99,3 +170,30 @@ def test_next_stage_readiness_report_is_documented() -> None:
     assert tool in README.read_text(encoding="utf-8")
     assert tool in NEXT_STAGE_PLAN.read_text(encoding="utf-8")
     assert report in NEXT_STAGE_PLAN.read_text(encoding="utf-8")
+
+
+def test_next_stage_readiness_report_validation_rejects_count_drift() -> None:
+    report = build_next_stage_readiness_report()
+    report["summary"]["artifact_count"] += 1
+
+    errors = validate_next_stage_readiness_report(report)
+
+    assert "summary.artifact_count must equal" in errors[0]
+
+
+def test_next_stage_readiness_report_validation_rejects_blocker_order_drift() -> None:
+    report = build_next_stage_readiness_report()
+    report["action_plan"] = list(reversed(report["action_plan"]))
+
+    errors = validate_next_stage_readiness_report(report)
+
+    assert "action_plan artifact_ids must match blockers in order" in errors
+
+
+def test_next_stage_readiness_report_validation_rejects_missing_timestamp() -> None:
+    report = build_next_stage_readiness_report()
+    report["generated_at"] = "not-a-date"
+
+    errors = validate_next_stage_readiness_report(report)
+
+    assert "generated_at must be a timezone-aware ISO timestamp" in errors

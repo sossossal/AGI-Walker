@@ -376,6 +376,85 @@ def test_security_release_preflight_blocks_with_blocked_security_posture(
     assert payload["status"] == "blocked"
 
 
+def test_security_release_preflight_surfaces_blocked_scanner_execution_metrics(
+    tmp_path: Path,
+) -> None:
+    report_path = tmp_path / "release_evidence" / "security" / "security_posture_report.json"
+    evidence_report_path = (
+        tmp_path / "release_evidence" / "security_release_preflight_report.json"
+    )
+    _seed_blocked_security_posture_report(report_path)
+
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    payload["summary"] = (
+        "Security posture remains blocked until the required vulnerability scans "
+        "execute successfully."
+    )
+    payload["vulnerability_reports"] = [
+        {
+            "name": "python_dependencies",
+            "path": str(report_path.parent / "python_vuln_scan_report.json"),
+            "required": True,
+            "exists": True,
+            "status": "passed",
+            "scanner": "pip-audit",
+        },
+        {
+            "name": "container_images",
+            "path": str(report_path.parent / "container_vuln_scan_report.json"),
+            "required": True,
+            "exists": True,
+            "status": "blocked",
+            "scanner": "trivy",
+        },
+    ]
+    payload["missing_vulnerability_reports"] = 0
+    payload["blocked_vulnerability_reports"] = 1
+    payload["blocked_vulnerability_execution_reports"] = 1
+    payload["blocked_vulnerability_finding_reports"] = 0
+    write_security_posture_report(payload, report_path)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "tools/run_security_release_preflight.py",
+            "--skip-collect",
+            "--security-posture-report",
+            str(report_path),
+            "--report-file",
+            str(evidence_report_path),
+        ],
+        cwd=str(PROJECT_ROOT),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "security_release_preflight_status=blocked" in result.stdout
+    assert "security_release_preflight_blocked_vulnerability_reports=1" in result.stdout
+    assert (
+        "security_release_preflight_blocked_vulnerability_execution_reports=1"
+        in result.stdout
+    )
+    assert (
+        "security_release_preflight_blocked_vulnerability_finding_reports=0"
+        in result.stdout
+    )
+    assert (
+        "security_release_preflight_blocked_vulnerability_report_names=container_images"
+        in result.stdout
+    )
+    payload = json.loads(evidence_report_path.read_text(encoding="utf-8"))
+    assert payload["metrics"]["blocked_vulnerability_execution_reports"] == 1
+    assert payload["metrics"]["blocked_vulnerability_finding_reports"] == 0
+    assert payload["metrics"]["blocked_vulnerability_report_names"] == [
+        "container_images"
+    ]
+
+
 def test_security_release_preflight_surfaces_stale_exception_metrics_when_blocked(
     tmp_path: Path,
 ) -> None:

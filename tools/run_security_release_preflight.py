@@ -229,7 +229,31 @@ def _load_security_posture_report(path: Path) -> tuple[str, str, dict[str, objec
     posture_status = payload.get("posture_status")
     summary = str(payload.get("summary") or "").strip()
     exception_report = payload.get("vulnerability_exception_report", {})
+    vulnerability_reports = payload.get("vulnerability_reports", [])
+    if not isinstance(vulnerability_reports, list):
+        vulnerability_reports = []
+    blocked_report_names = [
+        str(item.get("name"))
+        for item in vulnerability_reports
+        if isinstance(item, dict)
+        and item.get("required") is True
+        and item.get("status") == "blocked"
+        and item.get("name")
+    ]
     metrics: dict[str, object] = {
+        "missing_vulnerability_reports": payload.get(
+            "missing_vulnerability_reports", 0
+        ),
+        "blocked_vulnerability_reports": payload.get(
+            "blocked_vulnerability_reports", 0
+        ),
+        "blocked_vulnerability_execution_reports": payload.get(
+            "blocked_vulnerability_execution_reports", 0
+        ),
+        "blocked_vulnerability_finding_reports": payload.get(
+            "blocked_vulnerability_finding_reports", 0
+        ),
+        "blocked_vulnerability_report_names": blocked_report_names,
         "accepted_vulnerability_findings": payload.get(
             "accepted_vulnerability_findings", 0
         ),
@@ -493,6 +517,30 @@ def main(argv: list[str] | None = None) -> int:
     print(f"security_release_preflight_status={payload['status']}")
     print(f"security_release_preflight_summary={payload['summary']}")
     if posture_metrics:
+        print(
+            "security_release_preflight_missing_vulnerability_reports="
+            f"{posture_metrics.get('missing_vulnerability_reports', 0)}"
+        )
+        print(
+            "security_release_preflight_blocked_vulnerability_reports="
+            f"{posture_metrics.get('blocked_vulnerability_reports', 0)}"
+        )
+        print(
+            "security_release_preflight_blocked_vulnerability_execution_reports="
+            f"{posture_metrics.get('blocked_vulnerability_execution_reports', 0)}"
+        )
+        print(
+            "security_release_preflight_blocked_vulnerability_finding_reports="
+            f"{posture_metrics.get('blocked_vulnerability_finding_reports', 0)}"
+        )
+        blocked_report_names = posture_metrics.get(
+            "blocked_vulnerability_report_names", []
+        )
+        if isinstance(blocked_report_names, list):
+            print(
+                "security_release_preflight_blocked_vulnerability_report_names="
+                f"{','.join(str(item) for item in blocked_report_names)}"
+            )
         print(
             "security_release_preflight_stale_exceptions="
             f"{posture_metrics.get('stale_vulnerability_exceptions', 0)}"

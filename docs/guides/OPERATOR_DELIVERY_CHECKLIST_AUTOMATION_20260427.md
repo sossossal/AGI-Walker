@@ -61,8 +61,13 @@ python tools/build_operator_delivery_checklist.py \
 若本次交付进入 industrial live evidence 收口，应继续运行：
 
 ```bash
-python tools/build_industrial_live_evidence_archive_report.py
+python tools/build_customer_site_live_smoke_report.py --output test_env/customer_site_live_smoke/customer_site_live_smoke_report.json
+python tools/build_industrial_live_evidence_archive_report.py \
+  --customer-site-smoke test_env/customer_site_live_smoke/customer_site_live_smoke_report.json \
+  --require-customer-site-smoke
 ```
+
+工业签收不能只依赖 archive report 的默认兼容模式；必须用 `--require-customer-site-smoke` 把真实客户现场 smoke 作为阻塞性 evidence。
 
 ## 不覆盖的事项
 

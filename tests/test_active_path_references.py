@@ -550,7 +550,9 @@ def test_phase_d_security_docs_and_tools_use_current_runtime_paths() -> None:
     assert "python tools/run_security_release_preflight.py" in release_guide
     assert "deployment-zenoh-router" in release_guide
     assert "eclipse/zenoh:1.9.0" in release_guide
-    assert "真实容器漏洞修复顺序" in release_guide
+    assert "持续监控真实 `pip-audit` / `trivy` 数据库漂移" in release_guide
+    assert "当前受管 no-fix exceptions 为空" in release_guide
+    assert "security-preflight` 会 fail closed" in release_guide
     assert "python tools/run_backup_restore_rehearsal.py" in release_guide
     assert "python tools/build_security_posture_report.py" in release_guide
     assert "--python-vuln-raw-report" in release_guide
@@ -654,6 +656,27 @@ def test_security_preflight_ci_job_uses_current_runner_and_artifacts() -> None:
     assert "python tools/run_security_release_preflight.py --security-only --output-root test_env/release_evidence_ci --run-python-vuln-scan --run-container-vuln-scan --container-image-ref ${{ env.AGI_WALKER_ZENOH_IMAGE }} --container-image-ref deployment-web-panel-distributed" in content
     assert "name: security-preflight-artifacts" in content
     assert "path: test_env/release_evidence_ci" in content
+
+
+def test_next_stage_readiness_ci_job_archives_blocked_or_ready_evidence() -> None:
+    jobs = _workflow_jobs()
+    job = jobs["next-stage-readiness"]
+
+    assert job["needs"] == "smoke"
+    step_runs = _joined_step_runs(job)
+    default_command = (
+        "python tools/build_next_stage_readiness_report.py "
+        "--output test_env/next_stage/next_stage_readiness_report.json"
+    )
+    assert default_command in step_runs
+    assert f"{default_command} --expected-status blocked" in step_runs
+    assert "||" in step_runs
+
+    upload_step = _artifact_upload_step(job, "next-stage-readiness-artifacts")
+    upload_with = upload_step["with"]
+    assert upload_with["path"] == "test_env/next_stage"
+    assert upload_with["if-no-files-found"] == "ignore"
+    assert upload_with["retention-days"] == 14
 
 
 def test_production_runbook_uses_current_compose_entrypoints() -> None:
@@ -958,7 +981,11 @@ def test_customer_deployment_docs_and_compose_defaults_use_current_single_path()
     assert "SQLite" in known_limitations
     assert "stdio" in known_limitations
     assert "deployment-web-panel-distributed" in known_limitations
-    assert "2026-05-15" in known_limitations
+    assert "0 findings" in known_limitations
+    assert "0 active exceptions" in known_limitations
+    assert "security-preflight` 会 fail closed" in known_limitations
+    assert "104" not in known_limitations
+    assert "31 条 active no-fix exceptions" not in known_limitations
     assert "CAPACITY_AND_SCALE.md" in known_limitations
     assert "生产部署 Runbook" in readme
     assert "客户安装指南" in readme

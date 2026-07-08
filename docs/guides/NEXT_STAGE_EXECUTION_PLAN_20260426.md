@@ -12,6 +12,16 @@ python tools/build_next_stage_readiness_report.py --output test_env/next_stage/n
 
 该报告聚合路线 A-F 的关键 closeout / evidence pack。仓内工具可以生成结构化 `blocked / ready` 判定；真实硬件、客户现场浏览器复核和目标 ROS2 Humble 环境仍需要现场执行。
 
+如果 CI 或本地流程只是为了归档当前 blocked evidence，而不是宣告下一阶段 ready，可以显式运行：
+
+```bash
+python tools/build_next_stage_readiness_report.py --output test_env/next_stage/next_stage_readiness_report.json --expected-status blocked
+```
+
+该模式只在报告自校验通过且状态确实为 `blocked` 时返回 0，便于保留 artifact；最终验收仍必须使用默认命令或 `--expected-status ready`，并要求 `next_stage_readiness_report.status=ready`。
+
+GitHub Actions 的 `next-stage-readiness` job 会先运行默认命令；如果当前仍缺真实外部 evidence，再用 `--expected-status blocked` 生成并上传 `next-stage-readiness-artifacts`。这只是 evidence retention，不是 release readiness 通过条件。
+
 当前已经具备：
 
 - 本地最小部署
@@ -66,8 +76,8 @@ python tools/build_ros2_typed_idl_cutover_report.py --output test_env/ros2_typed
 
 # D：operator delivery 与 industrial live archive
 python tools/build_operator_delivery_checklist.py --output test_env/operator_delivery/operator_delivery_checklist.json
-python tools/build_industrial_live_evidence_archive_report.py --output test_env/industrial_live_evidence/industrial_live_evidence_archive_report.json
 python tools/build_customer_site_live_smoke_report.py --output test_env/customer_site_live_smoke/customer_site_live_smoke_report.json
+python tools/build_industrial_live_evidence_archive_report.py --customer-site-smoke test_env/customer_site_live_smoke/customer_site_live_smoke_report.json --require-customer-site-smoke --output test_env/industrial_live_evidence/industrial_live_evidence_archive_report.json
 
 # F：浏览器手工验证 closeout
 python tools/build_web_browser_manual_validation_report.py --output test_env/web_browser_manual_validation/web_browser_manual_validation_report.json
@@ -81,6 +91,7 @@ python tools/build_next_stage_readiness_report.py --output test_env/next_stage/n
 执行原则：
 
 - 先跑总 readiness，优先按 `action_plan` 执行；需要展开原因时再看 `blocker_details[].blockers / blocked_steps / next_actions`。
+- 总 readiness CLI 会在 stdout 打印 `next_stage_readiness_status`、`next_stage_readiness_expected_status`、`next_stage_readiness_exit_code`、`next_stage_readiness_validation_errors`、`next_stage_readiness_actions` 和 `next_stage_readiness_git`，CI 日志可先看这些摘要，再打开 JSON artifact。
 - 每次补完外部 evidence 后，只重跑对应路线命令和最后的总 readiness。
 - 不用占位值把 `blocked` 改成 `ready`；缺真实输入时保留 fail-closed 状态。
 - Route B 的 Web 权限策略已经仓内闭合；若客户要求在线授权管理，单独走组织级 IAM / RBAC 集成，不在现场控制台写策略。
@@ -114,7 +125,7 @@ python tools/build_next_stage_readiness_report.py --output test_env/next_stage/n
 | `vendor_data_promotion_blocked` | vendor 数据未满足晋升条件 | 补齐 review、sample archive、`data_version`、`change_log` | `test_env/hardware_live/vendor_data_promotion_checklist.json` |
 | `ros2_typed_idl_cutover_blocked` | 目标 Humble typed cutover 证据不足 | 补 typed inventory、live smoke、rollback owner 并重建报告 | `test_env/ros2_typed_idl_cutover/ros2_typed_idl_cutover_report.json` |
 | `operator_delivery_checklist_blocked` | operator checklist evidence 未闭合 | 补 checklist item evidence path 并重建 checklist | `test_env/operator_delivery/operator_delivery_checklist.json` |
-| `industrial_live_evidence_archive_blocked` | industrial live evidence 或 external-mainline 缺失 | 补 `industrial_live_evidence.*` 与 external-mainline plan 后重建 archive | `test_env/industrial_live_evidence/industrial_live_evidence_archive_report.json` |
+| `industrial_live_evidence_archive_blocked` | industrial live evidence、external-mainline 或 strict customer-site smoke 缺失 | 补 `industrial_live_evidence.*`、external-mainline plan 与 `customer_site_live_smoke_report.status=passed` 后重建 archive | `test_env/industrial_live_evidence/industrial_live_evidence_archive_report.json` |
 | `manual_report_missing` | 浏览器手工验证报告不存在 | 按清单完成浏览器点击并生成 manual report | `test_env/web_browser_manual_validation/web_browser_manual_validation_report.json` |
 | `screenshots_missing` | 浏览器验证缺截图证据 | 归档 instruction console、history、timeline、recovery 操作截图 | `test_env/web_browser_manual_validation/` |
 | `exports_missing` | 浏览器验证缺导出文件 | 归档 history / timeline export 文件 | `test_env/web_browser_manual_validation/` |
@@ -123,14 +134,14 @@ python tools/build_next_stage_readiness_report.py --output test_env/next_stage/n
 
 当前本地加强后的已知状态：
 
-- `web_browser_evidence_pack` 已闭合为 `ready`，可作为本地 Web 操作面浏览器证据。
+- `web_browser_evidence_pack` 当前按 canonical artifact 仍为 `blocked`：Playwright 支持证据已通过，但 manual report、screenshots、exports、console summary 与 validation closeout 仍需真实浏览器验收输入后重建。
 - `operator_delivery_checklist` 已补齐 `system_status`、`workflow_status`、`operator_history_export`、`browser_validation_closeout` 与 `hardware_live_diagnostics`。
 - `operator_delivery_checklist` 当前已无 warning，仅剩必需 blocker：`vendor_data_promotion`。
 - `vendor_data_promotion` 不应以模板或占位样本强制置 `ready`，必须等待真实 vendor fault sample、review 与 promotion 条件闭合。
 - `vendor_fault_data_review` 当前缺 `test_env/hardware_live/hardware_fault_telemetry_report.json`；没有真实 telemetry entries 时不应生成通过态 review。
 - `vendor_data_promotion_checklist` 当前应保持 `blocked`，明确卡在 `change_request` 占位值和 `vendor_review` 未通过。
-- `industrial_live_evidence_archive_report` 当前已接入本地 hardware diagnostics 与 browser closeout；剩余 warning 为 `vendor_promotion` 和 `customer_site_smoke`。
-- `next_stage_readiness_report` 当前会输出 `action_plan` 和 `blocker_details`：前者给执行顺序与首要动作，后者保留每个阻塞 artifact 的内部 `blockers`、`blocked_steps`、`warnings` 和 `next_actions`。
+- `industrial_live_evidence_archive_report` 当前已支持 strict customer-site smoke 绑定；工业签收时 `--require-customer-site-smoke` 会把缺失或未通过的 `customer_site_smoke` 升级为 blocker。当前 canonical strict report 仍应保持 `blocked`，因为真实 customer-site smoke 与 operator/vendor 现场证据尚未闭合。
+- `next_stage_readiness_report` 当前会输出 `action_plan`、`blocker_details`、`generated_at`、`git` 和 `validation_errors`：前者给执行顺序与首要动作，后者保留每个阻塞 artifact 的内部 `blockers`、`blocked_steps`、`warnings` 和 `next_actions`；`next_stage_readiness_report.generated_at` 是带时区的报告生成时间，用于区分旧 artifact 与本轮 evidence；`next_stage_readiness_report.git` 记录 commit、branch 和 dirty 状态，用于避免把不同分支或脏工作区 evidence 混为同一份 readiness 结果；在 GitHub Actions detached checkout 中，branch/ref 和 commit 会从 `GITHUB_HEAD_REF`、`GITHUB_REF_NAME` 与 `GITHUB_SHA` 回填；`validation_errors` 固定校验 summary 计数、blocker/detail/action 顺序和基础元数据形状。
 - ROS2 typed surfaces 的本地代码 inventory 已可由 `tools/build_ros2_typed_inventory.py` 重建；当前 typed surface blocker 已收敛，仅保留真实 cutover 输入 `target_environment`、`operator`、`rollback_owner` 与 `json_writers_disabled`。
 - `next_stage_readiness_report.action_plan` 当前会标注 `execution_scope` 和 `requires_real_input`；代码层 blocker 清零后，剩余 action 应全部归类为 `external_input`。
 
@@ -147,7 +158,7 @@ python tools/build_next_stage_readiness_report.py --output test_env/next_stage/n
 | 浏览器环境 | Chromium 或等价浏览器可打开 Web console，DevTools console 可导出 | 客户现场复核缺失时保留现场验收缺口，不覆盖本地已通过 evidence pack |
 | Playwright 可选项 | 若要求自动浏览器证据，需安装 Playwright browser runtime | 无自动化运行时时改走手工浏览器验收，并记录缺口 |
 | 客户现场证据 | evidence 目录可写，截图、导出、console summary 有归档路径 | 不执行最终 closeout，仅记录缺口 |
-| industrial live 输入 | `industrial_live_evidence.*` 字段已由现场负责人确认 | `industrial_live_evidence_archive_report` 保持 blocked |
+| industrial live 输入 | `industrial_live_evidence.*` 字段已由现场负责人确认，且 `customer_site_live_smoke_report.status=passed` | `industrial_live_evidence_archive_report` 保持 blocked |
 | vendor 数据 | raw error 样本包含设备、时间戳、raw code、fault class、恢复结果 | 不允许晋升 fault table / recovery policy |
 
 ## 6. 总体优先级
@@ -425,10 +436,8 @@ python tools/build_next_stage_readiness_report.py --output test_env/next_stage/n
 ### 当前状态
 
 - 仓内静态、模板、报告生成器、Playwright smoke、closeout 判定和 evidence pack 汇总已具备。
-- 本地浏览器验收已闭合：`web_browser_manual_validation_report.json` 为 `status=passed`。
-- 本地 closeout 已闭合：`web_browser_validation_closeout.json` 为 `status=passed`。
-- 本地 evidence pack 已闭合：`web_browser_validation_evidence_pack.json` 为 `status=ready`。
-- 客户现场仍可按同一清单复核；现场复核结果应作为增量 evidence 归档，不应覆盖本地已通过证据。
+- 当前 canonical `web_browser_validation_evidence_pack.json` 仍为 `status=blocked`：`playwright_status=passed`，但 manual report、screenshots、exports、console summary 与 validation closeout 尚未归档。
+- 客户现场或本地桌面浏览器必须按同一清单复核；现场复核结果应作为增量 evidence 归档，不应用占位值覆盖 blocker。
 
 ### 剩余外部执行
 
