@@ -67,6 +67,8 @@ def test_web_browser_manual_validation_report_passes_completed_payload(
 ) -> None:
     input_path = tmp_path / "browser_validation.json"
     output_path = tmp_path / "report.json"
+    (tmp_path / "instruction-console.png").write_text("png", encoding="utf-8")
+    (tmp_path / "operator-history.json").write_text("{}", encoding="utf-8")
     _write_json(input_path, _completed_payload())
 
     exit_code = main(["--input", str(input_path), "--output", str(output_path)])
@@ -76,6 +78,8 @@ def test_web_browser_manual_validation_report_passes_completed_payload(
     assert payload["status"] == "passed"
     assert payload["summary"]["blocked_section_count"] == 0
     assert payload["summary"]["screenshot_count"] == 1
+    assert payload["summary"]["screenshot_missing_files"] == []
+    assert payload["summary"]["export_missing_files"] == []
     assert payload["next_actions"] == [
         "Archive this browser validation report with Web Panel release evidence."
     ]
@@ -110,3 +114,33 @@ def test_web_browser_manual_validation_report_blocks_incomplete_payload(
         "node_status_table_checked",
         "failure_drilldown_checked",
     ]
+
+
+def test_web_browser_manual_validation_report_blocks_bad_evidence_paths(
+    tmp_path: Path,
+) -> None:
+    input_path = tmp_path / "browser_validation.json"
+    output_path = tmp_path / "report.json"
+    payload = _completed_payload()
+    payload["evidence"] = {
+        "screenshots": ["../outside.png", "missing-screenshot.png"],
+        "exports": [str(tmp_path / "absolute-export.json"), "missing-export.json"],
+        "console_error_summary": "No blocking JavaScript errors.",
+    }
+    _write_json(input_path, payload)
+
+    exit_code = main(["--input", str(input_path), "--output", str(output_path)])
+
+    assert exit_code == 1
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    assert report["status"] == "blocked"
+    assert "evidence_screenshot_paths_invalid" in report["blockers"]
+    assert "evidence_screenshot_files_missing" in report["blockers"]
+    assert "evidence_export_paths_invalid" in report["blockers"]
+    assert "evidence_export_files_missing" in report["blockers"]
+    assert report["summary"]["screenshot_invalid_paths"] == ["../outside.png"]
+    assert report["summary"]["screenshot_missing_files"] == ["missing-screenshot.png"]
+    assert report["summary"]["export_invalid_paths"] == [
+        str(tmp_path / "absolute-export.json")
+    ]
+    assert report["summary"]["export_missing_files"] == ["missing-export.json"]

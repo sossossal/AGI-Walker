@@ -82,6 +82,8 @@ cp deployment/web_browser_manual_validation.template.json test_env/web_browser_m
 python tools/build_web_browser_manual_validation_report.py --input test_env/web_browser_manual_validation/browser_validation.json --output test_env/web_browser_manual_validation/web_browser_manual_validation_report.json
 ```
 
+`evidence.screenshots[]` 和 `evidence.exports[]` 必须填写相对 `browser_validation.json` 所在目录的文件路径，禁止绝对路径和 `..`。报告生成器会检查这些文件真实存在；缺文件或路径越界会使 `web_browser_manual_validation_report.status=blocked`。
+
 最后生成路线 F closeout 判定：
 
 ```bash

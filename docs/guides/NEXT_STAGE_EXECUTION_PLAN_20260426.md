@@ -116,6 +116,7 @@ python tools/build_next_stage_external_evidence_status_report.py --checklist tes
 - external evidence status report 只读取仓内相对 `artifact_path`；不要把现场机器的绝对路径或仓外路径写进 checklist。
 - external evidence status report 的每个 `items[]` 字段形状必须有效；不要手工改写 `ready`、`exists`、`issue_count` 或 `remaining_issues` 来制造通过态。
 - external evidence status report 支持 `--expected-status blocked`，只用于归档当前回填状态；最终验收必须省略该参数或显式使用 `--expected-status ready`。
+- 浏览器手工 evidence 的 `screenshots[]` 和 `exports[]` 必须是相对 `browser_validation.json` 所在目录的文件路径，禁止绝对路径和 `..`；报告生成器会确认文件存在，不能只填写占位文件名。
 - 总 readiness CLI 会在 stdout 打印 `next_stage_readiness_status`、`next_stage_readiness_expected_status`、`next_stage_readiness_exit_code`、`next_stage_readiness_validation_errors`、`next_stage_readiness_actions` 和 `next_stage_readiness_git`，CI 日志可先看这些摘要，再打开 JSON artifact。
 - 每次补完外部 evidence 后，只重跑对应路线命令和最后的总 readiness。
 - 不用占位值把 `blocked` 改成 `ready`；缺真实输入时保留 fail-closed 状态。

@@ -65,6 +65,33 @@ def _is_non_empty_text(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
+def _evidence_file_report(
+    *, entries: Any, input_path: str, field_name: str
+) -> dict[str, Any]:
+    if not isinstance(entries, list):
+        entries = []
+    base_dir = Path(input_path).parent
+    invalid_paths: list[str] = []
+    missing_files: list[str] = []
+    valid_entries: list[str] = []
+    for entry in entries:
+        if not isinstance(entry, str) or not entry.strip():
+            invalid_paths.append(str(entry))
+            continue
+        path = Path(entry)
+        if path.is_absolute() or ".." in path.parts:
+            invalid_paths.append(entry)
+            continue
+        valid_entries.append(entry)
+        if not (base_dir / path).is_file():
+            missing_files.append(entry)
+    return {
+        f"{field_name}_count": len(valid_entries),
+        f"{field_name}_invalid_paths": invalid_paths,
+        f"{field_name}_missing_files": missing_files,
+    }
+
+
 def _section(payload: dict[str, Any], section_name: str) -> dict[str, Any]:
     value = payload.get(section_name)
     return value if isinstance(value, dict) else {}
@@ -107,20 +134,44 @@ def build_web_browser_manual_validation_report(
     evidence = payload.get("evidence")
     if not isinstance(evidence, dict):
         blockers.append("evidence_missing")
-        evidence_summary = {"screenshot_count": 0, "export_count": 0, "notes_present": False}
+        evidence_summary = {
+            "screenshot_count": 0,
+            "export_count": 0,
+            "notes_present": False,
+            "screenshot_invalid_paths": [],
+            "screenshot_missing_files": [],
+            "export_invalid_paths": [],
+            "export_missing_files": [],
+        }
     else:
-        screenshots = evidence.get("screenshots") if isinstance(evidence.get("screenshots"), list) else []
-        exports = evidence.get("exports") if isinstance(evidence.get("exports"), list) else []
+        screenshots = _evidence_file_report(
+            entries=evidence.get("screenshots"),
+            input_path=input_path,
+            field_name="screenshot",
+        )
+        exports = _evidence_file_report(
+            entries=evidence.get("exports"),
+            input_path=input_path,
+            field_name="export",
+        )
         notes_present = _is_non_empty_text(evidence.get("console_error_summary"))
-        if not screenshots:
+        if screenshots["screenshot_count"] == 0:
             blockers.append("evidence_screenshots_missing")
-        if not exports:
+        if screenshots["screenshot_invalid_paths"]:
+            blockers.append("evidence_screenshot_paths_invalid")
+        if screenshots["screenshot_missing_files"]:
+            blockers.append("evidence_screenshot_files_missing")
+        if exports["export_count"] == 0:
             blockers.append("evidence_exports_missing")
+        if exports["export_invalid_paths"]:
+            blockers.append("evidence_export_paths_invalid")
+        if exports["export_missing_files"]:
+            blockers.append("evidence_export_files_missing")
         if not notes_present:
             blockers.append("evidence_console_summary_missing")
         evidence_summary = {
-            "screenshot_count": len(screenshots),
-            "export_count": len(exports),
+            **screenshots,
+            **exports,
             "notes_present": notes_present,
         }
 
