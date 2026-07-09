@@ -49,6 +49,8 @@ def test_next_stage_plan_has_command_index_for_closeout_tools() -> None:
     assert "`execution_prerequisites`" in content
     assert "`execution_prerequisite_validation_errors`" in content
     assert "顶层 `validation_errors` 必须为空" in content
+    assert "checklist 的 `items[].artifact_path` 必须是仓内相对路径" in content
+    assert "不要把现场机器绝对路径或仓外路径写进清单" in content
     assert "checklist 的每个 `items[]` 字段形状必须有效" in content
     assert "不要手工改写 `issue_count`、`requires_real_input`、handoff list 或 action text" in content
     assert "external evidence status report 的 `validation_errors` 必须为空" in content
