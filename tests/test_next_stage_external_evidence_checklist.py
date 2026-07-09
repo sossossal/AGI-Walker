@@ -130,6 +130,45 @@ def test_next_stage_external_evidence_checklist_validates_artifact_shape() -> No
     assert "status must be blocked" in errors
 
 
+def test_next_stage_external_evidence_checklist_validates_item_shape() -> None:
+    readiness = build_next_stage_readiness_report()
+    checklist = build_next_stage_external_evidence_checklist(readiness)
+    item = checklist["items"][0]
+    item["artifact_id"] = ""
+    item["artifact_path"] = ""
+    item["actual_status"] = 123
+    item["target_status"] = ""
+    item["execution_scope"] = "live_magic"
+    item["requires_real_input"] = "yes"
+    item["issue_count"] = "bad"
+    item["issues"] = ["evidence_missing", 42]
+    item["warnings"] = "none"
+    item["primary_next_action"] = ""
+    item["next_actions"] = [None]
+    item["acceptance_evidence"] = ""
+    item["evidence_commands"] = "python tool.py"
+    item["input_templates"] = [None]
+    item["guide_paths"] = [123]
+
+    errors = validate_next_stage_external_evidence_checklist(checklist)
+
+    assert "items[0].artifact_id must be a non-empty string" in errors
+    assert "items[0].artifact_path must be a non-empty string" in errors
+    assert "items[0].actual_status must be a string or null" in errors
+    assert "items[0].target_status must be a non-empty string" in errors
+    assert "items[0].execution_scope must be a known scope" in errors
+    assert "items[0].requires_real_input must be a boolean" in errors
+    assert "items[0].issue_count must be a non-negative integer" in errors
+    assert "items[0].issues entries must be strings" in errors
+    assert "items[0].warnings must be a list" in errors
+    assert "items[0].primary_next_action must be a non-empty string" in errors
+    assert "items[0].next_actions entries must be strings" in errors
+    assert "items[0].acceptance_evidence must be a non-empty string" in errors
+    assert "items[0].evidence_commands must be a list" in errors
+    assert "items[0].input_templates entries must be strings" in errors
+    assert "items[0].guide_paths entries must be strings" in errors
+
+
 def test_next_stage_external_evidence_checklist_validates_handoff_paths() -> None:
     readiness = build_next_stage_readiness_report()
     checklist = build_next_stage_external_evidence_checklist(readiness)

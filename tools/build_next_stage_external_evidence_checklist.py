@@ -332,6 +332,7 @@ def validate_next_stage_external_evidence_checklist(payload: dict[str, Any]) -> 
     if not all(isinstance(value, list) for value in collections.values()):
         return [*errors, "checklist collections must be lists"]
     errors.extend(_validate_checklist_counts(summary=summary, **collections))
+    errors.extend(_validate_checklist_items(collections["items"]))
     errors.extend(_validate_checklist_status(payload))
     return errors
 
@@ -368,7 +369,7 @@ def _validate_checklist_counts(
     expected_unresolved = [
         item.get("artifact_id")
         for item in items
-        if isinstance(item, dict) and item.get("issue_count", 0) > 0
+        if isinstance(item, dict) and _issue_count_gt_zero(item)
     ]
     expected_non_external = [
         item.get("artifact_id")
@@ -384,10 +385,57 @@ def _validate_checklist_counts(
     return errors
 
 
+def _validate_checklist_items(items: list[Any]) -> list[str]:
+    errors: list[str] = []
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            errors.append(f"items[{index}] must be an object")
+            continue
+        artifact_id = item.get("artifact_id")
+        label = str(artifact_id) if artifact_id else f"items[{index}]"
+        for field in (
+            "artifact_id",
+            "artifact_path",
+            "target_status",
+            "execution_scope",
+            "primary_next_action",
+            "acceptance_evidence",
+        ):
+            if not isinstance(item.get(field), str) or not item.get(field, "").strip():
+                errors.append(f"{label}.{field} must be a non-empty string")
+        if item.get("execution_scope") not in {
+            "external_input",
+            "code_or_config",
+            "unknown",
+        }:
+            errors.append(f"{label}.execution_scope must be a known scope")
+        if not isinstance(item.get("requires_real_input"), bool):
+            errors.append(f"{label}.requires_real_input must be a boolean")
+        if not _is_non_negative_int(item.get("issue_count")):
+            errors.append(f"{label}.issue_count must be a non-negative integer")
+        actual_status = item.get("actual_status")
+        if actual_status is not None and not isinstance(actual_status, str):
+            errors.append(f"{label}.actual_status must be a string or null")
+        for field in (
+            "issues",
+            "warnings",
+            "next_actions",
+            "evidence_commands",
+            "input_templates",
+            "guide_paths",
+        ):
+            value = item.get(field)
+            if not isinstance(value, list):
+                errors.append(f"{label}.{field} must be a list")
+            elif any(not isinstance(entry, str) for entry in value):
+                errors.append(f"{label}.{field} entries must be strings")
+    return errors
+
+
 def _validate_checklist_status(payload: dict[str, Any]) -> list[str]:
     items = payload.get("items") if isinstance(payload.get("items"), list) else []
     unresolved_from_items = [
-        item for item in items if isinstance(item, dict) and item.get("issue_count", 0) > 0
+        item for item in items if isinstance(item, dict) and _issue_count_gt_zero(item)
     ]
     has_blockers = any(
         payload.get(field)
@@ -405,6 +453,11 @@ def _validate_checklist_status(payload: dict[str, Any]) -> list[str]:
 
 def _count_items(items: list[Any], field: str, value: str) -> int:
     return sum(1 for item in items if isinstance(item, dict) and item.get(field) == value)
+
+
+def _issue_count_gt_zero(item: dict[str, Any]) -> bool:
+    issue_count = item.get("issue_count")
+    return isinstance(issue_count, int) and issue_count > 0
 
 
 def _is_non_negative_int(value: Any) -> bool:

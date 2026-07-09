@@ -109,3 +109,4 @@ py -3.12 -m pytest tests\test_real_robot_driver.py tests\test_hardware_controlle
 - 2026-07-09: Added checklist-driven external evidence status reporting. `next_stage_external_evidence_status_report.v1` checks each checklist artifact path against its target status and can archive a blocked intake snapshot without weakening the authoritative readiness gate.
 - 2026-07-09: Hardened status report path handling. Checklist `artifact_path` values must remain repository-relative; absolute, parent-directory and empty paths are validation errors and are not read.
 - 2026-07-09: Hardened status report item-shape self-validation so malformed evidence item fields cannot be accepted by matching only aggregate counts.
+- 2026-07-09: Hardened checklist item-shape self-validation so malformed external evidence handoff items are rejected before status report intake.
