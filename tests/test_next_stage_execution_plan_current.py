@@ -60,7 +60,13 @@ def test_next_stage_plan_has_command_index_for_closeout_tools() -> None:
     assert "最终验收仍必须使用默认命令或 `--expected-status ready`" in content
     assert "`next-stage-readiness` job" in content
     assert "`next-stage-readiness-artifacts`" in content
-    assert "`next_stage_readiness_report.json` 和 `next_stage_external_evidence_checklist.json`" in content
+    assert (
+        "`next_stage_readiness_report.json`、`next_stage_external_evidence_checklist.json` "
+        "和 `next_stage_external_evidence_status_report.json`"
+        in content
+    )
+    assert "status report 自身的 `validation_errors` 仍必须为空" in content
+    assert "CI job 应失败而不是静默上传 malformed artifact" in content
     assert "python tools/build_hardware_live_closeout_report.py --output test_env/hardware_live/hardware_live_closeout_report.json" in content
     assert "python tools/build_vendor_fault_sample_closeout.py --output test_env/hardware_live/vendor_fault_sample_closeout.json" in content
     assert "python tools/build_vendor_fault_data_review.py --telemetry-report test_env/hardware_live/hardware_fault_telemetry_report.json --output test_env/hardware_live/vendor_fault_data_review.json" in content

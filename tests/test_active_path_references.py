@@ -698,7 +698,10 @@ def test_next_stage_readiness_ci_job_archives_blocked_or_ready_evidence() -> Non
         "--expected-status blocked"
     )
     assert status_report_command in step_runs
-    assert "next_stage_external_evidence_status_report.json --expected-status blocked || true" in step_runs
+    assert (
+        "next_stage_external_evidence_status_report.json --expected-status blocked || true"
+        not in step_runs
+    )
 
     upload_step = _artifact_upload_step(job, "next-stage-readiness-artifacts")
     upload_with = upload_step["with"]
