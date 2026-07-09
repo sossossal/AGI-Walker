@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 from tools.build_next_stage_external_evidence_checklist import (
+    EXECUTION_PREREQUISITES,
     SCHEMA_VERSION,
     build_next_stage_external_evidence_checklist,
     main,
@@ -20,6 +21,9 @@ def test_next_stage_external_evidence_checklist_tracks_current_blockers() -> Non
     assert checklist["schema_version"] == SCHEMA_VERSION
     assert checklist["status"] == "blocked"
     assert checklist["readiness_status"] == readiness["status"]
+    assert checklist["execution_prerequisites"] == EXECUTION_PREREQUISITES
+    assert checklist["execution_prerequisites"]["python"]["recommended"] == "3.12"
+    assert "placeholders" in checklist["execution_prerequisites"]["evidence_policy"]
     assert checklist["readiness_validation_errors"] == []
     assert checklist["handoff_validation_errors"] == []
     assert checklist["summary"]["item_count"] == len(readiness["blockers"])
