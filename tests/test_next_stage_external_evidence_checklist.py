@@ -9,6 +9,7 @@ from tools.build_next_stage_external_evidence_checklist import (
     build_next_stage_external_evidence_checklist,
     main,
     validate_execution_prerequisites,
+    validate_next_stage_external_evidence_checklist,
     validate_next_stage_external_evidence_checklist_handoff,
 )
 from tools.build_next_stage_readiness_report import build_next_stage_readiness_report
@@ -27,6 +28,7 @@ def test_next_stage_external_evidence_checklist_tracks_current_blockers() -> Non
     assert "placeholders" in checklist["execution_prerequisites"]["evidence_policy"]
     assert checklist["readiness_validation_errors"] == []
     assert checklist["handoff_validation_errors"] == []
+    assert checklist["validation_errors"] == []
     assert checklist["summary"]["item_count"] == len(readiness["blockers"])
     assert checklist["summary"]["unresolved_item_count"] == len(readiness["blockers"])
     assert checklist["summary"]["code_or_config_item_count"] == 0
@@ -114,6 +116,20 @@ def test_next_stage_external_evidence_checklist_blocks_invalid_readiness() -> No
     ]
 
 
+def test_next_stage_external_evidence_checklist_validates_artifact_shape() -> None:
+    readiness = build_next_stage_readiness_report()
+    checklist = build_next_stage_external_evidence_checklist(readiness)
+    checklist["summary"]["unresolved_item_count"] += 1
+    checklist["status"] = "ready"
+    checklist["unresolved_items"] = []
+
+    errors = validate_next_stage_external_evidence_checklist(checklist)
+
+    assert "summary.unresolved_item_count must equal 0" in errors
+    assert "unresolved_items must match items with issue_count > 0" in errors
+    assert "status must be blocked" in errors
+
+
 def test_next_stage_external_evidence_checklist_validates_handoff_paths() -> None:
     readiness = build_next_stage_readiness_report()
     checklist = build_next_stage_external_evidence_checklist(readiness)
@@ -187,12 +203,14 @@ def test_next_stage_external_evidence_checklist_cli_writes_report(
     assert payload["status"] == "blocked"
     assert payload["handoff_validation_errors"] == []
     assert payload["execution_prerequisite_validation_errors"] == []
+    assert payload["validation_errors"] == []
     stdout = capsys.readouterr().out
     assert "next_stage_external_evidence_checklist_written=" in stdout
     assert "next_stage_external_evidence_checklist_status=blocked" in stdout
     assert "next_stage_external_evidence_checklist_items=unresolved:" in stdout
     assert "handoff_errors:0" in stdout
     assert "prerequisite_errors:0" in stdout
+    assert "validation_errors:0" in stdout
 
 
 def test_next_stage_external_evidence_checklist_script_runs_directly(
