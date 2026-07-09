@@ -32,6 +32,35 @@ def test_next_stage_external_evidence_checklist_tracks_current_blockers() -> Non
     assert hardware["target_status"] == "ready"
     assert hardware["issues"]
     assert hardware["acceptance_evidence"].endswith("reaches target status ready")
+    assert hardware["evidence_commands"] == [
+        "python tools/build_hardware_live_closeout_report.py --output test_env/hardware_live/hardware_live_closeout_report.json"
+    ]
+    assert "deployment/hardware/imc22_live_transport.template.json" in hardware["input_templates"]
+    assert "docs/hardware/HARDWARE_INTEGRATION_GUIDE.md" in hardware["guide_paths"]
+
+
+def test_next_stage_external_evidence_checklist_includes_browser_handoff() -> None:
+    readiness = build_next_stage_readiness_report()
+
+    checklist = build_next_stage_external_evidence_checklist(readiness)
+
+    browser = next(
+        item
+        for item in checklist["items"]
+        if item["artifact_id"] == "web_browser_evidence_pack"
+    )
+    assert browser["evidence_commands"] == [
+        "python tools/build_web_browser_manual_validation_report.py --output test_env/web_browser_manual_validation/web_browser_manual_validation_report.json",
+        "python tools/build_web_browser_validation_closeout.py --output test_env/web_browser_manual_validation/web_browser_validation_closeout.json",
+        "python tools/build_web_browser_validation_evidence_pack.py --output test_env/web_browser_manual_validation/web_browser_validation_evidence_pack.json",
+    ]
+    assert browser["input_templates"] == [
+        "deployment/web_browser_manual_validation.template.json"
+    ]
+    assert browser["guide_paths"] == [
+        "docs/guides/WEB_BROWSER_MANUAL_VALIDATION_CHECKLIST_20260426.md",
+        "docs/guides/WEB_PANEL_GUIDE.md",
+    ]
 
 
 def test_next_stage_external_evidence_checklist_passes_ready_readiness() -> None:

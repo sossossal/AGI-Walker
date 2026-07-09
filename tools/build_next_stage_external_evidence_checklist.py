@@ -32,6 +32,116 @@ from tools.build_next_stage_readiness_report import (
 
 SCHEMA_VERSION = "next_stage_external_evidence_checklist.v1"
 DEFAULT_OUTPUT = "test_env/next_stage/next_stage_external_evidence_checklist.json"
+HANDOFF_BY_ARTIFACT: dict[str, dict[str, list[str]]] = {
+    "hardware_live_closeout": {
+        "evidence_commands": [
+            "python tools/build_hardware_live_closeout_report.py --output test_env/hardware_live/hardware_live_closeout_report.json",
+        ],
+        "input_templates": [
+            "deployment/hardware/imc22_live_transport.template.json",
+            "deployment/customer_site_live_smoke.template.json",
+        ],
+        "guide_paths": [
+            "docs/hardware/HARDWARE_INTEGRATION_GUIDE.md",
+            "docs/guides/CUSTOMER_SITE_REAL_DEVICE_SMOKE_20260427.md",
+        ],
+    },
+    "ros2_typed_idl_cutover": {
+        "evidence_commands": [
+            "python tools/build_ros2_typed_inventory.py --output test_env/ros2_typed_idl_cutover/typed_inventory.json",
+            "python tools/build_ros2_typed_idl_cutover_report.py --output test_env/ros2_typed_idl_cutover/ros2_typed_idl_cutover_report.json",
+        ],
+        "input_templates": ["deployment/ros2_typed_idl_cutover.template.json"],
+        "guide_paths": [
+            "docs/ros2/ROS2_QUICK_START.md",
+            "docs/guides/NEXT_STAGE_EXECUTION_PLAN_20260426.md",
+        ],
+    },
+    "operator_delivery_checklist": {
+        "evidence_commands": [
+            "python tools/build_operator_delivery_checklist.py --output test_env/operator_delivery/operator_delivery_checklist.json",
+        ],
+        "input_templates": ["deployment/operator_delivery_checklist.template.json"],
+        "guide_paths": [
+            "docs/guides/OPERATOR_DELIVERY_CHECKLIST_AUTOMATION_20260427.md",
+            "docs/guides/OPERATOR_HARDWARE_RECOVERY_RUNBOOK_20260427.md",
+        ],
+    },
+    "industrial_live_evidence_archive": {
+        "evidence_commands": [
+            "python tools/build_customer_site_live_smoke_report.py --output test_env/customer_site_live_smoke/customer_site_live_smoke_report.json",
+            (
+                "python tools/build_industrial_live_evidence_archive_report.py "
+                "--customer-site-smoke test_env/customer_site_live_smoke/customer_site_live_smoke_report.json "
+                "--require-customer-site-smoke "
+                "--output test_env/industrial_live_evidence/industrial_live_evidence_archive_report.json"
+            ),
+        ],
+        "input_templates": [
+            "deployment/external_mainline.inputs.json",
+            "deployment/customer_site_live_smoke.template.json",
+        ],
+        "guide_paths": [
+            "docs/guides/INDUSTRIAL_LIVE_EVIDENCE_ARCHIVE_20260427.md",
+            "docs/guides/CUSTOMER_SITE_REAL_DEVICE_SMOKE_20260427.md",
+        ],
+    },
+    "vendor_fault_sample_closeout": {
+        "evidence_commands": [
+            "python tools/build_vendor_fault_sample_closeout.py --output test_env/hardware_live/vendor_fault_sample_closeout.json",
+        ],
+        "input_templates": [
+            "deployment/hardware/imc22_vendor_fault_samples.template.json",
+            "deployment/hardware/imc22_reflex_fault_table.json",
+            "deployment/hardware/imc22_reflex_recovery_policy.json",
+        ],
+        "guide_paths": ["docs/hardware/HARDWARE_INTEGRATION_GUIDE.md"],
+    },
+    "vendor_fault_data_review": {
+        "evidence_commands": [
+            (
+                "python tools/build_vendor_fault_data_review.py "
+                "--telemetry-report test_env/hardware_live/hardware_fault_telemetry_report.json "
+                "--output test_env/hardware_live/vendor_fault_data_review.json"
+            ),
+        ],
+        "input_templates": [
+            "deployment/hardware/imc22_fault_telemetry_fields.json",
+            "deployment/hardware/imc22_vendor_fault_samples.template.json",
+            "deployment/hardware/imc22_reflex_fault_table.json",
+            "deployment/hardware/imc22_reflex_recovery_policy.json",
+        ],
+        "guide_paths": ["docs/hardware/HARDWARE_INTEGRATION_GUIDE.md"],
+    },
+    "vendor_data_promotion": {
+        "evidence_commands": [
+            (
+                "python tools/build_vendor_data_promotion_checklist.py "
+                "--sample-archive-file deployment/hardware/imc22_vendor_fault_samples.template.json "
+                "--vendor-review-file test_env/hardware_live/vendor_fault_data_review.json "
+                "--output test_env/hardware_live/vendor_data_promotion_checklist.json"
+            ),
+        ],
+        "input_templates": [
+            "deployment/hardware/imc22_vendor_fault_samples.template.json",
+            "deployment/hardware/imc22_reflex_fault_table.json",
+            "deployment/hardware/imc22_reflex_recovery_policy.json",
+        ],
+        "guide_paths": ["docs/hardware/HARDWARE_INTEGRATION_GUIDE.md"],
+    },
+    "web_browser_evidence_pack": {
+        "evidence_commands": [
+            "python tools/build_web_browser_manual_validation_report.py --output test_env/web_browser_manual_validation/web_browser_manual_validation_report.json",
+            "python tools/build_web_browser_validation_closeout.py --output test_env/web_browser_manual_validation/web_browser_validation_closeout.json",
+            "python tools/build_web_browser_validation_evidence_pack.py --output test_env/web_browser_manual_validation/web_browser_validation_evidence_pack.json",
+        ],
+        "input_templates": ["deployment/web_browser_manual_validation.template.json"],
+        "guide_paths": [
+            "docs/guides/WEB_BROWSER_MANUAL_VALIDATION_CHECKLIST_20260426.md",
+            "docs/guides/WEB_PANEL_GUIDE.md",
+        ],
+    },
+}
 
 
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -80,6 +190,7 @@ def _checklist_items(readiness_report: dict[str, Any]) -> list[dict[str, Any]]:
                 *_as_list(detail.get("blocked_steps")),
             ]
         ]
+        handoff = _handoff_for_artifact(artifact_id)
         items.append(
             {
                 "artifact_id": artifact_id,
@@ -97,9 +208,19 @@ def _checklist_items(readiness_report: dict[str, Any]) -> list[dict[str, Any]]:
                     f"{detail.get('path')} reaches target status "
                     f"{_target_status(readiness_report, artifact_id)}"
                 ),
+                **handoff,
             }
         )
     return items
+
+
+def _handoff_for_artifact(artifact_id: str) -> dict[str, list[str]]:
+    handoff = HANDOFF_BY_ARTIFACT.get(artifact_id, {})
+    return {
+        "evidence_commands": list(handoff.get("evidence_commands", [])),
+        "input_templates": list(handoff.get("input_templates", [])),
+        "guide_paths": list(handoff.get("guide_paths", [])),
+    }
 
 
 def _target_status(readiness_report: dict[str, Any], artifact_id: str) -> str:
