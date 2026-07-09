@@ -179,6 +179,7 @@ jobs:
       - name: Build Next-Stage Readiness Evidence
         run: |
           python tools/build_next_stage_readiness_report.py --output test_env/next_stage/next_stage_readiness_report.json || python tools/build_next_stage_readiness_report.py --output test_env/next_stage/next_stage_readiness_report.json --expected-status blocked
+          python tools/build_next_stage_external_evidence_checklist.py --readiness-report test_env/next_stage/next_stage_readiness_report.json --output test_env/next_stage/next_stage_external_evidence_checklist.json || true
 
       - name: Upload Next-Stage Readiness Artifacts
         if: always()
