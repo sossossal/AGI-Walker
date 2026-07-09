@@ -45,6 +45,7 @@ def test_next_stage_plan_has_command_index_for_closeout_tools() -> None:
     assert "external evidence checklist" in content
     assert "`items[].acceptance_evidence` 只描述目标 evidence，不是通过证明" in content
     assert "`execution_prerequisites`" in content
+    assert "`execution_prerequisite_validation_errors`" in content
     assert "推荐 `3.12`" in content
     assert "完整 Python 3.12 路径" in content
     assert "`next_stage_readiness_expected_status`" in content
@@ -120,7 +121,7 @@ def test_next_stage_plan_has_blocker_resolution_table() -> None:
     assert "当前 typed surface blocker 已收敛，仅保留真实 cutover 输入" in content
     assert "剩余 action 应全部归类为 `external_input`" in content
     assert "`next_stage_external_evidence_checklist.json` 当前可从 readiness report 生成" in content
-    assert "输出 `execution_prerequisites` 固定 Python 版本和 evidence policy" in content
+    assert "输出并自校验 `execution_prerequisites` 固定 Python 版本和 evidence policy" in content
     assert "最终仍以 `next_stage_readiness_report.status=ready` 为准" in content
 
 

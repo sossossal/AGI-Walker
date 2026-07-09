@@ -8,6 +8,7 @@ from tools.build_next_stage_external_evidence_checklist import (
     SCHEMA_VERSION,
     build_next_stage_external_evidence_checklist,
     main,
+    validate_execution_prerequisites,
     validate_next_stage_external_evidence_checklist_handoff,
 )
 from tools.build_next_stage_readiness_report import build_next_stage_readiness_report
@@ -31,6 +32,7 @@ def test_next_stage_external_evidence_checklist_tracks_current_blockers() -> Non
     assert checklist["summary"]["code_or_config_item_count"] == 0
     assert checklist["summary"]["external_input_item_count"] == len(readiness["blockers"])
     assert checklist["summary"]["handoff_validation_error_count"] == 0
+    assert checklist["summary"]["execution_prerequisite_validation_error_count"] == 0
     assert checklist["unresolved_items"] == readiness["blockers"]
     assert checklist["non_external_items"] == []
     hardware = checklist["items"][0]
@@ -154,6 +156,21 @@ def test_next_stage_external_evidence_checklist_blocks_invalid_handoff() -> None
     ]
 
 
+def test_next_stage_external_evidence_checklist_validates_execution_prerequisites() -> None:
+    errors = validate_execution_prerequisites(
+        {
+            "python": {"required": ">=3.10", "recommended": "", "command_policy": "  "},
+            "evidence_policy": "",
+        }
+    )
+
+    assert errors == [
+        "execution_prerequisites.python.recommended must be a non-empty string",
+        "execution_prerequisites.python.command_policy must be a non-empty string",
+        "execution_prerequisites.evidence_policy must be a non-empty string",
+    ]
+
+
 def test_next_stage_external_evidence_checklist_cli_writes_report(
     tmp_path: Path, capsys,
 ) -> None:
@@ -169,11 +186,13 @@ def test_next_stage_external_evidence_checklist_cli_writes_report(
     assert payload["schema_version"] == SCHEMA_VERSION
     assert payload["status"] == "blocked"
     assert payload["handoff_validation_errors"] == []
+    assert payload["execution_prerequisite_validation_errors"] == []
     stdout = capsys.readouterr().out
     assert "next_stage_external_evidence_checklist_written=" in stdout
     assert "next_stage_external_evidence_checklist_status=blocked" in stdout
     assert "next_stage_external_evidence_checklist_items=unresolved:" in stdout
     assert "handoff_errors:0" in stdout
+    assert "prerequisite_errors:0" in stdout
 
 
 def test_next_stage_external_evidence_checklist_script_runs_directly(
