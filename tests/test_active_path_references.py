@@ -671,6 +671,13 @@ def test_next_stage_readiness_ci_job_archives_blocked_or_ready_evidence() -> Non
     assert default_command in step_runs
     assert f"{default_command} --expected-status blocked" in step_runs
     assert "||" in step_runs
+    checklist_command = (
+        "python tools/build_next_stage_external_evidence_checklist.py "
+        "--readiness-report test_env/next_stage/next_stage_readiness_report.json "
+        "--output test_env/next_stage/next_stage_external_evidence_checklist.json"
+    )
+    assert checklist_command in step_runs
+    assert "next_stage_external_evidence_checklist.json || true" in step_runs
 
     upload_step = _artifact_upload_step(job, "next-stage-readiness-artifacts")
     upload_with = upload_step["with"]
