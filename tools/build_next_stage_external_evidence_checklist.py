@@ -254,13 +254,18 @@ def build_next_stage_external_evidence_checklist(
     readiness_errors = validate_next_stage_readiness_report(readiness_report)
     items = _checklist_items(readiness_report)
     handoff_errors = validate_next_stage_external_evidence_checklist_handoff(items)
+    prerequisite_errors = validate_execution_prerequisites(EXECUTION_PREREQUISITES)
     unresolved = [item["artifact_id"] for item in items if item["issue_count"] > 0]
     non_external = [
         item["artifact_id"]
         for item in items
         if item["execution_scope"] != "external_input"
     ]
-    status = "ready" if not readiness_errors and not handoff_errors and not unresolved else "blocked"
+    status = (
+        "ready"
+        if not readiness_errors and not handoff_errors and not prerequisite_errors and not unresolved
+        else "blocked"
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -280,20 +285,42 @@ def build_next_stage_external_evidence_checklist(
             "non_external_item_count": len(non_external),
             "readiness_validation_error_count": len(readiness_errors),
             "handoff_validation_error_count": len(handoff_errors),
+            "execution_prerequisite_validation_error_count": len(prerequisite_errors),
         },
         "unresolved_items": unresolved,
         "non_external_items": non_external,
         "items": items,
         "readiness_validation_errors": readiness_errors,
         "handoff_validation_errors": handoff_errors,
+        "execution_prerequisite_validation_errors": prerequisite_errors,
         "next_actions": _next_actions(
             status=status,
             unresolved=unresolved,
             non_external=non_external,
             readiness_errors=readiness_errors,
             handoff_errors=handoff_errors,
+            prerequisite_errors=prerequisite_errors,
         ),
     }
+
+
+def validate_execution_prerequisites(prerequisites: object) -> list[str]:
+    if not isinstance(prerequisites, dict):
+        return ["execution_prerequisites must be an object"]
+    errors: list[str] = []
+    python = prerequisites.get("python")
+    if not isinstance(python, dict):
+        errors.append("execution_prerequisites.python must be an object")
+    else:
+        for field in ("required", "recommended", "command_policy"):
+            if not isinstance(python.get(field), str) or not python.get(field, "").strip():
+                errors.append(f"execution_prerequisites.python.{field} must be a non-empty string")
+    if (
+        not isinstance(prerequisites.get("evidence_policy"), str)
+        or not prerequisites.get("evidence_policy", "").strip()
+    ):
+        errors.append("execution_prerequisites.evidence_policy must be a non-empty string")
+    return errors
 
 
 def validate_next_stage_external_evidence_checklist_handoff(
@@ -347,11 +374,14 @@ def _next_actions(
     non_external: list[str],
     readiness_errors: list[str],
     handoff_errors: list[str],
+    prerequisite_errors: list[str],
 ) -> list[str]:
     if readiness_errors:
         return ["Fix next-stage readiness report validation errors before acting."]
     if handoff_errors:
         return ["Fix next-stage external evidence checklist handoff validation errors before acting."]
+    if prerequisite_errors:
+        return ["Fix next-stage external evidence checklist execution prerequisites before acting."]
     if non_external:
         return [
             "Resolve code/config scoped next-stage items before requesting external evidence.",
@@ -382,7 +412,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"unresolved:{checklist['summary']['unresolved_item_count']},"
         f"external_input:{checklist['summary']['external_input_item_count']},"
         f"code_or_config:{checklist['summary']['code_or_config_item_count']},"
-        f"handoff_errors:{checklist['summary']['handoff_validation_error_count']}"
+        f"handoff_errors:{checklist['summary']['handoff_validation_error_count']},"
+        "prerequisite_errors:"
+        f"{checklist['summary']['execution_prerequisite_validation_error_count']}"
     )
     return 0 if checklist["status"] == "ready" else 1
 
