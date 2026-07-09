@@ -24,7 +24,7 @@ python tools/build_next_stage_readiness_report.py --output test_env/next_stage/n
 
 GitHub Actions 的 `next-stage-readiness` job 会先运行默认命令；如果当前仍缺真实外部 evidence，再用 `--expected-status blocked` 生成并上传 `next-stage-readiness-artifacts`。该 artifact 同时保留 `next_stage_readiness_report.json`、`next_stage_external_evidence_checklist.json` 和 `next_stage_external_evidence_status_report.json`，前者是最终 gate，后两者是现场执行清单与回填状态快照。这只是 evidence retention，不是 release readiness 通过条件；但 status report 自身的 `validation_errors` 仍必须为空，否则 CI job 应失败而不是静默上传 malformed artifact。
 
-如果需要把当前 blocked readiness 转成现场执行清单，运行 `tools/build_next_stage_external_evidence_checklist.py`。该工具输出 `next_stage_external_evidence_checklist.v1`，只把 `blocker_details` / `action_plan` 整理成外部证据项；它不替代总 readiness，也不会把缺真实输入的路线标成 ready。每个 `items[]` 会保留该路线的 `evidence_commands`、`input_templates` 和 `guide_paths`，分别用于重建 route artifact、填写真实输入和查阅执行前检查。若输出 `handoff_validation_errors` 或顶层 `validation_errors` 非空，说明清单自身命令、模板/指南路径或 artifact 结构已漂移，应先修复仓内契约再交给现场执行。
+如果需要把当前 blocked readiness 转成现场执行清单，运行 `tools/build_next_stage_external_evidence_checklist.py`。该工具输出 `next_stage_external_evidence_checklist.v1`，只把 `blocker_details` / `action_plan` 整理成外部证据项；它不替代总 readiness，也不会把缺真实输入的路线标成 ready。每个 `items[]` 会保留该路线的 `evidence_commands`、`input_templates` 和 `guide_paths`，分别用于重建 route artifact、填写真实输入和查阅执行前检查。若输出 `handoff_validation_errors` 或顶层 `validation_errors` 非空，说明清单自身命令、模板/指南路径、item 字段形状或 artifact 结构已漂移，应先修复仓内契约再交给现场执行。
 
 如果现场团队已经按 checklist 回填了部分 artifact，运行 `tools/build_next_stage_external_evidence_status_report.py`。该工具输出 `next_stage_external_evidence_status_report.v1`，逐项检查 checklist 中的 `artifact_path` 是否存在、`actual_status` 是否达到 `target_status`，并输出 `ready_item_count`、`blocked_item_count`、`missing_item_count`、`blocked_items` 和顶层 `validation_errors`。该 status report 是 intake 快照，用于判断回填证据是否足以重跑总 readiness；最终仍必须以 `next_stage_readiness_report.status=ready` 为通过条件。`artifact_path` 只接受仓内相对路径；绝对路径、`..` 路径或空路径会被写入 `validation_errors`，不会被读取。每个 status item 的 id、path、布尔状态、execution scope、issue count、remaining issues 和 actual status 类型也会被自校验，避免 malformed item 只靠 summary 计数通过。
 
@@ -110,6 +110,7 @@ python tools/build_next_stage_external_evidence_status_report.py --checklist tes
 - checklist 的 `execution_prerequisites` 固定说明 Python 版本和 evidence policy，并通过 `execution_prerequisite_validation_errors` 自校验；若本机 `python` 指向未验证解释器，应换用 `py -3.12`、激活的 3.12 virtualenv 或完整 Python 3.12 路径后再执行命令。
 - checklist 的 `handoff_validation_errors` 必须为空；该字段只校验清单本身是否可执行，不代表真实外部 evidence 已完成。
 - checklist 的顶层 `validation_errors` 必须为空；该字段校验 schema、时间戳、集合、summary 计数和 status 一致性，不替代总 readiness。
+- checklist 的每个 `items[]` 字段形状必须有效；不要手工改写 `issue_count`、`requires_real_input`、handoff list 或 action text 来绕过外部 evidence blocker。
 - external evidence status report 的 `validation_errors` 必须为空；`blocked_items` 只说明 checklist item 的当前 artifact 尚未达到 `target_status`，不应被手工改写为 ready。
 - external evidence status report 只读取仓内相对 `artifact_path`；不要把现场机器的绝对路径或仓外路径写进 checklist。
 - external evidence status report 的每个 `items[]` 字段形状必须有效；不要手工改写 `ready`、`exists`、`issue_count` 或 `remaining_issues` 来制造通过态。

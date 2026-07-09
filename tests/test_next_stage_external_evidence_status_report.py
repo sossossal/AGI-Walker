@@ -69,6 +69,13 @@ def test_next_stage_external_evidence_status_report_marks_ready_artifact(
                 "requires_real_input": True,
                 "issue_count": 1,
                 "issues": ["evidence_missing"],
+                "warnings": [],
+                "primary_next_action": "Collect sample evidence.",
+                "next_actions": ["Collect sample evidence."],
+                "acceptance_evidence": "ready_artifact.json reaches target status ready",
+                "evidence_commands": ["python tools/sample.py"],
+                "input_templates": ["deployment/sample.template.json"],
+                "guide_paths": ["docs/sample.md"],
             }
         ],
         "readiness_validation_errors": [],
