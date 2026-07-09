@@ -51,6 +51,8 @@ def test_next_stage_plan_has_command_index_for_closeout_tools() -> None:
     assert "顶层 `validation_errors` 必须为空" in content
     assert "external evidence status report 的 `validation_errors` 必须为空" in content
     assert "`blocked_items` 只说明 checklist item 的当前 artifact 尚未达到 `target_status`" in content
+    assert "external evidence status report 只读取仓内相对 `artifact_path`" in content
+    assert "不要把现场机器的绝对路径或仓外路径写进 checklist" in content
     assert "推荐 `3.12`" in content
     assert "完整 Python 3.12 路径" in content
     assert "`next_stage_readiness_expected_status`" in content

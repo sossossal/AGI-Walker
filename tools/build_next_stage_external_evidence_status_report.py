@@ -55,8 +55,17 @@ def _load_json(path: str | Path) -> dict[str, Any]:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def _resolve_repo_relative_path(path: str | Path) -> Path | None:
+    candidate = Path(path)
+    if candidate.is_absolute() or ".." in candidate.parts or not str(path).strip():
+        return None
+    return PROJECT_ROOT / candidate
+
+
 def _load_json_if_exists(path: str | Path) -> dict[str, Any] | None:
-    json_path = PROJECT_ROOT / Path(path)
+    json_path = _resolve_repo_relative_path(path)
+    if json_path is None:
+        return None
     if not json_path.is_file():
         return None
     return json.loads(json_path.read_text(encoding="utf-8"))
@@ -115,12 +124,14 @@ def _evidence_item(item: dict[str, Any]) -> dict[str, Any]:
     artifact_id = str(item.get("artifact_id") or "")
     artifact_path = str(item.get("artifact_path") or "")
     target_status = str(item.get("target_status") or "ready")
-    payload = _load_json_if_exists(artifact_path) if artifact_path else None
+    artifact_path_valid = _resolve_repo_relative_path(artifact_path) is not None
+    payload = _load_json_if_exists(artifact_path) if artifact_path_valid else None
     actual_status = _artifact_status(payload)
     ready = actual_status == target_status
     return {
         "artifact_id": artifact_id,
         "artifact_path": artifact_path,
+        "artifact_path_valid": artifact_path_valid,
         "exists": payload is not None,
         "target_status": target_status,
         "actual_status": actual_status,
@@ -174,8 +185,18 @@ def validate_next_stage_external_evidence_status_report(
         for item in items
         if isinstance(item, dict) and item.get("ready") is not True
     ]
+    invalid_paths = [
+        item.get("artifact_id")
+        for item in items
+        if isinstance(item, dict) and item.get("artifact_path_valid") is not True
+    ]
     if blocked_items != expected_blocked:
         errors.append("blocked_items must match non-ready items")
+    if invalid_paths:
+        errors.append(
+            "items must use repository-relative artifact_path values: "
+            + ", ".join(str(item) for item in invalid_paths)
+        )
     expected_status = "blocked" if checklist_errors or expected_blocked else "ready"
     if report.get("status") != expected_status:
         errors.append(f"status must be {expected_status}")

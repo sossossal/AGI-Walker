@@ -106,6 +106,24 @@ def test_next_stage_external_evidence_status_report_validates_shape() -> None:
     assert "status must be blocked" in errors
 
 
+def test_next_stage_external_evidence_status_report_rejects_non_repo_paths() -> None:
+    checklist = build_next_stage_external_evidence_checklist(
+        build_next_stage_readiness_report()
+    )
+    checklist["items"][0]["artifact_path"] = "../outside.json"
+    checklist["items"][1]["artifact_path"] = str(Path.cwd() / "outside.json")
+
+    report = build_next_stage_external_evidence_status_report(checklist)
+
+    assert report["status"] == "blocked"
+    assert report["items"][0]["artifact_path_valid"] is False
+    assert report["items"][1]["artifact_path_valid"] is False
+    assert (
+        "items must use repository-relative artifact_path values: "
+        "hardware_live_closeout, ros2_typed_idl_cutover"
+    ) in report["validation_errors"]
+
+
 def test_next_stage_external_evidence_status_report_cli_writes_blocked_snapshot(
     tmp_path: Path, capsys,
 ) -> None:
