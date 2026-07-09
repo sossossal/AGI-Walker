@@ -12,7 +12,9 @@ def test_next_stage_plan_uses_evidence_driven_iteration_order() -> None:
     assert "不再按“新增仓内功能”排序，而按总 readiness blockers 排序" in content
     assert "python tools/build_next_stage_readiness_report.py" in content
     assert "python tools/build_next_stage_external_evidence_checklist.py" in content
+    assert "python tools/build_next_stage_external_evidence_status_report.py" in content
     assert "next_stage_external_evidence_checklist.v1" in content
+    assert "next_stage_external_evidence_status_report.v1" in content
     assert "hardware_live_closeout_report.status=ready" in content
     assert "web_browser_validation_evidence_pack.status=ready" in content
     assert "ros2_typed_idl_cutover_report.status=ready" in content
@@ -47,6 +49,8 @@ def test_next_stage_plan_has_command_index_for_closeout_tools() -> None:
     assert "`execution_prerequisites`" in content
     assert "`execution_prerequisite_validation_errors`" in content
     assert "顶层 `validation_errors` 必须为空" in content
+    assert "external evidence status report 的 `validation_errors` 必须为空" in content
+    assert "`blocked_items` 只说明 checklist item 的当前 artifact 尚未达到 `target_status`" in content
     assert "推荐 `3.12`" in content
     assert "完整 Python 3.12 路径" in content
     assert "`next_stage_readiness_expected_status`" in content
@@ -76,6 +80,7 @@ def test_next_stage_plan_has_command_index_for_closeout_tools() -> None:
     assert "python tools/build_web_browser_validation_closeout.py --output test_env/web_browser_manual_validation/web_browser_validation_closeout.json" in content
     assert "python tools/build_web_browser_validation_evidence_pack.py --output test_env/web_browser_manual_validation/web_browser_validation_evidence_pack.json" in content
     assert "python tools/build_next_stage_external_evidence_checklist.py --readiness-report test_env/next_stage/next_stage_readiness_report.json --output test_env/next_stage/next_stage_external_evidence_checklist.json" in content
+    assert "python tools/build_next_stage_external_evidence_status_report.py --checklist test_env/next_stage/next_stage_external_evidence_checklist.json --output test_env/next_stage/next_stage_external_evidence_status_report.json --expected-status blocked" in content
     assert "不用占位值把 `blocked` 改成 `ready`" in content
 
 
@@ -122,6 +127,7 @@ def test_next_stage_plan_has_blocker_resolution_table() -> None:
     assert "当前 typed surface blocker 已收敛，仅保留真实 cutover 输入" in content
     assert "剩余 action 应全部归类为 `external_input`" in content
     assert "`next_stage_external_evidence_checklist.json` 当前可从 readiness report 生成" in content
+    assert "`next_stage_external_evidence_status_report.json` 可进一步检查 checklist item artifact 是否已经回填到目标状态" in content
     assert "输出 `handoff_validation_errors` 和顶层 `validation_errors`" in content
     assert "最终仍以 `next_stage_readiness_report.status=ready` 为准" in content
 
