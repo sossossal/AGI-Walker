@@ -169,6 +169,21 @@ def test_next_stage_external_evidence_checklist_validates_item_shape() -> None:
     assert "items[0].guide_paths entries must be strings" in errors
 
 
+def test_next_stage_external_evidence_checklist_rejects_non_repo_artifact_path() -> None:
+    readiness = build_next_stage_readiness_report()
+    checklist = build_next_stage_external_evidence_checklist(readiness)
+    checklist["items"][0]["artifact_path"] = "../outside.json"
+    checklist["items"][1]["artifact_path"] = str(Path.cwd() / "outside.json")
+
+    errors = validate_next_stage_external_evidence_checklist(checklist)
+
+    assert "hardware_live_closeout.artifact_path must be a repository-relative path" in errors
+    assert (
+        "ros2_typed_idl_cutover.artifact_path must be a repository-relative path"
+        in errors
+    )
+
+
 def test_next_stage_external_evidence_checklist_validates_handoff_paths() -> None:
     readiness = build_next_stage_readiness_report()
     checklist = build_next_stage_external_evidence_checklist(readiness)

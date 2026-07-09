@@ -403,6 +403,11 @@ def _validate_checklist_items(items: list[Any]) -> list[str]:
         ):
             if not isinstance(item.get(field), str) or not item.get(field, "").strip():
                 errors.append(f"{label}.{field} must be a non-empty string")
+        artifact_path = item.get("artifact_path")
+        if isinstance(artifact_path, str) and artifact_path.strip():
+            path = Path(artifact_path)
+            if path.is_absolute() or ".." in path.parts:
+                errors.append(f"{label}.artifact_path must be a repository-relative path")
         if item.get("execution_scope") not in {
             "external_input",
             "code_or_config",
