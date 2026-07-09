@@ -266,7 +266,7 @@ def build_next_stage_external_evidence_checklist(
         if not readiness_errors and not handoff_errors and not prerequisite_errors and not unresolved
         else "blocked"
     )
-    return {
+    checklist = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "status": status,
@@ -302,6 +302,113 @@ def build_next_stage_external_evidence_checklist(
             prerequisite_errors=prerequisite_errors,
         ),
     }
+    checklist["validation_errors"] = validate_next_stage_external_evidence_checklist(checklist)
+    return checklist
+
+
+def validate_next_stage_external_evidence_checklist(payload: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if payload.get("schema_version") != SCHEMA_VERSION:
+        errors.append(f"schema_version must be {SCHEMA_VERSION}")
+    try:
+        generated_at = datetime.fromisoformat(str(payload.get("generated_at")))
+    except ValueError:
+        generated_at = None
+    if generated_at is None or generated_at.tzinfo is None:
+        errors.append("generated_at must be a timezone-aware ISO timestamp")
+    summary = payload.get("summary")
+    if not isinstance(summary, dict):
+        return [*errors, "summary must be an object"]
+    collections = {
+        "items": payload.get("items"),
+        "unresolved_items": payload.get("unresolved_items"),
+        "non_external_items": payload.get("non_external_items"),
+        "readiness_validation_errors": payload.get("readiness_validation_errors"),
+        "handoff_validation_errors": payload.get("handoff_validation_errors"),
+        "execution_prerequisite_validation_errors": payload.get(
+            "execution_prerequisite_validation_errors"
+        ),
+    }
+    if not all(isinstance(value, list) for value in collections.values()):
+        return [*errors, "checklist collections must be lists"]
+    errors.extend(_validate_checklist_counts(summary=summary, **collections))
+    errors.extend(_validate_checklist_status(payload))
+    return errors
+
+
+def _validate_checklist_counts(
+    *,
+    summary: dict[str, Any],
+    items: list[Any],
+    unresolved_items: list[Any],
+    non_external_items: list[Any],
+    readiness_validation_errors: list[Any],
+    handoff_validation_errors: list[Any],
+    execution_prerequisite_validation_errors: list[Any],
+) -> list[str]:
+    expected = {
+        "item_count": len(items),
+        "unresolved_item_count": len(unresolved_items),
+        "external_input_item_count": _count_items(items, "execution_scope", "external_input"),
+        "code_or_config_item_count": _count_items(items, "execution_scope", "code_or_config"),
+        "non_external_item_count": len(non_external_items),
+        "readiness_validation_error_count": len(readiness_validation_errors),
+        "handoff_validation_error_count": len(handoff_validation_errors),
+        "execution_prerequisite_validation_error_count": len(
+            execution_prerequisite_validation_errors
+        ),
+    }
+    errors: list[str] = []
+    for field, expected_value in expected.items():
+        if not _is_non_negative_int(summary.get(field)):
+            errors.append(f"summary.{field} must be a non-negative integer")
+        elif summary[field] != expected_value:
+            errors.append(f"summary.{field} must equal {expected_value}")
+    item_ids = [item.get("artifact_id") for item in items if isinstance(item, dict)]
+    expected_unresolved = [
+        item.get("artifact_id")
+        for item in items
+        if isinstance(item, dict) and item.get("issue_count", 0) > 0
+    ]
+    expected_non_external = [
+        item.get("artifact_id")
+        for item in items
+        if isinstance(item, dict) and item.get("execution_scope") != "external_input"
+    ]
+    if unresolved_items != expected_unresolved:
+        errors.append("unresolved_items must match items with issue_count > 0")
+    if non_external_items != expected_non_external:
+        errors.append("non_external_items must match non-external items")
+    if len(item_ids) != len(items):
+        errors.append("items must contain artifact_id values")
+    return errors
+
+
+def _validate_checklist_status(payload: dict[str, Any]) -> list[str]:
+    items = payload.get("items") if isinstance(payload.get("items"), list) else []
+    unresolved_from_items = [
+        item for item in items if isinstance(item, dict) and item.get("issue_count", 0) > 0
+    ]
+    has_blockers = any(
+        payload.get(field)
+        for field in (
+            "readiness_validation_errors",
+            "handoff_validation_errors",
+            "execution_prerequisite_validation_errors",
+        )
+    ) or bool(unresolved_from_items)
+    expected_status = "blocked" if has_blockers else "ready"
+    if payload.get("status") != expected_status:
+        return [f"status must be {expected_status}"]
+    return []
+
+
+def _count_items(items: list[Any], field: str, value: str) -> int:
+    return sum(1 for item in items if isinstance(item, dict) and item.get(field) == value)
+
+
+def _is_non_negative_int(value: Any) -> bool:
+    return isinstance(value, int) and value >= 0
 
 
 def validate_execution_prerequisites(prerequisites: object) -> list[str]:
@@ -414,9 +521,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"code_or_config:{checklist['summary']['code_or_config_item_count']},"
         f"handoff_errors:{checklist['summary']['handoff_validation_error_count']},"
         "prerequisite_errors:"
-        f"{checklist['summary']['execution_prerequisite_validation_error_count']}"
+        f"{checklist['summary']['execution_prerequisite_validation_error_count']},"
+        f"validation_errors:{len(checklist['validation_errors'])}"
     )
-    return 0 if checklist["status"] == "ready" else 1
+    return 0 if checklist["status"] == "ready" and not checklist["validation_errors"] else 1
 
 
 if __name__ == "__main__":
