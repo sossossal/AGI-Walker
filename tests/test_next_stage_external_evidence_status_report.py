@@ -124,6 +124,30 @@ def test_next_stage_external_evidence_status_report_rejects_non_repo_paths() -> 
     ) in report["validation_errors"]
 
 
+def test_next_stage_external_evidence_status_report_validates_item_shape() -> None:
+    checklist = build_next_stage_external_evidence_checklist(
+        build_next_stage_readiness_report()
+    )
+    report = build_next_stage_external_evidence_status_report(checklist)
+    report["items"][0]["artifact_id"] = ""
+    report["items"][0]["artifact_path_valid"] = "yes"
+    report["items"][0]["execution_scope"] = "live_magic"
+    report["items"][0]["issue_count"] = -1
+    report["items"][0]["remaining_issues"] = "evidence_missing"
+    report["items"][0]["actual_status"] = 123
+    report["status"] = "ready"
+
+    errors = validate_next_stage_external_evidence_status_report(report)
+
+    assert "items[0].artifact_id must be a non-empty string" in errors
+    assert "items[0].artifact_path_valid must be a boolean" in errors
+    assert "items[0].execution_scope must be a known scope" in errors
+    assert "items[0].issue_count must be a non-negative integer" in errors
+    assert "items[0].remaining_issues must be a list" in errors
+    assert "items[0].actual_status must be a string or null" in errors
+    assert "status must be blocked" in errors
+
+
 def test_next_stage_external_evidence_status_report_cli_writes_blocked_snapshot(
     tmp_path: Path, capsys,
 ) -> None:

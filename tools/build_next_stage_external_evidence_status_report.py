@@ -180,6 +180,8 @@ def validate_next_stage_external_evidence_status_report(
             errors.append(f"summary.{field} must be a non-negative integer")
         elif summary[field] != expected_value:
             errors.append(f"summary.{field} must equal {expected_value}")
+    item_errors = _validate_status_report_items(items)
+    errors.extend(item_errors)
     expected_blocked = [
         item.get("artifact_id")
         for item in items
@@ -197,9 +199,46 @@ def validate_next_stage_external_evidence_status_report(
             "items must use repository-relative artifact_path values: "
             + ", ".join(str(item) for item in invalid_paths)
         )
-    expected_status = "blocked" if checklist_errors or expected_blocked else "ready"
+    expected_status = (
+        "blocked" if checklist_errors or expected_blocked or item_errors else "ready"
+    )
     if report.get("status") != expected_status:
         errors.append(f"status must be {expected_status}")
+    return errors
+
+
+def _validate_status_report_items(items: list[Any]) -> list[str]:
+    errors: list[str] = []
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            errors.append(f"items[{index}] must be an object")
+            continue
+        artifact_id = item.get("artifact_id")
+        label = str(artifact_id) if artifact_id else f"items[{index}]"
+        for field in ("artifact_id", "artifact_path", "target_status"):
+            if not isinstance(item.get(field), str) or not item.get(field, "").strip():
+                errors.append(f"{label}.{field} must be a non-empty string")
+        for field in (
+            "artifact_path_valid",
+            "exists",
+            "ready",
+            "requires_real_input",
+        ):
+            if not isinstance(item.get(field), bool):
+                errors.append(f"{label}.{field} must be a boolean")
+        if item.get("execution_scope") not in {
+            "external_input",
+            "code_or_config",
+            "unknown",
+        }:
+            errors.append(f"{label}.execution_scope must be a known scope")
+        if not _is_non_negative_int(item.get("issue_count")):
+            errors.append(f"{label}.issue_count must be a non-negative integer")
+        if not isinstance(item.get("remaining_issues"), list):
+            errors.append(f"{label}.remaining_issues must be a list")
+        actual_status = item.get("actual_status")
+        if actual_status is not None and not isinstance(actual_status, str):
+            errors.append(f"{label}.actual_status must be a string or null")
     return errors
 
 
