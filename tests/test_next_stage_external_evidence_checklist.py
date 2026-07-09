@@ -7,6 +7,7 @@ from tools.build_next_stage_external_evidence_checklist import (
     SCHEMA_VERSION,
     build_next_stage_external_evidence_checklist,
     main,
+    validate_next_stage_external_evidence_checklist_handoff,
 )
 from tools.build_next_stage_readiness_report import build_next_stage_readiness_report
 
@@ -20,10 +21,12 @@ def test_next_stage_external_evidence_checklist_tracks_current_blockers() -> Non
     assert checklist["status"] == "blocked"
     assert checklist["readiness_status"] == readiness["status"]
     assert checklist["readiness_validation_errors"] == []
+    assert checklist["handoff_validation_errors"] == []
     assert checklist["summary"]["item_count"] == len(readiness["blockers"])
     assert checklist["summary"]["unresolved_item_count"] == len(readiness["blockers"])
     assert checklist["summary"]["code_or_config_item_count"] == 0
     assert checklist["summary"]["external_input_item_count"] == len(readiness["blockers"])
+    assert checklist["summary"]["handoff_validation_error_count"] == 0
     assert checklist["unresolved_items"] == readiness["blockers"]
     assert checklist["non_external_items"] == []
     hardware = checklist["items"][0]
@@ -105,6 +108,48 @@ def test_next_stage_external_evidence_checklist_blocks_invalid_readiness() -> No
     ]
 
 
+def test_next_stage_external_evidence_checklist_validates_handoff_paths() -> None:
+    readiness = build_next_stage_readiness_report()
+    checklist = build_next_stage_external_evidence_checklist(readiness)
+    items = [dict(item) for item in checklist["items"]]
+    items[0]["input_templates"] = ["deployment/missing-template.json"]
+    items[1]["guide_paths"] = ["../outside.md"]
+    items[2]["evidence_commands"] = []
+
+    errors = validate_next_stage_external_evidence_checklist_handoff(items)
+
+    assert (
+        "hardware_live_closeout.input_templates[0] does not exist: "
+        "deployment/missing-template.json"
+    ) in errors
+    assert (
+        "ros2_typed_idl_cutover.guide_paths[0] must be a repository-relative path"
+        in errors
+    )
+    assert "operator_delivery_checklist.evidence_commands must not be empty" in errors
+
+
+def test_next_stage_external_evidence_checklist_blocks_invalid_handoff() -> None:
+    readiness = build_next_stage_readiness_report()
+    readiness["blocker_details"][0]["id"] = "unknown_external_artifact"
+    readiness["blockers"][0] = "unknown_external_artifact"
+    readiness["action_plan"][0]["artifact_id"] = "unknown_external_artifact"
+    readiness["artifacts"][0]["id"] = "unknown_external_artifact"
+
+    checklist = build_next_stage_external_evidence_checklist(readiness)
+
+    assert checklist["status"] == "blocked"
+    assert checklist["summary"]["handoff_validation_error_count"] == 3
+    assert checklist["handoff_validation_errors"] == [
+        "unknown_external_artifact.evidence_commands must not be empty",
+        "unknown_external_artifact.input_templates must not be empty",
+        "unknown_external_artifact.guide_paths must not be empty",
+    ]
+    assert checklist["next_actions"] == [
+        "Fix next-stage external evidence checklist handoff validation errors before acting."
+    ]
+
+
 def test_next_stage_external_evidence_checklist_cli_writes_report(
     tmp_path: Path, capsys,
 ) -> None:
@@ -119,10 +164,12 @@ def test_next_stage_external_evidence_checklist_cli_writes_report(
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload["schema_version"] == SCHEMA_VERSION
     assert payload["status"] == "blocked"
+    assert payload["handoff_validation_errors"] == []
     stdout = capsys.readouterr().out
     assert "next_stage_external_evidence_checklist_written=" in stdout
     assert "next_stage_external_evidence_checklist_status=blocked" in stdout
     assert "next_stage_external_evidence_checklist_items=unresolved:" in stdout
+    assert "handoff_errors:0" in stdout
 
 
 def test_next_stage_external_evidence_checklist_script_runs_directly(

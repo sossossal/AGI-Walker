@@ -237,13 +237,14 @@ def build_next_stage_external_evidence_checklist(
 ) -> dict[str, Any]:
     readiness_errors = validate_next_stage_readiness_report(readiness_report)
     items = _checklist_items(readiness_report)
+    handoff_errors = validate_next_stage_external_evidence_checklist_handoff(items)
     unresolved = [item["artifact_id"] for item in items if item["issue_count"] > 0]
     non_external = [
         item["artifact_id"]
         for item in items
         if item["execution_scope"] != "external_input"
     ]
-    status = "ready" if not readiness_errors and not unresolved else "blocked"
+    status = "ready" if not readiness_errors and not handoff_errors and not unresolved else "blocked"
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -261,18 +262,65 @@ def build_next_stage_external_evidence_checklist(
             ),
             "non_external_item_count": len(non_external),
             "readiness_validation_error_count": len(readiness_errors),
+            "handoff_validation_error_count": len(handoff_errors),
         },
         "unresolved_items": unresolved,
         "non_external_items": non_external,
         "items": items,
         "readiness_validation_errors": readiness_errors,
+        "handoff_validation_errors": handoff_errors,
         "next_actions": _next_actions(
             status=status,
             unresolved=unresolved,
             non_external=non_external,
             readiness_errors=readiness_errors,
+            handoff_errors=handoff_errors,
         ),
     }
+
+
+def validate_next_stage_external_evidence_checklist_handoff(
+    items: Sequence[dict[str, Any]],
+) -> list[str]:
+    errors: list[str] = []
+    for index, item in enumerate(items):
+        artifact_id = str(item.get("artifact_id") or f"item[{index}]")
+        errors.extend(_validate_nonempty_string_list(item, artifact_id, "evidence_commands"))
+        for field in ("input_templates", "guide_paths"):
+            errors.extend(_validate_existing_repo_paths(item, artifact_id, field))
+    return errors
+
+
+def _validate_nonempty_string_list(
+    item: dict[str, Any], artifact_id: str, field: str,
+) -> list[str]:
+    values = item.get(field)
+    if not isinstance(values, list):
+        return [f"{artifact_id}.{field} must be a list"]
+    if not values:
+        return [f"{artifact_id}.{field} must not be empty"]
+    return [
+        f"{artifact_id}.{field}[{index}] must be a non-empty string"
+        for index, value in enumerate(values)
+        if not isinstance(value, str) or not value.strip()
+    ]
+
+
+def _validate_existing_repo_paths(
+    item: dict[str, Any], artifact_id: str, field: str,
+) -> list[str]:
+    errors = _validate_nonempty_string_list(item, artifact_id, field)
+    values = item.get(field)
+    if errors or not isinstance(values, list):
+        return errors
+    for index, value in enumerate(values):
+        path = Path(value)
+        if path.is_absolute() or ".." in path.parts:
+            errors.append(f"{artifact_id}.{field}[{index}] must be a repository-relative path")
+            continue
+        if not (PROJECT_ROOT / path).is_file():
+            errors.append(f"{artifact_id}.{field}[{index}] does not exist: {value}")
+    return errors
 
 
 def _next_actions(
@@ -281,9 +329,12 @@ def _next_actions(
     unresolved: list[str],
     non_external: list[str],
     readiness_errors: list[str],
+    handoff_errors: list[str],
 ) -> list[str]:
     if readiness_errors:
         return ["Fix next-stage readiness report validation errors before acting."]
+    if handoff_errors:
+        return ["Fix next-stage external evidence checklist handoff validation errors before acting."]
     if non_external:
         return [
             "Resolve code/config scoped next-stage items before requesting external evidence.",
@@ -313,7 +364,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "next_stage_external_evidence_checklist_items="
         f"unresolved:{checklist['summary']['unresolved_item_count']},"
         f"external_input:{checklist['summary']['external_input_item_count']},"
-        f"code_or_config:{checklist['summary']['code_or_config_item_count']}"
+        f"code_or_config:{checklist['summary']['code_or_config_item_count']},"
+        f"handoff_errors:{checklist['summary']['handoff_validation_error_count']}"
     )
     return 0 if checklist["status"] == "ready" else 1
 
