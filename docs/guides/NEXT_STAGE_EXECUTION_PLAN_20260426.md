@@ -23,7 +23,7 @@ python tools/build_next_stage_readiness_report.py --output test_env/next_stage/n
 
 GitHub Actions 的 `next-stage-readiness` job 会先运行默认命令；如果当前仍缺真实外部 evidence，再用 `--expected-status blocked` 生成并上传 `next-stage-readiness-artifacts`。该 artifact 同时保留 `next_stage_readiness_report.json` 和 `next_stage_external_evidence_checklist.json`，前者是最终 gate，后者是现场执行清单。这只是 evidence retention，不是 release readiness 通过条件。
 
-如果需要把当前 blocked readiness 转成现场执行清单，运行 `tools/build_next_stage_external_evidence_checklist.py`。该工具输出 `next_stage_external_evidence_checklist.v1`，只把 `blocker_details` / `action_plan` 整理成外部证据项；它不替代总 readiness，也不会把缺真实输入的路线标成 ready。每个 `items[]` 会保留该路线的 `evidence_commands`、`input_templates` 和 `guide_paths`，分别用于重建 route artifact、填写真实输入和查阅执行前检查。
+如果需要把当前 blocked readiness 转成现场执行清单，运行 `tools/build_next_stage_external_evidence_checklist.py`。该工具输出 `next_stage_external_evidence_checklist.v1`，只把 `blocker_details` / `action_plan` 整理成外部证据项；它不替代总 readiness，也不会把缺真实输入的路线标成 ready。每个 `items[]` 会保留该路线的 `evidence_commands`、`input_templates` 和 `guide_paths`，分别用于重建 route artifact、填写真实输入和查阅执行前检查。若输出 `handoff_validation_errors` 非空，说明清单自身命令或模板/指南路径已漂移，应先修复仓内契约再交给现场执行。
 
 当前已经具备：
 
@@ -99,6 +99,7 @@ python tools/build_next_stage_external_evidence_checklist.py --readiness-report 
 - 先跑总 readiness，优先按 `action_plan` 执行；需要展开原因时再看 `blocker_details[].blockers / blocked_steps / next_actions`。
 - 需要交给现场 operator 或客户团队执行时，再生成 external evidence checklist；该 checklist 的 `items[].acceptance_evidence` 只描述目标 evidence，不是通过证明。
 - checklist 的 `items[].evidence_commands` 是该路线重建证据的最小命令链；`items[].input_templates` 是需要复制或填写真实输入的模板；`items[].guide_paths` 是执行前必须阅读的 runbook / checklist。
+- checklist 的 `handoff_validation_errors` 必须为空；该字段只校验清单本身是否可执行，不代表真实外部 evidence 已完成。
 - 总 readiness CLI 会在 stdout 打印 `next_stage_readiness_status`、`next_stage_readiness_expected_status`、`next_stage_readiness_exit_code`、`next_stage_readiness_validation_errors`、`next_stage_readiness_actions` 和 `next_stage_readiness_git`，CI 日志可先看这些摘要，再打开 JSON artifact。
 - 每次补完外部 evidence 后，只重跑对应路线命令和最后的总 readiness。
 - 不用占位值把 `blocked` 改成 `ready`；缺真实输入时保留 fail-closed 状态。
@@ -152,7 +153,7 @@ python tools/build_next_stage_external_evidence_checklist.py --readiness-report 
 - `next_stage_readiness_report` 当前会输出 `action_plan`、`blocker_details`、`generated_at`、`git` 和 `validation_errors`：前者给执行顺序与首要动作，后者保留每个阻塞 artifact 的内部 `blockers`、`blocked_steps`、`warnings` 和 `next_actions`；`next_stage_readiness_report.generated_at` 是带时区的报告生成时间，用于区分旧 artifact 与本轮 evidence；`next_stage_readiness_report.git` 记录 commit、branch 和 dirty 状态，用于避免把不同分支或脏工作区 evidence 混为同一份 readiness 结果；在 GitHub Actions detached checkout 中，branch/ref 和 commit 会从 `GITHUB_HEAD_REF`、`GITHUB_REF_NAME` 与 `GITHUB_SHA` 回填；`validation_errors` 固定校验 summary 计数、blocker/detail/action 顺序和基础元数据形状。
 - ROS2 typed surfaces 的本地代码 inventory 已可由 `tools/build_ros2_typed_inventory.py` 重建；当前 typed surface blocker 已收敛，仅保留真实 cutover 输入 `target_environment`、`operator`、`rollback_owner` 与 `json_writers_disabled`。
 - `next_stage_readiness_report.action_plan` 当前会标注 `execution_scope` 和 `requires_real_input`；代码层 blocker 清零后，剩余 action 应全部归类为 `external_input`。
-- `next_stage_external_evidence_checklist.json` 当前可从 readiness report 生成，输出每个 unresolved artifact 的 `target_status`、`issues`、`primary_next_action`、`acceptance_evidence`、`evidence_commands`、`input_templates` 与 `guide_paths`，用于现场执行分派；最终仍以 `next_stage_readiness_report.status=ready` 为准。
+- `next_stage_external_evidence_checklist.json` 当前可从 readiness report 生成，输出每个 unresolved artifact 的 `target_status`、`issues`、`primary_next_action`、`acceptance_evidence`、`evidence_commands`、`input_templates` 与 `guide_paths`，用于现场执行分派；同时输出 `handoff_validation_errors` 防止 stale handoff 进入现场流程；最终仍以 `next_stage_readiness_report.status=ready` 为准。
 
 ## 5. 真实环境执行前检查
 
