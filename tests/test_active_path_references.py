@@ -1,7 +1,12 @@
 from pathlib import Path
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - Python 3.10 compatibility path.
+    import tomli as tomllib
 
 import yaml
 
+ROOT_VERSION = Path("VERSION")
 DOCKERFILE = Path("Dockerfile")
 CONTRIBUTING = Path("CONTRIBUTING.md")
 URDF_BATCH_CONVERT = Path("agi_walker/skills/urdf-generator/scripts/batch_convert.py")
@@ -166,6 +171,14 @@ def test_dockerfile_does_not_reference_removed_source_layout() -> None:
     assert "COPY agi_walker/ ./agi_walker/" in content
     assert "COPY web_panel/ ./web_panel/" in content
     assert "RUN pip install --no-cache-dir ." in content
+
+
+def test_root_version_matches_pyproject_release_metadata() -> None:
+    version = ROOT_VERSION.read_text(encoding="utf-8").strip()
+    pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+
+    assert version
+    assert version == pyproject["project"]["version"]
 
 
 def test_contributing_uses_current_source_directories() -> None:

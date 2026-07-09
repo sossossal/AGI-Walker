@@ -20,6 +20,7 @@ Out of scope:
 # Interfaces and Contracts
 
 - CLI: `tools/build_dynamic_godot_release_readiness.py`.
+- Release-check version source: root `VERSION`, which must match `pyproject.toml` `[project].version`.
 - Output summary version: `dynamic_godot_release_readiness_summary.v1`.
 - Output artifact type: `dynamic_godot_release_readiness_summary`.
 - Recognized evidence:
@@ -58,3 +59,4 @@ py -3.12 -m pytest -m "not live" --collect-only -q
 - 2026-05-19: Updated static evidence defaults and CI command so release/readiness static coverage includes fixed pair, biped, and quadruped.
 - 2026-05-19: Documented manual live smoke artifact paths and required `godot_verified` report/gate/smoke/readiness fields without making live smoke mandatory.
 - 2026-05-19: Added acceptance-level proof table for `static_only`, `godot_load_verified`, and `godot_verified`.
+- 2026-07-09: Added root `VERSION` release metadata closeout and regression coverage that keeps it aligned with `pyproject.toml`.
