@@ -32,6 +32,22 @@ from tools.build_next_stage_readiness_report import (
 
 SCHEMA_VERSION = "next_stage_external_evidence_checklist.v1"
 DEFAULT_OUTPUT = "test_env/next_stage/next_stage_external_evidence_checklist.json"
+EXECUTION_PREREQUISITES = {
+    "python": {
+        "required": ">=3.10",
+        "recommended": "3.12",
+        "command_policy": (
+            "Run evidence commands with the project-supported Python interpreter. "
+            "On Windows, prefer py -3.12 when registered; otherwise use an "
+            "activated 3.12 virtual environment or the full Python 3.12 path."
+        ),
+    },
+    "evidence_policy": (
+        "Do not replace blocked external evidence with placeholders. Route "
+        "artifacts become acceptable only after the real external input reaches "
+        "the target status recorded by the readiness report."
+    ),
+}
 HANDOFF_BY_ARTIFACT: dict[str, dict[str, list[str]]] = {
     "hardware_live_closeout": {
         "evidence_commands": [
@@ -251,6 +267,7 @@ def build_next_stage_external_evidence_checklist(
         "status": status,
         "readiness_status": readiness_report.get("status"),
         "readiness_git": readiness_report.get("git", {}),
+        "execution_prerequisites": EXECUTION_PREREQUISITES,
         "summary": {
             "item_count": len(items),
             "unresolved_item_count": len(unresolved),
