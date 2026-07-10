@@ -10,6 +10,7 @@ DEFAULT_FAULT_TABLE = "deployment/hardware/imc22_reflex_fault_table.json"
 DEFAULT_RECOVERY_POLICY = "deployment/hardware/imc22_reflex_recovery_policy.json"
 DEFAULT_REPORT = "test_env/hardware_live/hardware_transport_diagnostics_report.json"
 DEFAULT_TELEMETRY = "test_env/hardware_live/hardware_fault_telemetry_report.json"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -38,10 +39,52 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _load_profile_overrides(args: argparse.Namespace) -> dict[str, Any]:
-    if not args.profile_file:
+def _text(value: Any) -> str:
+    return value.strip() if isinstance(value, str) else ""
+
+
+def _resolve_relative_path(
+    value: str | None,
+    *,
+    base_dir: Path,
+    allow_empty: bool = False,
+) -> tuple[bool, Path | None, str | None]:
+    text = _text(value)
+    if not text:
+        return (True, None, None) if allow_empty else (False, None, "empty")
+    path = Path(text)
+    if path.is_absolute():
+        return False, None, "absolute"
+    if ".." in path.parts:
+        return False, None, "parent_directory"
+    base_relative = base_dir / path
+    if base_relative.exists():
+        return True, base_relative, None
+    return True, PROJECT_ROOT / path, None
+
+
+def _profile_file_status(args: argparse.Namespace) -> dict[str, Any]:
+    valid, resolved_path, error = _resolve_relative_path(
+        args.profile_file,
+        base_dir=Path(args.output).resolve().parent,
+        allow_empty=True,
+    )
+    return {
+        "path": _text(args.profile_file),
+        "path_valid": valid,
+        "path_error": error,
+        "resolved_path": str(resolved_path) if resolved_path is not None else None,
+        "exists": bool(resolved_path and resolved_path.exists()),
+    }
+
+
+def _load_profile_overrides(profile_status: dict[str, Any]) -> dict[str, Any]:
+    if not profile_status["path"] or not profile_status["path_valid"]:
         return {}
-    return json.loads(Path(args.profile_file).read_text(encoding="utf-8"))
+    resolved_path = profile_status["resolved_path"]
+    if not resolved_path or not Path(resolved_path).exists():
+        return {}
+    return json.loads(Path(resolved_path).read_text(encoding="utf-8"))
 
 
 def _input_value(args: argparse.Namespace, profile: dict[str, Any], key: str) -> Any:
@@ -49,8 +92,13 @@ def _input_value(args: argparse.Namespace, profile: dict[str, Any], key: str) ->
     return value if value is not None else profile.get(key)
 
 
-def _effective_inputs(args: argparse.Namespace) -> dict[str, Any]:
-    profile = _load_profile_overrides(args)
+def _effective_inputs(
+    args: argparse.Namespace,
+    *,
+    profile_status: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    profile_status = profile_status or _profile_file_status(args)
+    profile = _load_profile_overrides(profile_status)
     return {
         "profile_file": args.profile_file,
         "channel": _input_value(args, profile, "channel"),
@@ -67,8 +115,7 @@ def _effective_inputs(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
-def _diagnostics_command(args: argparse.Namespace) -> list[str]:
-    inputs = _effective_inputs(args)
+def _diagnostics_command(args: argparse.Namespace, inputs: dict[str, Any]) -> list[str]:
     command = [
         "python",
         "tools/run_hardware_transport_diagnostics.py",
@@ -96,8 +143,12 @@ def _diagnostics_command(args: argparse.Namespace) -> list[str]:
 
 
 def build_hardware_live_diagnostics_checklist(args: argparse.Namespace) -> dict[str, Any]:
-    inputs = _effective_inputs(args)
+    profile_status = _profile_file_status(args)
+    inputs = _effective_inputs(args, profile_status=profile_status)
     missing_inputs: list[str] = []
+    blockers: list[str] = []
+    if not profile_status["path_valid"]:
+        blockers.append("profile_file_path_invalid")
     if args.transport in {"socketcan", "pcan"} and not inputs["channel"]:
         missing_inputs.append("channel")
     if args.transport == "serial_bridge":
@@ -106,13 +157,17 @@ def build_hardware_live_diagnostics_checklist(args: argparse.Namespace) -> dict[
         if not inputs["baudrate"]:
             missing_inputs.append("baudrate")
 
-    diagnostics_command = _diagnostics_command(args)
+    if missing_inputs:
+        blockers.append("transport_inputs_missing")
+    diagnostics_command = _diagnostics_command(args, inputs)
     return {
         "schema_version": "1.0",
-        "status": "blocked" if missing_inputs else "ready_to_run",
+        "status": "blocked" if blockers else "ready_to_run",
         "transport": args.transport,
+        "blockers": blockers,
         "missing_inputs": missing_inputs,
         "inputs": inputs,
+        "profile_file_status": profile_status,
         "diagnostics_command": diagnostics_command,
         "evidence": {
             "diagnostics_report": args.diagnostics_output,

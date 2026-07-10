@@ -330,6 +330,8 @@ python tools/build_hardware_live_diagnostics_checklist.py --transport serial_bri
 
 先把 `deployment/hardware/imc22_live_transport.template.json` 里的 `serial_port / baudrate` 或 CAN `channel` 改成现场真实值。这份 checklist 会给出实际 diagnostics 命令、预期证据路径和放行条件。没有真实串口参数或 CAN `channel` 时，报告会保持 `blocked`，避免误把 replay 结果当作 live 结果。
 
+`--profile-file` 必须使用相对路径，不能使用绝对路径或 `..` 父目录穿越。checklist 会先按 `--output` 所在目录解析，再回退仓库根目录，并在 `profile_file_status` 中保留路径校验结果。
+
 对于串口桥 replay：
 
 ```bash

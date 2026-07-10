@@ -64,6 +64,8 @@ Web 当前要求 `recover_by_fault_class / clear_faults` 的 Bearer token 具备
 python tools/build_hardware_live_diagnostics_checklist.py --transport serial_bridge --profile-file deployment/hardware/imc22_live_transport.template.json --output test_env/hardware_live/live_diagnostics_checklist.json
 ```
 
+`--profile-file` 必须是相对路径，不能使用绝对路径或 `..`。生成的 checklist 会在 `profile_file_status` 中记录解析结果，非法路径会保持 `status=blocked`。
+
 3. 确认现场参数：
    - serial port / CAN channel
    - bitrate / baudrate
