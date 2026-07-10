@@ -252,11 +252,12 @@ def test_hardwareless_release_gate_validator_rejects_blocked_report(
         godot_readiness=_ready_godot_readiness(),
         ros2_probe=_missing_ros2_probe(),
     )
-    report_path = tmp_path / "blocked-report.json"
+    report_path = Path("test_env/hardwareless_acceptance/validator_blocked_report.json")
+    report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report), encoding="utf-8")
 
     errors = validate_hardwareless_release_gate(report)
-    exit_code = validate_release_gate_main([str(report_path)])
+    exit_code = validate_release_gate_main([report_path.as_posix()])
 
     assert "release_gate.status must be 'ready'; got 'blocked'" in errors
     assert exit_code == 1
@@ -271,13 +272,14 @@ def test_hardwareless_release_gate_validator_writes_output_artifact(
         godot_readiness=_ready_godot_readiness(),
         ros2_probe=_missing_ros2_probe(),
     )
-    report_path = tmp_path / "blocked-report.json"
+    report_path = Path("test_env/hardwareless_acceptance/validator_output_report.json")
     output_path = tmp_path / "validation-report.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report), encoding="utf-8")
 
     exit_code = validate_release_gate_main(
         [
-            str(report_path),
+            report_path.as_posix(),
             "--output",
             str(output_path),
         ]
@@ -287,7 +289,32 @@ def test_hardwareless_release_gate_validator_writes_output_artifact(
     assert exit_code == 1
     assert payload["status"] == "failed"
     assert payload["actual_status"] == "blocked"
+    assert payload["report_path_status"]["path_valid"] is True
     assert payload["errors"]
+
+
+def test_hardwareless_release_gate_validator_blocks_unsafe_report_path(
+    tmp_path: Path,
+) -> None:
+    output_path = tmp_path / "validation-report.json"
+
+    exit_code = validate_release_gate_main(
+        [
+            "../blocked-report.json",
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert exit_code == 1
+    assert payload["status"] == "failed"
+    assert payload["actual_status"] is None
+    assert payload["report_path_status"]["path_valid"] is False
+    assert payload["report_path_status"]["path_error"] == "parent_directory"
+    assert payload["errors"] == [
+        "report path must be repository-relative, must not traverse outside the repository, and must exist"
+    ]
 
 
 def test_hardwareless_acceptance_docs_are_linked() -> None:
