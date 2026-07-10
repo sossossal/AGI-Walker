@@ -86,7 +86,7 @@ python tools/build_ros2_typed_idl_cutover_report.py \
   --output test_env/ros2_typed_idl_cutover/ros2_typed_idl_cutover_report.json
 ```
 
-Use `--require-evidence-files` when the downstream typed inventory and rollback plan must be present on disk. The report remains `blocked` while JSON writers are still enabled, any typed surface is not `passed / ready`, or the live Humble smoke report is missing/non-passing.
+Use `--require-evidence-files` when the downstream typed inventory and rollback plan must be present on disk. Evidence paths in the cutover input must be relative paths; absolute paths and parent-directory traversal are rejected before files are read. Relative evidence paths resolve first beside the cutover input file and then from the repository root, preserving the default `test_env/...` template paths. The report remains `blocked` while JSON writers are still enabled, any typed surface is not `passed / ready`, or the live Humble smoke report is missing/non-passing.
 
 ## Deprecation Policy
 

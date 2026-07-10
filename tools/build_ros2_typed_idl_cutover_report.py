@@ -10,6 +10,12 @@ DEFAULT_INPUT = "deployment/ros2_typed_idl_cutover.template.json"
 DEFAULT_OUTPUT = "test_env/ros2_typed_idl_cutover/ros2_typed_idl_cutover_report.json"
 SCHEMA_VERSION = "1.0"
 PASS_STATUSES = {"passed", "ready"}
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+EVIDENCE_PATH_FIELDS = (
+    "live_smoke_report",
+    "typed_inventory",
+    "rollback_plan",
+)
 
 
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -48,6 +54,49 @@ def _status(payload: dict[str, Any] | None) -> Any:
     if payload is None:
         return None
     return payload.get("status") or payload.get("summary", {}).get("status")
+
+
+def _append_blocker(blockers: list[str], blocker: str) -> None:
+    if blocker not in blockers:
+        blockers.append(blocker)
+
+
+def _resolve_evidence_path(
+    value: str,
+    *,
+    input_path: str,
+) -> tuple[bool, Path | None, str | None]:
+    path = Path(value)
+    if not value:
+        return False, None, "empty"
+    if path.is_absolute():
+        return False, None, "absolute"
+    if ".." in path.parts:
+        return False, None, "parent_directory"
+
+    input_relative = Path(input_path).resolve().parent / path
+    if input_relative.exists():
+        return True, input_relative, None
+    return True, PROJECT_ROOT / path, None
+
+
+def _evidence_path_status(
+    evidence: dict[str, Any],
+    *,
+    input_path: str,
+) -> dict[str, dict[str, Any]]:
+    statuses: dict[str, dict[str, Any]] = {}
+    for field in EVIDENCE_PATH_FIELDS:
+        value = _text(evidence.get(field))
+        valid, resolved_path, error = _resolve_evidence_path(value, input_path=input_path)
+        statuses[field] = {
+            "path": value,
+            "path_valid": valid,
+            "path_error": error,
+            "resolved_path": str(resolved_path) if resolved_path is not None else None,
+            "exists": bool(resolved_path and resolved_path.exists()),
+        }
+    return statuses
 
 
 def _inventory_surfaces(typed_inventory: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
@@ -108,11 +157,16 @@ def build_ros2_typed_idl_cutover_report(
     require_evidence_files: bool = False,
 ) -> dict[str, Any]:
     evidence = payload.get("evidence") if isinstance(payload.get("evidence"), dict) else {}
-    live_smoke_path = _text(evidence.get("live_smoke_report"))
-    inventory_path = _text(evidence.get("typed_inventory"))
-    rollback_plan = _text(evidence.get("rollback_plan"))
-    live_smoke = _load_json_if_exists(live_smoke_path)
-    typed_inventory = _load_json_if_exists(inventory_path)
+    evidence_path_statuses = _evidence_path_status(evidence, input_path=input_path)
+    live_smoke_path = evidence_path_statuses["live_smoke_report"]["path"]
+    inventory_path = evidence_path_statuses["typed_inventory"]["path"]
+    rollback_plan = evidence_path_statuses["rollback_plan"]["path"]
+    live_smoke = _load_json_if_exists(
+        evidence_path_statuses["live_smoke_report"]["resolved_path"]
+    )
+    typed_inventory = _load_json_if_exists(
+        evidence_path_statuses["typed_inventory"]["resolved_path"]
+    )
     surface_results, surface_blockers = _surface_results(
         payload.get("typed_surfaces_verified"),
         typed_inventory=typed_inventory,
@@ -121,16 +175,28 @@ def build_ros2_typed_idl_cutover_report(
     blockers: list[str] = []
     for field in ("target_environment", "operator", "rollback_owner", "launch_profile"):
         if _is_placeholder(payload.get(field)):
-            blockers.append(field)
+            _append_blocker(blockers, field)
     if payload.get("json_writers_disabled") is not True:
-        blockers.append("json_writers_disabled")
+        _append_blocker(blockers, "json_writers_disabled")
+    for field, status_item in evidence_path_statuses.items():
+        if not status_item["path_valid"]:
+            _append_blocker(blockers, field)
     if _status(live_smoke) != "passed":
-        blockers.append("live_smoke_report")
-    if require_evidence_files and not Path(inventory_path).exists():
-        blockers.append("typed_inventory")
-    if require_evidence_files and not Path(rollback_plan).exists():
-        blockers.append("rollback_plan")
-    blockers.extend(surface_blockers)
+        _append_blocker(blockers, "live_smoke_report")
+    if (
+        require_evidence_files
+        and evidence_path_statuses["typed_inventory"]["path_valid"]
+        and not evidence_path_statuses["typed_inventory"]["exists"]
+    ):
+        _append_blocker(blockers, "typed_inventory")
+    if (
+        require_evidence_files
+        and evidence_path_statuses["rollback_plan"]["path_valid"]
+        and not evidence_path_statuses["rollback_plan"]["exists"]
+    ):
+        _append_blocker(blockers, "rollback_plan")
+    for blocker in surface_blockers:
+        _append_blocker(blockers, blocker)
 
     status = "ready" if not blockers else "blocked"
     return {
@@ -150,6 +216,9 @@ def build_ros2_typed_idl_cutover_report(
                 1 for item in surface_results if item["status"] == "blocked"
             ),
             "require_evidence_files": require_evidence_files,
+            "evidence_path_validation_error_count": sum(
+                1 for item in evidence_path_statuses.values() if not item["path_valid"]
+            ),
         },
         "blockers": blockers,
         "typed_surfaces": surface_results,
@@ -157,6 +226,7 @@ def build_ros2_typed_idl_cutover_report(
             "live_smoke_report": live_smoke_path,
             "typed_inventory": inventory_path,
             "rollback_plan": rollback_plan,
+            "path_statuses": evidence_path_statuses,
         },
         "next_actions": _next_actions(status=status, blockers=blockers),
     }

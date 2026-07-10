@@ -48,9 +48,9 @@ def _ready_payload(tmp_path: Path) -> dict[str, object]:
             },
         ],
         "evidence": {
-            "live_smoke_report": str(smoke),
-            "typed_inventory": str(inventory),
-            "rollback_plan": str(rollback),
+            "live_smoke_report": smoke.name,
+            "typed_inventory": inventory.name,
+            "rollback_plan": rollback.name,
         },
     }
 
@@ -76,14 +76,16 @@ def test_ros2_typed_idl_cutover_report_ready(tmp_path: Path) -> None:
     assert payload["blockers"] == []
     assert payload["summary"]["verified_surface_count"] == 2
     assert payload["summary"]["live_smoke_status"] == "passed"
+    assert payload["summary"]["evidence_path_validation_error_count"] == 0
+    assert payload["evidence"]["path_statuses"]["typed_inventory"]["exists"] is True
 
 
 def test_ros2_typed_idl_cutover_blocks_template_defaults(tmp_path: Path) -> None:
     template_payload = json.loads(TEMPLATE.read_text(encoding="utf-8"))
     template_payload["evidence"] = {
-        "live_smoke_report": str(tmp_path / "missing_smoke.json"),
-        "typed_inventory": str(tmp_path / "missing_inventory.json"),
-        "rollback_plan": str(tmp_path / "missing_rollback.md"),
+        "live_smoke_report": "missing_smoke.json",
+        "typed_inventory": "missing_inventory.json",
+        "rollback_plan": "missing_rollback.md",
     }
     input_path = tmp_path / "template.json"
     output_path = tmp_path / "cutover_report.json"
@@ -106,6 +108,7 @@ def test_ros2_typed_idl_cutover_blocks_template_defaults(tmp_path: Path) -> None
     assert "instruction_set" in payload["blockers"]
     assert payload["summary"]["verified_surface_count"] == 0
     assert payload["summary"]["blocked_surface_count"] == 4
+    assert payload["summary"]["evidence_path_validation_error_count"] == 0
 
 
 def test_ros2_typed_idl_cutover_blocks_nonpassing_surface(tmp_path: Path) -> None:
@@ -131,7 +134,7 @@ def test_ros2_typed_idl_cutover_accepts_inventory_verified_pending_surfaces(
     payload = _ready_payload(tmp_path)
     payload["typed_surfaces_verified"][0]["status"] = "pending"
     payload["typed_surfaces_verified"][1]["status"] = "pending"
-    inventory_path = Path(payload["evidence"]["typed_inventory"])
+    inventory_path = tmp_path / str(payload["evidence"]["typed_inventory"])
     _write_json(
         inventory_path,
         {
@@ -151,6 +154,42 @@ def test_ros2_typed_idl_cutover_accepts_inventory_verified_pending_surfaces(
     assert report["summary"]["verified_surface_count"] == 2
     assert report["typed_surfaces"][0]["inventory_status"] == "ready"
     assert report["typed_surfaces"][1]["inventory_status"] == "passed"
+
+
+def test_ros2_typed_idl_cutover_blocks_unsafe_evidence_paths(
+    tmp_path: Path,
+) -> None:
+    input_path = tmp_path / "cutover.json"
+    output_path = tmp_path / "cutover_report.json"
+    payload = _ready_payload(tmp_path)
+    payload["evidence"] = {
+        "live_smoke_report": "../ros2_bridge_smoke_report.json",
+        "typed_inventory": str((tmp_path / "typed_inventory.json").resolve()),
+        "rollback_plan": "rollback.md",
+    }
+    _write_json(input_path, payload)
+
+    exit_code = main(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--require-evidence-files",
+        ]
+    )
+
+    assert exit_code == 1
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    assert report["status"] == "blocked"
+    assert report["summary"]["evidence_path_validation_error_count"] == 2
+    assert (
+        report["evidence"]["path_statuses"]["live_smoke_report"]["path_error"]
+        == "parent_directory"
+    )
+    assert report["evidence"]["path_statuses"]["typed_inventory"]["path_error"] == "absolute"
+    assert "live_smoke_report" in report["blockers"]
+    assert "typed_inventory" in report["blockers"]
 
 
 def test_ros2_typed_idl_cutover_docs_are_linked() -> None:
