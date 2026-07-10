@@ -14,6 +14,7 @@ def test_hardware_live_checklist_blocks_missing_serial_inputs(tmp_path: Path) ->
     assert exit_code == 1
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload["status"] == "blocked"
+    assert payload["blockers"] == ["transport_inputs_missing"]
     assert payload["missing_inputs"] == ["serial_port", "baudrate"]
     assert payload["checklist"][1]["status"] == "blocked"
 
@@ -84,7 +85,7 @@ def test_hardware_live_checklist_accepts_profile_file(tmp_path: Path) -> None:
             "--transport",
             "serial_bridge",
             "--profile-file",
-            str(profile),
+            profile.name,
             "--output",
             str(output),
         ]
@@ -92,9 +93,38 @@ def test_hardware_live_checklist_accepts_profile_file(tmp_path: Path) -> None:
 
     assert exit_code == 0
     payload = json.loads(output.read_text(encoding="utf-8"))
-    assert payload["inputs"]["profile_file"] == str(profile)
+    assert payload["inputs"]["profile_file"] == profile.name
+    assert payload["profile_file_status"]["path_valid"] is True
     assert payload["inputs"]["serial_port"] == "COM8"
     assert payload["inputs"]["baudrate"] == 460800
     assert payload["inputs"]["bitrate"] == 500000
     assert "COM8" in payload["diagnostics_command"]
     assert "500000" in payload["diagnostics_command"]
+
+
+def test_hardware_live_checklist_blocks_unsafe_profile_file_path(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "live_checklist.json"
+
+    exit_code = main(
+        [
+            "--transport",
+            "serial_bridge",
+            "--profile-file",
+            "../profile.json",
+            "--serial-port",
+            "COM8",
+            "--baudrate",
+            "460800",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 1
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["status"] == "blocked"
+    assert payload["blockers"] == ["profile_file_path_invalid"]
+    assert payload["profile_file_status"]["path_valid"] is False
+    assert payload["profile_file_status"]["path_error"] == "parent_directory"
