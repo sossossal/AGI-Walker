@@ -40,6 +40,8 @@ python tools/build_operator_delivery_checklist.py \
   --set-evidence browser_validation_closeout=test_env/customer_site/web_browser_validation_closeout.json
 ```
 
+模板和 `--set-evidence` 中的 evidence path 必须是仓库根相对路径，禁止绝对路径和 `..`。生成器只会读取这个边界内的 JSON evidence；路径越界会让对应 checklist item `blocked` 或 `warning`，不能用现场机器私有路径绕过归档。
+
 ## 状态规则
 
 | 状态 | 含义 |
