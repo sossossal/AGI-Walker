@@ -49,13 +49,13 @@ def test_hardware_live_closeout_report_ready(tmp_path: Path) -> None:
     exit_code = main(
         [
             "--checklist",
-            str(paths["checklist"]),
+            paths["checklist"].name,
             "--diagnostics",
-            str(paths["diagnostics"]),
+            paths["diagnostics"].name,
             "--telemetry",
-            str(paths["telemetry"]),
+            paths["telemetry"].name,
             "--customer-site-smoke",
-            str(paths["customer_site_smoke"]),
+            paths["customer_site_smoke"].name,
             "--output",
             str(paths["output"]),
         ]
@@ -67,6 +67,8 @@ def test_hardware_live_closeout_report_ready(tmp_path: Path) -> None:
     assert payload["blockers"] == []
     assert payload["summary"]["telemetry_entry_count"] == 1
     assert payload["summary"]["customer_site_smoke_status"] == "passed"
+    assert payload["summary"]["source_path_validation_error_count"] == 0
+    assert payload["source_path_statuses"]["checklist"]["exists"] is True
 
 
 def test_hardware_live_closeout_blocks_empty_telemetry(tmp_path: Path) -> None:
@@ -76,13 +78,13 @@ def test_hardware_live_closeout_blocks_empty_telemetry(tmp_path: Path) -> None:
     exit_code = main(
         [
             "--checklist",
-            str(paths["checklist"]),
+            paths["checklist"].name,
             "--diagnostics",
-            str(paths["diagnostics"]),
+            paths["diagnostics"].name,
             "--telemetry",
-            str(paths["telemetry"]),
+            paths["telemetry"].name,
             "--customer-site-smoke",
-            str(paths["customer_site_smoke"]),
+            paths["customer_site_smoke"].name,
             "--output",
             str(paths["output"]),
         ]
@@ -105,13 +107,13 @@ def test_hardware_live_closeout_blocks_missing_customer_site_smoke(
     exit_code = main(
         [
             "--checklist",
-            str(paths["checklist"]),
+            paths["checklist"].name,
             "--diagnostics",
-            str(paths["diagnostics"]),
+            paths["diagnostics"].name,
             "--telemetry",
-            str(paths["telemetry"]),
+            paths["telemetry"].name,
             "--customer-site-smoke",
-            str(paths["customer_site_smoke"]),
+            paths["customer_site_smoke"].name,
             "--output",
             str(paths["output"]),
         ]
@@ -120,6 +122,37 @@ def test_hardware_live_closeout_blocks_missing_customer_site_smoke(
     assert exit_code == 1
     payload = json.loads(paths["output"].read_text(encoding="utf-8"))
     assert payload["blockers"] == ["customer_site_smoke"]
+
+
+def test_hardware_live_closeout_blocks_unsafe_source_paths(tmp_path: Path) -> None:
+    paths = _write_ready_required_evidence(tmp_path)
+
+    exit_code = main(
+        [
+            "--checklist",
+            str(paths["checklist"].resolve()),
+            "--diagnostics",
+            "../hardware_transport_diagnostics_report.json",
+            "--telemetry",
+            paths["telemetry"].name,
+            "--customer-site-smoke",
+            paths["customer_site_smoke"].name,
+            "--output",
+            str(paths["output"]),
+        ]
+    )
+
+    assert exit_code == 1
+    payload = json.loads(paths["output"].read_text(encoding="utf-8"))
+    assert payload["status"] == "blocked"
+    assert payload["summary"]["source_path_validation_error_count"] == 2
+    assert payload["source_path_statuses"]["checklist"]["path_error"] == "absolute"
+    assert (
+        payload["source_path_statuses"]["diagnostics"]["path_error"]
+        == "parent_directory"
+    )
+    assert "live_diagnostics_checklist" in payload["blockers"]
+    assert "hardware_transport_diagnostics" in payload["blockers"]
 
 
 def test_hardware_live_closeout_docs_are_linked() -> None:

@@ -384,6 +384,8 @@ python tools/build_hardware_live_closeout_report.py \
 test_env/hardware_live/hardware_live_closeout_report.json
 ```
 
+除 `--output` 外，closeout 命令的 source evidence 路径必须是相对路径；禁止绝对路径和 `..` 父目录穿越。相对路径会先按输出报告所在目录解析，再回退到仓库根目录，以支持现场工作目录和默认 `test_env/...` 归档路径。路径越界会在报告中记录为 `evidence_path_invalid`，必需 evidence 会阻塞 closeout，optional vendor evidence 会作为 warning 保留。
+
 该报告要求：
 
 - `live_diagnostics_checklist.status` 为 `ready_to_run / ready / passed`
