@@ -322,6 +322,8 @@ python -m pytest tests/test_hardware_controller.py -q
 python tools/run_hardware_transport_diagnostics.py --transport replay --replay-source tests/fixtures/imc22_status_replay.json --attempt-connect
 ```
 
+`--profile-file`、`--replay-source`、`--fault-table-file` 和 `--recovery-policy-file` 必须使用相对路径，不能使用绝对路径或 `..` 父目录穿越。诊断 runner 会先按 `--output` 所在目录解析，再回退仓库根目录；非法或缺失 source 会生成 `status=blocked` 的报告并保留 `source_path_statuses`。
+
 进入真实设备 live diagnostics 前，先生成 readiness checklist：
 
 ```bash

@@ -77,6 +77,8 @@ python tools/build_hardware_live_diagnostics_checklist.py --transport serial_bri
 python tools/run_hardware_transport_diagnostics.py --transport replay --replay-source tests/fixtures/imc22_status_replay.json --fault-table-file deployment/hardware/imc22_reflex_fault_table.json --recovery-policy-file deployment/hardware/imc22_reflex_recovery_policy.json --telemetry-output test_env/hardware_live/hardware_fault_telemetry_report.json
 ```
 
+`run_hardware_transport_diagnostics.py` 的 profile、replay、fault table 和 recovery policy source 都必须是相对路径，不能使用绝对路径或 `..`。非法或缺失 source 会写出 blocked report，并在 `source_path_statuses` 中保留诊断细节。
+
 真实设备参数未确认前，不要把 replay 结果当作 live evidence。
 
 ### D. fault code 不认识或恢复策略缺失
