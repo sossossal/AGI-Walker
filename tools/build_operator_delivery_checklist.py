@@ -11,6 +11,17 @@ DEFAULT_OUTPUT = "test_env/operator_delivery/operator_delivery_checklist.json"
 SCHEMA_VERSION = "1.0"
 
 
+def _find_repo_root() -> Path:
+    current = Path(__file__).resolve()
+    for candidate in current.parents:
+        if (candidate / "pyproject.toml").exists() and (candidate / "agi_walker").exists():
+            return candidate
+    return current.parent
+
+
+PROJECT_ROOT = _find_repo_root()
+
+
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build an operator delivery checklist from managed evidence files."
@@ -31,8 +42,17 @@ def _load_json(path: str | Path) -> dict[str, Any]:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def _resolve_evidence_path(path: str | Path) -> Path | None:
+    candidate = Path(path)
+    if not str(path).strip() or candidate.is_absolute() or ".." in candidate.parts:
+        return None
+    return PROJECT_ROOT / candidate
+
+
 def _load_json_if_exists(path: str | Path) -> dict[str, Any] | None:
-    json_path = Path(path)
+    json_path = _resolve_evidence_path(path)
+    if json_path is None:
+        return None
     if not json_path.exists():
         return None
     return _load_json(json_path)
@@ -69,6 +89,7 @@ def _build_item_result(
     item: dict[str, Any],
     *,
     evidence_path: str,
+    evidence_path_valid: bool,
     evidence: dict[str, Any] | None,
 ) -> dict[str, Any]:
     required = _item_required(item)
@@ -76,7 +97,10 @@ def _build_item_result(
     status_path = item.get("status_path", "status")
     actual_status = None if evidence is None else _value_at_path(evidence, status_path)
 
-    if evidence is None:
+    if not evidence_path_valid:
+        status = "blocked" if required else "warning"
+        reason = "evidence_path_invalid"
+    elif evidence is None:
         status = "blocked" if required else "warning"
         reason = "evidence_missing"
     elif expected_statuses and actual_status not in expected_statuses:
@@ -94,6 +118,7 @@ def _build_item_result(
         "status": status,
         "reason": reason,
         "evidence_path": evidence_path,
+        "evidence_path_valid": evidence_path_valid,
         "status_path": status_path,
         "actual_status": actual_status,
         "expected_statuses": expected_statuses,
@@ -112,10 +137,12 @@ def build_operator_delivery_checklist(
     results = []
     for item in items:
         evidence_path = overrides.get(item["id"], item.get("evidence_path", ""))
+        evidence_path_valid = _resolve_evidence_path(evidence_path) is not None
         results.append(
             _build_item_result(
                 item,
                 evidence_path=evidence_path,
+                evidence_path_valid=evidence_path_valid,
                 evidence=_load_json_if_exists(evidence_path),
             )
         )

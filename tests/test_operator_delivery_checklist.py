@@ -20,7 +20,6 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
 
 
 def _template(tmp_path: Path) -> Path:
-    evidence = tmp_path / "evidence"
     payload = {
         "schema_version": "1.0",
         "checklist_id": "test_operator_delivery",
@@ -29,21 +28,21 @@ def _template(tmp_path: Path) -> Path:
             {
                 "id": "system_status",
                 "owner": "operator",
-                "evidence_path": str(evidence / "system_status.json"),
+                "evidence_path": "evidence/system_status.json",
                 "status_path": "status",
                 "expected_statuses": ["running"],
             },
             {
                 "id": "browser_validation_closeout",
                 "owner": "operator",
-                "evidence_path": str(evidence / "browser_closeout.json"),
+                "evidence_path": "evidence/browser_closeout.json",
                 "status_path": "status",
                 "expected_statuses": ["passed"],
             },
             {
                 "id": "ros2_smoke",
                 "owner": "delivery_engineer",
-                "evidence_path": str(evidence / "ros2_smoke.json"),
+                "evidence_path": "evidence/ros2_smoke.json",
                 "status_path": "status",
                 "expected_statuses": ["passed"],
                 "required": False,
@@ -55,7 +54,10 @@ def _template(tmp_path: Path) -> Path:
     return path
 
 
-def test_operator_delivery_checklist_ready_with_optional_warning(tmp_path: Path) -> None:
+def test_operator_delivery_checklist_ready_with_optional_warning(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    monkeypatch.setattr("tools.build_operator_delivery_checklist.PROJECT_ROOT", tmp_path)
     template = _template(tmp_path)
     output = tmp_path / "operator_delivery_checklist.json"
     evidence = tmp_path / "evidence"
@@ -73,8 +75,9 @@ def test_operator_delivery_checklist_ready_with_optional_warning(tmp_path: Path)
 
 
 def test_operator_delivery_checklist_blocks_missing_required_item(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch,
 ) -> None:
+    monkeypatch.setattr("tools.build_operator_delivery_checklist.PROJECT_ROOT", tmp_path)
     template = _template(tmp_path)
     output = tmp_path / "operator_delivery_checklist.json"
     evidence = tmp_path / "evidence"
@@ -93,8 +96,9 @@ def test_operator_delivery_checklist_blocks_missing_required_item(
 
 
 def test_operator_delivery_checklist_supports_evidence_override(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch,
 ) -> None:
+    monkeypatch.setattr("tools.build_operator_delivery_checklist.PROJECT_ROOT", tmp_path)
     template = _template(tmp_path)
     output = tmp_path / "operator_delivery_checklist.json"
     evidence = tmp_path / "evidence"
@@ -109,7 +113,7 @@ def test_operator_delivery_checklist_supports_evidence_override(
             "--output",
             str(output),
             "--set-evidence",
-            f"browser_validation_closeout={override}",
+            "browser_validation_closeout=custom/browser_closeout.json",
         ]
     )
 
@@ -118,8 +122,39 @@ def test_operator_delivery_checklist_supports_evidence_override(
     browser_item = next(
         item for item in payload["items"] if item["id"] == "browser_validation_closeout"
     )
-    assert browser_item["evidence_path"] == str(override)
+    assert browser_item["evidence_path"] == "custom/browser_closeout.json"
+    assert browser_item["evidence_path_valid"] is True
     assert browser_item["status"] == "ready"
+
+
+def test_operator_delivery_checklist_blocks_unsafe_evidence_paths(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    monkeypatch.setattr("tools.build_operator_delivery_checklist.PROJECT_ROOT", tmp_path)
+    template = _template(tmp_path)
+    output = tmp_path / "operator_delivery_checklist.json"
+
+    exit_code = main(
+        [
+            "--template",
+            str(template),
+            "--output",
+            str(output),
+            "--set-evidence",
+            "system_status=../outside.json",
+            "--set-evidence",
+            f"browser_validation_closeout={tmp_path / 'absolute.json'}",
+        ]
+    )
+
+    assert exit_code == 1
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    items = {item["id"]: item for item in payload["items"]}
+    assert payload["blockers"] == ["system_status", "browser_validation_closeout"]
+    assert items["system_status"]["reason"] == "evidence_path_invalid"
+    assert items["system_status"]["evidence_path_valid"] is False
+    assert items["browser_validation_closeout"]["reason"] == "evidence_path_invalid"
+    assert items["browser_validation_closeout"]["evidence_path_valid"] is False
 
 
 def test_operator_delivery_checklist_docs_and_template_are_linked() -> None:
