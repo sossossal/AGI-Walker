@@ -14,6 +14,15 @@ DEFAULT_CUSTOMER_SITE_SMOKE = (
 )
 DEFAULT_OUTPUT = "test_env/hardware_live/hardware_live_closeout_report.json"
 SCHEMA_VERSION = "1.0"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SOURCE_EVIDENCE_FIELDS = (
+    "checklist",
+    "diagnostics",
+    "telemetry",
+    "customer_site_smoke",
+    "vendor_review",
+    "vendor_promotion",
+)
 
 
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -39,6 +48,49 @@ def _load_json_if_exists(path: str | Path | None) -> dict[str, Any] | None:
     return json.loads(json_path.read_text(encoding="utf-8"))
 
 
+def _text(value: Any) -> str:
+    return value.strip() if isinstance(value, str) else ""
+
+
+def _resolve_source_path(
+    value: str | None,
+    *,
+    output_path: str,
+) -> tuple[bool, Path | None, str | None]:
+    text = _text(value)
+    if not text:
+        return True, None, None
+    path = Path(text)
+    if path.is_absolute():
+        return False, None, "absolute"
+    if ".." in path.parts:
+        return False, None, "parent_directory"
+
+    output_relative = Path(output_path).resolve().parent / path
+    if output_relative.exists():
+        return True, output_relative, None
+    return True, PROJECT_ROOT / path, None
+
+
+def _source_path_statuses(
+    sources: dict[str, str | None],
+    *,
+    output_path: str,
+) -> dict[str, dict[str, Any]]:
+    statuses: dict[str, dict[str, Any]] = {}
+    for field in SOURCE_EVIDENCE_FIELDS:
+        source = sources.get(field)
+        valid, resolved_path, error = _resolve_source_path(source, output_path=output_path)
+        statuses[field] = {
+            "path": _text(source),
+            "path_valid": valid,
+            "path_error": error,
+            "resolved_path": str(resolved_path) if resolved_path is not None else None,
+            "exists": bool(resolved_path and resolved_path.exists()),
+        }
+    return statuses
+
+
 def _status(payload: dict[str, Any] | None) -> Any:
     if payload is None:
         return None
@@ -59,11 +111,15 @@ def _evidence_result(
     *,
     expected_statuses: set[str],
     required: bool,
+    path_valid: bool = True,
     extra_ready: bool = True,
     extra_blocker_reason: str = "extra_condition_failed",
 ) -> dict[str, Any]:
     actual_status = _status(payload)
-    if payload is None:
+    if not path_valid:
+        status = "blocked" if required else "warning"
+        reason = "evidence_path_invalid"
+    elif payload is None:
         status = "blocked" if required else "warning"
         reason = "evidence_missing"
     elif actual_status not in expected_statuses:
@@ -95,7 +151,12 @@ def build_hardware_live_closeout_report(
     customer_site_smoke: dict[str, Any] | None,
     vendor_review: dict[str, Any] | None,
     vendor_promotion: dict[str, Any] | None,
+    source_path_statuses: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    if source_path_statuses is None:
+        source_path_statuses = {
+            field: {"path_valid": True} for field in SOURCE_EVIDENCE_FIELDS
+        }
     telemetry_entries = _telemetry_entries(telemetry)
     evidence = [
         _evidence_result(
@@ -104,6 +165,7 @@ def build_hardware_live_closeout_report(
             checklist,
             expected_statuses={"ready_to_run", "ready", "passed"},
             required=True,
+            path_valid=source_path_statuses["checklist"]["path_valid"],
         ),
         _evidence_result(
             "hardware_transport_diagnostics",
@@ -111,6 +173,7 @@ def build_hardware_live_closeout_report(
             diagnostics,
             expected_statuses={"ready"},
             required=True,
+            path_valid=source_path_statuses["diagnostics"]["path_valid"],
         ),
         _evidence_result(
             "fault_telemetry",
@@ -118,6 +181,7 @@ def build_hardware_live_closeout_report(
             telemetry,
             expected_statuses={"ready", "passed"},
             required=True,
+            path_valid=source_path_statuses["telemetry"]["path_valid"],
             extra_ready=bool(telemetry_entries),
             extra_blocker_reason="telemetry_entries_missing",
         ),
@@ -127,6 +191,7 @@ def build_hardware_live_closeout_report(
             customer_site_smoke,
             expected_statuses={"passed"},
             required=True,
+            path_valid=source_path_statuses["customer_site_smoke"]["path_valid"],
         ),
         _evidence_result(
             "vendor_review",
@@ -134,6 +199,7 @@ def build_hardware_live_closeout_report(
             vendor_review,
             expected_statuses={"passed"},
             required=False,
+            path_valid=source_path_statuses["vendor_review"]["path_valid"],
         ),
         _evidence_result(
             "vendor_promotion",
@@ -141,6 +207,7 @@ def build_hardware_live_closeout_report(
             vendor_promotion,
             expected_statuses={"ready"},
             required=False,
+            path_valid=source_path_statuses["vendor_promotion"]["path_valid"],
         ),
     ]
     blockers = [
@@ -165,11 +232,15 @@ def build_hardware_live_closeout_report(
             "optional_warning_count": len(warnings),
             "diagnostics_status": _status(diagnostics),
             "customer_site_smoke_status": _status(customer_site_smoke),
+            "source_path_validation_error_count": sum(
+                1 for item in source_path_statuses.values() if not item["path_valid"]
+            ),
         },
         "blockers": blockers,
         "warnings": warnings,
         "evidence": evidence,
         "next_actions": _next_actions(status=status, blockers=blockers, warnings=warnings),
+        "source_path_statuses": source_path_statuses,
     }
 
 
@@ -195,14 +266,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         "vendor_review": args.vendor_review,
         "vendor_promotion": args.vendor_promotion,
     }
+    source_path_statuses = _source_path_statuses(sources, output_path=args.output)
     report = build_hardware_live_closeout_report(
         sources=sources,
-        checklist=_load_json_if_exists(args.checklist),
-        diagnostics=_load_json_if_exists(args.diagnostics),
-        telemetry=_load_json_if_exists(args.telemetry),
-        customer_site_smoke=_load_json_if_exists(args.customer_site_smoke),
-        vendor_review=_load_json_if_exists(args.vendor_review),
-        vendor_promotion=_load_json_if_exists(args.vendor_promotion),
+        checklist=_load_json_if_exists(source_path_statuses["checklist"]["resolved_path"]),
+        diagnostics=_load_json_if_exists(
+            source_path_statuses["diagnostics"]["resolved_path"]
+        ),
+        telemetry=_load_json_if_exists(source_path_statuses["telemetry"]["resolved_path"]),
+        customer_site_smoke=_load_json_if_exists(
+            source_path_statuses["customer_site_smoke"]["resolved_path"]
+        ),
+        vendor_review=_load_json_if_exists(
+            source_path_statuses["vendor_review"]["resolved_path"]
+        ),
+        vendor_promotion=_load_json_if_exists(
+            source_path_statuses["vendor_promotion"]["resolved_path"]
+        ),
+        source_path_statuses=source_path_statuses,
     )
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)

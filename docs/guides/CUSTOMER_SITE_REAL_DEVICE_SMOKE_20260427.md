@@ -67,6 +67,8 @@ python tools/build_customer_site_live_smoke_report.py --require-evidence-files
 - hardware diagnostics / telemetry report
 - operator history export
 
+生成 `hardware_live_closeout_report.json` 时，closeout source evidence 路径必须保持相对路径；工具会拒绝绝对路径和 `..`，并先按 closeout 输出目录解析，再回退到仓库根目录。
+
 用于工业签收时，重新生成 archive report 时必须启用 strict 绑定：
 
 ```bash
