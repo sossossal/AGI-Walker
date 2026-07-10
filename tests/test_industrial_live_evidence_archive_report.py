@@ -70,9 +70,9 @@ def test_industrial_live_evidence_archive_report_ready(tmp_path: Path) -> None:
             "--inputs-file",
             str(paths["inputs"]),
             "--operator-checklist",
-            str(paths["operator_checklist"]),
+            paths["operator_checklist"].name,
             "--external-mainline-plan",
-            str(paths["external_mainline_plan"]),
+            paths["external_mainline_plan"].name,
             "--output",
             str(paths["output"]),
         ]
@@ -86,6 +86,8 @@ def test_industrial_live_evidence_archive_report_ready(tmp_path: Path) -> None:
     assert payload["summary"]["target_environment"] == "customer-prod-line-1"
     assert payload["summary"]["external_mainline_managed_inputs_ready"] is True
     assert payload["summary"]["require_customer_site_smoke"] is False
+    assert payload["summary"]["source_path_validation_error_count"] == 0
+    assert payload["source_path_statuses"]["operator_checklist"]["exists"] is True
 
 
 def test_industrial_live_evidence_archive_strict_customer_site_smoke_blocks_missing(
@@ -98,9 +100,9 @@ def test_industrial_live_evidence_archive_strict_customer_site_smoke_blocks_miss
             "--inputs-file",
             str(paths["inputs"]),
             "--operator-checklist",
-            str(paths["operator_checklist"]),
+            paths["operator_checklist"].name,
             "--external-mainline-plan",
-            str(paths["external_mainline_plan"]),
+            paths["external_mainline_plan"].name,
             "--require-customer-site-smoke",
             "--output",
             str(paths["output"]),
@@ -131,11 +133,11 @@ def test_industrial_live_evidence_archive_strict_customer_site_smoke_passes(
             "--inputs-file",
             str(paths["inputs"]),
             "--operator-checklist",
-            str(paths["operator_checklist"]),
+            paths["operator_checklist"].name,
             "--external-mainline-plan",
-            str(paths["external_mainline_plan"]),
+            paths["external_mainline_plan"].name,
             "--customer-site-smoke",
-            str(customer_site_smoke),
+            customer_site_smoke.name,
             "--require-customer-site-smoke",
             "--output",
             str(paths["output"]),
@@ -168,9 +170,9 @@ def test_industrial_live_evidence_archive_blocks_placeholder_fields(
             "--inputs-file",
             str(paths["inputs"]),
             "--operator-checklist",
-            str(paths["operator_checklist"]),
+            paths["operator_checklist"].name,
             "--external-mainline-plan",
-            str(paths["external_mainline_plan"]),
+            paths["external_mainline_plan"].name,
             "--output",
             str(paths["output"]),
         ]
@@ -206,9 +208,9 @@ def test_industrial_live_evidence_archive_blocks_waiting_external_mainline(
             "--inputs-file",
             str(paths["inputs"]),
             "--operator-checklist",
-            str(paths["operator_checklist"]),
+            paths["operator_checklist"].name,
             "--external-mainline-plan",
-            str(paths["external_mainline_plan"]),
+            paths["external_mainline_plan"].name,
             "--output",
             str(paths["output"]),
         ]
@@ -219,6 +221,38 @@ def test_industrial_live_evidence_archive_blocks_waiting_external_mainline(
     assert payload["status"] == "blocked"
     assert "external_mainline_industrial_live_evidence_waiting" in payload["blockers"]
     assert payload["summary"]["external_mainline_managed_inputs_ready"] is False
+
+
+def test_industrial_live_evidence_archive_blocks_unsafe_source_paths(
+    tmp_path: Path,
+) -> None:
+    paths = _write_ready_required_evidence(tmp_path)
+
+    exit_code = main(
+        [
+            "--inputs-file",
+            str(paths["inputs"]),
+            "--operator-checklist",
+            str(paths["operator_checklist"].resolve()),
+            "--external-mainline-plan",
+            "../external_mainline_execution_plan.json",
+            "--require-customer-site-smoke",
+            "--output",
+            str(paths["output"]),
+        ]
+    )
+
+    assert exit_code == 1
+    payload = json.loads(paths["output"].read_text(encoding="utf-8"))
+    assert payload["status"] == "blocked"
+    assert payload["summary"]["source_path_validation_error_count"] == 2
+    assert payload["source_path_statuses"]["operator_checklist"]["path_error"] == "absolute"
+    assert (
+        payload["source_path_statuses"]["external_mainline_plan"]["path_error"]
+        == "parent_directory"
+    )
+    assert "operator_delivery_checklist" in payload["blockers"]
+    assert "external_mainline_plan" in payload["blockers"]
 
 
 def test_industrial_live_evidence_archive_docs_are_linked() -> None:
