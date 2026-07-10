@@ -13,6 +13,7 @@ DEFAULT_EXTERNAL_MAINLINE_PLAN = (
 )
 DEFAULT_OUTPUT = "test_env/industrial_live_evidence/industrial_live_evidence_archive_report.json"
 SCHEMA_VERSION = "1.0"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_FIELDS = (
     "target_environment",
     "access_method",
@@ -22,6 +23,14 @@ REQUIRED_FIELDS = (
     "backup_restore_entrypoint",
     "closure_archive_root",
     "evidence_output_root",
+)
+SOURCE_EVIDENCE_FIELDS = (
+    "operator_checklist",
+    "external_mainline_plan",
+    "hardware_diagnostics",
+    "vendor_promotion",
+    "browser_closeout",
+    "customer_site_smoke",
 )
 
 
@@ -76,6 +85,45 @@ def _status(payload: dict[str, Any] | None) -> Any:
     return payload.get("status") or payload.get("summary", {}).get("status")
 
 
+def _resolve_source_path(
+    value: str | None,
+    *,
+    inputs_file: str,
+) -> tuple[bool, Path | None, str | None]:
+    text = _text(value)
+    if not text:
+        return True, None, None
+    path = Path(text)
+    if path.is_absolute():
+        return False, None, "absolute"
+    if ".." in path.parts:
+        return False, None, "parent_directory"
+
+    input_relative = Path(inputs_file).resolve().parent / path
+    if input_relative.exists():
+        return True, input_relative, None
+    return True, PROJECT_ROOT / path, None
+
+
+def _source_path_statuses(
+    sources: dict[str, str | None],
+    *,
+    inputs_file: str,
+) -> dict[str, dict[str, Any]]:
+    statuses: dict[str, dict[str, Any]] = {}
+    for field in SOURCE_EVIDENCE_FIELDS:
+        source = sources.get(field)
+        valid, resolved_path, error = _resolve_source_path(source, inputs_file=inputs_file)
+        statuses[field] = {
+            "path": _text(source),
+            "path_valid": valid,
+            "path_error": error,
+            "resolved_path": str(resolved_path) if resolved_path is not None else None,
+            "exists": bool(resolved_path and resolved_path.exists()),
+        }
+    return statuses
+
+
 def _external_mainline_industrial_step(
     payload: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
@@ -102,9 +150,13 @@ def _evidence_result(
     *,
     expected_statuses: set[str],
     required: bool,
+    path_valid: bool = True,
 ) -> dict[str, Any]:
     actual_status = _status(payload)
-    if payload is None:
+    if not path_valid:
+        status = "blocked" if required else "warning"
+        reason = "evidence_path_invalid"
+    elif payload is None:
         status = "blocked" if required else "warning"
         reason = "evidence_missing"
     elif actual_status not in expected_statuses:
@@ -134,8 +186,13 @@ def build_industrial_live_evidence_archive_report(
     vendor_promotion: dict[str, Any] | None,
     browser_closeout: dict[str, Any] | None,
     customer_site_smoke: dict[str, Any] | None,
+    source_path_statuses: dict[str, dict[str, Any]] | None = None,
     require_customer_site_smoke: bool = False,
 ) -> dict[str, Any]:
+    if source_path_statuses is None:
+        source_path_statuses = {
+            field: {"path_valid": True} for field in SOURCE_EVIDENCE_FIELDS
+        }
     live_inputs = inputs_payload.get("industrial_live_evidence")
     if not isinstance(live_inputs, dict):
         live_inputs = {}
@@ -156,6 +213,7 @@ def build_industrial_live_evidence_archive_report(
             operator_checklist,
             expected_statuses={"ready"},
             required=True,
+            path_valid=source_path_statuses["operator_checklist"]["path_valid"],
         ),
         _evidence_result(
             "external_mainline_plan",
@@ -163,6 +221,7 @@ def build_industrial_live_evidence_archive_report(
             external_mainline_plan,
             expected_statuses={"ready", "ready_to_run", "passed", "completed"},
             required=True,
+            path_valid=source_path_statuses["external_mainline_plan"]["path_valid"],
         ),
         _evidence_result(
             "hardware_diagnostics",
@@ -170,6 +229,7 @@ def build_industrial_live_evidence_archive_report(
             hardware_diagnostics,
             expected_statuses={"ready", "ready_to_run", "passed"},
             required=False,
+            path_valid=source_path_statuses["hardware_diagnostics"]["path_valid"],
         ),
         _evidence_result(
             "vendor_promotion",
@@ -177,6 +237,7 @@ def build_industrial_live_evidence_archive_report(
             vendor_promotion,
             expected_statuses={"ready"},
             required=False,
+            path_valid=source_path_statuses["vendor_promotion"]["path_valid"],
         ),
         _evidence_result(
             "browser_closeout",
@@ -184,6 +245,7 @@ def build_industrial_live_evidence_archive_report(
             browser_closeout,
             expected_statuses={"passed"},
             required=False,
+            path_valid=source_path_statuses["browser_closeout"]["path_valid"],
         ),
         _evidence_result(
             "customer_site_smoke",
@@ -191,6 +253,7 @@ def build_industrial_live_evidence_archive_report(
             customer_site_smoke,
             expected_statuses={"passed"},
             required=require_customer_site_smoke,
+            path_valid=source_path_statuses["customer_site_smoke"]["path_valid"],
         ),
     ]
 
@@ -229,6 +292,9 @@ def build_industrial_live_evidence_archive_report(
             "external_mainline_industrial_step_status": industrial_step_status,
             "external_mainline_managed_inputs_ready": managed_inputs_ready,
             "require_customer_site_smoke": require_customer_site_smoke,
+            "source_path_validation_error_count": sum(
+                1 for item in source_path_statuses.values() if not item["path_valid"]
+            ),
         },
         "missing_fields": missing_fields,
         "blockers": blockers,
@@ -238,6 +304,7 @@ def build_industrial_live_evidence_archive_report(
         },
         "evidence": evidence,
         "next_actions": _next_actions(status=status, blockers=blockers, warnings=warnings),
+        "source_path_statuses": source_path_statuses,
     }
 
 
@@ -264,15 +331,29 @@ def main(argv: Sequence[str] | None = None) -> int:
         "browser_closeout": args.browser_closeout,
         "customer_site_smoke": args.customer_site_smoke,
     }
+    source_path_statuses = _source_path_statuses(sources, inputs_file=args.inputs_file)
     report = build_industrial_live_evidence_archive_report(
         inputs_payload=_load_json(args.inputs_file),
         sources=sources,
-        external_mainline_plan=_load_json_if_exists(args.external_mainline_plan),
-        operator_checklist=_load_json_if_exists(args.operator_checklist),
-        hardware_diagnostics=_load_json_if_exists(args.hardware_diagnostics),
-        vendor_promotion=_load_json_if_exists(args.vendor_promotion),
-        browser_closeout=_load_json_if_exists(args.browser_closeout),
-        customer_site_smoke=_load_json_if_exists(args.customer_site_smoke),
+        source_path_statuses=source_path_statuses,
+        external_mainline_plan=_load_json_if_exists(
+            source_path_statuses["external_mainline_plan"]["resolved_path"]
+        ),
+        operator_checklist=_load_json_if_exists(
+            source_path_statuses["operator_checklist"]["resolved_path"]
+        ),
+        hardware_diagnostics=_load_json_if_exists(
+            source_path_statuses["hardware_diagnostics"]["resolved_path"]
+        ),
+        vendor_promotion=_load_json_if_exists(
+            source_path_statuses["vendor_promotion"]["resolved_path"]
+        ),
+        browser_closeout=_load_json_if_exists(
+            source_path_statuses["browser_closeout"]["resolved_path"]
+        ),
+        customer_site_smoke=_load_json_if_exists(
+            source_path_statuses["customer_site_smoke"]["resolved_path"]
+        ),
         require_customer_site_smoke=args.require_customer_site_smoke,
     )
     output_path = Path(args.output)

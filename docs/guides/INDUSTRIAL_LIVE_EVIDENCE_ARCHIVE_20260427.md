@@ -39,6 +39,8 @@ python tools/build_industrial_live_evidence_archive_report.py \
   --customer-site-smoke test_env/customer_site_live_smoke/customer_site_live_smoke_report.json
 ```
 
+除 `--inputs-file` 主输入外，归档命令的 source evidence 路径必须是相对路径；禁止绝对路径和 `..` 父目录穿越。相对路径会先按 `--inputs-file` 所在目录解析，再回退到仓库根目录，以支持现场工作目录和默认 `test_env/...` 归档路径。路径越界会在报告中记录为 `evidence_path_invalid`，必需 evidence 会阻塞归档， optional evidence 会作为 warning 保留。
+
 工业签收或客户现场真实设备交付时，必须把 customer-site smoke 升级为 strict evidence：
 
 ```bash
