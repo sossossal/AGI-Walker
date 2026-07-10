@@ -21,7 +21,6 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
 
 
 def _ready_payload(tmp_path: Path) -> dict[str, object]:
-    evidence_root = tmp_path / "evidence"
     return {
         "schema_version": "1.0",
         "smoke_id": "customer-site-smoke-test",
@@ -50,12 +49,12 @@ def _ready_payload(tmp_path: Path) -> dict[str, object]:
             {
                 "id": "transport_connect",
                 "status": "passed",
-                "evidence_path": str(evidence_root / "transport_connect.json"),
+                "evidence_path": "evidence/transport_connect.json",
             },
             {
                 "id": "telemetry_read",
                 "status": "ready",
-                "evidence_path": str(evidence_root / "telemetry_read.json"),
+                "evidence_path": "evidence/telemetry_read.json",
             },
         ],
         "archive": {
@@ -78,6 +77,7 @@ def test_customer_site_live_smoke_report_passes_ready_payload(tmp_path: Path) ->
     assert payload["blockers"] == []
     assert payload["summary"]["site_id"] == "site-line-1"
     assert payload["summary"]["passed_check_count"] == 2
+    assert payload["checks"][0]["evidence_path_valid"] is True
 
 
 def test_customer_site_live_smoke_report_blocks_placeholders_and_safety(
@@ -121,6 +121,56 @@ def test_customer_site_live_smoke_report_can_require_evidence_files(
     report = json.loads(output_path.read_text(encoding="utf-8"))
     assert report["summary"]["require_evidence_files"] is True
     assert report["blockers"] == ["transport_connect", "telemetry_read"]
+    assert report["checks"][0]["reason"] == "evidence_file_missing"
+
+
+def test_customer_site_live_smoke_report_accepts_relative_existing_evidence_files(
+    tmp_path: Path,
+) -> None:
+    input_path = tmp_path / "customer_site_live_smoke.json"
+    output_path = tmp_path / "customer_site_live_smoke_report.json"
+    payload = _ready_payload(tmp_path)
+    (tmp_path / "evidence").mkdir()
+    (tmp_path / "evidence" / "transport_connect.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "evidence" / "telemetry_read.json").write_text("{}", encoding="utf-8")
+    _write_json(input_path, payload)
+
+    exit_code = main(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--require-evidence-files",
+        ]
+    )
+
+    assert exit_code == 0
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    assert report["status"] == "passed"
+    assert report["checks"][0]["evidence_exists"] is True
+
+
+def test_customer_site_live_smoke_report_blocks_unsafe_evidence_paths(
+    tmp_path: Path,
+) -> None:
+    input_path = tmp_path / "customer_site_live_smoke.json"
+    output_path = tmp_path / "customer_site_live_smoke_report.json"
+    payload = _ready_payload(tmp_path)
+    payload["checks"][0]["evidence_path"] = "../outside.json"
+    payload["checks"][1]["evidence_path"] = str(tmp_path / "absolute.json")
+    _write_json(input_path, payload)
+
+    exit_code = main(["--input", str(input_path), "--output", str(output_path)])
+
+    assert exit_code == 1
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    assert report["status"] == "blocked"
+    assert report["blockers"] == ["transport_connect", "telemetry_read"]
+    assert report["checks"][0]["reason"] == "evidence_path_invalid"
+    assert report["checks"][0]["evidence_path_valid"] is False
+    assert report["checks"][1]["reason"] == "evidence_path_invalid"
+    assert report["checks"][1]["evidence_path_valid"] is False
 
 
 def test_customer_site_live_smoke_docs_and_template_are_linked() -> None:

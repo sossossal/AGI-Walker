@@ -82,8 +82,15 @@ def _safety_blockers(payload: dict[str, Any]) -> list[str]:
     ]
 
 
+def _evidence_path_status(evidence_path: str, input_path: str) -> tuple[bool, bool]:
+    path = Path(evidence_path)
+    if not evidence_path or path.is_absolute() or ".." in path.parts:
+        return False, False
+    return True, (Path(input_path).parent / path).is_file()
+
+
 def _check_results(
-    checks: Any, *, require_evidence_files: bool
+    checks: Any, *, input_path: str, require_evidence_files: bool
 ) -> tuple[list[dict[str, Any]], list[str]]:
     if not isinstance(checks, list) or not checks:
         return [], ["checks"]
@@ -95,11 +102,17 @@ def _check_results(
             continue
         check_id = _text(check.get("id")) or f"checks[{index}]"
         evidence_path = _text(check.get("evidence_path"))
-        evidence_exists = bool(evidence_path) and Path(evidence_path).exists()
+        evidence_path_valid, evidence_exists = _evidence_path_status(
+            evidence_path, input_path
+        )
         status = _text(check.get("status"))
         reason = "ok"
         result_status = "ready"
-        if status not in PASS_STATUSES:
+        if not evidence_path_valid:
+            reason = "evidence_path_invalid"
+            result_status = "blocked"
+            blockers.append(check_id)
+        elif status not in PASS_STATUSES:
             reason = "check_not_passed"
             result_status = "blocked"
             blockers.append(check_id)
@@ -114,6 +127,7 @@ def _check_results(
                 "reason": reason,
                 "actual_status": status,
                 "evidence_path": evidence_path,
+                "evidence_path_valid": evidence_path_valid,
                 "evidence_exists": evidence_exists,
                 "description": check.get("description", ""),
             }
@@ -133,7 +147,9 @@ def build_customer_site_live_smoke_report(
     ]
     safety_blockers = _safety_blockers(payload)
     check_results, check_blockers = _check_results(
-        payload.get("checks"), require_evidence_files=require_evidence_files
+        payload.get("checks"),
+        input_path=input_path,
+        require_evidence_files=require_evidence_files,
     )
     archive = payload.get("archive") if isinstance(payload.get("archive"), dict) else {}
     archive_blockers = []
