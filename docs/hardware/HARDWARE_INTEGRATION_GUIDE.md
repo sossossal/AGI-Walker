@@ -257,6 +257,8 @@ python tools/build_vendor_fault_data_review.py --telemetry-report test_env/hardw
 - `deployment/hardware/imc22_fault_telemetry_fields.json`
 - 可选 `deployment/hardware/imc22_vendor_fault_samples.template.json` 复制出的现场样本归档文件
 
+这些 review / promotion 输入路径和样本归档里的 `source_evidence` 必须使用相对路径，不能使用绝对路径或 `..` 父目录穿越。工具会先按 `--output` 所在目录解析，再回退到仓库根目录，并在报告中保留 path validation 状态。
+
 该报告不会修改 vendor table；它只输出 mismatch、缺失恢复策略、缺失 telemetry 必填字段、样本归档一致性和可归档性结论。只有报告 `status=passed` 且绑定了已审查的 `sample_archive_file` 时，才应把对应样本纳入 vendor 数据基线。
 
 晋升 vendor 数据前，再生成 promotion checklist，确认 review、样本归档、`data_version` 和 `change_log` 已闭合：

@@ -75,31 +75,35 @@ def _write_ready_inputs(tmp_path: Path) -> dict[str, Path]:
     return paths
 
 
+def _ready_args(paths: dict[str, Path]) -> list[str]:
+    return [
+        "--fault-table-file",
+        paths["fault_table"].name,
+        "--recovery-policy-file",
+        paths["recovery_policy"].name,
+        "--telemetry-fields-file",
+        paths["telemetry_fields"].name,
+        "--sample-archive-file",
+        paths["sample_archive"].name,
+        "--vendor-review-file",
+        paths["vendor_review"].name,
+        "--output",
+        str(paths["output"]),
+    ]
+
+
 def test_vendor_data_promotion_checklist_ready(tmp_path: Path) -> None:
     paths = _write_ready_inputs(tmp_path)
 
-    exit_code = main(
-        [
-            "--fault-table-file",
-            str(paths["fault_table"]),
-            "--recovery-policy-file",
-            str(paths["recovery_policy"]),
-            "--telemetry-fields-file",
-            str(paths["telemetry_fields"]),
-            "--sample-archive-file",
-            str(paths["sample_archive"]),
-            "--vendor-review-file",
-            str(paths["vendor_review"]),
-            "--output",
-            str(paths["output"]),
-        ]
-    )
+    exit_code = main(_ready_args(paths))
 
     assert exit_code == 0
     payload = json.loads(paths["output"].read_text(encoding="utf-8"))
     assert payload["status"] == "ready"
     assert payload["summary"]["change_request"] == "FIELD-FAULT-DATA-20260426-001"
     assert payload["summary"]["blocked_step_count"] == 0
+    assert payload["summary"]["source_file_path_validation_error_count"] == 0
+    assert payload["summary"]["sample_source_evidence_path_validation_error_count"] == 0
     assert payload["next_actions"] == [
         "Promote reviewed vendor data and archive this checklist with live evidence."
     ]
@@ -118,22 +122,7 @@ def test_vendor_data_promotion_checklist_blocks_without_review_archive(
         },
     )
 
-    exit_code = main(
-        [
-            "--fault-table-file",
-            str(paths["fault_table"]),
-            "--recovery-policy-file",
-            str(paths["recovery_policy"]),
-            "--telemetry-fields-file",
-            str(paths["telemetry_fields"]),
-            "--sample-archive-file",
-            str(paths["sample_archive"]),
-            "--vendor-review-file",
-            str(paths["vendor_review"]),
-            "--output",
-            str(paths["output"]),
-        ]
-    )
+    exit_code = main(_ready_args(paths))
 
     assert exit_code == 1
     payload = json.loads(paths["output"].read_text(encoding="utf-8"))
@@ -152,22 +141,7 @@ def test_vendor_data_promotion_checklist_blocks_placeholder_change_request(
     sample_archive["change_request"] = "FIELD-FAULT-DATA-YYYYMMDD-001"
     _write_json(paths["sample_archive"], sample_archive)
 
-    exit_code = main(
-        [
-            "--fault-table-file",
-            str(paths["fault_table"]),
-            "--recovery-policy-file",
-            str(paths["recovery_policy"]),
-            "--telemetry-fields-file",
-            str(paths["telemetry_fields"]),
-            "--sample-archive-file",
-            str(paths["sample_archive"]),
-            "--vendor-review-file",
-            str(paths["vendor_review"]),
-            "--output",
-            str(paths["output"]),
-        ]
-    )
+    exit_code = main(_ready_args(paths))
 
     assert exit_code == 1
     payload = json.loads(paths["output"].read_text(encoding="utf-8"))
@@ -175,3 +149,45 @@ def test_vendor_data_promotion_checklist_blocks_placeholder_change_request(
         step["id"] for step in payload["steps"] if step["status"] == "blocked"
     }
     assert blocked_steps == {"change_request"}
+
+
+def test_vendor_data_promotion_checklist_blocks_unsafe_source_file_path(
+    tmp_path: Path,
+) -> None:
+    paths = _write_ready_inputs(tmp_path)
+    args = _ready_args(paths)
+    args[args.index("--fault-table-file") + 1] = "../fault_table.json"
+
+    exit_code = main(args)
+
+    assert exit_code == 1
+    payload = json.loads(paths["output"].read_text(encoding="utf-8"))
+    assert payload["status"] == "blocked"
+    blocked_steps = {
+        step["id"] for step in payload["steps"] if step["status"] == "blocked"
+    }
+    assert "source_paths" in blocked_steps
+    assert payload["source_file_statuses"]["fault_table_file"]["path_valid"] is False
+    assert payload["summary"]["source_file_path_validation_error_count"] == 1
+
+
+def test_vendor_data_promotion_checklist_blocks_unsafe_sample_source_evidence(
+    tmp_path: Path,
+) -> None:
+    paths = _write_ready_inputs(tmp_path)
+    sample_archive = json.loads(paths["sample_archive"].read_text(encoding="utf-8"))
+    sample_archive["samples"][0]["source_evidence"] = "../faults.json"
+    _write_json(paths["sample_archive"], sample_archive)
+
+    exit_code = main(_ready_args(paths))
+
+    assert exit_code == 1
+    payload = json.loads(paths["output"].read_text(encoding="utf-8"))
+    blocked_steps = {
+        step["id"] for step in payload["steps"] if step["status"] == "blocked"
+    }
+    assert "sample_source_evidence_paths" in blocked_steps
+    assert payload["sample_source_evidence_statuses"][0]["path_valid"] is False
+    assert (
+        payload["summary"]["sample_source_evidence_path_validation_error_count"] == 1
+    )

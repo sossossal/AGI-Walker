@@ -28,7 +28,7 @@ def test_vendor_fault_data_review_passes_matching_telemetry(tmp_path: Path) -> N
         },
     )
 
-    exit_code = main(["--telemetry-report", str(telemetry), "--output", str(output)])
+    exit_code = main(["--telemetry-report", telemetry.name, "--output", str(output)])
 
     assert exit_code == 0
     payload = json.loads(output.read_text(encoding="utf-8"))
@@ -75,7 +75,7 @@ def test_vendor_fault_data_review_accepts_sample_archive(tmp_path: Path) -> None
                     "node_id": 1,
                     "raw_error_value": 45.0,
                     "fault_class": "overcurrent",
-                    "source_evidence": str(telemetry),
+                    "source_evidence": telemetry.name,
                     "captured_at": "2026-04-26T00:10:00Z",
                     "captured_by": "field-operator",
                 }
@@ -86,9 +86,9 @@ def test_vendor_fault_data_review_accepts_sample_archive(tmp_path: Path) -> None
     exit_code = main(
         [
             "--telemetry-report",
-            str(telemetry),
+            telemetry.name,
             "--sample-archive-file",
-            str(sample_archive),
+            sample_archive.name,
             "--output",
             str(output),
         ]
@@ -98,6 +98,8 @@ def test_vendor_fault_data_review_accepts_sample_archive(tmp_path: Path) -> None
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload["summary"]["sample_archive_present"] is True
     assert payload["summary"]["sample_archive_mismatch_count"] == 0
+    assert payload["summary"]["source_file_path_validation_error_count"] == 0
+    assert payload["summary"]["sample_source_evidence_path_validation_error_count"] == 0
     assert payload["sample_archive_entries"][0]["matches_fault_table"] is True
     assert payload["next_actions"] == [
         "Archive this review with live evidence and use it as vendor data baseline."
@@ -117,7 +119,7 @@ def test_vendor_fault_data_review_blocks_mismatched_telemetry(tmp_path: Path) ->
         },
     )
 
-    exit_code = main(["--telemetry-report", str(telemetry), "--output", str(output)])
+    exit_code = main(["--telemetry-report", telemetry.name, "--output", str(output)])
 
     assert exit_code == 1
     payload = json.loads(output.read_text(encoding="utf-8"))
@@ -140,7 +142,7 @@ def test_vendor_fault_data_review_blocks_missing_required_fields(
         },
     )
 
-    exit_code = main(["--telemetry-report", str(telemetry), "--output", str(output)])
+    exit_code = main(["--telemetry-report", telemetry.name, "--output", str(output)])
 
     assert exit_code == 1
     payload = json.loads(output.read_text(encoding="utf-8"))
@@ -155,7 +157,7 @@ def test_vendor_fault_data_review_blocks_missing_entries(tmp_path: Path) -> None
     output = tmp_path / "review.json"
     _write_json(telemetry, {"schema_version": "1.0", "entries": []})
 
-    exit_code = main(["--telemetry-report", str(telemetry), "--output", str(output)])
+    exit_code = main(["--telemetry-report", telemetry.name, "--output", str(output)])
 
     assert exit_code == 1
     payload = json.loads(output.read_text(encoding="utf-8"))
@@ -169,7 +171,7 @@ def test_vendor_fault_data_review_writes_blocked_report_when_telemetry_missing(
     telemetry = tmp_path / "missing_fault_telemetry.json"
     output = tmp_path / "review.json"
 
-    exit_code = main(["--telemetry-report", str(telemetry), "--output", str(output)])
+    exit_code = main(["--telemetry-report", telemetry.name, "--output", str(output)])
 
     assert exit_code == 1
     payload = json.loads(output.read_text(encoding="utf-8"))
@@ -177,3 +179,82 @@ def test_vendor_fault_data_review_writes_blocked_report_when_telemetry_missing(
     assert "telemetry_report_missing" in payload["blockers"]
     assert "telemetry_entries_missing" in payload["blockers"]
     assert payload["summary"]["telemetry_report_present"] is False
+
+
+def test_vendor_fault_data_review_blocks_unsafe_source_file_path(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "review.json"
+
+    exit_code = main(
+        [
+            "--telemetry-report",
+            "../fault_telemetry.json",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 1
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["status"] == "blocked"
+    assert "source_file_path_invalid" in payload["blockers"]
+    assert payload["source_file_statuses"]["telemetry_report"]["path_valid"] is False
+    assert (
+        payload["summary"]["source_file_path_validation_error_count"] == 1
+    )
+
+
+def test_vendor_fault_data_review_blocks_unsafe_sample_source_evidence(
+    tmp_path: Path,
+) -> None:
+    telemetry = tmp_path / "fault_telemetry.json"
+    sample_archive = tmp_path / "fault_samples.json"
+    output = tmp_path / "review.json"
+    _write_json(
+        telemetry,
+        {
+            "schema_version": "1.0",
+            "entries": [
+                {"node_id": 1, "raw_error_value": 45.0, "fault_class": "overcurrent"}
+            ],
+        },
+    )
+    _write_json(
+        sample_archive,
+        {
+            "schema_version": "1.0",
+            "vendor": "imc22_reflex",
+            "change_request": "FIELD-FAULT-DATA-20260426-001",
+            "samples": [
+                {
+                    "node_id": 1,
+                    "raw_error_value": 45.0,
+                    "fault_class": "overcurrent",
+                    "source_evidence": "../fault_telemetry.json",
+                    "captured_at": "2026-04-26T00:10:00Z",
+                    "captured_by": "field-operator",
+                }
+            ],
+        },
+    )
+
+    exit_code = main(
+        [
+            "--telemetry-report",
+            telemetry.name,
+            "--sample-archive-file",
+            sample_archive.name,
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 1
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["status"] == "blocked"
+    assert "sample_source_evidence_path_invalid" in payload["blockers"]
+    assert payload["sample_source_evidence_statuses"][0]["path_valid"] is False
+    assert (
+        payload["summary"]["sample_source_evidence_path_validation_error_count"] == 1
+    )
