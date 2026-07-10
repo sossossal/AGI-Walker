@@ -112,3 +112,4 @@ py -3.12 -m pytest tests\test_real_robot_driver.py tests\test_hardware_controlle
 - 2026-07-09: Hardened checklist item-shape self-validation so malformed external evidence handoff items are rejected before status report intake.
 - 2026-07-09: Hardened checklist artifact path boundary so external evidence item paths must be repository-relative before status report intake.
 - 2026-07-09: Hardened Web browser manual evidence validation. Screenshot/export entries in the manual validation input must remain relative to the input file directory, cannot traverse outside it, and must point to existing files before the manual report can pass.
+- 2026-07-10: Hardened customer-site live smoke evidence validation. Check `evidence_path` entries must remain relative to the smoke input file directory, cannot traverse outside it, and strict evidence-file mode resolves files only within that boundary.

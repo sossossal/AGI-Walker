@@ -14,6 +14,7 @@ deployment/customer_site_live_smoke.template.json
 - `device.*` 指向真实 IMC-22/CAN/串口设备
 - `safety_precheck.*` 全部为 `true`
 - `checks[*].status` 均为 `passed` 或 `ready`
+- `checks[*].evidence_path` 必须是相对输入 JSON 所在目录的文件路径，禁止绝对路径和 `..`
 - `archive.closure_archive_root` 指向真实客户归档位置
 
 ## 生成报告
@@ -33,6 +34,8 @@ test_env/customer_site_live_smoke/customer_site_live_smoke_report.json
 ```bash
 python tools/build_customer_site_live_smoke_report.py --require-evidence-files
 ```
+
+启用 `--require-evidence-files` 后，报告会按输入 JSON 所在目录解析 `checks[*].evidence_path` 并确认文件存在。即使不启用该参数，绝对路径、空路径或包含 `..` 的路径也会使对应 check `blocked`，避免现场机器私有路径或仓外文件进入交付 evidence。
 
 ## smoke 检查项
 
