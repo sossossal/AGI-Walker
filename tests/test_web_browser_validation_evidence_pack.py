@@ -50,11 +50,11 @@ def test_web_browser_validation_evidence_pack_ready_with_playwright_warning(
     exit_code = main(
         [
             "--manual-report",
-            str(paths["manual"]),
+            paths["manual"].name,
             "--closeout",
-            str(paths["closeout"]),
+            paths["closeout"].name,
             "--playwright-report",
-            str(paths["playwright"]),
+            paths["playwright"].name,
             "--output",
             str(paths["output"]),
         ]
@@ -76,11 +76,11 @@ def test_web_browser_validation_evidence_pack_can_require_playwright(
     exit_code = main(
         [
             "--manual-report",
-            str(paths["manual"]),
+            paths["manual"].name,
             "--closeout",
-            str(paths["closeout"]),
+            paths["closeout"].name,
             "--playwright-report",
-            str(paths["playwright"]),
+            paths["playwright"].name,
             "--output",
             str(paths["output"]),
             "--require-playwright",
@@ -113,11 +113,11 @@ def test_web_browser_validation_evidence_pack_blocks_missing_manual_evidence(
     exit_code = main(
         [
             "--manual-report",
-            str(paths["manual"]),
+            paths["manual"].name,
             "--closeout",
-            str(paths["closeout"]),
+            paths["closeout"].name,
             "--playwright-report",
-            str(paths["playwright"]),
+            paths["playwright"].name,
             "--output",
             str(paths["output"]),
         ]
@@ -129,6 +129,34 @@ def test_web_browser_validation_evidence_pack_blocks_missing_manual_evidence(
         "console_error_summary",
         "exports",
         "screenshots",
+    ]
+
+
+def test_web_browser_validation_evidence_pack_blocks_unsafe_source_path(
+    tmp_path: Path,
+) -> None:
+    paths = _write_ready_inputs(tmp_path)
+
+    exit_code = main(
+        [
+            "--manual-report",
+            str(paths["manual"]),
+            "--closeout",
+            paths["closeout"].name,
+            "--playwright-report",
+            paths["playwright"].name,
+            "--output",
+            str(paths["output"]),
+        ]
+    )
+
+    assert exit_code == 1
+    payload = json.loads(paths["output"].read_text(encoding="utf-8"))
+    assert payload["status"] == "blocked"
+    assert "source_path_validation" in payload["blockers"]
+    assert payload["source_path_statuses"]["manual_report"]["path_valid"] is False
+    assert payload["source_path_blockers"] == [
+        {"field": "manual_report", "reason": "absolute"}
     ]
 
 

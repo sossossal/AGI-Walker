@@ -39,9 +39,9 @@ def test_browser_validation_closeout_passes_with_manual_and_playwright(
     exit_code = main(
         [
             "--manual-report",
-            str(manual),
+            manual.name,
             "--playwright-report",
-            str(playwright),
+            playwright.name,
             "--output",
             str(output),
         ]
@@ -66,9 +66,9 @@ def test_browser_validation_closeout_warns_on_blocked_playwright(
     exit_code = main(
         [
             "--manual-report",
-            str(manual),
+            manual.name,
             "--playwright-report",
-            str(playwright),
+            playwright.name,
             "--output",
             str(output),
         ]
@@ -89,9 +89,9 @@ def test_browser_validation_closeout_blocks_without_manual_report(
     exit_code = main(
         [
             "--manual-report",
-            str(tmp_path / "missing-manual.json"),
+            "missing-manual.json",
             "--playwright-report",
-            str(tmp_path / "missing-playwright.json"),
+            "missing-playwright.json",
             "--output",
             str(output),
         ]
@@ -102,3 +102,29 @@ def test_browser_validation_closeout_blocks_without_manual_report(
     assert payload["status"] == "blocked"
     assert payload["blockers"] == ["manual_report_missing"]
     assert payload["warnings"] == ["playwright_report_missing"]
+
+
+def test_browser_validation_closeout_blocks_unsafe_source_path(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "closeout.json"
+
+    exit_code = main(
+        [
+            "--manual-report",
+            "../manual.json",
+            "--playwright-report",
+            "missing-playwright.json",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 1
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["status"] == "blocked"
+    assert "source_path_validation" in payload["blockers"]
+    assert payload["source_path_statuses"]["manual_report"]["path_valid"] is False
+    assert payload["source_path_blockers"] == [
+        {"field": "manual_report", "reason": "parent_directory"}
+    ]
