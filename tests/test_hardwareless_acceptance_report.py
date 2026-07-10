@@ -142,7 +142,7 @@ def test_hardwareless_acceptance_requires_explicit_no_hardware_confirmation(
     exit_code = main(
         [
             "--godot-readiness",
-            str(readiness),
+            readiness.name,
             "--output",
             str(output),
         ]
@@ -163,7 +163,7 @@ def test_hardwareless_acceptance_cli_writes_report(tmp_path: Path) -> None:
         [
             "--no-hardware",
             "--godot-readiness",
-            str(readiness),
+            readiness.name,
             "--output",
             str(output),
         ]
@@ -176,6 +176,7 @@ def test_hardwareless_acceptance_cli_writes_report(tmp_path: Path) -> None:
     assert payload["external_evidence_required"] is False
     assert payload["release_gate"]["status"] == "blocked"
     assert payload["required_local_evidence"][0]["status"] == "ready"
+    assert payload["source_path_statuses"]["godot_readiness"]["path_valid"] is True
     assert "required_external_evidence" in payload
     assert "zenoh_runtime_probe" in payload
 
@@ -190,7 +191,7 @@ def test_hardwareless_acceptance_cli_strict_mode_exits_blocked(tmp_path: Path) -
             "--no-hardware",
             "--require-external-evidence",
             "--godot-readiness",
-            str(readiness),
+            readiness.name,
             "--output",
             str(output),
         ]
@@ -201,6 +202,31 @@ def test_hardwareless_acceptance_cli_strict_mode_exits_blocked(tmp_path: Path) -
     assert payload["status"] == "blocked"
     assert payload["release_gate"]["status"] == "blocked"
     assert "required_external_evidence_missing_or_not_ready" in payload["blockers"]
+
+
+def test_hardwareless_acceptance_cli_blocks_unsafe_source_path(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "report.json"
+
+    exit_code = main(
+        [
+            "--no-hardware",
+            "--godot-readiness",
+            "../readiness.json",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 1
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["status"] == "blocked"
+    assert "source_path_validation" in payload["blockers"]
+    assert payload["source_path_statuses"]["godot_readiness"]["path_valid"] is False
+    assert payload["source_path_blockers"] == [
+        {"field": "godot_readiness", "reason": "parent_directory"}
+    ]
 
 
 def test_hardwareless_release_gate_validator_accepts_ready_report() -> None:

@@ -428,6 +428,8 @@ python tools/build_hardwareless_acceptance_report.py \
   --ros2-bridge-smoke test_env/ros2_bridge_smoke/ros2_bridge_smoke_report.json
 ```
 
+`--godot-readiness`、`--hardware-live-closeout` 和 `--ros2-bridge-smoke` 必须使用相对路径，不能使用绝对路径或 `..`。报告工具会先按 `--output` 所在目录解析，再回退仓库根目录；非法 source 会使报告保持 `blocked`，并在 `source_path_statuses` / `source_path_blockers` 中保留诊断细节。
+
 正式交付或 release gate 应开启严格模式；缺少真实硬件 closeout 或 ROS2 bridge live smoke 时会直接返回 `blocked`：
 
 ```bash

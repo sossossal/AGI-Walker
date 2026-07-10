@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Callable, Sequence
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_GODOT_READINESS = (
     "test_env/mountain_biped/live_godot_mountain_readiness.json"
 )
@@ -21,6 +22,11 @@ DEFAULT_ROS2_BRIDGE_SMOKE = (
     "test_env/ros2_bridge_smoke/ros2_bridge_smoke_report.json"
 )
 SCHEMA_VERSION = "hardwareless_acceptance_report.v1"
+SOURCE_PATH_FIELDS = (
+    "godot_readiness",
+    "hardware_live_closeout",
+    "ros2_bridge_smoke",
+)
 ROS2_RUNTIME_MODULES = (
     "rclpy",
     "tf2_ros",
@@ -169,12 +175,53 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _load_json_if_exists(path: str | Path | None) -> dict[str, Any] | None:
-    if not path:
+def _text(value: Any) -> str:
+    return value.strip() if isinstance(value, str) else ""
+
+
+def _resolve_relative_path(
+    value: str | Path | None,
+    *,
+    base_dir: Path,
+) -> tuple[bool, Path | None, str | None]:
+    text = _text(str(value)) if value is not None else ""
+    if not text:
+        return False, None, "empty"
+    path = Path(text)
+    if path.is_absolute():
+        return False, None, "absolute"
+    if ".." in path.parts:
+        return False, None, "parent_directory"
+    base_relative = base_dir / path
+    if base_relative.exists():
+        return True, base_relative, None
+    return True, PROJECT_ROOT / path, None
+
+
+def _path_status(value: str | Path | None, *, base_dir: Path) -> dict[str, Any]:
+    valid, resolved_path, error = _resolve_relative_path(value, base_dir=base_dir)
+    return {
+        "path": _text(str(value)) if value is not None else "",
+        "path_valid": valid,
+        "path_error": error,
+        "resolved_path": str(resolved_path) if resolved_path is not None else None,
+        "exists": bool(resolved_path and resolved_path.exists()),
+    }
+
+
+def _source_path_blockers(statuses: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
+    blockers: list[dict[str, str]] = []
+    for field in SOURCE_PATH_FIELDS:
+        status = statuses[field]
+        if not status["path_valid"]:
+            blockers.append({"field": field, "reason": str(status["path_error"])})
+    return blockers
+
+
+def _load_json_if_exists(status: dict[str, Any]) -> dict[str, Any] | None:
+    if not status["path_valid"] or not status["exists"] or not status["resolved_path"]:
         return None
-    json_path = Path(path)
-    if not json_path.exists():
-        return None
+    json_path = Path(status["resolved_path"])
     return json.loads(json_path.read_text(encoding="utf-8"))
 
 
@@ -339,7 +386,11 @@ def build_hardwareless_acceptance_report(
     ros2_bridge_smoke: dict[str, Any] | None = None,
     require_external_evidence: bool = False,
     ros2_probe: dict[str, Any] | None = None,
+    source_path_statuses: dict[str, dict[str, Any]] | None = None,
+    source_path_blockers: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
+    path_statuses = source_path_statuses or {}
+    path_blockers = source_path_blockers or []
     ros2_runtime = ros2_probe or _probe_ros2_runtime()
     zenoh_runtime = _probe_module("zenoh")
     godot = _godot_evidence(godot_readiness_path, godot_readiness)
@@ -371,6 +422,8 @@ def build_hardwareless_acceptance_report(
         blockers.append("hardwareless_safety_scenario_evidence_incomplete")
     if require_external_evidence and external_blockers:
         blockers.append("required_external_evidence_missing_or_not_ready")
+    if path_blockers:
+        blockers.append("source_path_validation")
 
     if blockers:
         status = "blocked"
@@ -417,6 +470,8 @@ def build_hardwareless_acceptance_report(
             "hardware_live_closeout": hardware_live_closeout_path,
             "ros2_bridge_smoke": ros2_bridge_smoke_path,
         },
+        "source_path_statuses": path_statuses,
+        "source_path_blockers": path_blockers,
         "required_local_evidence": [godot],
         "required_external_evidence": [hardware_live, ros2_live],
         "substitute_evidence_commands": SUBSTITUTE_EVIDENCE_COMMANDS,
@@ -443,15 +498,34 @@ def _next_actions(status: str, blockers: list[str]) -> list[str]:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv)
+    output_dir = Path(args.output).resolve().parent
+    source_path_statuses = {
+        "godot_readiness": _path_status(args.godot_readiness, base_dir=output_dir),
+        "hardware_live_closeout": _path_status(
+            args.hardware_live_closeout,
+            base_dir=output_dir,
+        ),
+        "ros2_bridge_smoke": _path_status(
+            args.ros2_bridge_smoke,
+            base_dir=output_dir,
+        ),
+    }
+    source_path_blockers = _source_path_blockers(source_path_statuses)
     report = build_hardwareless_acceptance_report(
         no_hardware=args.no_hardware,
         godot_readiness_path=args.godot_readiness,
-        godot_readiness=_load_json_if_exists(args.godot_readiness),
+        godot_readiness=_load_json_if_exists(source_path_statuses["godot_readiness"]),
         hardware_live_closeout_path=args.hardware_live_closeout,
-        hardware_live_closeout=_load_json_if_exists(args.hardware_live_closeout),
+        hardware_live_closeout=_load_json_if_exists(
+            source_path_statuses["hardware_live_closeout"]
+        ),
         ros2_bridge_smoke_path=args.ros2_bridge_smoke,
-        ros2_bridge_smoke=_load_json_if_exists(args.ros2_bridge_smoke),
+        ros2_bridge_smoke=_load_json_if_exists(
+            source_path_statuses["ros2_bridge_smoke"]
+        ),
         require_external_evidence=args.require_external_evidence,
+        source_path_statuses=source_path_statuses,
+        source_path_blockers=source_path_blockers,
     )
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
