@@ -13,6 +13,9 @@ IMC22_FAULT_TABLE_FIXTURE = (
 IMC22_RECOVERY_POLICY_FIXTURE = (
     Path(__file__).with_name("fixtures") / "imc22_reflex_recovery_policy.json"
 )
+IMC22_REPLAY_FIXTURE_ARG = "tests/fixtures/imc22_status_replay.json"
+IMC22_FAULT_TABLE_FIXTURE_ARG = "tests/fixtures/imc22_reflex_fault_table.json"
+IMC22_RECOVERY_POLICY_FIXTURE_ARG = "tests/fixtures/imc22_reflex_recovery_policy.json"
 
 
 def test_hardware_transport_diagnostics_runner_writes_ready_report(
@@ -25,7 +28,7 @@ def test_hardware_transport_diagnostics_runner_writes_ready_report(
             "--transport",
             "replay",
             "--replay-source",
-            str(IMC22_REPLAY_FIXTURE),
+            IMC22_REPLAY_FIXTURE_ARG,
             "--attempt-connect",
             "--output",
             str(report_path),
@@ -50,9 +53,9 @@ def test_hardware_transport_diagnostics_runner_exports_fault_telemetry(
             "--transport",
             "replay",
             "--replay-source",
-            str(IMC22_REPLAY_FIXTURE),
+            IMC22_REPLAY_FIXTURE_ARG,
             "--fault-table-file",
-            str(IMC22_FAULT_TABLE_FIXTURE),
+            IMC22_FAULT_TABLE_FIXTURE_ARG,
             "--attempt-connect",
             "--output",
             str(report_path),
@@ -77,9 +80,9 @@ def test_hardware_transport_diagnostics_runner_accepts_recovery_policy(
             "--transport",
             "replay",
             "--replay-source",
-            str(IMC22_REPLAY_FIXTURE),
+            IMC22_REPLAY_FIXTURE_ARG,
             "--recovery-policy-file",
-            str(IMC22_RECOVERY_POLICY_FIXTURE),
+            IMC22_RECOVERY_POLICY_FIXTURE_ARG,
             "--output",
             str(report_path),
         ]
@@ -106,7 +109,7 @@ def test_hardware_transport_diagnostics_runner_blocks_invalid_profile(
     exit_code = main(
         [
             "--profile-file",
-            str(profile_path),
+            profile_path.name,
             "--output",
             str(report_path),
         ]
@@ -116,3 +119,53 @@ def test_hardware_transport_diagnostics_runner_blocks_invalid_profile(
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["status"] == "blocked"
     assert report["checks"][0]["name"] == "profile_validation"
+
+
+def test_hardware_transport_diagnostics_runner_blocks_unsafe_profile_file_path(
+    tmp_path: Path,
+) -> None:
+    report_path = tmp_path / "hardware_transport_diagnostics_report.json"
+
+    exit_code = main(
+        [
+            "--profile-file",
+            "../profile.json",
+            "--output",
+            str(report_path),
+        ]
+    )
+
+    assert exit_code == 1
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["status"] == "blocked"
+    assert report["checks"][0]["name"] == "source_path_validation"
+    assert report["source_path_statuses"]["profile_file"]["path_valid"] is False
+    assert report["source_path_blockers"] == [
+        {"field": "profile_file", "reason": "parent_directory"}
+    ]
+
+
+def test_hardware_transport_diagnostics_runner_blocks_unsafe_replay_source_path(
+    tmp_path: Path,
+) -> None:
+    report_path = tmp_path / "hardware_transport_diagnostics_report.json"
+
+    exit_code = main(
+        [
+            "--transport",
+            "replay",
+            "--replay-source",
+            "../imc22_status_replay.json",
+            "--attempt-connect",
+            "--output",
+            str(report_path),
+        ]
+    )
+
+    assert exit_code == 1
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["status"] == "blocked"
+    assert report["source_path_statuses"]["replay_source"]["path_valid"] is False
+    assert report["source_path_blockers"] == [
+        {"field": "replay_source", "reason": "parent_directory"}
+    ]
