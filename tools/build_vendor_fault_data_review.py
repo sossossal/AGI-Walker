@@ -11,6 +11,14 @@ DEFAULT_RECOVERY_POLICY = "deployment/hardware/imc22_reflex_recovery_policy.json
 DEFAULT_TELEMETRY_FIELDS = "deployment/hardware/imc22_fault_telemetry_fields.json"
 DEFAULT_OUTPUT = "test_env/hardware_live/vendor_fault_data_review.json"
 SCHEMA_VERSION = "1.0"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SOURCE_FILE_FIELDS = (
+    "telemetry_report",
+    "fault_table_file",
+    "recovery_policy_file",
+    "telemetry_fields_file",
+    "sample_archive_file",
+)
 FAULT_CLASSES = {
     "ok",
     "overload",
@@ -44,11 +52,88 @@ def _load_json(path: str | Path) -> dict[str, Any]:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def _load_json_if_exists(path: str | Path) -> dict[str, Any] | None:
+def _load_json_if_exists(path: str | Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
     json_path = Path(path)
     if not json_path.exists():
         return None
     return _load_json(json_path)
+
+
+def _text(value: Any) -> str:
+    return value.strip() if isinstance(value, str) else ""
+
+
+def _resolve_relative_path(
+    value: str | None,
+    *,
+    base_dir: Path,
+    allow_empty: bool = False,
+) -> tuple[bool, Path | None, str | None]:
+    text = _text(value)
+    if not text:
+        return (True, None, None) if allow_empty else (False, None, "empty")
+    path = Path(text)
+    if path.is_absolute():
+        return False, None, "absolute"
+    if ".." in path.parts:
+        return False, None, "parent_directory"
+    base_relative = base_dir / path
+    if base_relative.exists():
+        return True, base_relative, None
+    return True, PROJECT_ROOT / path, None
+
+
+def _source_file_statuses(
+    sources: dict[str, str | None],
+    *,
+    output_path: str,
+) -> dict[str, dict[str, Any]]:
+    output_dir = Path(output_path).resolve().parent
+    statuses: dict[str, dict[str, Any]] = {}
+    for field in SOURCE_FILE_FIELDS:
+        valid, resolved_path, error = _resolve_relative_path(
+            sources.get(field),
+            base_dir=output_dir,
+            allow_empty=field == "sample_archive_file",
+        )
+        statuses[field] = {
+            "path": _text(sources.get(field)),
+            "path_valid": valid,
+            "path_error": error,
+            "resolved_path": str(resolved_path) if resolved_path is not None else None,
+            "exists": bool(resolved_path and resolved_path.exists()),
+        }
+    return statuses
+
+
+def _sample_source_evidence_statuses(
+    sample_archive: dict[str, Any] | None,
+    *,
+    sample_archive_path: Path | None,
+) -> list[dict[str, Any]]:
+    if sample_archive is None:
+        return []
+    base_dir = sample_archive_path.resolve().parent if sample_archive_path else PROJECT_ROOT
+    statuses: list[dict[str, Any]] = []
+    for index, sample in enumerate(sample_archive.get("samples") or []):
+        value = sample.get("source_evidence") if isinstance(sample, dict) else None
+        valid, resolved_path, error = _resolve_relative_path(
+            _text(value),
+            base_dir=base_dir,
+        )
+        statuses.append(
+            {
+                "index": index,
+                "path": _text(value),
+                "path_valid": valid,
+                "path_error": error,
+                "resolved_path": str(resolved_path) if resolved_path is not None else None,
+                "exists": bool(resolved_path and resolved_path.exists()),
+            }
+        )
+    return statuses
 
 
 def validate_fault_table(fault_table: dict[str, Any]) -> list[str]:
@@ -238,6 +323,8 @@ def build_vendor_fault_data_review(
     telemetry_fields_path: str,
     sample_archive_path: str | None,
     telemetry_report_present: bool = True,
+    source_file_statuses: dict[str, dict[str, Any]] | None = None,
+    sample_source_evidence_statuses: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     table_errors = validate_fault_table(fault_table)
     policy_errors = validate_recovery_policy(recovery_policy)
@@ -309,6 +396,18 @@ def build_vendor_fault_data_review(
 
     status = "passed"
     blockers: list[str] = []
+    path_statuses = source_file_statuses or {}
+    source_path_error_count = sum(
+        1 for status_entry in path_statuses.values() if not status_entry.get("path_valid")
+    )
+    sample_path_statuses = sample_source_evidence_statuses or []
+    sample_source_path_error_count = sum(
+        1 for status_entry in sample_path_statuses if not status_entry.get("path_valid")
+    )
+    if source_path_error_count:
+        blockers.append("source_file_path_invalid")
+    if sample_source_path_error_count:
+        blockers.append("sample_source_evidence_path_invalid")
     if table_errors:
         blockers.append("fault_table_invalid")
     if policy_errors:
@@ -358,7 +457,11 @@ def build_vendor_fault_data_review(
             "sample_archive_present": sample_archive is not None,
             "sample_archive_error_count": len(sample_archive_errors),
             "sample_archive_mismatch_count": sample_mismatch_count,
+            "source_file_path_validation_error_count": source_path_error_count,
+            "sample_source_evidence_path_validation_error_count": sample_source_path_error_count,
         },
+        "source_file_statuses": path_statuses,
+        "sample_source_evidence_statuses": sample_path_statuses,
         "validation_errors": {
             "fault_table": table_errors,
             "recovery_policy": policy_errors,
@@ -423,12 +526,40 @@ def _next_actions(
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv)
-    fault_table = _load_json(args.fault_table_file)
-    recovery_policy = _load_json(args.recovery_policy_file)
-    telemetry_fields = _load_json(args.telemetry_fields_file)
-    telemetry_report = _load_json_if_exists(args.telemetry_report)
+    source_file_statuses = _source_file_statuses(
+        {
+            "telemetry_report": args.telemetry_report,
+            "fault_table_file": args.fault_table_file,
+            "recovery_policy_file": args.recovery_policy_file,
+            "telemetry_fields_file": args.telemetry_fields_file,
+            "sample_archive_file": args.sample_archive_file,
+        },
+        output_path=args.output,
+    )
+    fault_table = _load_json_if_exists(
+        source_file_statuses["fault_table_file"]["resolved_path"]
+    ) or {}
+    recovery_policy = _load_json_if_exists(
+        source_file_statuses["recovery_policy_file"]["resolved_path"]
+    ) or {}
+    telemetry_fields = _load_json_if_exists(
+        source_file_statuses["telemetry_fields_file"]["resolved_path"]
+    ) or {}
+    telemetry_report = _load_json_if_exists(
+        source_file_statuses["telemetry_report"]["resolved_path"]
+    )
     sample_archive = (
-        _load_json(args.sample_archive_file) if args.sample_archive_file else None
+        _load_json_if_exists(source_file_statuses["sample_archive_file"]["resolved_path"])
+        if args.sample_archive_file
+        else None
+    )
+    sample_source_evidence_statuses = _sample_source_evidence_statuses(
+        sample_archive,
+        sample_archive_path=(
+            Path(source_file_statuses["sample_archive_file"]["resolved_path"])
+            if source_file_statuses["sample_archive_file"]["resolved_path"]
+            else None
+        ),
     )
     review = build_vendor_fault_data_review(
         telemetry_report=telemetry_report or {"schema_version": SCHEMA_VERSION, "entries": []},
@@ -442,6 +573,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         recovery_policy_path=args.recovery_policy_file,
         telemetry_fields_path=args.telemetry_fields_file,
         sample_archive_path=args.sample_archive_file,
+        source_file_statuses=source_file_statuses,
+        sample_source_evidence_statuses=sample_source_evidence_statuses,
     )
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
