@@ -90,11 +90,15 @@ python tools/build_web_browser_manual_validation_report.py --input test_env/web_
 python tools/build_web_browser_validation_closeout.py --manual-report test_env/web_browser_manual_validation/web_browser_manual_validation_report.json --playwright-report test_env/web_browser_manual_validation/playwright_smoke_report.json --output test_env/web_browser_manual_validation/web_browser_validation_closeout.json
 ```
 
+`--manual-report` 和 `--playwright-report` 必须使用相对路径，不能使用绝对路径或 `..`。closeout 工具会先按 `--output` 所在目录解析，再回退仓库根目录；非法 source 会生成 blocked report，并在 `source_path_statuses` 中保留诊断细节。
+
 再生成发布归档 evidence pack：
 
 ```bash
 python tools/build_web_browser_validation_evidence_pack.py --manual-report test_env/web_browser_manual_validation/web_browser_manual_validation_report.json --closeout test_env/web_browser_manual_validation/web_browser_validation_closeout.json --playwright-report test_env/web_browser_manual_validation/playwright_smoke_report.json --output test_env/web_browser_manual_validation/web_browser_validation_evidence_pack.json
 ```
+
+`--manual-report`、`--closeout` 和 `--playwright-report` 同样必须使用相对路径，不能使用绝对路径或 `..`；非法 source 会在 evidence pack 中记录 `source_path_blockers`。
 
 如果本次发布要求 Playwright 也必须通过，可加 `--require-playwright`。
 
