@@ -80,11 +80,11 @@ def test_vendor_fault_sample_closeout_ready(tmp_path: Path) -> None:
     exit_code = main(
         [
             "--sample-archive-file",
-            str(paths["samples"]),
+            paths["samples"].name,
             "--fault-table-file",
-            str(paths["fault_table"]),
+            paths["fault_table"].name,
             "--recovery-policy-file",
-            str(paths["recovery_policy"]),
+            paths["recovery_policy"].name,
             "--output",
             str(paths["output"]),
         ]
@@ -96,6 +96,10 @@ def test_vendor_fault_sample_closeout_ready(tmp_path: Path) -> None:
     assert payload["blockers"] == []
     assert payload["summary"]["sample_count"] == 1
     assert payload["summary"]["sample_fault_classes"] == ["overcurrent"]
+    assert payload["summary"]["source_file_path_validation_error_count"] == 0
+    assert (
+        payload["summary"]["sample_source_evidence_path_validation_error_count"] == 0
+    )
 
 
 def test_vendor_fault_sample_closeout_blocks_template_placeholders(
@@ -111,11 +115,11 @@ def test_vendor_fault_sample_closeout_blocks_template_placeholders(
     exit_code = main(
         [
             "--sample-archive-file",
-            str(paths["samples"]),
+            paths["samples"].name,
             "--fault-table-file",
-            str(paths["fault_table"]),
+            paths["fault_table"].name,
             "--recovery-policy-file",
-            str(paths["recovery_policy"]),
+            paths["recovery_policy"].name,
             "--output",
             str(paths["output"]),
         ]
@@ -139,11 +143,11 @@ def test_vendor_fault_sample_closeout_blocks_missing_recovery_policy_class(
     exit_code = main(
         [
             "--sample-archive-file",
-            str(paths["samples"]),
+            paths["samples"].name,
             "--fault-table-file",
-            str(paths["fault_table"]),
+            paths["fault_table"].name,
             "--recovery-policy-file",
-            str(paths["recovery_policy"]),
+            paths["recovery_policy"].name,
             "--output",
             str(paths["output"]),
         ]
@@ -155,6 +159,65 @@ def test_vendor_fault_sample_closeout_blocks_missing_recovery_policy_class(
     assert payload["invalid_samples"][0]["blockers"] == [
         "fault_class_not_in_recovery_policy"
     ]
+
+
+def test_vendor_fault_sample_closeout_blocks_unsafe_source_files(
+    tmp_path: Path,
+) -> None:
+    paths = _write_ready_inputs(tmp_path)
+
+    exit_code = main(
+        [
+            "--sample-archive-file",
+            str(paths["samples"].resolve()),
+            "--fault-table-file",
+            "../fault_table.json",
+            "--recovery-policy-file",
+            paths["recovery_policy"].name,
+            "--output",
+            str(paths["output"]),
+        ]
+    )
+
+    assert exit_code == 1
+    payload = json.loads(paths["output"].read_text(encoding="utf-8"))
+    assert payload["status"] == "blocked"
+    assert payload["summary"]["source_file_path_validation_error_count"] == 2
+    assert payload["source_file_statuses"]["sample_archive_file"]["path_error"] == "absolute"
+    assert (
+        payload["source_file_statuses"]["fault_table_file"]["path_error"]
+        == "parent_directory"
+    )
+    assert "sample_archive_file" in payload["blockers"]
+    assert "fault_table_file" in payload["blockers"]
+
+
+def test_vendor_fault_sample_closeout_blocks_unsafe_sample_source_evidence(
+    tmp_path: Path,
+) -> None:
+    paths = _write_ready_inputs(tmp_path)
+    sample_archive = _sample_archive()
+    sample_archive["samples"][0]["source_evidence"] = "../hardware_fault_telemetry.json"
+    _write_json(paths["samples"], sample_archive)
+
+    exit_code = main(
+        [
+            "--sample-archive-file",
+            paths["samples"].name,
+            "--fault-table-file",
+            paths["fault_table"].name,
+            "--recovery-policy-file",
+            paths["recovery_policy"].name,
+            "--output",
+            str(paths["output"]),
+        ]
+    )
+
+    assert exit_code == 1
+    payload = json.loads(paths["output"].read_text(encoding="utf-8"))
+    assert payload["summary"]["sample_source_evidence_path_validation_error_count"] == 1
+    assert payload["blockers"] == ["sample_records"]
+    assert payload["invalid_samples"][0]["blockers"] == ["source_evidence_path"]
 
 
 def test_vendor_fault_sample_closeout_docs_are_linked() -> None:
