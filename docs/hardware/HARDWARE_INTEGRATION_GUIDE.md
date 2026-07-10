@@ -362,6 +362,8 @@ python tools/build_vendor_fault_sample_closeout.py \
   --output test_env/hardware_live/vendor_fault_sample_closeout.json
 ```
 
+`--sample-archive-file`、`--fault-table-file`、`--recovery-policy-file` 和 sample `source_evidence` 必须是相对路径；禁止绝对路径和 `..` 父目录穿越。输入文件路径会先按 closeout 输出目录解析，再回退仓库根目录；sample `source_evidence` 会先按 sample archive 所在目录解析，再回退仓库根目录。路径越界会让 closeout 保持 `blocked`。
+
 该报告会检查：
 
 - sample archive 不能保留模板占位符
