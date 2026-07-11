@@ -1,5 +1,6 @@
 import json
 import importlib.util
+import shutil
 import subprocess
 import sys
 from datetime import datetime
@@ -57,6 +58,17 @@ ASSEMBLER = ROOT / "godot_project" / "scripts" / "robot_assembler.gd"
 CONTROLLER = ROOT / "godot_project" / "scripts" / "generated_robot_controller.gd"
 TCP_SERVER = ROOT / "godot_project" / "scripts" / "tcp_server.gd"
 CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
+
+
+def _repo_relative_path(path: Path) -> str:
+    return str(path.resolve().relative_to(ROOT))
+
+
+def _release_bundle_output_root(tmp_path: Path) -> Path:
+    output_root = ROOT / "test_env" / "release_evidence_bundle_tests" / tmp_path.name
+    if output_root.exists():
+        shutil.rmtree(output_root)
+    return output_root / "bundle"
 
 
 def _acceptance_args(**overrides: object) -> SimpleNamespace:
@@ -4339,7 +4351,7 @@ def test_dynamic_godot_release_evidence_bundle_builds_and_validates_static_only(
     closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
         tmp_path
     )
-    output_root = tmp_path / "bundle"
+    output_root = _release_bundle_output_root(tmp_path)
 
     result = subprocess.run(
         [
@@ -4395,14 +4407,81 @@ def test_dynamic_godot_release_evidence_bundle_builds_and_validates_static_only(
         assert datetime.fromisoformat(entry["bundle_modified_at"]).tzinfo is not None
 
     validate_result = subprocess.run(
-        [sys.executable, str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL), str(index_path)],
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
+            _repo_relative_path(index_path),
+        ],
         cwd=ROOT,
         check=False,
         capture_output=True,
         text=True,
     )
     assert validate_result.returncode == 0
-    assert json.loads(validate_result.stdout)["status"] == "ready"
+    validation_payload = json.loads(validate_result.stdout)
+    assert validation_payload["status"] == "ready"
+    assert validation_payload["bundle_index_path_status"] == {
+        "path": _repo_relative_path(index_path),
+        "status": "accepted",
+    }
+
+
+def test_dynamic_godot_release_evidence_bundle_validator_rejects_absolute_index_path(
+    tmp_path: Path,
+) -> None:
+    index_path = tmp_path / "bundle_index.json"
+    index_path.write_text("{}", encoding="utf-8")
+    output_path = ROOT / "test_env" / "release_evidence_bundle_tests" / (
+        f"{tmp_path.name}_absolute_validation.json"
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
+            str(index_path),
+            "--output",
+            str(output_path),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    persisted = json.loads(output_path.read_text(encoding="utf-8"))
+    assert payload == persisted
+    assert payload["status"] == "invalid"
+    assert payload["bundle_index_path_status"]["status"] == "rejected"
+    assert payload["bundle_index_path_status"]["reason"] == (
+        "bundle_index must be repository-relative"
+    )
+
+
+def test_dynamic_godot_release_evidence_bundle_validator_rejects_parent_index_path(
+) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
+            "..\\bundle_index.json",
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "invalid"
+    assert payload["bundle_index_path_status"] == {
+        "path": "..\\bundle_index.json",
+        "status": "rejected",
+        "reason": "bundle_index must stay within repository root",
+    }
 
 
 def test_dynamic_godot_release_evidence_bundle_validator_checks_validation_report(
@@ -4411,7 +4490,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_checks_validation_repor
     closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
         tmp_path
     )
-    output_root = tmp_path / "bundle"
+    output_root = _release_bundle_output_root(tmp_path)
     default_doc = ROOT / "docs" / "guides" / "DYNAMIC_GODOT_ROBOT_GENERATION.md"
     subprocess.run(
         [
@@ -4440,7 +4519,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_checks_validation_repor
         [
             sys.executable,
             str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
-            str(output_root / "bundle_index.json"),
+            _repo_relative_path(output_root / "bundle_index.json"),
         ],
         cwd=ROOT,
         check=False,
@@ -4462,7 +4541,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_stale_validatio
     closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
         tmp_path
     )
-    output_root = tmp_path / "bundle"
+    output_root = _release_bundle_output_root(tmp_path)
     subprocess.run(
         [
             sys.executable,
@@ -4495,7 +4574,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_stale_validatio
         [
             sys.executable,
             str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
-            str(output_root / "bundle_index.json"),
+            _repo_relative_path(output_root / "bundle_index.json"),
         ],
         cwd=ROOT,
         check=False,
@@ -4527,7 +4606,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_stale_index_met
     closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
         tmp_path
     )
-    output_root = tmp_path / "bundle"
+    output_root = _release_bundle_output_root(tmp_path)
     subprocess.run(
         [
             sys.executable,
@@ -4558,7 +4637,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_stale_index_met
         [
             sys.executable,
             str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
-            str(index_path),
+            _repo_relative_path(index_path),
         ],
         cwd=ROOT,
         check=False,
@@ -4587,7 +4666,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_required_flag_d
     )
     optional_doc = tmp_path / "operator_note.md"
     optional_doc.write_text("operator note", encoding="utf-8")
-    output_root = tmp_path / "bundle"
+    output_root = _release_bundle_output_root(tmp_path)
     default_doc = ROOT / "docs" / "guides" / "DYNAMIC_GODOT_ROBOT_GENERATION.md"
     subprocess.run(
         [
@@ -4630,7 +4709,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_required_flag_d
         [
             sys.executable,
             str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
-            str(index_path),
+            _repo_relative_path(index_path),
         ],
         cwd=ROOT,
         check=False,
@@ -4651,7 +4730,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_missing_artifac
     closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
         tmp_path
     )
-    output_root = tmp_path / "bundle"
+    output_root = _release_bundle_output_root(tmp_path)
     subprocess.run(
         [
             sys.executable,
@@ -4676,7 +4755,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_missing_artifac
         [
             sys.executable,
             str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
-            str(output_root / "bundle_index.json"),
+            _repo_relative_path(output_root / "bundle_index.json"),
         ],
         cwd=ROOT,
         check=False,
@@ -4696,7 +4775,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_external_bundle
     closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
         tmp_path
     )
-    output_root = tmp_path / "bundle"
+    output_root = _release_bundle_output_root(tmp_path)
     subprocess.run(
         [
             sys.executable,
@@ -4727,7 +4806,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_external_bundle
         [
             sys.executable,
             str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
-            str(index_path),
+            _repo_relative_path(index_path),
         ],
         cwd=ROOT,
         check=False,
@@ -4750,7 +4829,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_duplicate_entri
     closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
         tmp_path
     )
-    output_root = tmp_path / "bundle"
+    output_root = _release_bundle_output_root(tmp_path)
     subprocess.run(
         [
             sys.executable,
@@ -4779,7 +4858,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_duplicate_entri
         [
             sys.executable,
             str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
-            str(index_path),
+            _repo_relative_path(index_path),
         ],
         cwd=ROOT,
         check=False,
@@ -4802,7 +4881,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_invalid_timesta
     closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
         tmp_path
     )
-    output_root = tmp_path / "bundle"
+    output_root = _release_bundle_output_root(tmp_path)
     subprocess.run(
         [
             sys.executable,
@@ -4832,7 +4911,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_invalid_timesta
         [
             sys.executable,
             str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
-            str(index_path),
+            _repo_relative_path(index_path),
         ],
         cwd=ROOT,
         check=False,
@@ -4861,7 +4940,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_malformed_bundl
     closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
         tmp_path
     )
-    output_root = tmp_path / "bundle"
+    output_root = _release_bundle_output_root(tmp_path)
     subprocess.run(
         [
             sys.executable,
@@ -4897,7 +4976,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_malformed_bundl
         [
             sys.executable,
             str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
-            str(output_root / "bundle_index.json"),
+            _repo_relative_path(output_root / "bundle_index.json"),
         ],
         cwd=ROOT,
         check=False,
@@ -4920,7 +4999,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_invalid_gate_co
     closeout_path, gate_path, readiness_path = _write_static_release_bundle_inputs(
         tmp_path
     )
-    output_root = tmp_path / "bundle"
+    output_root = _release_bundle_output_root(tmp_path)
     subprocess.run(
         [
             sys.executable,
@@ -4948,7 +5027,7 @@ def test_dynamic_godot_release_evidence_bundle_validator_rejects_invalid_gate_co
         [
             sys.executable,
             str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
-            str(output_root / "bundle_index.json"),
+            _repo_relative_path(output_root / "bundle_index.json"),
         ],
         cwd=ROOT,
         check=False,
@@ -4998,7 +5077,7 @@ def test_dynamic_godot_release_evidence_bundle_validates_live_smoke(
         ),
         encoding="utf-8",
     )
-    output_root = tmp_path / "bundle"
+    output_root = _release_bundle_output_root(tmp_path)
     result = subprocess.run(
         [
             sys.executable,
@@ -5034,7 +5113,7 @@ def test_dynamic_godot_release_evidence_bundle_validates_live_smoke(
         [
             sys.executable,
             str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
-            str(output_root / "bundle_index.json"),
+            _repo_relative_path(output_root / "bundle_index.json"),
         ],
         cwd=ROOT,
         check=False,
@@ -5138,7 +5217,7 @@ def test_dynamic_godot_release_evidence_bundle_validates_web_delivery_record(
         ),
         encoding="utf-8",
     )
-    output_root = tmp_path / "bundle"
+    output_root = _release_bundle_output_root(tmp_path)
     result = subprocess.run(
         [
             sys.executable,
@@ -5175,7 +5254,7 @@ def test_dynamic_godot_release_evidence_bundle_validates_web_delivery_record(
         [
             sys.executable,
             str(RELEASE_EVIDENCE_BUNDLE_VALIDATOR_TOOL),
-            str(output_root / "bundle_index.json"),
+            _repo_relative_path(output_root / "bundle_index.json"),
         ],
         cwd=ROOT,
         check=False,

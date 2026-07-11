@@ -1072,6 +1072,10 @@ python tools/build_dynamic_godot_release_evidence_bundle.py --static-closeout te
 python tools/validate_dynamic_godot_release_evidence_bundle.py test_env/dynamic_godot_release_evidence_bundle/bundle_index.json --output test_env/dynamic_godot_release_evidence_bundle/bundle_validation.json
 ```
 
+Pass the bundle index to the validator as a repository-relative path. Absolute
+paths and parent-directory traversal are rejected before the index is read, and
+the validation artifact records `bundle_index_path_status` for diagnosis.
+
 The bundle index uses `dynamic_godot_release_evidence_bundle.v1`. It copies the
 static closeout, delivery gate, readiness summary, optional live smoke, optional
 Web delivery record, and documentation index entries into one directory. Each

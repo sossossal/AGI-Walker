@@ -58,6 +58,67 @@ REQUIRED_DOC_ROLES = (
 )
 
 
+def _path_status(
+    *,
+    raw_path: str,
+    status: str,
+    reason: str | None = None,
+) -> dict[str, str]:
+    result = {"path": raw_path, "status": status}
+    if reason is not None:
+        result["reason"] = reason
+    return result
+
+
+def _resolve_repo_relative_input(raw_path: Path) -> tuple[Path | None, dict[str, str]]:
+    raw_text = str(raw_path)
+    if not raw_text.strip():
+        return None, _path_status(
+            raw_path=raw_text,
+            status="rejected",
+            reason="bundle_index must be a non-empty repository-relative path",
+        )
+    if any(part == ".." for part in raw_text.replace("\\", "/").split("/")):
+        return None, _path_status(
+            raw_path=raw_text,
+            status="rejected",
+            reason="bundle_index must stay within repository root",
+        )
+    if raw_path.is_absolute():
+        return None, _path_status(
+            raw_path=raw_text,
+            status="rejected",
+            reason="bundle_index must be repository-relative",
+        )
+    resolved_root = ROOT.resolve()
+    resolved_path = (resolved_root / raw_path).resolve()
+    if not resolved_path.is_relative_to(resolved_root):
+        return None, _path_status(
+            raw_path=raw_text,
+            status="rejected",
+            reason="bundle_index must stay within repository root",
+        )
+    return resolved_path, _path_status(raw_path=raw_text, status="accepted")
+
+
+def _invalid_path_report(raw_path: Path, path_status: dict[str, str]) -> dict[str, Any]:
+    reason = path_status.get("reason") or "bundle_index path was rejected"
+    return {
+        "validation_version": VALIDATION_VERSION,
+        "artifact_type": "dynamic_godot_release_evidence_bundle_validation",
+        "status": "invalid",
+        "bundle_index": str(raw_path),
+        "bundle_index_path_status": path_status,
+        "bundle_root": "",
+        "artifact_count": 0,
+        "documentation_count": 0,
+        "required_artifacts": list(REQUIRED_ARTIFACT_KEYS),
+        "required_documentation_roles": list(REQUIRED_DOC_ROLES),
+        "evidence_level": None,
+        "errors": [reason],
+    }
+
+
 def read_json_object(path: Path) -> tuple[dict[str, Any], str | None]:
     if not path.exists():
         return {}, "file does not exist"
@@ -657,6 +718,14 @@ def validate_bundle_index(
         "artifact_type": "dynamic_godot_release_evidence_bundle_validation",
         "status": "ready" if not errors else "invalid",
         "bundle_index": str(index_path),
+        "bundle_index_path_status": _path_status(
+            raw_path=str(index_path),
+            status="not_checked",
+            reason=(
+                "validate_bundle_index accepts caller-resolved paths; CLI enforces "
+                "repository-relative input"
+            ),
+        ),
         "bundle_root": str(bundle_root),
         "artifact_count": len(artifact_entries),
         "documentation_count": len(doc_entries),
@@ -680,7 +749,12 @@ def main() -> int:
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
-    report = validate_bundle_index(args.bundle_index)
+    index_path, path_status = _resolve_repo_relative_input(args.bundle_index)
+    if index_path is None:
+        report = _invalid_path_report(args.bundle_index, path_status)
+    else:
+        report = validate_bundle_index(index_path)
+        report["bundle_index_path_status"] = path_status
     if args.output:
         _write_json(args.output.resolve(), report)
     print(json.dumps(report, indent=2, ensure_ascii=False))
