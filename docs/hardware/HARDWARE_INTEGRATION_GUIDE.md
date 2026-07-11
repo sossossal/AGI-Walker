@@ -446,6 +446,8 @@ CI 或 release 脚本应使用专用校验器，而不是手写 JSON 判断：
 python tools/validate_hardwareless_release_gate.py test_env/hardwareless_acceptance/hardwareless_acceptance_report.json
 ```
 
+校验器的 report 参数必须是仓库相对路径，不能使用绝对路径或 `..`；非法路径不会被读取，并会在输出 artifact 的 `report_path_status` 中记录原因。
+
 需要归档校验结果时：
 
 ```bash

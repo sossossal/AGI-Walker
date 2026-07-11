@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_SCHEMA_VERSION = "hardwareless_acceptance_report.v1"
 
 
@@ -19,8 +20,41 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _load_report(path: str | Path) -> dict[str, Any]:
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+def _text(value: Any) -> str:
+    return value.strip() if isinstance(value, str) else ""
+
+
+def _resolve_report_path(value: str | Path) -> tuple[bool, Path | None, str | None]:
+    text = _text(str(value))
+    if not text:
+        return False, None, "empty"
+    path = Path(text)
+    if path.is_absolute():
+        return False, None, "absolute"
+    if ".." in path.parts:
+        return False, None, "parent_directory"
+    return True, PROJECT_ROOT / path, None
+
+
+def _report_path_status(value: str | Path) -> dict[str, Any]:
+    valid, resolved_path, error = _resolve_report_path(value)
+    return {
+        "path": _text(str(value)),
+        "path_valid": valid,
+        "path_error": error,
+        "resolved_path": str(resolved_path) if resolved_path is not None else None,
+        "exists": bool(resolved_path and resolved_path.exists()),
+    }
+
+
+def _load_report(path_status: dict[str, Any]) -> dict[str, Any] | None:
+    if (
+        not path_status["path_valid"]
+        or not path_status["exists"]
+        or not path_status["resolved_path"]
+    ):
+        return None
+    return json.loads(Path(path_status["resolved_path"]).read_text(encoding="utf-8"))
 
 
 def validate_hardwareless_release_gate(
@@ -49,17 +83,24 @@ def validate_hardwareless_release_gate(
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv)
-    report = _load_report(args.report)
-    errors = validate_hardwareless_release_gate(
-        report,
-        expected_status=args.expect_status,
-    )
+    report_path_status = _report_path_status(args.report)
+    report = _load_report(report_path_status)
+    if report is None:
+        errors = [
+            "report path must be repository-relative, must not traverse outside the repository, and must exist"
+        ]
+    else:
+        errors = validate_hardwareless_release_gate(
+            report,
+            expected_status=args.expect_status,
+        )
     result = {
         "status": "success" if not errors else "failed",
         "report": args.report,
+        "report_path_status": report_path_status,
         "expected_status": args.expect_status,
         "actual_status": (report.get("release_gate") or {}).get("status")
-        if isinstance(report.get("release_gate"), dict)
+        if isinstance(report, dict) and isinstance(report.get("release_gate"), dict)
         else None,
         "errors": errors,
     }
