@@ -154,7 +154,7 @@ AGI-Walker 当前可用的主入口已经恢复到可读、可执行、可验证
 - External Mainline Execution Plan：`python tools/build_external_mainline_execution_plan.py --output test_env/release_evidence/operations/external_mainline_execution_plan.json`
 - External Mainline Input Checklist：`python tools/build_external_mainline_input_checklist.py --output test_env/release_evidence/operations/external_mainline_input_checklist_report.json`
 - External Mainline Inputs Builder：`python tools/build_external_mainline_inputs.py --output deployment/external_mainline.inputs.json`
-- External Mainline Runner：`python tools/run_external_mainline_execution_plan.py --output test_env/release_evidence/operations/external_mainline_execution_plan.json`
+- External Mainline Runner：`python tools/run_external_mainline_execution_plan.py --output test_env/release_evidence/operations/external_mainline_execution_plan.json`；runner 的本地 artifact/report 参数必须保持 project-root-relative，`--project-root` 才是允许使用绝对路径的受信根。
 - External Mainline Inputs Template：`deployment/external_mainline.inputs.example.json`
 - 已有 stable manifest 反哺预检：`python tools/check_release_readiness.py --approval-manifest test_env/release/release_manifest_stable.json`
 - 已有 stable manifest 反哺 checklist：`python tools/build_stable_promotion_checklist.py --approval-manifest test_env/release/release_manifest_stable.json`

@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from agi_walker.core.api.release_contracts import (
     build_release_evidence_report,
     write_release_evidence_report,
@@ -156,6 +158,85 @@ def test_execute_external_mainline_execution_requires_industrial_refresh_metadat
         )
     else:
         raise AssertionError("expected ValueError for missing industrial rehearsal metadata")
+
+
+def test_execute_external_mainline_execution_rejects_absolute_inputs_file(
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "project_root"
+    project_root.mkdir(parents=True, exist_ok=True)
+
+    request = ExternalMainlineExecutionRequest(
+        project_root=str(project_root),
+        inputs_file=str(tmp_path / "outside_inputs.json"),
+        skip_managed_inputs=False,
+        output="test_env/release_evidence/operations/external_mainline_execution_plan.json",
+        external_mainline_input_checklist_report=(
+            "test_env/release_evidence/operations/"
+            "external_mainline_input_checklist_report.json"
+        ),
+        customer_config="deployment/customer_delivery.external_bindings.customer.json",
+        customer_external_bindings_closure_report=(
+            "test_env/release_evidence/operations/"
+            "customer_external_bindings_closure_report.json"
+        ),
+        vulnerability_exception_review_report=(
+            "test_env/release_evidence/security/"
+            "vulnerability_exception_review_report.json"
+        ),
+        industrial_delivery_rehearsal_report=(
+            "test_env/release_rehearsal_industrial/"
+            "industrial_delivery_rehearsal_report.json"
+        ),
+        skip_customer_external_bindings_closure=True,
+    )
+
+    with pytest.raises(ValueError, match="--inputs-file must be project-relative"):
+        execute_external_mainline_execution(
+            request,
+            run_command=lambda command: 0,
+            python_executable="python",
+        )
+
+
+def test_execute_external_mainline_execution_rejects_parent_output_path(
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "project_root"
+    project_root.mkdir(parents=True, exist_ok=True)
+
+    request = ExternalMainlineExecutionRequest(
+        project_root=str(project_root),
+        inputs_file=None,
+        skip_managed_inputs=True,
+        output="../external_mainline_execution_plan.json",
+        external_mainline_input_checklist_report=(
+            "test_env/release_evidence/operations/"
+            "external_mainline_input_checklist_report.json"
+        ),
+        customer_config="deployment/customer_delivery.external_bindings.customer.json",
+        customer_external_bindings_closure_report=(
+            "test_env/release_evidence/operations/"
+            "customer_external_bindings_closure_report.json"
+        ),
+        vulnerability_exception_review_report=(
+            "test_env/release_evidence/security/"
+            "vulnerability_exception_review_report.json"
+        ),
+        industrial_delivery_rehearsal_report=(
+            "test_env/release_rehearsal_industrial/"
+            "industrial_delivery_rehearsal_report.json"
+        ),
+        skip_vulnerability_exception_review_refresh=True,
+        skip_customer_external_bindings_closure=True,
+    )
+
+    with pytest.raises(ValueError, match="--output must stay within the project root"):
+        execute_external_mainline_execution(
+            request,
+            run_command=lambda command: 0,
+            python_executable="python",
+        )
 
 
 def test_execute_external_mainline_execution_tracks_managed_inputs_bootstrap(
