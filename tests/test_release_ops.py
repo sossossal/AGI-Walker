@@ -314,44 +314,30 @@ def test_execute_release_op_rewrites_external_mainline_plan_with_control_plane_m
             action="external_mainline_execution",
             request={
                 "project_root": str(project_root),
-                "inputs_file": str(request_file),
+                "inputs_file": "deployment/external_mainline.inputs.json",
                 "skip_managed_inputs": True,
                 "skip_customer_external_bindings_closure": True,
                 "skip_vulnerability_exception_review_refresh": True,
-                "output": str(
-                    project_root
-                    / "test_env"
-                    / "release_evidence"
-                    / "operations"
-                    / "external_mainline_execution_plan.json"
+                "output": (
+                    "test_env/release_evidence/operations/"
+                    "external_mainline_execution_plan.json"
                 ),
-                "external_mainline_input_checklist_report": str(
-                    project_root
-                    / "test_env"
-                    / "release_evidence"
-                    / "operations"
-                    / "external_mainline_input_checklist_report.json"
+                "external_mainline_input_checklist_report": (
+                    "test_env/release_evidence/operations/"
+                    "external_mainline_input_checklist_report.json"
                 ),
                 "customer_config": "deployment/customer_delivery.external_bindings.customer.json",
-                "customer_external_bindings_closure_report": str(
-                    project_root
-                    / "test_env"
-                    / "release_evidence"
-                    / "operations"
-                    / "customer_external_bindings_closure_report.json"
+                "customer_external_bindings_closure_report": (
+                    "test_env/release_evidence/operations/"
+                    "customer_external_bindings_closure_report.json"
                 ),
-                "vulnerability_exception_review_report": str(
-                    project_root
-                    / "test_env"
-                    / "release_evidence"
-                    / "security"
-                    / "vulnerability_exception_review_report.json"
+                "vulnerability_exception_review_report": (
+                    "test_env/release_evidence/security/"
+                    "vulnerability_exception_review_report.json"
                 ),
-                "industrial_delivery_rehearsal_report": str(
-                    project_root
-                    / "test_env"
-                    / "release_rehearsal_industrial"
-                    / "industrial_delivery_rehearsal_report.json"
+                "industrial_delivery_rehearsal_report": (
+                    "test_env/release_rehearsal_industrial/"
+                    "industrial_delivery_rehearsal_report.json"
                 ),
             },
             policy_profile="requires_attestation",

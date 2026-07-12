@@ -445,7 +445,7 @@ def test_run_external_mainline_execution_plan_refreshes_review_and_writes_plan(
             "--project-root",
             str(project_root),
             "--output",
-            str(output_path),
+            "test_env/release_evidence/operations/external_mainline_execution_plan.json",
             "--skip-customer-external-bindings-closure",
             "--industrial-delivery-rehearsal-report",
             "test_env/release_rehearsal_industrial/industrial_delivery_rehearsal_report.json",
@@ -533,7 +533,7 @@ def test_run_external_mainline_execution_plan_skip_managed_inputs_preserves_lega
             "--project-root",
             str(project_root),
             "--output",
-            str(output_path),
+            "test_env/release_evidence/operations/external_mainline_execution_plan.json",
             "--skip-managed-inputs",
         ],
         cwd=str(PROJECT_ROOT),
@@ -551,6 +551,35 @@ def test_run_external_mainline_execution_plan_skip_managed_inputs_preserves_lega
     payload = json.loads(output_path.read_text(encoding="utf-8"))
     steps = {item["id"]: item for item in payload["steps"]}
     assert steps["customer_external_bindings_closure"]["status"] == "waiting_external_input"
+
+
+def test_run_external_mainline_execution_plan_rejects_absolute_inputs_file(
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "project_root"
+    project_root.mkdir(parents=True, exist_ok=True)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "tools/run_external_mainline_execution_plan.py",
+            "--project-root",
+            str(project_root),
+            "--output",
+            "test_env/release_evidence/operations/external_mainline_execution_plan.json",
+            "--inputs-file",
+            str(tmp_path / "outside_inputs.json"),
+        ],
+        cwd=str(PROJECT_ROOT),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert "--inputs-file must be project-relative" in result.stderr
 
 
 def test_run_external_mainline_execution_plan_supports_inputs_file(
@@ -670,7 +699,7 @@ def test_run_external_mainline_execution_plan_supports_inputs_file(
             "--project-root",
             str(project_root),
             "--output",
-            str(output_path),
+            "test_env/release_evidence/operations/external_mainline_execution_plan.json",
             "--inputs-file",
             "deployment/external_mainline.inputs.json",
         ],
@@ -753,7 +782,7 @@ def test_run_external_mainline_execution_plan_bootstraps_missing_inputs_file(
             "--project-root",
             str(project_root),
             "--output",
-            str(output_path),
+            "test_env/release_evidence/operations/external_mainline_execution_plan.json",
             "--inputs-file",
             "deployment/external_mainline.inputs.json",
         ],
@@ -832,7 +861,7 @@ def test_run_external_mainline_execution_plan_refreshes_default_managed_inputs_f
             "--project-root",
             str(project_root),
             "--output",
-            str(output_path),
+            "test_env/release_evidence/operations/external_mainline_execution_plan.json",
             "--inputs-file",
             "deployment/external_mainline.inputs.json",
         ],
@@ -960,7 +989,7 @@ def test_run_external_mainline_execution_plan_ignores_placeholder_confirmation_v
             "--project-root",
             str(project_root),
             "--output",
-            str(output_path),
+            "test_env/release_evidence/operations/external_mainline_execution_plan.json",
             "--inputs-file",
             "deployment/external_mainline.inputs.json",
         ],

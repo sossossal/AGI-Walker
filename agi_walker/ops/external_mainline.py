@@ -28,11 +28,70 @@ from agi_walker.core.api.release_ops_contracts import (
 CommandRunner = Callable[[list[str]], int]
 
 
-def _resolve_project_path(path: str | Path, project_root: str | Path) -> Path:
-    candidate = Path(path)
+def _validate_project_relative_path(path: str | Path, *, field_name: str) -> Path:
+    raw_path = str(path).strip()
+    if not raw_path:
+        raise ValueError(f"{field_name} must be a non-empty project-relative path")
+    candidate = Path(raw_path)
     if candidate.is_absolute():
-        return candidate
-    return Path(project_root) / candidate
+        raise ValueError(f"{field_name} must be project-relative")
+    if any(part == ".." for part in raw_path.replace("\\", "/").split("/")):
+        raise ValueError(f"{field_name} must stay within the project root")
+    return candidate
+
+
+def _resolve_project_path(
+    path: str | Path,
+    project_root: str | Path,
+    *,
+    field_name: str = "path",
+) -> Path:
+    project_root_path = Path(project_root).resolve()
+    candidate = _validate_project_relative_path(path, field_name=field_name)
+    resolved_path = (project_root_path / candidate).resolve()
+    if not resolved_path.is_relative_to(project_root_path):
+        raise ValueError(f"{field_name} must stay within the project root")
+    return resolved_path
+
+
+def _validate_local_request_paths(request: ExternalMainlineExecutionRequest) -> None:
+    path_fields = [
+        ("--output", request.output),
+        (
+            "--external-mainline-input-checklist-report",
+            request.external_mainline_input_checklist_report,
+        ),
+        ("--customer-config", request.customer_config),
+        (
+            "--customer-external-bindings-closure-report",
+            request.customer_external_bindings_closure_report,
+        ),
+        (
+            "--vulnerability-exception-review-report",
+            request.vulnerability_exception_review_report,
+        ),
+        (
+            "--industrial-delivery-rehearsal-report",
+            request.industrial_delivery_rehearsal_report,
+        ),
+    ]
+    if request.refresh_industrial_rehearsal:
+        path_fields.append(
+            (
+                "--industrial-rehearsal-output-root",
+                request.industrial_rehearsal_output_root,
+            )
+        )
+    if not request.skip_managed_inputs:
+        path_fields.append(("--inputs-file", request.inputs_file))
+    if request.customer_overrides_file:
+        path_fields.append(
+            ("--customer-overrides-file", request.customer_overrides_file)
+        )
+    for field_name, path in path_fields:
+        if path is None:
+            raise ValueError(f"{field_name} must be set")
+        _resolve_project_path(path, request.project_root, field_name=field_name)
 
 
 def _is_non_empty_string(value: object) -> bool:
@@ -64,7 +123,11 @@ def _coerce_string_list(value: object) -> list[str]:
 def _load_inputs_file(
     path: str | Path, *, project_root: str | Path
 ) -> dict[str, object]:
-    resolved_path = _resolve_project_path(path, project_root)
+    resolved_path = _resolve_project_path(
+        path,
+        project_root,
+        field_name="--inputs-file",
+    )
     try:
         payload = json.loads(resolved_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
@@ -83,6 +146,7 @@ def _is_default_managed_inputs_path(
     default_inputs_path = _resolve_project_path(
         default_external_mainline_inputs_path(),
         request.project_root,
+        field_name="default inputs file",
     )
     return resolved_inputs_path == default_inputs_path
 
@@ -98,7 +162,9 @@ def _synchronize_inputs_file(
             "--inputs-file must be set unless --skip-managed-inputs is used"
         )
     resolved_inputs_path = _resolve_project_path(
-        request.inputs_file, request.project_root
+        request.inputs_file,
+        request.project_root,
+        field_name="--inputs-file",
     )
     had_existing_file = resolved_inputs_path.is_file()
     if had_existing_file and not _is_default_managed_inputs_path(
@@ -147,7 +213,7 @@ def _apply_inputs_file(
         run_command=run_command,
         python_executable=python_executable,
     )
-    payload = _load_inputs_file(resolved_inputs_path, project_root=request.project_root)
+    payload = _load_inputs_file(request.inputs_file, project_root=request.project_root)
 
     customer = payload.get("customer_external_bindings")
     if isinstance(customer, Mapping):
@@ -264,7 +330,8 @@ def _apply_inputs_file(
                 industrial.get("build_id")
             ).strip()
         if (
-            request.industrial_rehearsal_output_root
+            request.refresh_industrial_rehearsal is True
+            and request.industrial_rehearsal_output_root
             == "test_env/release_rehearsal_industrial"
             and _is_non_empty_string(industrial.get("output_root"))
         ):
@@ -285,6 +352,7 @@ def execute_external_mainline_execution(
     run_command: CommandRunner,
     python_executable: str,
 ) -> ExternalMainlineExecutionResult:
+    _validate_local_request_paths(request)
     resolved_inputs_path = None
     managed_inputs_sync_status = None
     if not request.skip_managed_inputs:
@@ -293,6 +361,7 @@ def execute_external_mainline_execution(
             run_command=run_command,
             python_executable=python_executable,
         )
+    _validate_local_request_paths(request)
 
     failures: list[str] = []
     executed_steps: list[str] = []
@@ -396,8 +465,14 @@ def execute_external_mainline_execution(
         industrial_delivery_rehearsal_report_path=request.industrial_delivery_rehearsal_report,
         industrial_live_evidence_inputs=request.industrial_live_evidence_inputs,
     )
+    resolved_output_path = _resolve_project_path(
+        request.output,
+        request.project_root,
+        field_name="--output",
+    )
     output_path = write_external_mainline_execution_plan_artifact(
-        payload, request.output
+        payload,
+        resolved_output_path,
     )
     checklist_payload = build_external_mainline_input_checklist_report(
         project_root=request.project_root,
@@ -410,6 +485,7 @@ def execute_external_mainline_execution(
         _resolve_project_path(
             request.external_mainline_input_checklist_report,
             request.project_root,
+            field_name="--external-mainline-input-checklist-report",
         ),
     )
     industrial_step = next(
