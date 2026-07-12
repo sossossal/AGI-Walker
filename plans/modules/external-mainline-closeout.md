@@ -32,3 +32,5 @@ Harden the external-mainline orchestration service so local artifacts, managed i
 ## Status
 
 - 2026-07-12: Planned path-boundary hardening for external-mainline managed inputs and local artifacts.
+- 2026-07-12: Complete. PR #50 merged into `main` as `44a6b24`; CI passed quality, smoke, security-preflight, next-stage-readiness, static Godot node-tree manifest, integration, Run Godot Tests, and Ubuntu/Windows Python 3.10/3.11 test jobs.
+- 2026-07-12: Current next-stage readiness remains intentionally `blocked` with `validation_errors=0`, `external_input:8`, and `code_or_config:0`; remaining blockers require real hardware, ROS2/customer/operator/browser evidence rather than local code/config changes.

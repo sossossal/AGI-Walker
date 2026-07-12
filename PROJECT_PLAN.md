@@ -60,7 +60,7 @@ Out of scope:
 | hardwareless-acceptance | `plans/modules/hardwareless-acceptance.md` | No-hardware acceptance report that preserves substitute evidence and explicit external blockers | Hardware replay/mock tests, ROS2 fake runtime, live Godot readiness, production compose smoke | complete |
 | repository-presentation | `plans/modules/repository-presentation.md` | GitHub-facing README, docs index and repository tree guidance | Existing docs, plans, source layout | complete |
 | security-release-preflight | `plans/modules/security-release-preflight.md` | Security release preflight scanner execution, vulnerability exception matching and release-blocker classification | Security posture contracts, scanner wrappers, deployment exceptions, CI | complete |
-| external-mainline-closeout | `plans/modules/external-mainline-closeout.md` | External-mainline managed-input orchestration, execution plan/checklist handoff, and project-root path boundaries | Release ops, customer bindings, security preflight, industrial live evidence | active |
+| external-mainline-closeout | `plans/modules/external-mainline-closeout.md` | External-mainline managed-input orchestration, execution plan/checklist handoff, and project-root path boundaries | Release ops, customer bindings, security preflight, industrial live evidence | complete |
 
 # Interfaces and Contracts
 
@@ -276,6 +276,7 @@ Phase 2 validation expands this set with module-specific checks:
 - 2026-07-08: Approved next-stage readiness self-validation contract: `next_stage_readiness_report.v1` includes `validation_errors` and validates summary counts, blocker/detail/action ordering, generated timestamp and Git metadata shape before a ready report can exit successfully.
 - 2026-07-08: Approved next-stage readiness CLI observability: `tools/build_next_stage_readiness_report.py` prints status, validation error count, action scope counts and Git provenance summary to stdout so CI logs expose the blocker class without opening the JSON artifact.
 - 2026-07-12: Approved external-mainline path boundary hardening: managed inputs, execution plan/checklist outputs, local report inputs and local override files must stay project-root-relative; real customer/industrial live evidence remains external input and is not converted into a local code/config blocker.
+- 2026-07-12: Closed external-mainline path boundary module after PR #50 merged with quality, smoke, security-preflight, next-stage readiness, static manifest, integration, Godot and OS/Python test matrix checks passing.
 - 2026-07-08: Approved next-stage readiness expected-status mode: `--expected-status blocked` lets CI/local jobs archive a self-validating blocked snapshot with exit 0, while the default and `--expected-status ready` continue to fail until all required external evidence is ready.
 - 2026-07-08: Approved next-stage readiness CI artifact collection: CI now uploads `next-stage-readiness-artifacts` by running the default ready gate first and falling back to `--expected-status blocked` only for auditable blocked evidence retention.
 - 2026-07-08: Approved next-stage readiness CI provenance fallback: detached GitHub Actions checkouts now populate readiness `git.branch` and `git.commit_sha` from `GITHUB_HEAD_REF`/`GITHUB_REF_NAME` and `GITHUB_SHA` when normal Git branch discovery is empty.
